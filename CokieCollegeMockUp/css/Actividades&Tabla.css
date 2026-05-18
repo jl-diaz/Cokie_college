@@ -1,0 +1,327 @@
+:root {
+    --azul-fuerte: #0B1957;
+    --azul-brillante: #426bc2;
+    --bg-gris: #F8F9FE;
+    --texto-suave: #8E96AF;
+    --blanco: #ffffff;
+}
+
+a{
+    text-decoration: none;
+}
+.panel-actividades {
+    width: 95%;
+    max-width: 1000px; 
+    margin: 0 auto;
+    padding: 10px;
+    gap: 20px;
+}
+
+.SalirBoton img{
+      width: 20px;
+      height: auto;
+
+    }
+
+.header-seccion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.titulo-seccion {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+/* Cambiamos el scroll horizontal por un contenedor de bloques vertical */
+.contenedor-actividades {
+    display: flex;
+    flex-direction: column; /* Alineación vertical */
+    width: 100%;
+}
+
+.tarjeta-evaluacion {
+    width: 100%;           
+    background: var(--white);
+    border: 1.5px solid rgba(11, 25, 87, 0.08);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-bottom: 20px;
+}
+
+.tarjeta-evaluacion.activa {
+    border-color: var(--blue);
+    background-color: #f9fbff;
+    box-shadow: 0 4px 15px rgba(66, 107, 194, 0.1);
+}
+
+.tag-superior {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.categoria {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+    text-transform: uppercase;
+}
+
+.estado-seleccion {
+    font-size: 10px;
+    background: var(--good-bg);
+    color: var(--good);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.nombre-actividad {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--navy);
+}
+
+.info-inferior {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.caja-ponderacion {
+    background: #F1F5F9;
+    padding: 10px 18px;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.label-ponderacion {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.valor-ponderacion {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.icono-tipo {
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.icono-tipo img{
+    width: 50px;
+}
+
+/* Ajuste responsivo para tablets/pc */
+@media(min-width: 960px){
+    .panel-actividades {
+        margin-top: 20px;
+    }
+}
+
+
+/* ══ VARIABLES Y RESET ══ */
+:root {
+    --navy: #0B1957;
+    --blue: #426bc2;
+    --bg: #F5F7FA;
+    --white: #ffffff;
+    --muted: #8a94b2;
+    --good: #2ecc71;
+    --radius: 16px;
+    --font: 'Poppins', sans-serif;
+}
+
+/* ══ CONTENEDOR DE LA TABLA (PARA QUE SE VEA UNIDA Y CENTRADA) ══ */
+.container-tabla {
+    width: 100%;
+    max-width: 850px; /* Controla que no se estire demasiado */
+    margin: 20px auto; /* Centra el bloque horizontalmente */
+    padding: 0 15px;
+}
+
+.grade-header{
+    padding: 20px;
+}
+/* ══ ESTILO DE LA TABLA (BASADO EN IMAGEN DE REFERENCIA) ══ */
+.attendance-table {
+    background: var(--white);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(11, 25, 87, 0.08);
+    width: 100%;
+}
+
+/* Distribución de columnas: Código, Nombre, Nota */
+.table-header, .student-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 90px; 
+    align-items: center;
+    gap: 15px;
+    padding: 14px 25px; /* Padding interno para que se vea espaciosa pero unida */
+}
+
+/* Cabecera Azul Marino */
+.table-header {
+    background: var(--navy);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Filas de estudiantes */
+.student-row {
+    border-bottom: 1px solid rgba(11, 25, 87, 0.05);
+    background: var(--white);
+    transition: background 0.2s;
+}
+
+.student-row:hover {
+    background: #fcfdfe;
+}
+
+.student-row:last-child {
+    border-bottom: none;
+}
+
+/* Estilos de texto de celdas */
+.col-carnet {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.col-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+}
+
+/* ══ ESTILO DE LOS INPUTS DE NOTA ══ */
+.col-grade {
+    display: flex;
+    justify-content: center;
+}
+
+.col-grade input {
+    width: 100%;
+    max-width: 70px;
+    border: 1px solid #e1e4e8;
+    padding: 8px;
+    border-radius: 10px;
+    text-align: center;
+    font-family: var(--font);
+    font-weight: 700;
+    color: var(--blue);
+    background: #f9fbff;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.col-grade input:focus {
+    border-color: var(--blue);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(66, 107, 194, 0.1);
+}
+
+/* ══ SECCION DE ACCIONES Y BOTÓN DE GUARDADO ══ */
+.actions {
+    margin-top: 35px;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 50px;
+}
+
+.btn-save {
+    background: var(--navy);
+    color: white;
+    border: none;
+    padding: 16px 55px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 240px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(11, 25, 87, 0.15);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(11, 25, 87, 0.2);
+}
+
+.btn-save:active {
+    transform: scale(0.96);
+}
+
+/* Elementos de la animación */
+.btn-content {
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.success-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 22px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.5);
+    color: white;
+}
+
+/* Clase que activa la animación (disparada por JS) */
+.btn-save.saving {
+    background: var(--good);
+    width: 60px;
+    min-width: 60px;
+    padding: 0;
+}
+
+.btn-save.saving .btn-content {
+    opacity: 0;
+    transform: scale(0);
+}
+
+.btn-save.saving .success-icon {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* ══ AJUSTES RESPONSIVE ══ */
+@media (max-width: 600px) {
+    .table-header, .student-row {
+        grid-template-columns: 80px 1fr 70px;
+        padding: 12px 15px;
+        gap: 10px;
+    }
+    .col-carnet, .col-name { font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+    .table-header div:first-child, .col-carnet {
+        display: none; /* Oculta carnet en móvil para no amontonar */
+    }
+    .table-header, .student-row {
+        grid-template-columns: 1fr 70px;
+    }
+}

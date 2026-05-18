@@ -1,0 +1,212 @@
+  .periodo-page {
+        min-height: calc(100vh - 62px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px 48px;
+      }
+        .SalirBoton img{
+      width: 20px;
+      height: auto;
+
+    }
+ 
+      .periodo-inner {
+        width: 100%;
+        max-width: 420px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+ 
+      /* ══ IMAGEN ══ */
+      .periodo-img {
+        width: 180px;
+        height: 180px;
+        object-fit: contain;
+        margin-bottom: 4px;
+        animation: floatImg 3.5s ease-in-out infinite;
+        filter: drop-shadow(0 8px 18px rgba(11,25,87,.12));
+      }
+      @keyframes floatImg {
+        0%, 100% { transform: translateY(0); }
+        50%       { transform: translateY(-8px); }
+      }
+ 
+      /* ══ TEXTOS ══ */
+      .periodo-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0B1957;
+        text-align: center;
+        margin-bottom: 6px;
+        font-family: 'Poppins', sans-serif;
+      }
+      .periodo-sub {
+        font-size: 12px;
+        color: #8a94b2;
+        text-align: center;
+        margin-bottom: 28px;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.5;
+      }
+ 
+      /* ══ GRID DE CARDS ══ */
+      .periodo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        width: 100%;
+      }
+ 
+      /* ══ CARD PERIODO ══ */
+      .periodo-card {
+        background: #ffffff;
+        border: 2px solid transparent;
+        border-radius: 18px;
+        padding: 20px 16px 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        box-shadow:
+          0 2px 6px rgba(11,25,87,.06),
+          0 6px 18px rgba(11,25,87,.08);
+        transition:
+          transform .22s cubic-bezier(.22,1,.36,1),
+          box-shadow .22s cubic-bezier(.22,1,.36,1),
+          border-color .22s;
+        animation: cardIn .4s ease both;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+ 
+      .periodo-card:nth-child(1) { animation-delay: .06s; }
+      .periodo-card:nth-child(2) { animation-delay: .12s; }
+      .periodo-card:nth-child(3) { animation-delay: .18s; }
+      .periodo-card:nth-child(4) { animation-delay: .24s; }
+ 
+      @keyframes cardIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+ 
+      .periodo-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow:
+          0 4px 10px rgba(11,25,87,.08),
+          0 12px 28px rgba(11,25,87,.14);
+      }
+ 
+      .periodo-card:active {
+        transform: scale(.96);
+      }
+ 
+      /* Estado seleccionado */
+      .periodo-card.selected {
+        border-color: #426bc2;
+        background: linear-gradient(145deg, #eef3fd, #f5f0fb);
+        box-shadow:
+          0 4px 12px rgba(66,107,194,.18),
+          0 12px 30px rgba(66,107,194,.14);
+        transform: translateY(-4px) scale(1.02);
+      }
+ 
+      /* Check de selección */
+      .periodo-card .check {
+        position: absolute;
+        top: 10px; right: 10px;
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        background: #426bc2;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; color: #fff;
+        opacity: 0;
+        transform: scale(.5);
+        transition: opacity .2s, transform .2s cubic-bezier(.22,1,.36,1);
+      }
+      .periodo-card.selected .check {
+        opacity: 1;
+        transform: scale(1);
+      }
+ 
+      /* Ícono del periodo */
+      .periodo-icon {
+        width: 52px; height: 52px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px;
+        transition: transform .2s;
+      }
+      .periodo-card:hover .periodo-icon,
+      .periodo-card.selected .periodo-icon {
+        transform: scale(1.1);
+      }
+ 
+      /* Colores por periodo */
+      .periodo-card:nth-child(1) .periodo-icon { background: #C8D8F8; }
+      .periodo-card:nth-child(2) .periodo-icon { background: #DCC8E8; }
+      .periodo-card:nth-child(3) .periodo-icon { background: #C5E8D5; }
+      .periodo-card:nth-child(4) .periodo-icon { background: #FAE3B4; }
+ 
+      .periodo-num {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0B1957;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1;
+      }
+      .periodo-fecha {
+        font-size: 10px;
+        color: #8a94b2;
+        font-family: 'Poppins', sans-serif;
+        text-align: center;
+        line-height: 1.4;
+      }
+      .periodo-estado {
+        font-size: 9.5px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-family: 'Poppins', sans-serif;
+        margin-top: 2px;
+      }
+      .estado-activo  { background: #eafaf1; color: #1a7a45; }
+      .estado-cerrado { background: #f0f1f7; color: #8a94b2; }
+      .estado-previo  { background: #fef9ec; color: #7a5c10; }
+ 
+      /* ══ BOTÓN ══ */
+      .btn-continuar {
+        margin-top: 24px;
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #0B1957, #426bc2);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        letter-spacing: .3px;
+        box-shadow: 0 6px 20px rgba(66,107,194,.3);
+        transition: transform .18s, box-shadow .18s, opacity .18s;
+        opacity: .45;
+        pointer-events: none;
+      }
+      .btn-continuar.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .btn-continuar.active:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(66,107,194,.38);
+      }
+      .btn-continuar.active:active {
+        transform: scale(.97);
+      }
+ 

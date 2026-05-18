@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/navbarSidebar.css">
+      <link rel="stylesheet" href="../css/horario.css">
+
+</head>
+<body>
+
+    
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+  <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+    <a class="nav-item" href="../html/HorarioProfesor.html">
+       Horario de Clases
+    </a>
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Horario del profesor</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+       <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+ 
+
+  <div class="app-container">
+    <div class="headerSchedule">
+        <h2>Mi Horario de clases</h2>
+        <p id="current-day-label" style="font-size: 0.8rem; margin-top: 5px; opacity: 0.9;">Selecciona un día</p>
+    </div>
+    
+    <nav class="day-selector">
+        <button class="day-btn active" onclick="showDay('lunes', this)">LUN</button>
+        <button class="day-btn" onclick="showDay('martes', this)">MAR</button>
+        <button class="day-btn" onclick="showDay('miercoles', this)">MIE</button>
+        <button class="day-btn" onclick="showDay('jueves', this)">JUE</button>
+        <button class="day-btn" onclick="showDay('viernes', this)">VIE</button>
+    </nav>
+
+      <main class="schedule-container" id="schedule-content">
+          <div id="lunes" class="day-content active">
+              <div class="subject-card c-Ingles">
+                  <div class="time-col">7:00 AM<br>7:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Matematicas</span>
+                      <span class="teacher-name">Aula: Octavo C</span>
+                  </div>
+              </div>
+              <div class="break-card">8:20 - 8:50 | DESCANSO</div>
+              <div class="subject-card c-Ingles">
+                  <div class="time-col">8:50 AM<br>9:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Inglés</span>
+                      <span class="teacher-name">Aula: Noveno B</span>
+                  </div>
+              </div>
+              <div class="subject-card c-Mate">
+                  <div class="time-col">9:30 AM<br>10:15 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Matemáticas</span>
+                      <span class="teacher-name">Aula: Septimo B</span>
+                  </div>
+              </div>
+          </div>
+
+          <div id="martes" class="day-content">
+              <div class="subject-card c-Fisica">
+                  <div class="time-col">7:00 AM<br>7:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Física</span>
+                      <span class="teacher-name">Prof. Isaac N.</span>
+                  </div>
+              </div>
+              <div class="subject-card c-Ingles">
+                  <div class="time-col">8:50 AM<br>9:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Inglés</span>
+                      <span class="teacher-name">Prof. Wilson</span>
+                  </div>
+              </div>
+          </div>
+
+          <div id="miercoles" class="day-content">
+              <div class="subject-card c-Mate">
+                  <div class="time-col">7:00 AM<br>7:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Matemáticas</span>
+                      <span class="teacher-name">Prof. Adam Spencer</span>
+                  </div>
+              </div>
+              <div class="subject-card c-Lenguaje">
+                  <div class="time-col">8:50 AM<br>9:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Español</span>
+                      <span class="teacher-name">Prof. Cervantes</span>
+                  </div>
+              </div>
+          </div>
+
+          <div id="jueves" class="day-content">
+              <div class="subject-card c-Quimica">
+                  <div class="time-col">7:00 AM<br>7:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Química</span>
+                      <span class="teacher-name">Prof. Marie Curie</span>
+                  </div>
+              </div>
+              <div class="subject-card c-Sociales">
+                  <div class="time-col">11:15 AM<br>12:00 PM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Historia</span>
+                      <span class="teacher-name">Prof. Heródoto</span>
+                  </div>
+              </div>
+          </div>
+
+          <div id="viernes" class="day-content">
+              <div class="subject-card c-Sociales">
+                  <div class="time-col">7:00 AM<br>7:30 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Sociales</span>
+                      <span class="teacher-name">Prof. Isabella</span>
+                  </div>
+              </div>
+              <div class="subject-card c-Fisica">
+                  <div class="time-col">9:30 AM<br>10:15 AM</div>
+                  <div class="info-col">
+                      <span class="subject-name">Edu. Física</span>
+                      <span class="teacher-name">Prof. Mike</span>
+                  </div>
+              </div>
+          </div>
+
+      </main>
+  </div>
+
+ 
+</div>
+
+      
+<script src="../html/schedule.js"></script>
+<script src="../html/toggle.js"></script>
+
+    
+</body>
+</html>

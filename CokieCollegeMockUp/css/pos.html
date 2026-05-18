@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Permisos</title>
+    <style>
+        :root {
+            --navy: #0B1957;
+            --blue: #426bc2;
+            --lilac: #E8D9ED;
+            --cream: #F7F4ED;
+            --white: #ffffff;
+            --muted: #8a94b2;
+            --text: #0B1957;
+            --radius-ui: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--cream);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Nombres de clases personalizados y únicos */
+        .sheet-permit {
+            width: 100%;
+            max-width: 460px;
+            background: var(--white);
+            border-radius: var(--radius-ui);
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(11, 25, 87, 0.08);
+        }
+
+        .permit-head {
+            background-color: var(--navy);
+            color: var(--white);
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        /* Tarjeta de Identidad del Alumno */
+        .id-badge-student {
+            background: var(--lilac);
+            margin: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 6px solid var(--blue);
+        }
+
+        .avatar-circle {
+            width: 45px;
+            height: 45px;
+            background: var(--navy);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .data-label h4 { font-size: 0.95rem; color: var(--navy); }
+        .data-label p { font-size: 0.75rem; color: var(--blue); margin-top: 2px; }
+
+        /* Estructura del Formulario */
+        .form-permit-body { padding: 0 20px 30px 20px; }
+
+        .field-block { margin-bottom: 20px; }
+
+        .field-title {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--navy);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-select, .input-area {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--lilac);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-select:focus, .input-area:focus {
+            border-color: var(--blue);
+        }
+
+        .input-area { resize: none; height: 110px; }
+
+        /* Zona de carga de archivos */
+        .drop-zone-file {
+            position: relative;
+            background: var(--cream);
+            border: 2px dashed var(--muted);
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        .drop-zone-file:hover {
+            background: var(--lilac);
+            border-color: var(--blue);
+        }
+
+        .hidden-file-input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-text {
+            font-size: 0.8rem;
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        /* Botón de acción */
+        .action-send-btn {
+            width: 100%;
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(66, 107, 194, 0.2);
+        }
+
+        .action-send-btn:hover {
+            background-color: var(--navy);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(11, 25, 87, 0.2);
+        }
+
+        /* Previsualización */
+        .box-preview {
+            margin-top: 15px;
+            display: none;
+            text-align: center;
+        }
+
+        .img-thumb {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 2px solid var(--lilac);
+        }
+    </style>
+</head>
+<body>
+
+<section class="sheet-permit">
+    <header class="permit-head">
+        <h2>Solicitud de Permiso</h2>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-top: 4px;">Área de justificaciones académicas</p>
+    </header>
+
+    <div class="id-badge-student">
+        <div class="avatar-circle">JD</div>
+        <div class="data-label">
+            <h4>Juan Diego Pérez</h4>
+            <p>ID: 2024-0015 • 2° Año "B"</p>
+        </div>
+    </div>
+
+    <form class="form-permit-body" id="main-permit-form">
+        <div class="field-block">
+            <label class="field-title" for="cat-permiso">Tipo de solicitud</label>
+            <select class="input-select" id="cat-permiso" required>
+                <option value="" disabled selected>Seleccione motivo...</option>
+                <option value="medico">Cita Médica</option>
+                <option value="salud">Justificación Médica</option>
+                <option value="familia">Motivo Familiar</option>
+                <option value="otros">Otro</option>
+            </select>
+        </div>
+
+        <div class="field-block">
+            <label class="field-title" for="desc-motivo">Detalles del motivo</label>
+            <textarea class="input-area" id="desc-motivo" placeholder="Escriba aquí los detalles importantes..." required></textarea>
+        </div>
+
+        <div class="field-block">
+            <label class="field-title">Comprobante / Evidencia</label>
+            <div class="drop-zone-file">
+                <p class="upload-text" id="status-text">Adjuntar justificante (Imagen o PDF)</p>
+                <input type="file" class="hidden-file-input" id="file-source" accept="image/*,application/pdf" required>
+            </div>
+            
+            <div class="box-preview" id="preview-area">
+                <p style="font-size: 0.7rem; margin-bottom: 5px; color: var(--muted);">Vista previa del documento:</p>
+                <img src="" class="img-thumb" id="img-display">
+            </div>
+        </div>
+
+        <button type="submit" class="action-send-btn">Enviar a Coordinación</button>
+    </form>
+</section>
+
+<script>
+    const fileInput = document.getElementById('file-source');
+    const statusText = document.getElementById('status-text');
+    const previewArea = document.getElementById('preview-area');
+    const imgDisplay = document.getElementById('img-display');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            statusText.textContent = "Seleccionado: " + file.name;
+            statusText.style.color = "var(--blue)";
+
+            // Mostrar previa si es imagen
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgDisplay.src = e.target.result;
+                    previewArea.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                previewArea.style.display = 'none';
+            }
+        }
+    });
+
+    document.getElementById('main-permit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Formulario validado y enviado correctamente.');
+    });
+</script>
+
+</body>
+</html>

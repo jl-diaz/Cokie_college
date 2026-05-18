@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/PanelNotasEs.css">
+    <link rel="stylesheet" href="../css/font.css">
+</head>
+<body>
+
+    <!-- Overlay -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+    <div class="brand-sub">Portal Estudiantil</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Axel Mateo García</div>
+      <div class="code">20140256</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item" href="#">
+      Panel General
+    </a>
+    <a class="nav-item active" href="#">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="#">
+       Diario Pedagógico
+    </a>
+    <a class="nav-item" href="#">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel de notas</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+      <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Axel Mateo García</div>
+          <div class="t-code">20140256</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="page">
+
+    <!-- Banner -->
+    <div class="welcome-banner">
+      <h2>Academico</h2>
+    </div>
+
+    <div class="period-selector">
+    <button type="button" class="period-btn" onclick="location.href='../html/MateriasEs.html'">Periodo 1</button>
+    <button type="button" class="period-btn" onclick="location.href='../html/MateriasEsExample2.html'">Periodo 2</button>
+    <button type="button" class="period-btn" onclick="location.href='../html/MateriasEsExample3.html'">Periodo 3</button>
+    <button type="button" class="period-btn active" onclick="location.href='../html/MateriasEsExample4.html'">Periodo 4</button>
+    </div>
+
+    <div class="global-summary-card">
+      <div class="summary-info">
+        <span class="summary-label">Estado del Periodo Actual</span>
+        <h3 class="summary-period-title">Resumen de Calificaciones</h3>
+      </div>
+      <div class="summary-score">
+        <div class="score-value">8.0
+        </div>
+        <div class="score-text">Nota Global</div>
+      </div>
+    </div>
+
+
+  <!-- Académico -->
+  <a href="../html/NotaPanel.html" class="sinLink">
+    <div class="cards-grid">
+          <div class="card c-1">
+            <div class="card-name">Matematicas</div>
+            <div class="card-icon-wrap">
+              <img src="../img/Dogmate.png" alt="Dibujo">
+            </div>
+    </div>
+    </a>
+      <div class="card c-2">
+        <div class="card-icon-wrap"><img src="../img/LenguajeDog.png" alt=""></div>
+        <div class="card-name">Leguaje y Literatura</div>
+      </div>
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/Sociales.png" alt=""></div>
+        <div class="card-name">Estudios Sociales</div>
+      </div>
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/Qui.png" alt=""></div>
+        <div class="card-name">Química</div>
+      </div>
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/Fisica.png" alt=""></div>
+        <div class="card-name">Fisica</div>
+      </div>
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/Bio.png" alt=""></div>
+        <div class="card-name">Biología</div>
+      </div>
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/EN.png" alt=""></div>
+        <div class="card-name">Idiomas</div>
+      </div>
+
+    </div>
+
+
+   
+
+  </main>
+</div>
+    
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+</body>
+</html>

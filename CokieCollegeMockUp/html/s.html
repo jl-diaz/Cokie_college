@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador Educativo</title>
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --border-color: #dfe1e5;
+            --shadow: 0 1px 6px rgba(32,33,36,0.28);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding-top: 100px;
+            background-color: #fff;
+            margin: 0;
+        }
+
+        .search-container {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Barra de búsqueda estilo Google */
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 5px 15px;
+            transition: box-shadow 0.2s;
+        }
+
+        .search-box:hover, .search-box:focus-within {
+            box-shadow: var(--shadow);
+            border-color: transparent;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            height: 34px;
+            font-size: 16px;
+            padding: 0 10px;
+        }
+
+        .local-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            object-fit: contain;
+        }
+
+        /* Botón de Ajustes */
+        .filter-toggle {
+            background: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        /* Panel de Filtros (Mobile First) */
+        .filter-panel {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            padding: 25px;
+            z-index: 1000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .filter-panel.active {
+            display: block;
+        }
+
+        .filter-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #202124;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 10px;
+        }
+
+        .chip {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .chip.selected {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Overlay oscuro */
+        .overlay {
+            display: none;
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+        }
+
+        .overlay.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <div class="search-box">
+        <input type="text" class="search-input" placeholder="Buscar alumnos, materias...">
+        <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Local" class="local-icon">
+    </div>
+    
+    <div class="filter-toggle" onclick="toggleFilter()">
+        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"></path></svg>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="toggleFilter()"></div>
+<div class="filter-panel" id="filterPanel">
+    <div class="filter-title">
+        Filtros Personalizados
+        <button class="close-btn" onclick="toggleFilter()">✕</button>
+    </div>
+
+    <div class="filter-group">
+        <label>Grado</label>
+        <div class="options-grid">
+            <div class="chip" onclick="selectChip(this)">6°</div>
+            <div class="chip" onclick="selectChip(this)">7°</div>
+            <div class="chip" onclick="selectChip(this)">8°</div>
+            <div class="chip" onclick="selectChip(this)">9°</div>
+        </div>
+    </div>
+
+    <div class="filter-group">
+        <label>Sección</label>
+        <div class="options-grid">
+            <div class="chip" onclick="selectChip(this)">A</div>
+            <div class="chip" onclick="selectChip(this)">B</div>
+            <div class="chip" onclick="selectChip(this)">C</div>
+        </div>
+    </div>
+
+    <button style="width:100%; padding:12px; border:none; border-radius:8px; background:var(--primary-color); color:white; font-weight:bold;" onclick="toggleFilter()">Aplicar Filtros</button>
+</div>
+
+<script>
+    function toggleFilter() {
+        document.getElementById('filterPanel').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+    }
+
+    function selectChip(el) {
+        el.classList.toggle('selected');
+    }
+</script>
+
+</body>
+</html>

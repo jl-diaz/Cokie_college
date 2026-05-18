@@ -1,0 +1,136 @@
+:root {
+--mate:     #FF6B6B;
+  --lenguaje: #FF9F43; 
+  --fisica:   #FFD93D;
+  --quimica:  #A55EE1; 
+  --sociales: #1DD1A1; 
+  --biologia: #10AC84; 
+  --ingles:   #48DBFB; 
+  --bg-light: #f4f7f6;
+  --text-dark: #333;
+ --text-gray: #888;
+  --border-light: #e0e0e0;
+  --white: #ffffff;
+}
+
+.SalirBoton img{
+      width: 20px;
+      height: auto;
+
+}
+
+ 
+
+
+/* Navegación de Días */
+         
+.headerSchedule {
+      background: linear-gradient(125deg, var(--navy) 0%, var(--blue) 100%);
+      color: #fff;
+      padding: 20px 15px;
+      text-align: center;
+
+      top: 0;
+      z-index: 100;
+        }
+
+        .day-selector {
+            display: flex;
+            justify-content: space-around;
+            background: var(--navy);
+            padding: 10px 10px 10px 10px;
+        }
+
+        .day-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 20px;
+        }
+
+        .day-btn.active {
+            color: var(--navy);
+            background: var(--white);
+        }
+
+        /* Contenedor de Horarios */
+        .schedule-container {
+            padding: 15px;
+        }
+
+        .day-content {
+            display: none; /* Ocultos por defecto */
+        }
+
+        .day-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* Cards de Materia */
+        .subject-card {
+            display: flex;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            align-items: center;
+        }
+
+        .time-col {
+            padding: 15px;
+            min-width: 100px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            border-right: 2px dotted var(--border-light);
+        }
+
+        .info-col {
+            padding: 15px;
+            flex-grow: 1;
+        }
+
+        .subject-name {
+            font-weight: bold;
+            font-size: 1.05rem;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .teacher-name {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        /* Estilo para Descansos */
+        .break-card {
+            background: #f9f9f9;
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            color: #aaa;
+            letter-spacing: 1px;
+            border: 1px dashed var(--border-light);
+        }
+
+       
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsividad */
+        @media (max-width: 360px) {
+            .time-col { min-width: 80px; font-size: 0.75rem; }
+            .subject-name { font-size: 0.95rem; }
+        }

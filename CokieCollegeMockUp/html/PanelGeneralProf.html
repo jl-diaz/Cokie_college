@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/panelGeneralES.css">
+    <link rel="stylesheet" href="../css/font.css">
+</head>
+<body>
+
+ 
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+  <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class=""><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel del Profesor</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+       <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="page">
+
+    <!-- Banner -->
+    <div class="welcome-banner">
+      <h2>¡Bienvenido nuevamente Prof.Edgar!</h2>
+    </div>
+
+    <!-- Académico -->
+    <div class="section-label">Académico</div>
+    <div class="cards-grid">
+      <a href="../html/../html/MateriaNotaProfesor.html" class="sinLink">
+      <div class="card c-1">
+        <div class="card-icon-wrap"><img src="../img/editar.png" alt=""></div>
+        <div class="card-name">Sistema de Notas</div>
+      </div>
+      </a>
+      <a href="../html/../html/AsistenciaPanel.html" class="sinLink">
+      <div class="card c-1">
+        <div class="card-icon-wrap"><img src="../img/editar.png" alt=""></div>
+        <div class="card-name">Clase del día</div>
+      </div>
+      </a>
+      <a href="../html/HorarioProfesor.html" class="sinLink">
+      <div class="card c-3">
+        <div class="card-icon-wrap"><img src="../img/calendario-de-fechas.png" alt=""></div>
+        <div class="card-name">Horario de Clases</div>
+      </div>
+      </a>
+      <a href="../html/DPEs.html" class="sinLink">
+      <div class="card c-2">
+        <div class="card-icon-wrap"><img src="../img/organizador.png" alt=""></div>
+        <div class="card-name">Diario Pedagógico</div>
+      </div>
+      </a>
+    </div>
+
+    <!-- Servicios -->
+    <div class="section-label">Servicios</div>
+    <div class="cards-grid">
+      <div class="card c-4">
+        <div class="card-icon-wrap"></div>
+        <div class="card-icon-wrap"><img src="../img/menu.png" alt=""></div>
+        <div class="card-name">CokieLunch</div>
+      </div>
+      <div class="card c-5">
+        <div class="card-icon-wrap"><img src="../img/alerta.png" alt=""></div>
+        <div class="card-name">Solicitud de Permisos</div>
+      </div>
+      <div class="card c-6">
+        <div class="card-icon-wrap"><img src="../img/cita.png" alt=""></div>
+        <div class="card-name">Noticias Escolares</div>
+      </div>
+    </div>
+
+    <!-- Eventos -->
+    <div class="section-label">Eventos</div>
+    <div class="cards-grid">
+      <div class="card c-7">
+        <div class="card-icon-wrap"><img src="../img/evento.png" alt=""></div>
+        <div class="card-name">Eventos</div>
+      </div>
+      <div class="card c-8">
+        <div class="card-icon-wrap"><img src="../img/paga.png" alt=""></div>
+        <div class="card-name">Compra de Boletos</div>
+      </div>
+      
+    </div>
+
+  </main>
+
+  
+</div>
+    
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+</body>
+</html>

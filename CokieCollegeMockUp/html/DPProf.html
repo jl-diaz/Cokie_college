@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/navbarSidebar.css">
+    <link rel="stylesheet" href="../css/DPfindProf.css">
+</head>
+<body>
+
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+  <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+    <a class="nav-item" href="../html/HorarioProfesor.html">
+       Horario de Clases
+    </a>
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+
+<div class="layout" id="layout">
+
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Horario del profesor</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+       <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="content-area">
+    <div class="search-section">
+      <div class="search-container">
+        <div class="search-box">
+          <input type="text" class="search-input" placeholder="Buscar alumnos, materias...">
+          <img src="https://cdn-icons-png.flaticon.com/512/684/684908.png" alt="Local" class="local-icon">
+        </div>
+        
+        <div class="filter-toggle" onclick="toggleFilter()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#5f6368"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"></path></svg>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay" onclick="toggleFilter()"></div>
+
+<div class="filter-panel" id="filterPanel">
+    <div class="filter-header">
+        <div class="handle"></div> <div class="filter-title-container">
+            <h3>Filtros de búsqueda</h3>
+            <button class="close-panel" onclick="toggleFilter()">✕</button>
+        </div>
+    </div>
+
+    <div class="filter-body">
+        <div class="filter-group">
+            <label>Grado Escolar</label>
+            <div class="options-grid">
+                <div class="chip" onclick="selectChip(this)">6°</div>
+                <div class="chip" onclick="selectChip(this)">7°</div>
+                <div class="chip" onclick="selectChip(this)">8°</div>
+                <div class="chip" onclick="selectChip(this)">9°</div>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>Sección</label>
+            <div class="options-grid">
+                <div class="chip" onclick="selectChip(this)">A</div>
+                <div class="chip" onclick="selectChip(this)">B</div>
+                <div class="chip" onclick="selectChip(this)">C</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-footer">
+        <button class="btn-apply" onclick="toggleFilter()">Aplicar Filtros</button>
+    </div>
+</div>
+
+</div>
+
+
+
+<script src="../html/toggle.js"></script>
+<script src="../html/filtro.js"></script>
+    
+</body>
+</html>

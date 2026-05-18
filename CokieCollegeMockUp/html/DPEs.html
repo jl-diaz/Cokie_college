@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/DP.css">
+    <link rel="stylesheet" href="../css/navbarSidebar.css">
+</head>
+<body>
+
+ 
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+    <div class="brand-sub">Portal Estudiantil</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Axel Mateo García</div>
+      <div class="code">20140256</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralEs.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriasEs.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/DPEs.html">
+       Diario Pedagógico
+    </a>
+    <a class="nav-item" href="#">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+ 
+
+  <header class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div class="topbar-title">Diario Pedagógico</div>
+    <div class="topbar-actions">
+      <button class="icon-btn"><img src="../img/campana.png"></button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="t-avatar"><img src="../img/Alex.png" alt=""></div>
+        <div class="t-user">
+          <div class="t-name">Axel Mateo García</div>
+          <div class="t-code">20140256</div>
+        </div>
+      </div>
+    </div>
+  </header>
+ 
+  <main class="page">
+    
+    <!-- Perfil -->
+     <div class="period"><h3>Primer periodo</h3></div>
+     
+    <div class="perfil-card perfil-vertical">
+  <div class="perfil-foto">
+    <img src="../img/Alex.png" alt="Foto del estudiante">
+  </div>
+  <div class="perfil-info">
+    <div class="perfil-nombre">Axel Mateo García Hernández</div>
+    <div class="perfil-carnet">Codigo: 20140256</div>
+    <div class="perfil-datos">
+      <span class="perfil-grado">Noveno Grado A</span>
+    </div>
+  </div>
+</div>
+
+<div class="guia-card">
+  <div class="guia-header">
+    
+    <span class="guia-label">Profesor Guía</span>
+  </div>
+  <div class="guia-body">
+    <div class="guia-nombre">Lic. Edgar Antonio Peña</div>
+    <div class="guia-contacto">Contacto: edgarAntnio@cokie.edu.sv</div>
+  </div>
+</div>
+ 
+ <div class="grupo" id="g-positivos">
+  <div class="grupo-header g-good" onclick="toggleGrupo('positivos')">
+    <span class="grupo-icon"></span>
+    <span class="grupo-label">Códigos Positivos</span>
+    <span class="grupo-badge">2 registros</span>
+    <span class="grupo-chevron">▼</span>
+  </div>
+  <div class="grupo-body">
+    <div class="white-card">
+      <div class="tl-item">
+        <div class="tl-body">
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">Ana Beatriz Valdez Álvarez</div>
+              <div class="tl-fecha">10/04/2026</div>
+            </div>
+            <div class="tl-materia">Cálculo Diferencial</div>
+            <div class="codigotext">Código:</div>
+            <div class="tl-texto">Participa activa y positivamente en el desarrollo de la clase.</div>
+          </div>
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">Ana Beatriz Valdez Álvarez</div>
+              <div class="tl-fecha">10/04/2026</div>
+            </div>
+            <div class="tl-materia">Cálculo Diferencial</div>
+            <div class="codigotext">Código:</div>
+            <div class="tl-texto">Comparte desarrollo y resultados de ejercicios durante la clase.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grupo" id="g-mejorar">
+  <div class="grupo-header g-warn" onclick="toggleGrupo('mejorar')">
+    <span class="grupo-icon"></span>
+    <span class="grupo-label">Códigos a Mejorar</span>
+    <span class="grupo-badge">2 registros</span>
+    <span class="grupo-chevron">▼</span>
+  </div>
+  <div class="grupo-body">
+    <div class="white-card">
+      <div class="tl-item">
+        <div class="tl-body">
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">José Norberto Colorado López</div>
+              <div class="tl-fecha">13/04/2026</div>
+            </div>
+            <div class="tl-materia">Programación de Algoritmos</div>
+            <div class="codigotext">Código:</div>
+            <div class="tl-texto">El corte de cabello, bigote y/o barba es inadecuado.</div>
+          </div>
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">José Norberto Colorado López</div>
+              <div class="tl-fecha">13/04/2026</div>
+            </div>
+            <div class="tl-materia">Programación de Algoritmos</div>
+            <div class="codigotext">Código:</div>
+            <div class="tl-texto">Se le suplica que para el lunes 20 de Abril venga con el cabello de corte adecuado, para evitar aplicar normativa nuevamente.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grupo" id="g-observaciones">
+  <div class="grupo-header g-info" onclick="toggleGrupo('observaciones')">
+    <span class="grupo-icon"></span>
+    <span class="grupo-label">Observaciones y Notificaciones</span>
+    <span class="grupo-badge">2 registros</span>
+    <span class="grupo-chevron">▼</span>
+  </div>
+  <div class="grupo-body">
+    <div class="white-card">
+      <div class="tl-item">
+        <div class="tl-body">
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">Yesenia Marleni Escobar Mejía</div>
+              <div class="tl-fecha">26/03/2026</div>
+            </div>
+            <div class="tl-materia">Supervisora / Guía</div>
+            <div class="tl-texto">Estudiante se retira de la institución acompañado de su mamá a la 1:30 p.m. por problemas de salud.</div>
+          </div>
+          <div class="info">
+            <div class="tl-top">
+              <div class="tl-docente">Ana Beatriz Valdez Álvarez</div>
+              <div class="tl-fecha">20/04/2026</div>
+            </div>
+            <div class="tl-materia">Álgebra Vectorial</div>
+            <div class="tl-texto">Día 14 y 15 de abril se realizó revisión de cuaderno de álgebra vectorial en relación al contenido de la unidad 3. Se colocaron observaciones a cada estudiante y se solicitó sea firmado por el padre de familia o encargado.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grupo" id="g-inasistencias">
+  <div class="grupo-header g-dark" onclick="toggleGrupo('inasistencias')">
+    <span class="grupo-icon"></span>
+    <span class="grupo-label">Control de Inasistencias</span>
+    <span class="grupo-badge">2 registros</span>
+    <span class="grupo-chevron">▼</span>
+  </div>
+  <div class="grupo-body">
+    <div class="white-card">
+      <div class="inas-row">
+        <div>
+          <div class="inas-fecha">26/03/2026</div>
+         
+        </div>
+        <div>
+          <div class="inas-materia">Idioma Extranjero: Inglés</div>
+        </div>
+        <span class="justi goodjuti"><span class="chip-dot"></span>Justificada</span>
+      </div>
+      <div class="inas-row">
+        <div>
+          <div class="inas-fecha">26/03/2026</div>
+         
+        </div>
+        <div>
+          <div class="inas-materia">Idioma Extranjero: Inglés</div>
+        </div>
+        <span class="justi goodjuti">Justificada</span>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+    
+ 
+  </main>
+</div>
+
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+<script>
+  function toggleGrupo(id) {
+    document.getElementById('g-' + id).classList.toggle('collapsed');
+  }
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('active');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+
+    
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+     <link rel="stylesheet" href="../css/navbarSidebar.css">
+    <link rel="stylesheet" href="../css/permisosEs.css">
+   
+</head>
+<body>
+
+    
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+    <div class="brand-sub">Portal Estudiantil</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Axel Mateo García</div>
+      <div class="code">20140256</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralEs.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriasEs.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/DPEs.html">
+       Diario Pedagógico
+    </a>
+    <a class="nav-item" href="../html/HorarioEstudiante.html">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="../html/permisosEs.html">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class=""><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+
+
+   <section class="sheet-permit">
+    <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel del Estudiante</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+      <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Axel Mateo García</div>
+          <div class="t-code">20140256</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+    <header class="permit-head">
+        <h2>Solicitud de Permisos</h2>
+        <p>Por este medio puedes solicitar permiso para retirarse de la institución </p>
+    </header>
+
+    <div class="id-badge-student">
+        <div class="avatar-circle">
+            <img src="../img/Alex.png" alt="Perfil">
+        </div>
+        <div class="data-label">
+            <h4>Axel Mateo García</h4>
+            <p>Carnet: 20140256</p>
+            <p>Sección y grado: Noveno A</p>
+        </div>
+    </div>
+
+    <form class="form-permit-body" id="main-permit-form">
+        <div class="field-block">
+            <label class="field-title" for="fecha-permiso">
+                <img src="../img/calendario-icono.png" class="mini-icon"> Fecha del permiso
+            </label>
+            <div class="input-date-wrapper">
+                <input type="date" class="input-date" id="fecha-permiso" required>
+            </div>
+        </div>
+
+        <div class="field-block">
+            <label class="field-title" for="cat-permiso">
+               Tipo de solicitud
+            </label>
+            <select class="input-select" id="cat-permiso" required>
+                <option value="" disabled selected>Seleccione motivo...</option>
+                <option value="medico">Cita Médica</option>
+                <option value="salud">Justificación Médica</option>
+                <option value="familia">Motivo Familiar</option>
+                <option value="otros">Otro</option>
+            </select>
+        </div>
+
+        <div class="field-block">
+            <label class="field-title" for="desc-motivo">
+                Detalles del motivo
+            </label>
+            <textarea class="input-area" id="desc-motivo" placeholder="Escriba aquí los detalles importantes..." required></textarea>
+        </div>
+
+        <div class="field-block">
+            <label class="field-title">
+                <img src="../img/agregar-archivo.png" class="mini-icon"> Comprobante / Evidencia
+            </label>
+            <div class="drop-zone-file">
+                <img src="../img/agregar-archivo.png" alt="" class="upload-big-icon">
+                <p class="upload-text" id="status-text">Adjuntar justificante<br><span>(Imagen o PDF)</span></p>
+                <input type="file" class="hidden-file-input" id="file-source" accept="image/*,application/pdf" required>
+            </div>
+            
+            <div class="box-preview" id="preview-area">
+                <p>Vista previa del documento:</p>
+                <img src="" class="img-thumb" id="img-display">
+            </div>
+        </div>
+
+        <button type="submit" class="action-send-btn">Enviar a Coordinación</button>
+    </form>
+</section>
+<script src="../html/permisos.js"></script>
+<script src="../html/toggle.js"></script>
+    
+</body>
+</html>

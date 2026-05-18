@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/Nota.css">
+    <link rel="stylesheet" href="../css/font.css">
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+    <div class="brand-sub">Portal Estudiantil</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Axel Mateo García</div>
+      <div class="code">20140256</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralEs.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriasEs.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/DPEs.html">
+       Diario Pedagógico
+    </a>
+    <a class="nav-item" href="#">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+ 
+<!-- LAYOUT -->
+<div class="layout" id="layout">
+ 
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel de notas</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+        <img src="../img/campana.png" alt="notificaciones">
+      </button>
+      <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Alex.png" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Axel Mateo García</div>
+          <div class="t-code">20140256</div>
+        </div>
+      </div>
+    </div>
+  </header>
+ 
+  <!-- PAGE -->
+  <main class="page">
+
+    <a href="../html/MateriasEs.html"><div class="SalirBoton">
+      <img src="../img/hogar.png" alt="">
+    </div></a>
+    <!-- Banner materia -->
+    <div class="materia-banner">
+      <div class="materia-info">
+        <h2>Matemáticas</h2>
+        <p>Noveno Grado · 2025-1 · Prof. Edgar Antonio Peña</p>
+      </div>
+    </div>
+ 
+    <!-- Indicador de rendimiento -->
+    <div class="rendimiento-card">
+      <div class="rendimiento-title">Rendimiento actual</div>
+ 
+      <div class="nota-global-row">
+        <div>
+          <div class="nota-global-num">7.4<span>/10</span></div>
+          <div class="nota-global-label">Nota global acumulada</div>
+        </div>
+      </div>
+ 
+      <div class="estado-pills">
+        <div class="pill good"><span></span>2 Actividades Excelentes</div>
+        <div class="pill mid"><span></span>2 Actividades Bien</div>
+        <div class="pill bad"><span></span>1 Necesitar mejorar</div>
+      </div>
+    </div>
+ 
+    <!-- Tabla de actividades -->
+    <div class="tabla-card">
+ 
+      <div class="tabla-header-row">
+        <div class="th">Actividad</div>
+        <div class="th">Calific.</div>
+        <div class="th">Valor</div>
+        <div class="th">Nota</div>
+      </div>
+ 
+      <div class="tabla-body">
+ 
+        <div class="tabla-row good">
+          <div class="td-actividad">
+            <div class="act-nombre">Examen Álgebra</div>
+            <div class="act-desc">Ecuaciones de primer grado y despeje de variables</div>
+          </div>
+          <div class="td-num">9.0</div>
+          <div class="td-pct">30%</div>
+          <div class="td-nota"><span class="nota-badge good">2.7</span></div>
+        </div>
+ 
+        <div class="tabla-row good">
+          <div class="td-actividad">
+            <div class="act-nombre">Tarea Geometría</div>
+            <div class="act-desc">Áreas y perímetros de figuras planas</div>
+          </div>
+          <div class="td-num">8.5</div>
+          <div class="td-pct">20%</div>
+          <div class="td-nota"><span class="nota-badge good">1.7</span></div>
+        </div>
+ 
+        <div class="tabla-row mid">
+          <div class="td-actividad">
+            <div class="act-nombre">Laboratorio Estadística</div>
+            <div class="act-desc">Media, moda y mediana en conjuntos de datos</div>
+          </div>
+          <div class="td-num">7.0</div>
+          <div class="td-pct">20%</div>
+          <div class="td-nota"><span class="nota-badge mid">1.4</span></div>
+        </div>
+ 
+        <div class="tabla-row mid">
+          <div class="td-actividad">
+            <div class="act-nombre">Quiz Potencias</div>
+            <div class="act-desc">Propiedades de la potenciación y radicación</div>
+          </div>
+          <div class="td-num">6.5</div>
+          <div class="td-pct">15%</div>
+          <div class="td-nota"><span class="nota-badge mid">1.0</span></div>
+        </div>
+ 
+        <div class="tabla-row bad">
+          <div class="td-actividad">
+            <div class="act-nombre">Parcial Fracciones</div>
+            <div class="act-desc">Operaciones con fracciones algebraicas</div>
+          </div>
+          <div class="td-num">4.0</div>
+          <div class="td-pct">15%</div>
+          <div class="td-nota"><span class="nota-badge bad">0.6</span></div>
+        </div>
+ 
+      </div>
+ 
+      <!-- Fila total -->
+      <div class="tabla-total">
+        <div class="total-label">Nota Global</div>
+        <div></div>
+        <div class="total-pct">100%</div>
+        <div class="total-nota">
+          <span class="total-nota-badge">7.4</span>
+        </div>
+      </div>
+ 
+    </div>
+ 
+  </main>
+</div>
+
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+</body>
+</html>

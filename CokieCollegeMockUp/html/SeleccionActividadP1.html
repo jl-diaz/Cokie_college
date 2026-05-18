@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/navbarSidebar.css">
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/Actividades&Tabla.css">
+</head>
+<body>
+
+       
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+  <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel de materias</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+       <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  
+    <div class="panel-actividades">
+    <header class="header-seccion">
+        <h2 class="titulo-seccion">Actividades de Evaluación</h2>
+    </header>
+
+    <div class="scroll-horizontal">
+        
+        <a href="../html/ActividadTabla.html">
+        <div class="tarjeta-evaluacion" onclick="seleccionarActividad(this)">
+            <div class="tag-superior">
+                <span class="categoria">ACTIVIDAD PRINCIPAL</span>
+            </div>
+            <h3 class="nombre-actividad">Examen Parcial 1</h3>
+            <div class="info-inferior">
+                <div class="caja-ponderacion">
+                    <span class="label-ponderacion">Ponderación</span>
+                    <span class="valor-ponderacion">35%</span>
+                </div>
+                <div class="icono-tipo"><img src="../img/opcion-multiple.png" alt=""></div>
+            </div>
+        </div>
+        </a>
+
+        <a href="../html/ActividadTabla.html">
+        <div class="tarjeta-evaluacion" onclick="seleccionarActividad(this)">
+            <div class="tag-superior">
+                <span class="categoria">TRABAJO INDIVIDUAL</span>
+            </div>
+            <h3 class="nombre-actividad">Tarea: Ecuaciones</h3>
+            <div class="info-inferior">
+                <div class="caja-ponderacion">
+                    <span class="label-ponderacion">Ponderación</span>
+                    <span class="valor-ponderacion">15%</span>
+                </div>
+                <div class="icono-tipo"><img src="../img/opcion-multiple.png" alt=""></div>
+            </div>
+        </div>
+        </a>
+        
+         <a href="../html/ActividadTabla.html">
+        <div class="tarjeta-evaluacion" onclick="seleccionarActividad(this)">
+            <div class="tag-superior">
+                <span class="categoria">PRÁCTICA GRUPAL</span>
+            </div>
+            <h3 class="nombre-actividad">Laboratorio 1</h3>
+            <div class="info-inferior">
+                <div class="caja-ponderacion">
+                    <span class="label-ponderacion">Ponderación</span>
+                    <span class="valor-ponderacion">20%</span>
+                </div>
+                <div class="icono-tipo"><img src="../img/opcion-multiple.png" alt=""></div>
+            </div>
+        </div>
+        </a>
+         <a href="../html/ActividadTabla.html">
+        <div class="tarjeta-evaluacion" onclick="seleccionarActividad(this)">
+            <div class="tag-superior">
+                <span class="categoria">TRABAJO INDIVIDUAL</span>
+            </div>
+            <h3 class="nombre-actividad">Ensayo Literario</h3>
+            <div class="info-inferior">
+                <div class="caja-ponderacion">
+                    <span class="label-ponderacion">Ponderación</span>
+                    <span class="valor-ponderacion">15%</span>
+                </div>
+                <div class="icono-tipo"><img src="../img/opcion-multiple.png" alt=""></div>
+            </div>
+        </div>
+        </a>
+         <a href="../html/ActividadTabla.html">
+        <div class="tarjeta-evaluacion" onclick="seleccionarActividad(this)">
+            <div class="tag-superior">
+                <span class="categoria">ACTITUDINAL</span>
+            </div>
+            <h3 class="nombre-actividad">Participación</h3>
+            <div class="info-inferior">
+                <div class="caja-ponderacion">
+                    <span class="label-ponderacion">Ponderación</span>
+                    <span class="valor-ponderacion">15%</span>
+                </div>
+               <div class="icono-tipo"><img src="../img/opcion-multiple.png" alt=""></div>
+            </div>
+        </div>
+        </a>
+    </div>
+</div>
+
+
+</div>
+
+<script src="../html/toggle.js"></script>
+
+    
+</body>
+</html>

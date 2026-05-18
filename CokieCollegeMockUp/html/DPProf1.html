@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPProf1</title>
+    <link rel="stylesheet" href="../css/panelGeneralES.css">
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/DPProf1.css">
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+    <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+   <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Diario Pedagógico</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png" alt="Notificaciones">
+      </button>
+      <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="page">
+
+    <!-- Search and Filter Bar -->
+    <div class="search-filter-container">
+      <div class="search-wrapper">
+        <div class="search-input-group">
+          <img src="../img/lupa.png" alt="Buscar" class="search-icon">
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Buscar estudiante"
+            id="searchInput"
+          >
+        </div>
+      </div>
+
+      <button class="filter-btn" id="filterBtn" onclick="toggleFilters()" aria-label="Filtros">
+        <img src="../img/filtro.png" alt="Filtros" class="filter-icon">
+      </button>
+    </div>
+
+    <!-- Filters Panel -->
+    <div class="filters-panel" id="filtersPanel">
+      <div class="filters-header">
+        <h3>Filtros</h3>
+        <button class="close-filters" onclick="toggleFilters()" aria-label="Cerrar filtros">
+          <span>×</span>
+        </button>
+      </div>
+
+      <div class="filters-content">
+        <!-- Filter Group 1: Grado Escolar -->
+        <div class="filter-group">
+          <label class="filter-label">Grado Escolar</label>
+          <div class="filter-buttons-group">
+            <button class="filter-button" data-filter="grado" data-value="6">6º</button>
+            <button class="filter-button" data-filter="grado" data-value="7">7º</button>
+            <button class="filter-button" data-filter="grado" data-value="8">8º</button>
+            <button class="filter-button" data-filter="grado" data-value="9">9º</button>
+          </div>
+        </div>
+
+        <!-- Filter Group 2: Sección -->
+        <div class="filter-group">
+          <label class="filter-label">Sección</label>
+          <div class="filter-buttons-group">
+            <button class="filter-button" data-filter="seccion" data-value="A">A</button>
+            <button class="filter-button" data-filter="seccion" data-value="B">B</button>
+            <button class="filter-button" data-filter="seccion" data-value="C">C</button>
+          </div>
+        </div>
+
+    
+
+        <!-- Filter Actions -->
+        <div class="filter-actions">
+          <button class="btn-clear" onclick="clearFilters()">Limpiar</button>
+          <button class="btn-apply" onclick="applyFilters()">Aplicar Filtros</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      
+      
+      <!-- Students Results Grid -->
+      <div class="students-grid" id="studentsGrid">
+        
+        <!-- Student Card 1 -->
+        <a href="../">
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Alex.png" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Axel Mateo García</h3>
+            <p class="student-detail"><strong>Carné:</strong> 20140256</p>
+            <p class="student-detail"><strong>Grado:</strong> 9° <strong>Sección:</strong> A</p>
+          </div>
+        </div>
+        </a>
+
+        <!-- Student Card 2 -->
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Profesor.avif" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Juan Carlos Rodríguez</h3>
+            <p class="student-detail"><strong>Carné:</strong> 2024002</p>
+            <p class="student-detail"><strong>Grado:</strong> 6º <strong>Sección:</strong> A</p>
+          </div>
+        </div>
+
+        <!-- Student Card 3 -->
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Profesor.avif" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Ana Martínez Soto</h3>
+            <p class="student-detail"><strong>Carné:</strong> 2024003</p>
+            <p class="student-detail"><strong>Grado:</strong> 6º <strong>Sección:</strong> B</p>
+          </div>
+        </div>
+
+        <!-- Student Card 4 -->
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Profesor.avif" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Miguel Hernández Torres</h3>
+            <p class="student-detail"><strong>Carné:</strong> 2024004</p>
+            <p class="student-detail"><strong>Grado:</strong> 7º <strong>Sección:</strong> A</p>
+          </div>
+        </div>
+
+        <!-- Student Card 5 -->
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Profesor.avif" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Laura Pérez Guzmán</h3>
+            <p class="student-detail"><strong>Carné:</strong> 2024005</p>
+            <p class="student-detail"><strong>Grado:</strong> 7º <strong>Sección:</strong> B</p>
+          </div>
+        </div>
+
+        <!-- Student Card 6 -->
+        <div class="student-card">
+          <div class="student-avatar">
+            <img src="../img/Profesor.avif" alt="Estudiante">
+          </div>
+          <div class="student-info">
+            <h3 class="student-name">Carlos Eduardo Silva Flores</h3>
+            <p class="student-detail"><strong>Carné:</strong> 2024006</p>
+            <p class="student-detail"><strong>Grado:</strong> 8º <strong>Sección:</strong> A</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+</div>
+    
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+
+  function toggleFilters() {
+    const panel = document.getElementById('filtersPanel');
+    panel.classList.toggle('open');
+  }
+
+  // Manejar selección de botones de filtro
+  document.querySelectorAll('.filter-button').forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      this.classList.toggle('active');
+    });
+  });
+
+  // Limpiar filtros
+  function clearFilters() {
+    document.querySelectorAll('.filter-button').forEach(button => {
+      button.classList.remove('active');
+    });
+  }
+
+  // Aplicar filtros (aquí iría la lógica de filtrado real)
+  function applyFilters() {
+    const selectedFilters = {};
+    
+    document.querySelectorAll('.filter-button.active').forEach(button => {
+      const filterType = button.getAttribute('data-filter');
+      const filterValue = button.getAttribute('data-value');
+      
+      if (!selectedFilters[filterType]) {
+        selectedFilters[filterType] = [];
+      }
+      selectedFilters[filterType].push(filterValue);
+    });
+
+    console.log('Filtros aplicados:', selectedFilters);
+    // Aquí iría la lógica para filtrar los datos
+    
+    // Cerrar el panel de filtros después de aplicar
+    document.getElementById('filtersPanel').classList.remove('open');
+  }
+
+  // Close filters when clicking outside
+  document.addEventListener('click', function(event) {
+    const panel = document.getElementById('filtersPanel');
+    const filterBtn = document.getElementById('filterBtn');
+    
+    if (!panel.contains(event.target) && !filterBtn.contains(event.target)) {
+      panel.classList.remove('open');
+    }
+  });
+</script>
+
+</body>
+</html>

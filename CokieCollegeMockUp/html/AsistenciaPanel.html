@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/AsistenciaPanel.css">
+    <link rel="stylesheet" href="../css/font.css">
+    <link rel="stylesheet" href="../css/navbarSidebar.css">
+</head>
+<body>
+
+ 
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="brand">Cokie<span>College</span></div>
+  <div class="brand-sub">Portal de Educador</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+    <div class="sidebar-user-info">
+      <div class="name">Prof.Edgar Antonio Peña</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" href="../html/PanelGeneralProf.html">
+      Panel General
+    </a>
+    <a class="nav-item" href="../html/MateriaNotaProfesor.html">
+      Sistema de Notas
+    </a>
+    <a class="nav-item" href="../html/AsistenciaPanel.html">
+       Horario de Clases
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Servicios</div>
+    <a class="nav-item" href="#">
+       CokieLunch
+    </a>
+    <a class="nav-item" href="#">
+       Solicitud de Permisos
+    </a>
+    <a class="nav-item" href="#">
+       Noticias Escolares
+    </a>
+
+    <div class="nav-section" style="margin-top:8px;">Eventos</div>
+    <a class="nav-item" href="#">
+       Eventos
+    </a>
+    <a class="nav-item" href="#">
+       Compra de Boletos
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a class="nav-item logout" href="../html/login.html">
+       <span class="SalirBoton"><img src="../img/cerrar-sesion.png" alt=""></span>Cerrar Sesión
+    </a>
+  </div>
+</aside>
+
+
+<div class="layout" id="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">Panel de asistencia</div>
+    <div class="topbar-actions">
+      <button class="icon-btn">
+            <img src="../img/campana.png">
+      </button>
+      <div class="topbar-user">
+        <div class="topbar-avatar"><img src="../img/Profesor.avif" alt=""></div>
+        <div class="topbar-user-text">
+          <div class="t-name">Edgar Antonio Peña</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <header class="class-header">
+        <div class="header-content">
+           
+            <div class="header-inputs">
+                <label for="tema">Tema del día</label>
+                <input type="text" id="tema" placeholder="Ej: Introducción a Algoritmos...">
+            </div>
+        </div>
+    </header>
+
+<div class="attendance-table">
+        <div class="table-header">
+            <div class="col-n">#</div>
+            <div class="col-carnet">Carnet</div>
+            <div class="col-name">Apellidos y Nombres</div>
+            <div class="col-status">Asistencia</div>
+        </div>
+
+        <div class="table-body">
+            <div class="student-row">
+                <div class="col-n">01</div>
+                <div class="col-carnet">20140256</div>
+                <div class="col-name"><a href="perfil_estudiante.html">ALVARADO, Diego Alejandro</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row">
+                <div class="col-n">02</div>
+                <div class="col-carnet">20145889</div>
+                <div class="col-name"><a href="#">BARILLAS, Sofia Maria</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row justified">
+                <div class="col-n">03</div>
+                <div class="col-carnet">20148812</div>
+                <div class="col-name">
+                    <a href="#">CASTRO, Kevin Joel</a>
+                    <span class="tag-justified">Justificado</span>
+                </div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" disabled><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row">
+                <div class="col-n">04</div>
+                <div class="col-carnet">20143321</div>
+                <div class="col-name"><a href="#">DIAZ, Elena Beatriz</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row">
+                <div class="col-n">05</div>
+                <div class="col-carnet">20149901</div>
+                <div class="col-name"><a href="#">ESCOBAR, Carlos Manuel</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row">
+                <div class="col-n">06</div>
+                <div class="col-carnet">20147744</div>
+                <div class="col-name"><a href="#">FUENTES, Gabriela Noemí</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row">
+                <div class="col-n">07</div>
+                <div class="col-carnet">20142210</div>
+                <div class="col-name"><a href="#">GARCIA, Luis Alberto</a></div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row justified">
+                <div class="col-n">08</div>
+                <div class="col-carnet">20145567</div>
+                <div class="col-name">
+                    <a href="#">HERNANDEZ, Ana Lucía</a>
+                    <span class="tag-justified">Justificado</span>
+                </div>
+                <div class="col-status">
+                    <label class="switch"><input type="checkbox" disabled><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="student-row"><div class="col-n">09</div><div class="col-carnet">20141109</div><div class="col-name"><a href="#">IBAÑEZ, Roberto Carlos</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">10</div><div class="col-carnet">20142210</div><div class="col-name"><a href="#">JIMENEZ, Marta Estela</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">11</div><div class="col-carnet">20143311</div><div class="col-name"><a href="#">LOPEZ, Fernando Jose</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">12</div><div class="col-carnet">20144412</div><div class="col-name"><a href="#">MEJIA, Roxana Beatriz</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">13</div><div class="col-carnet">20145513</div><div class="col-name"><a href="#">NAVARRO, Oscar Daniel</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">14</div><div class="col-carnet">20146614</div><div class="col-name"><a href="#">ORELLANA, Fatima</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">15</div><div class="col-carnet">20147715</div><div class="col-name"><a href="#">PEREZ, Hugo Alexander</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">16</div><div class="col-carnet">20148816</div><div class="col-name"><a href="#">QUINTO, Isabel Maria</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">17</div><div class="col-carnet">20149917</div><div class="col-name"><a href="#">RIVAS, Manuel Enrique</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">18</div><div class="col-carnet">20141018</div><div class="col-name"><a href="#">SANDOVAL, Patricia</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">19</div><div class="col-carnet">20142019</div><div class="col-name"><a href="#">TICAS, Jorge Alberto</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">20</div><div class="col-carnet">20143020</div><div class="col-name"><a href="#">URQUILLA, Sara Noemi</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">21</div><div class="col-carnet">20144021</div><div class="col-name"><a href="#">VALDEZ, Ricardo</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">22</div><div class="col-carnet">20145022</div><div class="col-name"><a href="#">ZELAYA, Wendy Marisol</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">23</div><div class="col-carnet">20146023</div><div class="col-name"><a href="#">ARAUJO, Jose Luis</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">24</div><div class="col-carnet">20147024</div><div class="col-name"><a href="#">BONILLA, Claudia</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">25</div><div class="col-carnet">20148025</div><div class="col-name"><a href="#">CAMPOS, Mario</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">26</div><div class="col-carnet">20149026</div><div class="col-name"><a href="#">DUARTE, Andrea</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+            <div class="student-row"><div class="col-n">27</div><div class="col-carnet">20141027</div><div class="col-name"><a href="#">FLORES, Cristian</a></div><div class="col-status"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div></div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn-save">
+            <img src="img/save-icon.png" alt="" class="btn-icon">
+            Guardar Cambios
+        </button>
+    </div>
+</div>
+    
+<script>
+  function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('overlay');
+    const isOpen = s.classList.contains('open');
+    if (isOpen) {
+      s.classList.remove('open');
+      o.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      o.classList.add('active');
+    }
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  }
+</script>
+
+</body>
+</html>

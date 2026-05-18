@@ -1,0 +1,312 @@
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary:    #1a1a2e;
+      --accent:     #0B1956;
+      --accent2:    #f5a623;
+      --surface:    #ffffff;
+      --muted:      #8a8da0;
+      --input-bg:   #f3f4f8;
+      --text:       #1a1a2e;
+      --radius:     18px;
+      --font-head:  'Sora', sans-serif;
+      --font-body:  'DM Sans', sans-serif;
+    }
+      .SalirBoton img{
+      width: 20px;
+      height: auto;
+
+    }
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    /* ===================== MOBILE LAYOUT ===================== */
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ---- Parabola Hero ---- */
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      flex-shrink: 0;
+      overflow: visible;
+      z-index: 0;
+    }
+    
+    /* Parabola SVG curve at the bottom */
+    .hero-curve {
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      z-index: 2;
+    }
+
+    /* Image / avatar container */
+   .hero-image-slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    overflow: hidden;
+    }
+
+    .hero-image-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;      
+    object-position: center top;
+     
+    }
+    .hero-image-slot .placeholder-icon {
+      font-size: 38px;
+      color: #fff;
+      user-select: none;
+    }
+
+    /* Brand text */
+    .hero-brand {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      z-index: 3;
+    }
+    .hero-brand h1 {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.5px;
+    }
+    .hero-brand span {
+      color: var(--accent);
+    }
+
+
+    .form-card {
+      background: var(--surface);
+      flex: 1;
+      padding: 44px 28px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .form-card h2 {
+      font-family: var(--font-head);
+      font-size: 24px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 5%;
+    }
+
+    .form-card img{
+        width: 300px;
+        height: 60px;
+        justify-content: center;
+    }
+
+    .form-card h2 small {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--font-body);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap .icon {
+      position: absolute;
+      left: 14px;
+      font-size: 17px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 14px 14px 14px 42px;
+      background: var(--input-bg);
+      border: 2px solid transparent;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-family: var(--font-body);
+      color: var(--text);
+      outline: none;
+      transition: border .2s, background .2s;
+    }
+    .field input:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+    .field input::placeholder {
+      color: #bbbdc9;
+    }
+
+    .forgot {
+      text-align: right;
+      margin-top: -12px;
+    }
+    .forgot a {
+      font-size: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 16px;
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-family: var(--font-head);
+      font-weight: 600;
+      letter-spacing: .3px;
+      cursor: pointer;
+    }
+    .btn-login:active {
+      transform: scale(.97);
+      box-shadow: 0 3px 10px rgba(233,69,96,.3);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e8e9f0;
+    }
+
+    .social-row {
+      display: flex;
+      gap: 12px;
+    }
+    .btn-social {
+      flex: 1;
+      padding: 12px;
+      background: var(--input-bg);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      transition: background .15s;
+    }
+    .btn-social:hover { background: #e8e9f0; }
+    .btn-social .s-icon { font-size: 18px; }
+
+    .register {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: auto;
+    }
+    .register a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+     @media (min-width: 320px) {
+        .form-card img{
+        width: 250px;
+        height: 50px;
+        justify-content: center;
+    }
+     }
+    /* ===================== DESKTOP / TABLET LAYOUT ===================== */
+    @media (min-width: 768px) {
+      body {
+       
+      }
+
+      .login-wrapper {
+        min-height: 100vh;
+        flex-direction: row;
+        align-items: stretch;
+        max-width: 100%;
+      }
+
+      /* Hide parabola hero on desktop */
+      .hero { display: none; }
+
+      /* Center the card */
+      .form-card {
+        width: 100%;
+        max-width: 600px;
+        margin: auto;
+        padding: 52px 48px;
+        border-radius: 28px;
+        gap: 22px;
+        flex: unset;
+      }
+
+      .form-card h2 {
+        font-size: 28px;
+      }
+
+       .form-card img{
+        width: 300px;
+        height: 60px;
+        justify-content: center;
+       }
+    }
