@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "CokieCollege",
+    "slug": "cokie-college",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "../CokieCollegeMockUp/img/CokieCollege.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "../CokieCollegeMockUp/img/CokieCollege.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1957"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "../CokieCollegeMockUp/img/CokieCollege.png",
+        "backgroundColor": "#0B1957"
+      }
+    },
+    "web": {
+      "favicon": "../CokieCollegeMockUp/img/CokieCollege.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "cokie-college",
+    "extra": {
+      "supabaseUrl": "your_supabase_url",
+      "supabaseAnonKey": "your_supabase_anon_key"
+    }
+  }
+}

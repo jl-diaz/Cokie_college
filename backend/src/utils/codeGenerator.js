@@ -20,9 +20,9 @@ const generateInstitutionalCode = (firstName, secondName, year) => {
  * @returns {string} Contraseña aleatoria
  */
 const generateRandomPassword = () => {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$&';
     let password = '';
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
         const randomIndex = crypto.randomInt(0, charset.length);
         password += charset[randomIndex];
     }

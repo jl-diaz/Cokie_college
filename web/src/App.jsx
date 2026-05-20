@@ -1,5 +1,5 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import Lenis from '@studio-freight/lenis';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';

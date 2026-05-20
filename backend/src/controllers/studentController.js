@@ -8,7 +8,7 @@ const studentController = {
 
             let query = supabaseAdmin
                 .from('grades')
-                .select('*, subjects(name)')
+                .select('*, subjects(name), evaluation_activities(name, percentage)')
                 .eq('student_id', student_id);
 
             if (period) {

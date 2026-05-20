@@ -21,6 +21,7 @@ CREATE TYPE conduct_category AS ENUM ('Positivo', 'Leve', 'Grave', 'Muy Grave');
 
 CREATE TABLE conduct_codes (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    code TEXT UNIQUE NOT NULL, -- Ej: 'P01', 'L02'
     name TEXT NOT NULL,
     description TEXT,
     category conduct_category NOT NULL,
@@ -179,12 +180,12 @@ INSERT INTO academic_periods (period_number, start_date, end_date) VALUES
 (4, '2026-08-17', '2026-10-24');
 
 -- Insertar códigos de conducta iniciales
-INSERT INTO conduct_codes (name, description, category) VALUES
-('Participa en clase', 'El estudiante muestra proactividad y participación constante.', 'Positivo'),
-('No presenta tarea', 'El estudiante no entrega las tareas asignadas en la fecha estipulada.', 'Leve'),
-('Se presenta con uniforme sucio', 'El estudiante no cumple con las normas de higiene del uniforme.', 'Leve'),
-('Irrespeta al compañero', 'Conducta irrespetuosa hacia sus pares.', 'Grave'),
-('Ingresa bebidas alcohólicas a la institución', 'Falta gravísima al reglamento institucional.', 'Muy Grave');
+INSERT INTO conduct_codes (code, name, description, category) VALUES
+('P01', 'Participa en clase', 'El estudiante muestra proactividad y participación constante.', 'Positivo'),
+('L01', 'No presenta tarea', 'El estudiante no entrega las tareas asignadas en la fecha estipulada.', 'Leve'),
+('L02', 'Se presenta con uniforme sucio', 'El estudiante no cumple con las normas de higiene del uniforme.', 'Leve'),
+('G01', 'Irrespeta al compañero', 'Conducta irrespetuosa hacia sus pares.', 'Grave'),
+('MG01', 'Ingresa bebidas alcohólicas a la institución', 'Falta gravísima al reglamento institucional.', 'Muy Grave');
 
 -- RLS (Row Level Security) - Ejemplo básico
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;

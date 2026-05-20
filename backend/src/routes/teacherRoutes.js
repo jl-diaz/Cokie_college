@@ -10,6 +10,7 @@ router.get('/schedule', teacherController.getSchedule);
 router.get('/class-students', teacherController.getClassStudents);
 router.get('/activities', teacherController.getActivities);
 router.get('/grades-by-activity', teacherController.getGradesByActivity);
+router.get('/conduct-codes', teacherController.getConductCodes);
 router.post('/attendance', teacherController.registerAttendance);
 router.post('/conduct-records', teacherController.addConductRecord);
 router.post('/grades', teacherController.registerGrades);
