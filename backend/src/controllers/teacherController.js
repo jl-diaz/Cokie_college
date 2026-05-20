@@ -83,6 +83,19 @@ const teacherController = {
         }
     },
 
+    getConductCodes: async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin
+                .from('conduct_codes')
+                .select('*')
+                .order('code', { ascending: true });
+            if (error) throw error;
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
     getGradesByActivity: async (req, res) => {
         try {
             const { subject_id, activity_id, period, grade, section } = req.query;

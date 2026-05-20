@@ -12,7 +12,7 @@ App multiplataforma (iOS/Android) desarrollada con Expo para la gestión en tiem
 ## Instalación y Pruebas
 
 1. `cd mobile`
-2. `npm install`
+2. `npm install` o `npm install --legacy-peer-deps`
 3. Inicia el servidor de Expo: `npx expo start`
 4. Escanea el código QR con la app **Expo Go** en tu teléfono.
 

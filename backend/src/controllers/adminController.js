@@ -18,6 +18,15 @@ const adminController = {
                 query = query.or(`full_name.ilike.%${search}%,institutional_code.ilike.%${search}%`);
             }
 
+            // Coordinator filter logic
+            if (req.user.role === 'coordinator' && req.user.level) {
+                if (req.user.level === 'Primaria') {
+                    query = query.or('grade.in.(2,3,4,5,6),level.eq.Primaria');
+                } else if (req.user.level === 'Tercer Ciclo') {
+                    query = query.or('grade.in.(7,8,9),level.eq.Tercer Ciclo');
+                }
+            }
+
             const { data, error } = await query;
             if (error) throw error;
 
@@ -29,8 +38,11 @@ const adminController = {
 
     createUser: async (req, res) => {
         try {
-            const { full_name, email, role, grade, section, first_surname, second_surname } = req.body;
+            const { full_name, email, role, grade, section, first_surname, second_surname, level } = req.body;
             const year = new Date().getFullYear();
+
+            // Concatenar nombre completo para la DB si vienen por separado
+            const combinedFullName = `${full_name} ${first_surname} ${second_surname}`.trim();
 
             // 1. Generar código y contraseña
             const institutional_code = generateInstitutionalCode(first_surname, second_surname, year);
@@ -41,7 +53,7 @@ const adminController = {
                 email,
                 password,
                 email_confirm: true,
-                user_metadata: { full_name, role }
+                user_metadata: { full_name: combinedFullName, role }
             });
 
             if (authError) throw authError;
@@ -51,28 +63,34 @@ const adminController = {
                 .from('profiles')
                 .insert([{
                     id: authUser.user.id,
-                    full_name,
+                    full_name: combinedFullName,
                     email,
                     institutional_code,
                     role,
                     grade,
-                    section
+                    section,
+                    level
                 }])
                 .select()
                 .single();
 
             if (profileError) throw profileError;
 
-            // 4. Enviar correo
-            await sendWelcomeEmail(email, institutional_code, password);
+            // 4. Enviar correo (Intentar enviar, pero no bloquear si falla)
+            try {
+                await sendWelcomeEmail(full_name, email, institutional_code, password);
+            } catch (emailError) {
+                console.error('Fallo no crítico al enviar email:', emailError);
+            }
 
             res.status(201).json({ 
                 message: 'Usuario creado exitosamente', 
                 profile,
                 institutional_code,
-                temp_password: password // En producción no devolver la contraseña en el body, solo enviarla por correo
+                temp_password: password
             });
         } catch (error) {
+            console.error('Error al crear usuario:', error);
             res.status(500).json({ error: error.message });
         }
     },
@@ -123,10 +141,10 @@ const adminController = {
 
     createConductCode: async (req, res) => {
         try {
-            const { name, description, category } = req.body;
+            const { code, name, description, category } = req.body;
             const { data, error } = await supabaseAdmin
                 .from('conduct_codes')
-                .insert([{ name, description, category }])
+                .insert([{ code, name, description, category }])
                 .select()
                 .single();
 
@@ -161,6 +179,34 @@ const adminController = {
             const { error } = await supabaseAdmin.from('conduct_codes').delete().eq('id', id);
             if (error) throw error;
             res.json({ message: 'Código de conducta eliminado' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    // --- Asignación de Materias (Horarios) ---
+
+    getSubjects: async (req, res) => {
+        try {
+            const { data, error } = await supabaseAdmin.from('subjects').select('*');
+            if (error) throw error;
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createSchedule: async (req, res) => {
+        try {
+            const { teacher_id, subject_id, grade, section, day_of_week, start_time, end_time } = req.body;
+            const { data, error } = await supabaseAdmin
+                .from('schedules')
+                .insert([{ teacher_id, subject_id, grade, section, day_of_week, start_time, end_time }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.status(201).json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

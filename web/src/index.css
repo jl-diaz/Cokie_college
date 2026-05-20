@@ -3,18 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --primary: #6B21A8;
-  --secondary: #F59E0B;
+  --navy: #0B1957;
+  --blue: #426bc2;
+  --lilac: #E8D9ED;
+  --cream: #F7F4ED;
+  --white: #ffffff;
+  --muted: #8a94b2;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6;
+  background-color: #F5F7FA;
+  color: #0B1957;
 }
 
 /* Lenis smooth scroll */

@@ -3,8 +3,8 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Todas las rutas requieren autenticación y rol super_admin
-router.use(authenticate, authorize(['super_admin']));
+// Las rutas requieren autenticación y rol super_admin o coordinator
+router.use(authenticate, authorize(['super_admin', 'coordinator']));
 
 // Usuarios
 router.get('/users', adminController.getUsers);
@@ -17,5 +17,9 @@ router.get('/conduct-codes', adminController.getConductCodes);
 router.post('/conduct-codes', adminController.createConductCode);
 router.put('/conduct-codes/:id', adminController.updateConductCode);
 router.delete('/conduct-codes/:id', adminController.deleteConductCode);
+
+// Asignación de Horarios
+router.get('/subjects', adminController.getSubjects);
+router.post('/schedules', adminController.createSchedule);
 
 module.exports = router;
