@@ -37,7 +37,6 @@ const StudentJustifications = () => {
   };
 
   return (
-<<<<<<< HEAD
     <div className="flex flex-col min-h-full bg-app-bg font-poppins px-4 py-6 md:p-10">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto w-full">
         
@@ -49,24 +48,10 @@ const StudentJustifications = () => {
         <div className="bg-white rounded-3xl shadow-card border border-primary/5 p-6 mb-8 flex items-center gap-5">
           <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 border border-primary/5">
              <div className="w-full h-full flex items-center justify-center text-primary font-bold text-2xl">
-=======
-    <div className="flex flex-col min-h-full bg-[#F5F7FA] font-poppins px-4 py-6 md:p-10">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto w-full">
-        
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#0B1956] mb-2 font-sora">Solicitud de Permisos</h2>
-          <p className="text-[#8a8da0] text-sm md:text-[15px]">Por este medio puedes solicitar permiso para justificar tu ausencia en la institución.</p>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-sm border border-[#0B1956]/5 p-6 mb-8 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-[#E8D9ED] flex items-center justify-center overflow-hidden shrink-0">
-             <div className="w-full h-full flex items-center justify-center text-[#0B1956] font-bold text-2xl">
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
                {profile?.full_name?.charAt(0)}
              </div>
           </div>
           <div>
-<<<<<<< HEAD
             <h4 className="font-bold text-primary text-lg">{profile?.full_name}</h4>
             <p className="text-sm text-muted mt-0.5">Carnet: {profile?.institutional_code}</p>
             <p className="text-sm text-muted">Sección y grado: {profile?.grade}º {profile?.section}</p>
@@ -77,46 +62,22 @@ const StudentJustifications = () => {
           <div className="space-y-2">
             <label className="text-[13px] font-bold text-primary uppercase tracking-[0.5px] flex items-center gap-2">
               <span className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center"><FileText size={14} className="text-primary"/></span>
-=======
-            <h4 className="font-bold text-[#0B1956] text-lg">{profile?.full_name}</h4>
-            <p className="text-sm text-[#8a8da0] mt-0.5">Carnet: {profile?.institutional_code}</p>
-            <p className="text-sm text-[#8a8da0]">Sección y grado: {profile?.grade}º {profile?.section}</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-3xl shadow-[0_8px_30px_rgba(11,25,87,0.04)] border border-[#0B1956]/5 space-y-6">
-          <div className="space-y-2">
-            <label className="text-[13px] font-bold text-[#0B1956] uppercase tracking-[0.5px] flex items-center gap-2">
-              <span className="w-6 h-6 rounded-md bg-[#F5F7FA] flex items-center justify-center"><FileText size={14} className="text-[#0B1956]"/></span>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
               Fecha del permiso
             </label>
             <input 
               type="date" required
-<<<<<<< HEAD
               className="w-full px-5 py-4 bg-gray-50 focus:bg-white border-2 border-transparent focus:border-primary rounded-[16px] text-[15px] outline-none transition-all text-primary font-medium"
-=======
-              className="w-full px-5 py-4 bg-[#F5F7FA] focus:bg-white border-2 border-transparent focus:border-[#0B1956] rounded-[16px] text-[15px] outline-none transition-all text-[#0B1956] font-medium"
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
               value={formData.date}
               onChange={(e) => setFormData({...formData, date: e.target.value})}
             />
           </div>
 
           <div className="space-y-2">
-<<<<<<< HEAD
             <label className="text-[13px] font-bold text-primary uppercase tracking-[0.5px]">
                Tipo de solicitud
             </label>
             <div className="relative">
               <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-5 py-4 bg-gray-50 focus:bg-white border-2 border-transparent focus:border-primary rounded-[16px] text-[15px] outline-none transition-all appearance-none text-primary font-medium cursor-pointer">
-=======
-            <label className="text-[13px] font-bold text-[#0B1956] uppercase tracking-[0.5px]">
-               Tipo de solicitud
-            </label>
-            <div className="relative">
-              <select required value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-5 py-4 bg-[#F5F7FA] focus:bg-white border-2 border-transparent focus:border-[#0B1956] rounded-[16px] text-[15px] outline-none transition-all appearance-none text-[#0B1956] font-medium cursor-pointer">
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
                   <option value="" disabled>Seleccione motivo...</option>
                   <option value="Cita Médica">Cita Médica</option>
                   <option value="Justificación Médica">Justificación Médica</option>
@@ -124,30 +85,18 @@ const StudentJustifications = () => {
                   <option value="Otro">Otro</option>
               </select>
               <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-<<<<<<< HEAD
                 <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-=======
-                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="#0B1957" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
               </div>
             </div>
           </div>
 
           <div className="space-y-2">
-<<<<<<< HEAD
             <label className="text-[13px] font-bold text-primary uppercase tracking-[0.5px]">
-=======
-            <label className="text-[13px] font-bold text-[#0B1956] uppercase tracking-[0.5px]">
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
                 Detalles del motivo
             </label>
             <textarea 
               required rows="4"
-<<<<<<< HEAD
               className="w-full px-5 py-4 bg-gray-50 focus:bg-white border-2 border-transparent focus:border-primary rounded-[16px] text-[15px] outline-none transition-all resize-none text-primary font-medium"
-=======
-              className="w-full px-5 py-4 bg-[#F5F7FA] focus:bg-white border-2 border-transparent focus:border-[#0B1956] rounded-[16px] text-[15px] outline-none transition-all resize-none text-[#0B1956] font-medium"
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
               placeholder="Escriba aquí los detalles importantes..."
               value={formData.reason}
               onChange={(e) => setFormData({...formData, reason: e.target.value})}
@@ -155,7 +104,6 @@ const StudentJustifications = () => {
           </div>
 
           <div className="space-y-2">
-<<<<<<< HEAD
             <label className="text-[13px] font-bold text-primary uppercase tracking-[0.5px] flex items-center gap-2">
               <span className="w-6 h-6 rounded-md bg-gray-50 flex items-center justify-center"><UploadCloud size={14} className="text-primary"/></span>
               Comprobante / Evidencia
@@ -167,19 +115,6 @@ const StudentJustifications = () => {
                   Adjuntar justificante
                 </p>
                 <p className="text-[13px] text-muted mt-1">(Imagen o PDF)</p>
-=======
-            <label className="text-[13px] font-bold text-[#0B1956] uppercase tracking-[0.5px] flex items-center gap-2">
-              <span className="w-6 h-6 rounded-md bg-[#F5F7FA] flex items-center justify-center"><UploadCloud size={14} className="text-[#0B1956]"/></span>
-              Comprobante / Evidencia
-            </label>
-            <div className="mt-2 flex flex-col items-center justify-center p-8 border-2 border-[#E8D9ED] border-dashed rounded-[20px] hover:border-[#0B1956] transition-colors cursor-pointer relative bg-[#F5F7FA]/50 group">
-              <UploadCloud className="w-12 h-12 text-[#8a8da0] group-hover:text-[#0B1956] transition-colors mb-3" />
-              <div className="text-center">
-                <p className="text-[15px] font-bold text-[#0B1956]">
-                  Adjuntar justificante
-                </p>
-                <p className="text-[13px] text-[#8a8da0] mt-1">(Imagen o PDF)</p>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
               </div>
               <input 
                 type="file" 
@@ -189,11 +124,7 @@ const StudentJustifications = () => {
               />
             </div>
             {formData.file && (
-<<<<<<< HEAD
               <div className="mt-3 p-3 bg-good-bg border border-good/20 rounded-xl text-good font-bold text-sm flex items-center gap-2">
-=======
-              <div className="mt-3 p-3 bg-[#eafaf1] border border-[#2ecc71]/20 rounded-xl text-[#2ecc71] font-bold text-sm flex items-center gap-2">
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
                 <FileText size={16} />
                 <span className="truncate">{formData.file.name}</span>
               </div>
@@ -203,11 +134,7 @@ const StudentJustifications = () => {
           <button 
             type="submit"
             disabled={loading}
-<<<<<<< HEAD
             className="w-full bg-primary hover:bg-primary-light text-white py-4 rounded-[16px] font-bold tracking-[0.5px] transition-all active:scale-[0.98] shadow-elevated flex justify-center items-center mt-2"
-=======
-            className="w-full bg-[#0B1956] hover:bg-[#0B1956]/90 text-white py-4 rounded-[16px] font-bold tracking-[0.5px] transition-all active:scale-[0.98] shadow-lg flex justify-center items-center mt-2"
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
           >
             {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div> : 'Enviar a Coordinación'}
           </button>
@@ -216,10 +143,7 @@ const StudentJustifications = () => {
       </motion.div>
     </div>
   );
-<<<<<<< HEAD
 
-=======
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 };
 
 export default StudentJustifications;

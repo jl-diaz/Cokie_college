@@ -99,7 +99,6 @@ export default function CustomDrawer({ visible, onClose }) {
           <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
         </Animated.View>
         
-<<<<<<< HEAD
 <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100 }]}>
            <View style={styles.header}>
              <View style={{ flex: 1 }}>
@@ -110,18 +109,6 @@ export default function CustomDrawer({ visible, onClose }) {
                <X size={24} color="#FFF" />
              </TouchableOpacity>
            </View>
-=======
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }] }]}>
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.brand}>Cokie<Text style={styles.brandAccent}>College</Text></Text>
-              <Text style={styles.subBrand}>Plataforma Estudiantil</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={24} color="#E8D9ED" />
-            </TouchableOpacity>
-          </View>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 
           <View style={styles.profileSection}>
             <View style={styles.avatar}>
@@ -144,11 +131,7 @@ export default function CustomDrawer({ visible, onClose }) {
                   onPress={() => handleNavigate(item.path)}
                   activeOpacity={0.7}
                 >
-<<<<<<< HEAD
                   <Icon size={22} color={isActive ? "#0B1956" : "#FFF"} style={styles.navIcon} />
-=======
-                  <Icon size={22} color={isActive ? "#0B1956" : "#E8D9ED"} style={styles.navIcon} />
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
                   <Text style={[styles.navText, isActive && styles.navTextActive]}>{item.name}</Text>
                 </TouchableOpacity>
               );
@@ -170,11 +153,6 @@ export default function CustomDrawer({ visible, onClose }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
-<<<<<<< HEAD
-=======
-    flexDirection: 'row',
-    paddingTop: 20,
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -189,11 +167,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 20,
-<<<<<<< HEAD
     paddingTop: 65,
-=======
-    paddingTop: 50,
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
   },
   header: {
     flexDirection: 'row',
@@ -210,11 +184,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   brandAccent: {
-<<<<<<< HEAD
     color: '#FFF',
-=======
-    color: '#E8D9ED',
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
   },
   subBrand: {
     color: 'rgba(255,255,255,0.6)',
@@ -238,11 +208,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-<<<<<<< HEAD
     backgroundColor: '#FFF',
-=======
-    backgroundColor: '#E8D9ED',
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -278,11 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   navItemActive: {
-<<<<<<< HEAD
     backgroundColor: '#FFF',
-=======
-    backgroundColor: '#E8D9ED',
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
     borderLeftWidth: 4,
     borderLeftColor: '#FFF',
   },
@@ -290,11 +252,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   navText: {
-<<<<<<< HEAD
     color: '#FFF',
-=======
-    color: '#E8D9ED',
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
     fontSize: 15,
     fontWeight: '600',
   },

@@ -17,18 +17,13 @@ export default function Layout() {
           headerStyle: {
             backgroundColor: '#0B1957',
           },
-<<<<<<< HEAD
           headerTintColor: '#FFF',
-=======
-          headerTintColor: '#E8D9ED',
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
           headerTitleStyle: {
             fontWeight: 'bold',
           },
           headerRight: () => {
              if (route.name === 'index' || route.name === '(auth)/login') return null;
              return (
-<<<<<<< HEAD
                <TouchableOpacity 
                  onPress={() => setDrawerVisible(true)} 
                  style={{ 
@@ -42,28 +37,6 @@ export default function Layout() {
                >
                  <Menu size={24} color="#FFF" />
                </TouchableOpacity>
-=======
-               <View style={{ 
-                 width: 40, 
-                 height: 40, 
-                 justifyContent: 'center', 
-                 alignItems: 'center', 
-                 marginRight: 8
-               }}>
-                 <TouchableOpacity 
-                   onPress={() => setDrawerVisible(true)} 
-                   style={{ 
-                     width: 40, 
-                     height: 40, 
-                     alignItems: 'center', 
-                     justifyContent: 'center'
-                   }}
-                   activeOpacity={0.7}
-                 >
-                   <Menu size={24} color="#E8D9ED" />
-                 </TouchableOpacity>
-               </View>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
              );
           }
         })}
@@ -81,13 +54,10 @@ export default function Layout() {
         <Stack.Screen name="students" options={{ title: 'Listado de Estudiantes' }} />
         <Stack.Screen name="assign" options={{ title: 'Asignar Clases' }} />
         <Stack.Screen name="class" options={{ title: 'Clase Activa' }} />
-<<<<<<< HEAD
         <Stack.Screen name="classrooms" options={{ title: 'Salones' }} />
         <Stack.Screen name="coordinator-justifications" options={{ title: 'Justificaciones' }} />
         <Stack.Screen name="coordinator" options={{ title: 'Profesores' }} />
         <Stack.Screen name="teacher-grades" options={{ title: 'Ingreso de Notas' }} />
-=======
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
       </Stack>
       <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </AuthProvider>

@@ -18,7 +18,6 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-<<<<<<< HEAD
 // Interceptor para manejar errores globales (como 401)
 api.interceptors.response.use(
   (response) => response,
@@ -32,6 +31,4 @@ api.interceptors.response.use(
   }
 );
 
-=======
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 export default api;

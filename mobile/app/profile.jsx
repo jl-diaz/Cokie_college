@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { LogOut, User, Mail, Shield, Book, MapPin, Phone, Calendar } from 'lucide-react-native';
@@ -77,48 +76,10 @@ export default function ProfileScreen() {
         <View style={{height: 40}} />
       </View>
     </ScrollView>
-=======
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../src/context/AuthContext';
-
-export default function ProfileScreen() {
-  const { profile, logout } = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace('/(auth)/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.profileHeader}>
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarText}>
-            {profile?.full_name?.charAt(0) || 'U'}
-          </Text>
-        </View>
-        <Text style={styles.name}>{profile?.full_name || 'Usuario'}</Text>
-        <Text style={styles.email}>{profile?.email || ''}</Text>
-      </View>
-
-      <View style={styles.menu}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Cerrar Sesión</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
   );
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -195,53 +156,4 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: Colors.status.rejected, fontWeight: 'bold', marginLeft: 10, fontSize: Typography.size.md },
   version: { textAlign: 'center', color: Colors.text.muted, fontSize: Typography.size.xs, marginTop: 24 }
-=======
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F4ED',
-    padding: 20,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginVertical: 40,
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0B1957',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarText: {
-    color: '#E8D9ED',
-    fontSize: 40,
-    fontWeight: 'bold',
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0B1957',
-  },
-  email: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 4,
-  },
-  menu: {
-    marginTop: 20,
-  },
-  logoutButton: {
-    backgroundColor: '#ff4444',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  logoutText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
->>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 });
