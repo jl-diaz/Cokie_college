@@ -9,8 +9,21 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS, // Para Gmail, usar una "Contraseña de Aplicación"
     },
 });
+const nodemailer = require('nodemailer');
+const path = require('path');
+
+// Configuración del transportador para Nodemailer
+const transporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS, // Para Gmail, usar una "Contraseña de Aplicación"
+    },
+});
 
 /**
+ * Envía un correo de bienvenida con las credenciales usando Nodemailer.
+ * @param {string} full_name - Primer Nombre
  * Envía un correo de bienvenida con las credenciales usando Nodemailer.
  * @param {string} full_name - Primer Nombre
  * @param {string} email - Correo del usuario
@@ -18,7 +31,13 @@ const transporter = nodemailer.createTransport({
  * @param {string} password - Contraseña temporal
  */
 const sendWelcomeEmail = async (full_name, email, code, password) => {
+const sendWelcomeEmail = async (full_name, email, code, password) => {
     try {
+        const logoPath = path.join(__dirname, '../../../src/CokieHallLogo.png');
+
+        const mailOptions = {
+            from: `"Cokie College" <${process.env.EMAIL_USER}>`,
+            to: email,
         const logoPath = path.join(__dirname, '../../../src/CokieHallLogo.png');
 
         const mailOptions = {
@@ -195,7 +214,23 @@ const sendWelcomeEmail = async (full_name, email, code, password) => {
 
         const info = await transporter.sendMail(mailOptions);
         console.log(`Email enviado exitosamente a ${email} ID: ${info.messageId}`);
+                  </div>
+                </body>
+                </html>
+            `,
+            attachments: [
+                {
+                    filename: 'CokieHallLogo.png',
+                    path: logoPath,
+                    cid: 'logo'
+                }
+            ]
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`Email enviado exitosamente a ${email} ID: ${info.messageId}`);
     } catch (error) {
+        console.error('Error enviando email con Nodemailer:', error);
         console.error('Error enviando email con Nodemailer:', error);
     }
 };

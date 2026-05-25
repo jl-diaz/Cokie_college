@@ -152,11 +152,14 @@ const adminController = {
     createConductCode: async (req, res) => {
         try {
             const { code, name, description, category } = req.body;
+<<<<<<< HEAD
             
             if (!code || !name || !category) {
                 return res.status(400).json({ error: 'Faltan campos obligatorios: code, name, category' });
             }
 
+=======
+>>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
             const { data, error } = await supabaseAdmin
                 .from('conduct_codes')
                 .insert([{ code, name, description, category }])
@@ -214,11 +217,14 @@ const adminController = {
     createSchedule: async (req, res) => {
         try {
             const { teacher_id, subject_id, grade, section, day_of_week, start_time, end_time } = req.body;
+<<<<<<< HEAD
 
             if (!teacher_id || !subject_id || !grade || !section || !day_of_week || !start_time || !end_time) {
                 return res.status(400).json({ error: 'Faltan campos obligatorios para el horario' });
             }
 
+=======
+>>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
             const { data, error } = await supabaseAdmin
                 .from('schedules')
                 .insert([{ teacher_id, subject_id, grade, section, day_of_week, start_time, end_time }])
@@ -230,6 +236,7 @@ const adminController = {
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
+<<<<<<< HEAD
     },
 
     // --- Periodos Académicos ---
@@ -247,6 +254,8 @@ const adminController = {
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
+=======
+>>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
     }
 };
 

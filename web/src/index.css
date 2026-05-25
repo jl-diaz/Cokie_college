@@ -5,6 +5,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
+<<<<<<< HEAD
   --primary: #0B1956;
   --primary-light: #3b82f6;
   --background: #F5F7FA;
@@ -15,6 +16,14 @@
   --status-approved: #10b981;
   --status-pending: #f59e0b;
   --status-rejected: #ef4444;
+=======
+  --navy: #0B1957;
+  --blue: #426bc2;
+  --lilac: #E8D9ED;
+  --cream: #F7F4ED;
+  --white: #ffffff;
+  --muted: #8a94b2;
+>>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 }
 
 body {
@@ -22,6 +31,7 @@ body {
   font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+<<<<<<< HEAD
   background-color: var(--background);
   color: var(--text-primary);
 }
@@ -33,6 +43,10 @@ body {
 
 .transition-smooth {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+=======
+  background-color: #F5F7FA;
+  color: #0B1957;
+>>>>>>> 01a6ed2f4f9acfb37c5cbdb9795ce1b320264c34
 }
 
 /* Lenis smooth scroll */
