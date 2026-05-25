@@ -7,11 +7,15 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate, authorize(['teacher']));
 
 router.get('/schedule', teacherController.getSchedule);
+router.get('/active-class', teacherController.getActiveClass);
+router.get('/classrooms', teacherController.getClassrooms);
 router.get('/class-students', teacherController.getClassStudents);
 router.get('/activities', teacherController.getActivities);
 router.get('/grades-by-activity', teacherController.getGradesByActivity);
+router.get('/conduct-codes', teacherController.getConductCodes);
 router.post('/attendance', teacherController.registerAttendance);
 router.post('/conduct-records', teacherController.addConductRecord);
 router.post('/grades', teacherController.registerGrades);
+router.delete('/grades/:id', teacherController.deleteGrade);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const { supabase } = require('../config/supabase');
+const { supabase, supabaseAdmin } = require('../config/supabase');
 
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -7,25 +7,38 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (error || !user) {
-        return res.status(401).json({ error: 'Token inválido o expirado' });
+        if (authError || !user) {
+            console.error('Error de autenticación:', authError);
+            return res.status(401).json({ error: 'Token inválido o expirado' });
+        }
+
+        // Usamos supabaseAdmin para saltar RLS y asegurar que encontramos el perfil
+        const { data: profile, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError || !profile) {
+            console.error(`Perfil no encontrado para el usuario ID: ${user.id}. Error:`, profileError);
+            return res.status(403).json({ 
+                error: 'Perfil de usuario no encontrado',
+                details: 'El usuario existe en Auth pero no se pudo recuperar su registro en la tabla profiles. Verifique que el UUID en la tabla coincida exactamente con el de Auth.',
+                userId: user.id,
+                dbError: profileError?.message
+            });
+        }
+
+        req.user = { ...user, ...profile };
+        next();
+    } catch (error) {
+        console.error('Error inesperado en middleware auth:', error);
+        res.status(500).json({ error: 'Error interno del servidor en la autenticación' });
     }
-
-    // Obtener el perfil del usuario para verificar el rol
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-    if (profileError || !profile) {
-        return res.status(403).json({ error: 'Perfil de usuario no encontrado' });
-    }
-
-    req.user = { ...user, ...profile };
-    next();
 };
 
 const authorize = (roles = []) => {

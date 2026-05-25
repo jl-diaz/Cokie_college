@@ -24,7 +24,7 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <Animated.View style={{ opacity: fadeAnim }}>
         <Image 
-          source={require('../../CokieCollegeMockUp/img/CokieCollege.png')} 
+          source={require('../src/CokieCollegeLogo.jpg')} 
           style={styles.logo}
           resizeMode="contain"
         />
@@ -36,13 +36,12 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6B21A8',
+    backgroundColor: '#0B1957',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
     width: 200,
     height: 200,
-    tintColor: '#fff',
   },
 });

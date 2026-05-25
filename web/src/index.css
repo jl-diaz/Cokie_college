@@ -2,19 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
-  --primary: #6B21A8;
-  --secondary: #F59E0B;
+  --primary: #0B1956;
+  --primary-light: #3b82f6;
+  --background: #F5F7FA;
+  --card: #FFFFFF;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --status-approved: #10b981;
+  --status-pending: #f59e0b;
+  --status-rejected: #ef4444;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6;
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+/* Custom styles for consistency */
+.card-shadow {
+  box-shadow: 0 4px 6px -1px rgba(11, 25, 86, 0.05), 0 2px 4px -1px rgba(11, 25, 86, 0.03);
+}
+
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Lenis smooth scroll */

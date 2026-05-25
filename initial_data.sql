@@ -20,7 +20,7 @@ INSERT INTO subjects (name) VALUES
 
 /*
 INSERT INTO profiles (id, full_name, email, institutional_code, role)
-VALUES ('TU_UUID_AQUI', 'Administrador Principal', 'admin@cokiecollege.edu', 'ADMIN2026', 'super_admin');
+VALUES ('fd378645-98bf-4ea1-a4fb-f86d1714493c', 'Administrador Principal', 'admin@cokiecollege.com', 'ADMIN2026', 'super_admin');
 */
 
 -- Configuración de Storage
