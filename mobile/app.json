@@ -21,7 +21,8 @@
       "adaptiveIcon": {
         "foregroundImage": "../CokieCollegeMockUp/img/CokieCollege.png",
         "backgroundColor": "#0B1957"
-      }
+      },
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "../CokieCollegeMockUp/img/CokieCollege.png",
