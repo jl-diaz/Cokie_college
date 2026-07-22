@@ -7,7 +7,6 @@ const { authenticate, authorize } = require('../middleware/auth');
 router.use(authenticate, authorize(['teacher']));
 
 router.get('/schedule', teacherController.getSchedule);
-router.get('/active-class', teacherController.getActiveClass);
 router.get('/classrooms', teacherController.getClassrooms);
 router.get('/class-students', teacherController.getClassStudents);
 router.get('/activities', teacherController.getActivities);

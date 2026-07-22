@@ -3,15 +3,29 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions }
 import { Home, Users, FileText, BookOpen, Calendar, LogOut, X } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
 export default function CustomDrawer({ visible, onClose }) {
+  const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(-width)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const pathname = usePathname();
   const { profile, logout } = useAuth();
+  const { theme, colors } = useTheme();
+
+  const drawerBg = theme === 'dark' ? colors.card : '#0B1956';
+  const textColor = theme === 'dark' ? colors.text.primary : '#FFF';
+  const subTextColor = theme === 'dark' ? colors.text.secondary : 'rgba(255,255,255,0.6)';
+  const activeItemBg = theme === 'dark' ? colors.primary : '#FFF';
+  const activeItemText = theme === 'dark' ? colors.text.inverse : '#0B1956';
+  const inactiveItemText = theme === 'dark' ? colors.text.secondary : '#FFF';
+  const borderColor = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)';
+  const avatarBg = theme === 'dark' ? colors.background : '#FFF';
+  const avatarText = theme === 'dark' ? colors.primary : '#0B1956';
 
   useEffect(() => {
     if (visible) {
@@ -47,28 +61,28 @@ export default function CustomDrawer({ visible, onClose }) {
 
   const menuItems = {
     super_admin: [
-      { name: 'Inicio', path: '/home', icon: Home },
-      { name: 'Usuarios', path: '/users', icon: Users },
-      { name: 'Catálogo Conducta', path: '/conduct', icon: FileText },
+      { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.users', 'Usuarios'), path: '/users', icon: Users },
+      { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText },
     ],
     coordinator: [
-      { name: 'Inicio', path: '/home', icon: Home },
-      { name: 'Estudiantes', path: '/students', icon: Users },
-      { name: 'Justificaciones', path: '/justifications', icon: FileText },
-      { name: 'Asignar Clases', path: '/assign', icon: BookOpen },
+      { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users },
+      { name: t('menu.justifications', 'Justificaciones'), path: '/justifications', icon: FileText },
+      { name: t('menu.assign_classes', 'Asignar Clases'), path: '/assign', icon: BookOpen },
     ],
     teacher: [
-      { name: 'Inicio', path: '/home', icon: Home },
-      { name: 'Mi Horario', path: '/schedule', icon: Calendar },
-      { name: 'Clase Activa', path: '/class', icon: BookOpen },
-      { name: 'Notas', path: '/grades', icon: FileText },
+      { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.schedule', 'Mi Horario'), path: '/schedule', icon: Calendar },
+      { name: t('menu.activeClass', 'Clase Activa'), path: '/class', icon: BookOpen },
+      { name: t('menu.grades', 'Notas'), path: '/teacher-grades', icon: FileText },
     ],
     student: [
-      { name: 'Inicio', path: '/home', icon: Home },
-      { name: 'Mis Notas', path: '/grades', icon: FileText },
-      { name: 'Diario Pedagógico', path: '/diary', icon: BookOpen },
-      { name: 'Horario', path: '/schedule', icon: Calendar },
-      { name: 'Justificaciones', path: '/justifications', icon: FileText },
+      { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.grades', 'Mis Notas'), path: '/grades', icon: FileText },
+      { name: t('menu.diary', 'Diario Pedagógico'), path: '/diary', icon: BookOpen },
+      { name: t('menu.schedule', 'Horario'), path: '/schedule', icon: Calendar },
+      { name: t('menu.justifications', 'Justificaciones'), path: '/justifications', icon: FileText },
     ]
   };
 
@@ -99,24 +113,24 @@ export default function CustomDrawer({ visible, onClose }) {
           <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
         </Animated.View>
         
-<Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100 }]}>
-           <View style={styles.header}>
+        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100, backgroundColor: drawerBg }]}>
+           <View style={[styles.header, { borderBottomColor: borderColor }]}>
              <View style={{ flex: 1 }}>
-               <Text style={styles.brand}>Cokie<Text style={styles.brandAccent}>College</Text></Text>
-               <Text style={styles.subBrand}>Plataforma Estudiantil</Text>
+               <Text style={[styles.brand, { color: textColor }]}>Cokie<Text style={[styles.brandAccent, { color: theme === 'dark' ? colors.primary : '#FFF' }]}>College</Text></Text>
+               <Text style={[styles.subBrand, { color: subTextColor }]}>{t('drawer.subBrand', 'Plataforma Estudiantil')}</Text>
              </View>
              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-               <X size={24} color="#FFF" />
+               <X size={24} color={textColor} />
              </TouchableOpacity>
            </View>
 
-          <View style={styles.profileSection}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{profile.full_name.charAt(0)}</Text>
+          <View style={[styles.profileSection, { borderBottomColor: borderColor, backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }]}>
+            <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
+              <Text style={[styles.avatarText, { color: avatarText }]}>{profile.full_name.charAt(0)}</Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName} numberOfLines={1}>{profile.full_name}</Text>
-              <Text style={styles.profileRole}>{profile.role.replace('_', ' ')}</Text>
+              <Text style={[styles.profileName, { color: textColor }]} numberOfLines={1}>{profile.full_name}</Text>
+              <Text style={[styles.profileRole, { color: subTextColor }]}>{profile.role.replace('_', ' ')}</Text>
             </View>
           </View>
 
@@ -127,21 +141,24 @@ export default function CustomDrawer({ visible, onClose }) {
               return (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.navItem, isActive && styles.navItemActive]}
+                  style={[
+                    styles.navItem, 
+                    isActive && { backgroundColor: activeItemBg, borderLeftColor: theme === 'dark' ? colors.primary : '#FFF', borderLeftWidth: 4 }
+                  ]}
                   onPress={() => handleNavigate(item.path)}
                   activeOpacity={0.7}
                 >
-                  <Icon size={22} color={isActive ? "#0B1956" : "#FFF"} style={styles.navIcon} />
-                  <Text style={[styles.navText, isActive && styles.navTextActive]}>{item.name}</Text>
+                  <Icon size={22} color={isActive ? activeItemText : inactiveItemText} style={styles.navIcon} />
+                  <Text style={[styles.navText, { color: isActive ? activeItemText : inactiveItemText }, isActive && { fontWeight: '800' }]}>{item.name}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: borderColor }]}>
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
               <LogOut size={22} color="#ff6b6b" style={styles.navIcon} />
-              <Text style={styles.logoutText}>Cerrar Sesión</Text>
+              <Text style={styles.logoutText}>{t('menu.logout', 'Cerrar Sesión')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

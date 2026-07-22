@@ -75,31 +75,31 @@ const StudentSchedule = () => {
   // Helper function to assign a color class based on subject name
   const getSubjectColor = (name) => {
     const n = name.toLowerCase();
-    if (n.includes('ingl') || n.includes('english')) return 'border-l-[6px] border-primary-light';
-    if (n.includes('mate') || n.includes('math')) return 'border-l-[6px] border-bad';
-    if (n.includes('quim') || n.includes('chem')) return 'border-l-[6px] border-primary';
-    if (n.includes('fisi') || n.includes('phys')) return 'border-l-[6px] border-mid';
-    if (n.includes('soci') || n.includes('hist')) return 'border-l-[6px] border-good';
-    if (n.includes('biol') || n.includes('bio')) return 'border-l-[6px] border-good';
-    if (n.includes('leng') || n.includes('lit')) return 'border-l-[6px] border-mid';
-    return 'border-l-[6px] border-primary'; // Default
+    if (n.includes('ingl') || n.includes('english')) return 'border-l-[6px] border-[#48DBFB]';
+    if (n.includes('mate') || n.includes('math')) return 'border-l-[6px] border-[#FF6B6B]';
+    if (n.includes('quim') || n.includes('chem')) return 'border-l-[6px] border-[#A55EE1]';
+    if (n.includes('fisi') || n.includes('phys')) return 'border-l-[6px] border-[#FFD93D]';
+    if (n.includes('soci') || n.includes('hist')) return 'border-l-[6px] border-[#1DD1A1]';
+    if (n.includes('biol') || n.includes('bio')) return 'border-l-[6px] border-[#10AC84]';
+    if (n.includes('leng') || n.includes('lit')) return 'border-l-[6px] border-[#FF9F43]';
+    return 'border-l-[6px] border-[#0B1956]'; // Default
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-app-bg font-poppins">
-      <div className="bg-gradient-to-br from-primary to-primary-light text-white p-6 md:p-10 text-center rounded-b-[30px] shadow-elevated relative z-10">
+    <div className="flex flex-col min-h-full bg-[#f4f7f6] font-poppins">
+      <div className="bg-gradient-to-br from-[#0B1956] to-[#426bc2] text-white p-6 md:p-10 text-center rounded-b-[30px] shadow-lg relative z-10">
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Mi Horario de clases</h2>
         <p className="text-[13px] mt-2 opacity-90 uppercase tracking-widest font-medium">Selecciona un día</p>
       </div>
       
-      <nav className="flex justify-around bg-primary p-4 mx-4 md:mx-auto md:w-3/4 -mt-6 rounded-2xl shadow-elevated relative z-20">
+      <nav className="flex justify-around bg-[#0B1956] p-4 mx-4 md:mx-auto md:w-3/4 -mt-6 rounded-2xl shadow-xl relative z-20">
         {days.map(day => (
           <button 
             key={day.id}
             onClick={() => setActiveDay(day.id)}
             className={`px-4 py-2.5 rounded-full font-bold text-[13px] md:text-sm transition-all duration-300 ${
               activeDay === day.id 
-                ? 'bg-white text-primary shadow-md scale-105' 
+                ? 'bg-white text-[#0B1956] shadow-md scale-105' 
                 : 'bg-transparent text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -111,7 +111,7 @@ const StudentSchedule = () => {
       <main className="flex-1 p-5 md:p-8 max-w-4xl mx-auto w-full mt-4">
         {loading ? (
           <div className="flex justify-center p-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B1956]"></div>
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -124,19 +124,19 @@ const StudentSchedule = () => {
               className="space-y-4"
             >
               {currentDaySchedules.length === 0 ? (
-                <div className="text-center p-10 bg-white rounded-[20px] shadow-card border border-primary/5">
-                  <p className="text-muted font-medium">No hay clases programadas para este día.</p>
+                <div className="text-center p-10 bg-white rounded-[20px] shadow-sm border border-[#e0e0e0]">
+                  <p className="text-[#888] font-medium">No hay clases programadas para este día.</p>
                 </div>
               ) : (
                 currentDaySchedules.map((schedule, idx) => (
-                  <div key={schedule.id || idx} className={`flex bg-white rounded-[16px] shadow-card border border-primary/5 overflow-hidden hover:shadow-elevated transition-shadow ${getSubjectColor(schedule.subjects?.name || '')}`}>
-                    <div className="p-4 md:p-5 min-w-[100px] md:min-w-[120px] text-center flex flex-col justify-center border-r-[2px] border-dotted border-gray-100">
-                      <span className="font-bold text-muted text-[13px] md:text-sm">{formatTime(schedule.start_time)}</span>
-                      <span className="font-bold text-muted text-[13px] md:text-sm">{formatTime(schedule.end_time)}</span>
+                  <div key={schedule.id || idx} className={`flex bg-white rounded-[16px] shadow-sm border border-[#e0e0e0] overflow-hidden hover:shadow-md transition-shadow ${getSubjectColor(schedule.subjects?.name || '')}`}>
+                    <div className="p-4 md:p-5 min-w-[100px] md:min-w-[120px] text-center flex flex-col justify-center border-r-[2px] border-dotted border-[#e0e0e0]">
+                      <span className="font-bold text-[#888] text-[13px] md:text-sm">{formatTime(schedule.start_time)}</span>
+                      <span className="font-bold text-[#888] text-[13px] md:text-sm">{formatTime(schedule.end_time)}</span>
                     </div>
                     <div className="p-4 md:p-5 flex-grow flex flex-col justify-center">
-                      <span className="font-bold text-primary text-lg md:text-xl mb-1">{schedule.subjects?.name || 'Materia'}</span>
-                      <span className="text-muted text-[13px] md:text-sm font-medium">{schedule.profiles?.full_name || 'Profesor'}</span>
+                      <span className="font-bold text-[#333] text-lg md:text-xl mb-1">{schedule.subjects?.name || 'Materia'}</span>
+                      <span className="text-[#888] text-[13px] md:text-sm font-medium">{schedule.profiles?.full_name || 'Profesor'}</span>
                     </div>
                   </div>
                 ))
@@ -147,7 +147,6 @@ const StudentSchedule = () => {
       </main>
     </div>
   );
-
 };
 
 export default StudentSchedule;

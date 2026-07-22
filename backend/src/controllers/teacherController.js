@@ -18,96 +18,6 @@ const teacherController = {
         }
     },
 
-    getActiveClass: async (req, res) => {
-        try {
-            const teacher_id = req.user.id;
-            
-            // 1. Obtener día y hora actual en America/El_Salvador (UTC-6)
-            const now = new Date();
-            // Convertir a hora de El Salvador
-            const svTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/El_Salvador' }));
-            
-            const dayOfWeek = svTime.getDay(); // 0 (Dom) - 6 (Sáb)
-            // En JS 0=Dom, 1=Lun... El Salvador usualmente usa 1=Lun...
-            // Si en la DB 1=Lunes, 5=Viernes:
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                return res.json({ claseActiva: false, proximaClase: null, mensaje: 'Hoy es fin de semana.' });
-            }
-
-            const currentTime = svTime.toTimeString().split(' ')[0]; // "HH:MM:SS"
-
-            // 2. Buscar clase activa
-            const { data: schedule, error: scheduleError } = await supabaseAdmin
-                .from('schedules')
-                .select('*, subjects(name)')
-                .eq('teacher_id', teacher_id)
-                .eq('day_of_week', dayOfWeek.toString())
-                .lte('start_time', currentTime)
-                .gte('end_time', currentTime)
-                .single();
-
-            // 3. Obtener el periodo actual basado en la fecha
-            const { data: periodData } = await supabaseAdmin
-                .from('academic_periods')
-                .select('period_number')
-                .lte('start_date', now.toISOString())
-                .gte('end_date', now.toISOString())
-                .limit(1)
-                .single();
-
-            const currentPeriod = periodData?.period_number || 1;
-
-            if (schedule) {
-                // Obtener estudiantes
-                const { data: estudiantes, error: studentError } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id, full_name, institutional_code')
-                    .eq('role', 'student')
-                    .eq('grade', schedule.grade)
-                    .eq('section', schedule.section)
-                    .order('full_name', { ascending: true });
-
-                return res.json({
-                    claseActiva: true,
-                    materia: schedule.subjects.name,
-                    subject_id: schedule.subject_id,
-                    grade: schedule.grade,
-                    section: schedule.section,
-                    start_time: schedule.start_time,
-                    end_time: schedule.end_time,
-                    period: currentPeriod,
-                    estudiantes
-                });
-            }
-
-            // 3. Si no hay activa, buscar la próxima del día
-            const { data: nextClass, error: nextError } = await supabaseAdmin
-                .from('schedules')
-                .select('*, subjects(name)')
-                .eq('teacher_id', teacher_id)
-                .eq('day_of_week', dayOfWeek.toString())
-                .gt('start_time', currentTime)
-                .order('start_time', { ascending: true })
-                .limit(1)
-                .single();
-
-            res.json({
-                claseActiva: false,
-                proximaClase: nextClass ? {
-                    materia: nextClass.subjects.name,
-                    start_time: nextClass.start_time,
-                    grade: nextClass.grade,
-                    section: nextClass.section,
-                    period: currentPeriod
-                } : null
-            });
-
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Error al obtener la clase activa' });
-        }
-    },
-
     getClassrooms: async (req, res) => {
         try {
             const { level } = req.user;
@@ -170,10 +80,6 @@ const teacherController = {
             const teacher_id = req.user.id;
             const { attendances } = req.body; // Array de { student_id, subject_id, status, period, date }
 
-            if (!Array.isArray(attendances) || attendances.length === 0) {
-                return res.status(400).json({ error: 'Se requiere un array de asistencias' });
-            }
-
             const { data, error } = await supabaseAdmin
                 .from('attendance')
                 .upsert(attendances.map(a => ({ ...a, teacher_id })));
@@ -192,14 +98,7 @@ const teacherController = {
 
             const { data, error } = await supabaseAdmin
                 .from('conduct_records')
-                .insert([{ 
-                    student_id, 
-                    teacher_id, 
-                    code_id, 
-                    observation, 
-                    period,
-                    fecha_aplicacion: new Date().toISOString()
-                }])
+                .insert([{ student_id, teacher_id, code_id, observation, period }])
                 .select()
                 .single();
 
@@ -281,16 +180,6 @@ const teacherController = {
         try {
             const teacher_id = req.user.id;
             const { grades, period } = req.body; // Array de { student_id, subject_id, activity_id, grade }
-
-            if (!Array.isArray(grades) || grades.length === 0 || !period) {
-                return res.status(400).json({ error: 'Se requiere un array de notas y el periodo' });
-            }
-
-            // Validar que todas las notas estén en el rango 0-10
-            const invalidGrade = grades.find(g => g.grade < 0 || g.grade > 10);
-            if (invalidGrade) {
-                return res.status(400).json({ error: `La nota ${invalidGrade.grade} no es válida. Debe estar entre 0 y 10.` });
-            }
 
             // Verificar si el periodo está activo
             const { data: periodInfo, error: periodError } = await supabaseAdmin

@@ -1,11 +1,17 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import api from '../src/utils/api';
 import { ChevronDown, ChevronUp, Award, Book } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function GradesScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors, theme } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [grades, setGrades] = useState([]);
   const [averages, setAverages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +47,6 @@ export default function GradesScreen() {
     }
   };
 
-  // Group grades by subject
   const groupedGrades = grades.reduce((acc, grade) => {
     const subjectName = grade.subjects?.name || 'Desconocida';
     if (!acc[subjectName]) acc[subjectName] = [];
@@ -49,11 +54,9 @@ export default function GradesScreen() {
     return acc;
   }, {});
 
-  // Get average from backend for a subject
   const getSubjectAverage = (subjectName) => {
     const subjectGrades = groupedGrades[subjectName] || [];
     
-    // Calculate progress based on activities with grades vs total possible activities
     const uniqueActivities = {};
     subjectGrades.forEach(g => {
       const activityName = g.evaluation_activities?.name;
@@ -102,43 +105,45 @@ export default function GradesScreen() {
   const overall = getOverallAverage();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{isCoordinatorView === 'true' ? 'Notas del Alumno' : 'Sistema de Calificaciones'}</Text>
-        <Text style={styles.headerSubtitle}>{isCoordinatorView === 'true' ? 'Notas registradas del estudiante' : 'Tus notas registradas'}</Text>
+    <ScrollView style={styles.container}>
+      <PageHeader 
+        title={t('titles.grades', 'Calificaciones y Notas')} 
+        subtitle={isCoordinatorView === 'true' ? t('titles.gradesSubtitleCoordinator', 'Consulta de notas del estudiante') : t('titles.gradesSubtitle', 'Resumen de rendimiento académico')} 
+      />
 
-        <View style={styles.periodTabs}>
+      <View style={styles.periodSelectorContainer}>
+        <View style={styles.periodSelector}>
           {[1, 2, 3, 4].map(p => (
-            <TouchableOpacity 
-              key={p} 
+            <TouchableOpacity
+              key={p}
+              style={[styles.periodBtn, selectedPeriod === p && styles.periodBtnActive]}
               onPress={() => setSelectedPeriod(p)}
-              style={[styles.periodTab, selectedPeriod === p && styles.periodTabActive]}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.periodTabText, selectedPeriod === p && styles.periodTabTextActive]}>
-                P{p}
+              <Text style={[styles.periodText, selectedPeriod === p && styles.periodTextActive]}>
+                {t('dashboard.period')} {p}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
-        
+      <View style={styles.content}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconBox}>
             <Award size={32} color={Colors.primary} />
           </View>
           <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Promedio Global Parcial</Text>
+            <Text style={styles.summaryLabel}>{t('dashboard.partialGlobalAverage')}</Text>
             <Text style={styles.summaryValue}>{overall} / 10</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Tus Materias</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.yourSubjects')}</Text>
 
         {Object.keys(groupedGrades).length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Aún no tienes calificaciones registradas en este periodo.</Text>
+            <Text style={styles.emptyText}>{t('dashboard.noGradesYet')}</Text>
           </View>
         ) : (
           Object.keys(groupedGrades).map((subject, idx) => {
@@ -168,14 +173,14 @@ export default function GradesScreen() {
                 {isExpanded && (
                   <View style={styles.expandedContent}>
                     <View style={styles.tableHeader}>
-                      <Text style={[styles.tableCol, {flex: 2}]}>Evaluación</Text>
-                      <Text style={styles.tableCol}>Valor</Text>
-                      <Text style={[styles.tableCol, {textAlign: 'right'}]}>Nota</Text>
+                      <Text style={[styles.tableCol, {flex: 2}]}>{t('dashboard.evaluation')}</Text>
+                      <Text style={styles.tableCol}>{t('dashboard.value')}</Text>
+                      <Text style={[styles.tableCol, {textAlign: 'right'}]}>{t('dashboard.grade')}</Text>
                     </View>
                     {subjectGrades.map((g, i) => (
                       <View key={g.id || i} style={styles.tableRow}>
                         <Text style={[styles.tableCell, {flex: 2}]} numberOfLines={1}>
-                          {g.evaluation_activities?.name || 'Asignación'}
+                          {g.evaluation_activities?.name || t('dashboard.evaluation')}
                         </Text>
                         <Text style={styles.tableCell}>{g.evaluation_activities?.percentage || 0}%</Text>
                         <Text style={[styles.tableCell, styles.cellBold, {textAlign: 'right'}]}>{g.grade}</Text>
@@ -186,7 +191,7 @@ export default function GradesScreen() {
                       <View style={styles.progressBarBg}>
                         <View style={[styles.progressBarFill, { width: Math.min(stats.progress, 100) + '%' }]} />
                       </View>
-                      <Text style={styles.progressText}>{stats.progress}% evaluado del curso</Text>
+                      <Text style={styles.progressText}>{stats.progress}{t('dashboard.evaluatedOfCourse')}</Text>
                     </View>
                   </View>
                 )}
@@ -195,115 +200,144 @@ export default function GradesScreen() {
           })
         )}
         <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+const createStyles = (Colors, theme) => StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background},
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.xl,
-    paddingBottom: Spacing['4xl'],
-    borderBottomLeftRadius: BorderRadius['2xl'],
-    borderBottomRightRadius: BorderRadius['2xl'],
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    padding: 24,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     alignItems: 'center',
+    borderBottomWidth: theme === 'dark' ? 1 : 0,
+    borderBottomColor: Colors.gray[200],
   },
-  headerTitle: { color: Colors.text.inverse, fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
-  headerSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: Typography.size.xs, marginTop: 4, textTransform: 'uppercase' },
-  periodTabs: {
+  headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
+  headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
+  periodSelectorContainer: {
+    alignItems: 'center',
+    marginTop: -25,
+  },
+  periodSelector: {
     flexDirection: 'row',
-    marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: BorderRadius.full,
-    padding: 4,
+    backgroundColor: theme === 'dark' ? Colors.background : '#0B1956',
+    borderRadius: 25,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[200],
   },
-  periodTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
+  periodBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
-  periodTabActive: {
-    backgroundColor: '#FFF',
+  periodBtnActive: {
+    backgroundColor: theme === 'dark' ? Colors.card : '#FFF',
   },
-  periodTabText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.sm,
+  periodText: {
+    color: theme === 'dark' ? Colors.text.muted : 'rgba(255,255,255,0.7)',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
-  periodTabTextActive: {
-    color: Colors.primary,
+  periodTextActive: {
+    color: theme === 'dark' ? Colors.primary : '#0B1956',
   },
   content: {
-    padding: Spacing.xl,
-    marginTop: -30,
+    padding: 20,
   },
   summaryCard: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    ...Shadows.card,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
     alignItems: 'center',
   },
   summaryIconBox: {
     width: 56,
     height: 56,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     backgroundColor: Colors.gray[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.lg,
+    marginRight: 16,
   },
   summaryInfo: {
     flex: 1,
   },
   summaryLabel: {
-    fontSize: Typography.size.xs,
+    fontSize: 12,
     color: Colors.text.muted,
     textTransform: 'uppercase',
-    fontWeight: Typography.weight.bold,
+    fontWeight: 'bold',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: Typography.size['4xl'],
-    fontWeight: Typography.weight.extraBold,
+    fontSize: 28,
+    fontWeight: 'bold',
     color: Colors.primary,
   },
   sectionTitle: {
-    fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.bold,
+    fontSize: 18,
+    fontWeight: 'bold',
     color: Colors.primary,
-    marginBottom: Spacing.lg,
+    marginBottom: 16,
     marginLeft: 4,
   },
   emptyCard: {
     backgroundColor: Colors.card,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.xl,
+    padding: 20,
+    borderRadius: 24,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
   },
   emptyText: {
     color: Colors.text.muted,
     textAlign: 'center',
-    lineHeight: 20,
   },
   subjectCard: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
-    ...Shadows.card,
+    borderRadius: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
     overflow: 'hidden',
   },
   subjectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: 20,
   },
   subjectTitleRow: {
     flexDirection: 'row',
@@ -311,10 +345,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subjectName: {
-    fontSize: Typography.size.md,
-    fontWeight: Typography.weight.bold,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.primary,
-    marginLeft: Spacing.md,
+    marginLeft: 12,
   },
   subjectStatsRow: {
     flexDirection: 'row',
@@ -324,19 +358,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdf4',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: BorderRadius.sm,
+    borderRadius: 8,
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#bbf7d0',
   },
   gradeBadgeText: {
-    fontSize: Typography.size.sm,
-    fontWeight: Typography.weight.extraBold,
+    fontSize: 14,
+    fontWeight: 'bold',
     color: '#166534',
   },
   expandedContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: Colors.gray[100],
     backgroundColor: Colors.gray[50],
@@ -349,8 +383,8 @@ const styles = StyleSheet.create({
   },
   tableCol: {
     flex: 1,
-    fontSize: Typography.size.xs - 1,
-    fontWeight: Typography.weight.bold,
+    fontSize: 12,
+    fontWeight: 'bold',
     color: Colors.text.muted,
     textTransform: 'uppercase',
   },
@@ -362,15 +396,15 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     flex: 1,
-    fontSize: Typography.size.sm,
+    fontSize: 14,
     color: Colors.text.secondary,
   },
   cellBold: {
-    fontWeight: Typography.weight.bold,
+    fontWeight: 'bold',
     color: Colors.primary,
   },
   progressContainer: {
-    marginTop: Spacing.lg,
+    marginTop: 16,
   },
   progressBarBg: {
     height: 6,
@@ -385,7 +419,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
-    fontSize: Typography.size.xs - 1,
+    fontSize: 12,
     color: Colors.text.muted,
     textAlign: 'right',
   }

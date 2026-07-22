@@ -3,6 +3,7 @@ export const Colors = {
   primary: '#0B1956',
   primaryLight: '#426bc2',
   primaryDark: '#0a1540',
+  headerC: '#0B1956',
   
   background: '#F5F7FA',
   card: '#FFFFFF',
@@ -12,6 +13,8 @@ export const Colors = {
     secondary: '#4A5568',
     muted: '#8a8da0',
     inverse: '#FFFFFF',
+    tabBtnTextColor: "#FFFFFF",
+    headerTxtC: '#FFFFFF',
   },
   
   status: {

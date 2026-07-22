@@ -1,0 +1,27 @@
+{
+  "menu": {
+    "users": "Usuarios",
+    "conduct_catalog": "Catálogo Conducta",
+    "teachers": "Maestros",
+    "students": "Estudiantes",
+    "classrooms": "Salones",
+    "justifications": "Justificaciones",
+    "assign_classes": "Asignar Clases",
+    "diary": "Diario",
+    "schedule": "Horario",
+    "grades": "Notas",
+    "profile": "Mi Perfil",
+    "logout": "Cerrar Sesión",
+    "admin": "Gestión"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido",
+    "search": "Buscar...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "loading": "Cargando..."
+  }
+}

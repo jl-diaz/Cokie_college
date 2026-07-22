@@ -5,9 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, ChevronRight, User } from 'lucide-react-native';
 import api from '../../src/utils/api';
 import { useAuth } from '../../src/context/AuthContext';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function CoordinatorTeachersScreen() {
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const { profile } = useAuth();
@@ -74,7 +77,7 @@ export default function CoordinatorTeachersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -86,7 +89,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: '#FFF', fontSize: Typography.size.xl, fontWeight: 'bold' },
   headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   scrollContent: { padding: Spacing.xl },
   emptyText: { textAlign: 'center', color: Colors.text.muted, marginTop: 40 },
   card: {

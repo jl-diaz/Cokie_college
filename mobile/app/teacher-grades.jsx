@@ -1,10 +1,17 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import api from '../src/utils/api';
 import { Book, ChevronRight, FileText, CheckCircle, Trash2 } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function TeacherGradesScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [schedules, setSchedules] = useState([]);
   const [activities, setActivities] = useState([]);
   
@@ -240,8 +247,15 @@ export default function TeacherGradesScreen() {
   }
 
   return (
-    <View style={styles.container}>
-<View style={styles.header}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+      style={styles.container}
+    >
+      <PageHeader 
+        title={t('titles.grades', 'Registro de Notas')} 
+        subtitle={t('grades.teacherSubtitle', 'Evaluación y control de calificaciones por asignatura')} 
+      />
+      <View style={styles.header}>
        {!selectedClass && (
           <View style={styles.periodTabs}>
             {[1, 2, 3, 4].map(p => (
@@ -260,13 +274,13 @@ export default function TeacherGradesScreen() {
       </View>
 
       {renderContent()}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
     padding: Spacing.xl,

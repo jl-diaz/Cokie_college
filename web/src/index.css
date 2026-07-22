@@ -2,19 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
-
 :root {
-  --primary: #0B1956;
-  --primary-light: #3b82f6;
-  --background: #F5F7FA;
-  --card: #FFFFFF;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --status-approved: #10b981;
-  --status-pending: #f59e0b;
-  --status-rejected: #ef4444;
+  --navy: #0B1957;
+  --blue: #426bc2;
+  --lilac: #E8D9ED;
+  --cream: #F7F4ED;
+  --white: #ffffff;
+  --muted: #8a94b2;
 }
 
 body {
@@ -22,17 +16,8 @@ body {
   font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--background);
-  color: var(--text-primary);
-}
-
-/* Custom styles for consistency */
-.card-shadow {
-  box-shadow: 0 4px 6px -1px rgba(11, 25, 86, 0.05), 0 2px 4px -1px rgba(11, 25, 86, 0.03);
-}
-
-.transition-smooth {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #F5F7FA;
+  color: #0B1957;
 }
 
 /* Lenis smooth scroll */
@@ -55,3 +40,126 @@ html.lenis {
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
 }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(11, 25, 86, 0.1);
+  border-radius: 9999px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark Mode Theme Styles */
+html.dark body {
+  background-color: #0B0F19;
+  color: #cbd5e1;
+}
+
+html.dark .bg-white {
+  background-color: #13192B !important;
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-\[\#F5F7FA\],
+html.dark .bg-\[\#F8FAFC\] {
+  background-color: #0B0F19 !important;
+}
+
+html.dark .text-navy,
+html.dark .text-\[\#0B1956\] {
+  color: #f8fafc !important;
+}
+
+html.dark .text-navy\/40 {
+  color: rgba(241, 245, 249, 0.4) !important;
+}
+
+html.dark .text-navy\/60 {
+  color: rgba(241, 245, 249, 0.6) !important;
+}
+
+html.dark .text-\[\#4A5568\],
+html.dark .text-gray-500,
+html.dark .text-slate-500,
+html.dark .text-\[\#718096\] {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-navy\/10,
+html.dark .border-gray-200,
+html.dark .border-\[\#E2E8F0\],
+html.dark .border-gray-100 {
+  border-color: #1e293b !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #182038 !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+html.dark input::placeholder {
+  color: #64748b !important;
+}
+
+/* Sidebar Specific overrides so it doesn't turn gold */
+html.dark aside.bg-navy {
+  background-color: #080B12 !important;
+}
+
+html.dark aside.bg-navy * {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.dark aside.bg-navy .text-white,
+html.dark aside.bg-navy span,
+html.dark aside.bg-navy font {
+  color: #ffffff !important;
+}
+
+html.dark aside.bg-navy .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Primary buttons/badges transition to Gold accent in dark theme */
+html.dark button.bg-navy,
+html.dark button.bg-\[\#0B1956\],
+html.dark a.bg-navy,
+html.dark a.bg-\[\#0B1956\],
+html.dark span.bg-navy,
+html.dark label.bg-navy {
+  background-color: #F6BE2F !important;
+  color: #0B1956 !important;
+  border-color: #F6BE2F !important;
+}
+
+html.dark button.bg-navy svg,
+html.dark button.bg-\[\#0B1956\] svg {
+  stroke: #0B1956 !important;
+}
+
+html.dark .bg-cream {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .bg-cream svg {
+  stroke: #f1f5f9 !important;
+}
+
+html.dark tr.bg-gray-50,
+html.dark th.bg-gray-50,
+html.dark div.bg-gray-50 {
+  background-color: #182038 !important;
+}
+

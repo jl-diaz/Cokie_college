@@ -13,7 +13,6 @@ CREATE TABLE profiles (
     grade TEXT, -- Ej: '2', '3', etc.
     section TEXT, -- Ej: 'A', 'B', 'C'
     level TEXT, -- Ej: 'Primaria', 'Secundaria' (Para coordinadores)
-    materia_principal TEXT, -- Materia que imparte el maestro
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -37,7 +36,6 @@ CREATE TABLE conduct_records (
     code_id UUID REFERENCES conduct_codes(id) ON DELETE RESTRICT NOT NULL,
     observation TEXT,
     period INTEGER NOT NULL, -- 1, 2, 3, 4
-    fecha_aplicacion TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 

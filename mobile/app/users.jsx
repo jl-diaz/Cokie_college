@@ -1,10 +1,17 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
 import { Search, Plus, Trash2, Edit2, X, ChevronDown, User, Mail, Shield, Book } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function UsersScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -214,6 +221,10 @@ export default function UsersScreen() {
 
   return (
     <View style={styles.container}>
+      <PageHeader 
+        title={t('menu.users', 'Gestión de Usuarios')} 
+        subtitle={t('users.subtitle', 'Administración de roles y cuentas institucionales')} 
+      />
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.muted} style={styles.searchIcon} />
@@ -310,8 +321,13 @@ export default function UsersScreen() {
         transparent
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
+              <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
@@ -532,12 +548,14 @@ export default function UsersScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+  </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -578,9 +596,9 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.xs,
   },
   tabBtnTextActive: {
-    color: Colors.primary,
+    color: Colors.text.tabBtnTextColor,
   },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl, pb: 100 },
   card: {
     flexDirection: 'row',

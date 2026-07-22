@@ -13,35 +13,49 @@ El proyecto está dividido en tres módulos principales:
 
 ## Stack Tecnológico
 
-- **Frontend Web:** React, Vite, Tailwind CSS, GSAP, Lenis.
-- **Mobile:** React Native, Expo, Expo Router.
+- **Frontend Web:** React, Vite, Vanilla CSS, GSAP.
+- **Mobile:** React Native, Expo 54, Expo Router, Lucide Icons, i18next, AsyncStorage, Expo Notifications.
 - **Backend:** Node.js, Express, Supabase (PostgreSQL + Auth).
-- **Notificaciones:** Expo Notifications (Mobile) y Web Push/Realtime (Web).
-- **Almacenamiento:** Supabase Storage.
+- **Notificaciones:** Expo Notifications (Mobile) y Web Push/Realtime.
+- **Compilación & Despliegue Móvil:** EAS (Expo Application Services) + Expo OTA Updates.
 
-## Requisitos Previos
+---
 
-- Node.js (v18 o superior)
-- Cuenta de Supabase con un proyecto configurado.
-- Expo Go instalado en un dispositivo móvil para pruebas.
+## 📱 Novedades de la App Móvil
 
-## Configuración Rápida
+1. **Modal de Color Primario en Modo Oscuro**:
+   - Mantén presionado el botón de modo oscuro (Sol/Luna) para personalizar la paleta de color primario (`darkColors.primary`, `primaryLight`, `primaryDark`, `text.headerTxtC`).
+   - Las opciones se gestionan en `mobile/src/constants/themePresets.js`.
 
-1. Clona el repositorio.
-2. Configura las variables de entorno en cada módulo (revisa los `.env.example`).
-3. Ejecuta el script SQL `supabase_schema.sql` en el editor de consultas de tu proyecto Supabase.
-4. Instala dependencias en cada carpeta:
-   ```bash
-   cd backend && npm install
-   cd ../web && npm install
-   cd ../mobile && npm install
-   ```
+2. **Semáforo de Conducta (4 Colores)**:
+   - Evaluador inteligente en *Diario Pedagógico* (Azul: Sobresaliente, Verde: Normal, Amarillo: Precaución, Rojo: Alerta Crítica).
 
-## Decisiones Técnicas
+3. **Panel de Notificaciones Interactivo**:
+   - Acceso desde la campana en el header con botón para probar notificaciones nativas en vivo.
 
-- **Supabase Auth:** Se utiliza para el manejo robusto de sesiones y protección de rutas mediante JWT.
-- **Service Role:** El backend utiliza la clave `SERVICE_ROLE` para operaciones administrativas que el cliente no puede realizar directamente (como crear usuarios sin registro público).
-- **Animaciones:** Se implementó Lenis y GSAP en la web para lograr un scroll suave y transiciones que mejoren la percepción de calidad del software.
+4. **Traducción Integral (i18n)**:
+   - Cambio dinámico entre Español e Inglés con el botón del globo terráqueo.
+
+5. **Generación de APKs y Actualizaciones Sencillas (OTA)**:
+   - Instrucciones completas para compilar APKs de Android y desplegar actualizaciones sin reinstall en `mobile/README.md`.
+
+---
+
+## 📦 Comandos Rápidos de Compilación APK y OTA Updates
+
+```bash
+# Entrar a la carpeta mobile
+cd mobile
+
+# Instalar EAS CLI
+npm install -g eas-cli
+
+# Generar APK directa de Android
+eas build -p android --profile preview
+
+# Enviar actualización instantánea Over-The-Air (sin reinstalar APK)
+eas update --branch production --message "Nueva actualización de app"
+```
 
 ---
 *Desarrollado para CokieCollege - 2026*

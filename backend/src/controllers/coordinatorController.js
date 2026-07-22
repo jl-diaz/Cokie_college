@@ -39,52 +39,21 @@ const coordinatorController = {
 
             const { data: conduct, error: conductError } = await supabaseAdmin
                 .from('conduct_records')
-                .select(`
-                    *,
-                    conduct_codes(*),
-                    maestro_aplicador:teacher_id (
-                        id,
-                        full_name,
-                        materia_principal
-                    )
-                `)
+                .select('*, conduct_codes(*)')
                 .eq('student_id', studentId)
-                .eq('period', period || 1)
-                .order('fecha_aplicacion', { ascending: false, nullsFirst: false });
+                .eq('period', period);
 
             const { data: attendance, error: attendanceError } = await supabaseAdmin
                 .from('attendance')
                 .select('*')
                 .eq('student_id', studentId)
-                .eq('period', period || 1);
+                .eq('period', period);
 
-            if (conductError) console.error('Conduct error:', conductError);
-            if (attendanceError) console.error('Attendance error:', attendanceError);
+            if (conductError || attendanceError) throw conductError || attendanceError;
 
-            const formattedConduct = (conduct || []).map(record => {
-                const names = record.maestro_aplicador?.full_name?.split(' ') || [];
-                return {
-                    id: record.id,
-                    codigo: {
-                        nombre: record.conduct_codes?.name,
-                        descripcion: record.conduct_codes?.description,
-                        nivel_gravedad: record.conduct_codes?.category
-                    },
-                    fecha_aplicacion: record.fecha_aplicacion,
-                    maestro_aplicador: record.maestro_aplicador ? {
-                        id: record.maestro_aplicador.id,
-                        nombre: names[0] || 'N/A',
-                        apellido: names.slice(1).join(' ') || 'N/A',
-                        materia_principal: record.maestro_aplicador.materia_principal || 'No asignada'
-                    } : null,
-                    observacion: record.observation
-                };
-            });
-
-            res.json({ conduct: formattedConduct, attendance: attendance || [] });
+            res.json({ conduct, attendance });
         } catch (error) {
-            console.error('Diary error:', error);
-            res.status(500).json({ error: error.message || 'Error al obtener el diario' });
+            res.status(500).json({ error: error.message });
         }
     },
 
@@ -115,62 +84,18 @@ const coordinatorController = {
             const { studentId } = req.params;
             const { period } = req.query;
             
-            // 1. Obtener grado y sección del estudiante
-            const { data: student, error: studentError } = await supabaseAdmin
-                .from('profiles')
-                .select('grade, section')
-                .eq('id', studentId)
-                .single();
-
-            if (studentError) throw studentError;
-
-            // 2. Obtener todas las materias del horario para ese grado/sección
-            const { data: scheduleData, error: scheduleError } = await supabaseAdmin
-                .from('schedules')
-                .select('subject_id, subjects(name)')
-                .eq('grade', student.grade)
-                .eq('section', student.section);
-
-            if (scheduleError) throw scheduleError;
-
-            const subjectMap = new Map();
-            if (scheduleData) {
-                scheduleData.forEach(s => {
-                    if (s.subject_id && !subjectMap.has(s.subject_id)) {
-                        subjectMap.set(s.subject_id, s.subjects?.name || 'Materia');
-                    }
-                });
-            }
-
-            // 3. Obtener promedios calculados por la vista
             let query = supabaseAdmin
                 .from('student_averages')
                 .select('*, subjects(name)')
                 .eq('student_id', studentId);
 
             if (period) {
-                query = query.eq('period', parseInt(period));
+                query = query.eq('period', period);
             }
 
-            const { data: averageData, error: averageError } = await query;
-            if (averageError) throw averageError;
-
-            // 4. Combinar
-            const results = Array.from(subjectMap.entries()).map(([id, name]) => {
-                const avg = (averageData || []).find(a => a.subject_id === id);
-                return {
-                    student_id: studentId,
-                    subject_id: id,
-                    period: parseInt(period) || 1,
-                    final_average: avg ? parseFloat(avg.final_average) : 0,
-                    subjects: { name }
-                };
-            });
-
-            const subjectIdsInSchedule = new Set(subjectMap.keys());
-            const extraAverages = (averageData || []).filter(a => !subjectIdsInSchedule.has(a.subject_id));
-            
-            res.json([...results, ...extraAverages]);
+            const { data, error } = await query;
+            if (error) throw error;
+            res.json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -202,8 +127,7 @@ const coordinatorController = {
                     teacher_id: coordinator_id,
                     code_id,
                     observation,
-                    period,
-                    fecha_aplicacion: new Date().toISOString()
+                    period
                 }])
                 .select()
                 .single();
@@ -281,6 +205,7 @@ const coordinatorController = {
     getJustificationRequests: async (req, res) => {
         try {
             const { level } = req.user;
+            console.log('Fetching justifications for level:', level);
             
             // 1. Obtener IDs de estudiantes según el nivel del coordinador
             let query = supabaseAdmin
@@ -337,11 +262,6 @@ const coordinatorController = {
         try {
             const { id } = req.params;
             const { status, coordinator_message } = req.body;
-
-            if (!status || !['approved', 'rejected'].includes(status)) {
-                return res.status(400).json({ error: 'Estado no válido. Debe ser approved o rejected.' });
-            }
-
             const coordinator_id = req.user.id;
 
             // 1. Actualizar solicitud
