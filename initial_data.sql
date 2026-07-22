@@ -5,9 +5,9 @@ INSERT INTO subjects (name) VALUES
 ('Ciencias Naturales'),
 ('Estudios Sociales'),
 ('Inglés'),
+('Religion'),
 ('Educación Física'),
-('Informática'),
-('Artes');
+('Informática');
 
 -- Nota: Para crear los coordinadores y el admin, debes hacerlo a través de la interfaz de Supabase Auth
 -- o mediante el endpoint del backend para que se genere el usuario en auth.users y el perfil en profiles.

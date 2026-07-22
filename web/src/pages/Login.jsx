@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Mail, Lock } from 'lucide-react';
 import gsap from 'gsap';
 
@@ -11,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { theme } = useTheme();
   
   const formRef = useRef(null);
 
@@ -48,10 +50,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-app-bg overflow-hidden relative font-poppins">
+    <div className="min-h-screen flex flex-col bg-[#F5F7FA] dark:bg-[#0B0F19] overflow-hidden relative font-poppins transition-colors duration-300">
       
-      {/* Hero Header with Layered Waves */}
-      <div className="relative w-full h-[260px] md:h-[350px] shrink-0 bg-primary flex flex-col justify-center items-center pb-10 shadow-elevated">
+      {/* Hero Header with Layered Waves (Identical to mobile logic but adapted to web full screen behavior) */}
+      <div className="relative w-full h-[260px] md:h-[350px] shrink-0 bg-[#0B1956] flex flex-col justify-center items-center pb-10">
         <h1 className="text-white text-4xl md:text-5xl font-black tracking-tighter">
           Cokie <span className="text-white/90">College</span>
         </h1>
@@ -74,7 +76,7 @@ const Login = () => {
             {/* Main curve layer */}
             <path
               d="M0,90 C120,150 255,60 375,110 L375,140 L0,140 Z"
-              fill="#F5F7FA"
+              fill={theme === 'dark' ? '#0B0F19' : '#F5F7FA'}
             />
           </svg>
         </div>
@@ -84,24 +86,24 @@ const Login = () => {
       <div className="flex-1 flex px-6 md:px-0 mt-[-30px] md:mt-[-80px] z-10 pb-10">
         <div 
           ref={formRef}
-          className="bg-white rounded-[30px] px-6 py-8 md:px-10 md:py-10 shadow-elevated w-full max-w-[450px] mx-auto h-fit border border-white/20"
+          className="bg-white dark:bg-[#13192B] rounded-[30px] px-6 py-8 md:px-10 md:py-10 shadow-[0_10px_30px_rgba(11,25,86,0.08)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-[#0B1956]/5 dark:border-slate-800 w-full max-w-[450px] mx-auto h-fit transition-colors duration-300"
         >
-          <h2 className="text-2xl md:text-[28px] font-extrabold text-center text-primary mb-1.5">
+          <h2 className="text-2xl md:text-[28px] font-extrabold text-center text-[#0B1956] dark:text-[#F6BE2F] mb-1.5">
             ¡Hola de nuevo!
           </h2>
-          <p className="text-[13px] md:text-sm text-muted text-center mb-7">
+          <p className="text-[13px] md:text-sm text-[#718096] dark:text-slate-400 text-center mb-7">
             Ingresa tus credenciales institucionales
           </p>
           
           {error && (
-            <div className="bg-bad-bg text-bad p-3 rounded-xl text-[13px] font-semibold text-center border border-bad/20 mb-5">
+            <div className="bg-[#FFF5F5] dark:bg-[#2d1b1b] text-[#E53E3E] dark:text-[#ff8080] p-3 rounded-xl text-[13px] font-semibold text-center border border-[#FED7D7] dark:border-[#5c2424] mb-5">
               {error}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-bold text-muted uppercase tracking-[1px]">
+              <label className="text-[11px] font-bold text-[#4A5568] dark:text-slate-400 uppercase tracking-[1px]">
                 Correo Electrónico
               </label>
               <div className="relative flex items-center">
@@ -109,7 +111,7 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-[18px] py-3.5 bg-gray-50 focus:bg-white border-[1.5px] border-gray-200 focus:border-primary rounded-2xl text-[15px] outline-none transition-all text-primary font-semibold placeholder:text-muted/50"
+                  className="w-full px-[18px] py-3.5 bg-[#F8FAFC] dark:bg-[#182038] focus:bg-white dark:focus:bg-[#1f294a] border-[1.5px] border-[#E2E8F0] dark:border-slate-700 focus:border-[#0B1956] dark:focus:border-[#F6BE2F] rounded-2xl text-[15px] outline-none transition-all text-[#0B1956] dark:text-white font-semibold placeholder:text-[#A0AEC0] dark:placeholder:text-slate-500"
                   placeholder="usuario@gmail.com"
                   autoCapitalize="none"
                   required
@@ -118,7 +120,7 @@ const Login = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-bold text-muted uppercase tracking-[1px]">
+              <label className="text-[11px] font-bold text-[#4A5568] dark:text-slate-400 uppercase tracking-[1px]">
                 Contraseña
               </label>
               <div className="relative flex items-center">
@@ -126,7 +128,7 @@ const Login = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-[18px] py-3.5 bg-gray-50 focus:bg-white border-[1.5px] border-gray-200 focus:border-primary rounded-2xl text-[15px] outline-none transition-all text-primary font-semibold placeholder:text-muted/50"
+                  className="w-full px-[18px] py-3.5 bg-[#F8FAFC] dark:bg-[#182038] focus:bg-white dark:focus:bg-[#1f294a] border-[1.5px] border-[#E2E8F0] dark:border-slate-700 focus:border-[#0B1956] dark:focus:border-[#F6BE2F] rounded-2xl text-[15px] outline-none transition-all text-[#0B1956] dark:text-white font-semibold placeholder:text-[#A0AEC0] dark:placeholder:text-slate-500"
                   placeholder="••••••••"
                   required
                 />
@@ -136,10 +138,10 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-primary text-white py-4 rounded-2xl text-[16px] font-bold tracking-[0.5px] transition-all active:scale-[0.98] mt-2 flex justify-center items-center shadow-elevated ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
+              className={`w-full bg-[#0B1956] dark:bg-[#F6BE2F] text-white dark:text-[#0B1956] py-4 rounded-2xl text-[16px] font-bold tracking-[0.5px] transition-all active:scale-[0.98] mt-2 flex justify-center items-center shadow-[0_6px_15px_rgba(11,25,86,0.25)] dark:shadow-[0_6px_15px_rgba(246,190,47,0.2)] ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_8px_20px_rgba(11,25,86,0.35)] dark:hover:shadow-[0_8px_20px_rgba(246,190,47,0.3)]'}`}
             >
               {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white dark:border-[#0B1956] border-t-transparent rounded-full animate-spin"></div>
               ) : 'Iniciar Sesión'}
             </button>
           </form>
@@ -147,7 +149,6 @@ const Login = () => {
       </div>
     </div>
   );
-
 };
 
 export default Login;

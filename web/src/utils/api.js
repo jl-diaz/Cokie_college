@@ -13,17 +13,4 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Interceptor para manejar errores globales (como 401)
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      const { supabase } = await import('./supabase');
-      await supabase.auth.signOut();
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export default api;

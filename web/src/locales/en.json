@@ -1,0 +1,27 @@
+{
+  "menu": {
+    "users": "Users",
+    "conduct_catalog": "Conduct Catalog",
+    "teachers": "Teachers",
+    "students": "Students",
+    "classrooms": "Classrooms",
+    "justifications": "Justifications",
+    "assign_classes": "Assign Classes",
+    "diary": "Diary",
+    "schedule": "Schedule",
+    "grades": "Grades",
+    "profile": "My Profile",
+    "logout": "Log Out",
+    "admin": "Management"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "search": "Search...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading..."
+  }
+}

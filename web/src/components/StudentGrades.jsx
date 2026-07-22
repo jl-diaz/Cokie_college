@@ -61,10 +61,17 @@ const StudentGrades = () => {
   const subjectNames = Object.keys(subjectsData);
   subjectNames.forEach(name => {
     const avg = averages.find(a => a.subjects?.name === name);
-    if (avg) {
-      subjectsData[name].totalPoints = parseFloat(avg.final_average || 0);
+    if (avg && avg.final_average !== null) {
+      subjectsData[name].totalPoints = parseFloat(avg.final_average);
     } else {
-      subjectsData[name].totalPoints = 0;
+      // Fallback: calcular del lado del cliente
+      let total = 0;
+      subjectsData[name].grades.forEach(g => {
+        const percentage = parseFloat(g.evaluation_activities?.percentage || 0);
+        const score = parseFloat(g.grade || 0);
+        total += (score * percentage) / 100;
+      });
+      subjectsData[name].totalPoints = total;
     }
   });
 
@@ -80,19 +87,19 @@ const StudentGrades = () => {
 
   const getSubjectColor = (name) => {
     const n = name.toLowerCase();
-    if (n.includes('ingl') || n.includes('english')) return 'bg-primary-light/10 text-primary-light';
-    if (n.includes('mate') || n.includes('math')) return 'bg-bad/10 text-bad';
-    if (n.includes('quim') || n.includes('chem')) return 'bg-primary/10 text-primary';
-    if (n.includes('fisi') || n.includes('phys')) return 'bg-mid/10 text-mid';
-    if (n.includes('soci') || n.includes('hist')) return 'bg-good/10 text-good';
-    if (n.includes('biol') || n.includes('bio')) return 'bg-good/20 text-good';
-    if (n.includes('leng') || n.includes('lit')) return 'bg-mid/20 text-mid';
-    return 'bg-primary/10 text-primary';
+    if (n.includes('ingl') || n.includes('english')) return 'bg-[#48DBFB]/10 text-[#48DBFB]';
+    if (n.includes('mate') || n.includes('math')) return 'bg-[#FF6B6B]/10 text-[#FF6B6B]';
+    if (n.includes('quim') || n.includes('chem')) return 'bg-[#A55EE1]/10 text-[#A55EE1]';
+    if (n.includes('fisi') || n.includes('phys')) return 'bg-[#FFD93D]/10 text-[#f5a623]';
+    if (n.includes('soci') || n.includes('hist')) return 'bg-[#1DD1A1]/10 text-[#1DD1A1]';
+    if (n.includes('biol') || n.includes('bio')) return 'bg-[#10AC84]/10 text-[#10AC84]';
+    if (n.includes('leng') || n.includes('lit')) return 'bg-[#FF9F43]/10 text-[#FF9F43]';
+    return 'bg-[#0B1956]/10 text-[#0B1956]';
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-app-bg font-poppins">
-      <div className="bg-gradient-to-br from-primary to-primary-light text-white p-6 md:p-10 rounded-b-[30px] shadow-elevated relative z-10 flex flex-col items-center">
+    <div className="flex flex-col min-h-full bg-[#f4f7f6] font-poppins">
+      <div className="bg-gradient-to-br from-[#0B1956] to-[#426bc2] text-white p-6 md:p-10 rounded-b-[30px] shadow-lg relative z-10 flex flex-col items-center">
         <div className="flex w-full justify-between items-center max-w-4xl">
           {isCoordinatorView ? (
             <button 
@@ -112,14 +119,14 @@ const StudentGrades = () => {
         </div>
       </div>
       
-      <nav className="flex justify-around bg-primary p-4 mx-4 md:mx-auto md:w-3/4 -mt-6 rounded-2xl shadow-elevated relative z-20">
+      <nav className="flex justify-around bg-[#0B1956] p-4 mx-4 md:mx-auto md:w-3/4 -mt-6 rounded-2xl shadow-xl relative z-20">
         {[1, 2, 3, 4].map(p => (
           <button 
             key={p}
             onClick={() => setSelectedPeriod(p)}
             className={`px-4 py-2.5 rounded-full font-bold text-[13px] md:text-sm transition-all duration-300 ${
               selectedPeriod === p 
-                ? 'bg-white text-primary shadow-md scale-105' 
+                ? 'bg-white text-[#0B1956] shadow-md scale-105' 
                 : 'bg-transparent text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
@@ -131,19 +138,19 @@ const StudentGrades = () => {
       <main className="flex-1 p-5 md:p-8 max-w-4xl mx-auto w-full mt-4">
         {loading ? (
           <div className="flex justify-center p-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B1956]"></div>
           </div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             {subjectsList.length === 0 ? (
-              <div className="text-center p-10 bg-white rounded-[20px] shadow-card border border-primary/5">
-                <p className="text-muted font-medium">No hay calificaciones registradas en este periodo.</p>
+              <div className="text-center p-10 bg-white rounded-[20px] shadow-sm border border-[#e0e0e0]">
+                <p className="text-[#888] font-medium">No hay calificaciones registradas en este periodo.</p>
               </div>
             ) : (
               subjectsList.map((subject) => {
                 const isExpanded = expandedSubject === subject.name;
                 return (
-                  <div key={subject.name} className="bg-white rounded-[20px] shadow-card border border-primary/5 overflow-hidden transition-all hover:shadow-elevated">
+                  <div key={subject.name} className="bg-white rounded-[20px] shadow-sm border border-[#e0e0e0] overflow-hidden transition-all hover:shadow-md">
                     <button 
                       onClick={() => toggleSubject(subject.name)}
                       className="w-full flex items-center justify-between p-5 md:p-6 text-left focus:outline-none"
@@ -153,13 +160,13 @@ const StudentGrades = () => {
                           {subject.name.charAt(0)}
                         </div>
                         <div>
-                          <h3 className="font-bold text-primary text-lg md:text-xl">{subject.name}</h3>
-                          <p className="text-[12px] text-muted uppercase font-bold tracking-wider mt-0.5">Promedio Actual</p>
+                          <h3 className="font-bold text-[#0B1956] text-lg md:text-xl">{subject.name}</h3>
+                          <p className="text-[12px] text-[#8a8da0] uppercase font-bold tracking-wider mt-0.5">Promedio Actual</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="font-black text-2xl text-primary">{subject.totalPoints > 0 ? subject.totalPoints.toFixed(2) : '0.00'}</span>
-                        <div className="p-2 bg-gray-50 rounded-full text-muted">
+                        <span className="font-black text-2xl text-[#0B1956]">{subject.totalPoints > 0 ? subject.totalPoints.toFixed(2) : '0.00'}</span>
+                        <div className="p-2 bg-[#f4f7f6] rounded-full text-[#8a8da0]">
                           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </div>
                       </div>
@@ -172,28 +179,28 @@ const StudentGrades = () => {
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="overflow-hidden bg-gray-50/30 border-t border-primary/5"
+                          className="overflow-hidden bg-[#fafbfc] border-t border-[#f0f0f0]"
                         >
                           <div className="p-5 md:p-6">
                             <table className="w-full text-left text-sm">
-                              <thead className="text-muted uppercase text-[11px] font-bold tracking-wider">
+                              <thead className="text-[#8a8da0] uppercase text-[11px] font-bold tracking-wider">
                                 <tr>
                                   <th className="pb-3 pl-2">Actividad Evaluativa</th>
                                   <th className="pb-3 text-center">Ponderación</th>
                                   <th className="pb-3 pr-2 text-right">Nota</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-primary/5">
+                              <tbody className="divide-y divide-[#f0f0f0]">
                                 {subject.grades.map(grade => (
                                   <tr key={grade.id}>
-                                    <td className="py-3 pl-2 font-medium text-primary">
+                                    <td className="py-3 pl-2 font-medium text-[#0B1956]">
                                       {grade.evaluation_activities?.name}
                                     </td>
-                                    <td className="py-3 text-center text-muted font-medium">
+                                    <td className="py-3 text-center text-[#8a8da0] font-medium">
                                       {grade.evaluation_activities?.percentage}%
                                     </td>
-                                    <td className="py-3 pr-2 text-right font-bold text-primary">
-                                      {parseFloat(grade.grade) > 0 ? parseFloat(grade.grade).toFixed(2) : <span className="text-muted text-xs italic">No asignada</span>}
+                                    <td className="py-3 pr-2 text-right font-bold text-[#0B1956]">
+                                      {parseFloat(grade.grade) > 0 ? parseFloat(grade.grade).toFixed(2) : <span className="text-muted text-xs">No asignada</span>}
                                     </td>
                                   </tr>
                                 ))}
@@ -212,7 +219,6 @@ const StudentGrades = () => {
       </main>
     </div>
   );
-
 };
 
 export default StudentGrades;

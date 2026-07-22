@@ -22,4 +22,7 @@ router.delete('/conduct-codes/:id', adminController.deleteConductCode);
 router.get('/subjects', adminController.getSubjects);
 router.post('/schedules', adminController.createSchedule);
 
+// Periodos académicos
+router.get('/academic-periods', adminController.getAcademicPeriods);
+
 module.exports = router;

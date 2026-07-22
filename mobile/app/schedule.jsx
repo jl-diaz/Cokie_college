@@ -1,22 +1,26 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import api from '../src/utils/api';
 import { Calendar, Clock, MapPin, BookOpen, ArrowLeft } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 const DAYS = [
-  { id: 1, name: 'Lunes' },
-  { id: 2, name: 'Martes' },
-  { id: 3, name: 'Miércoles' },
-  { id: 4, name: 'Jueves' },
-  { id: 5, name: 'Viernes' },
-  { id: 6, name: 'Sábado' },
-  { id: 7, name: 'Domingo' }
+  { id: 1, nameKey: 'days.monday' },
+  { id: 2, nameKey: 'days.tuesday' },
+  { id: 3, nameKey: 'days.wednesday' },
+  { id: 4, nameKey: 'days.thursday' },
+  { id: 5, nameKey: 'days.friday' }
 ];
 
 export default function ScheduleScreen() {
+  const { t, i18n } = useTranslation();
+  const { colors: Colors, theme } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(new Date().getDay() || 1);
@@ -79,7 +83,7 @@ export default function ScheduleScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         {(teacher_id || student_id) && (
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -87,10 +91,14 @@ export default function ScheduleScreen() {
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>
-          {teacher_id ? `Horario de ${teacher_name || 'Profesor'}` : student_id ? `Horario de ${student_name || 'Alumno'}` : 'Horario de Clases'}
+          {teacher_id 
+          ? `${t('titles.schedule')} ${teacher_name || t('dashboard.teacher') || 'Profesor'}` 
+          : student_id 
+            ? `${t('titles.schedule')} ${student_name || t('dashboard.student') || 'Estudiante'}` 
+            : t('titles.schedule')}
         </Text>
         <Text style={styles.headerSubtitle}>
-          {teacher_id || student_id ? 'Programación semanal' : 'Tu programación semanal'}
+          {teacher_id || student_id ? t('titles.scheduleSubtitleCoordinator') : t('titles.scheduleSubtitle')}
         </Text>
 
         <ScrollView 
@@ -106,18 +114,18 @@ export default function ScheduleScreen() {
               onPress={() => setActiveDay(day.id)}
             >
               <Text style={[styles.dayText, activeDay === day.id && styles.dayTextActive]}>
-                {day.name}
+                {t(day.nameKey)}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      <ScrollView style={styles.content}>
+      <View style={styles.content}>
         {currentSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <Calendar size={48} color={Colors.gray[300]} style={{marginBottom: 16}} />
-            <Text style={styles.emptyText}>No hay clases programadas para este día.</Text>
+            <Text style={styles.emptyText}>{t('dashboard.noClassesToday')}</Text>
           </View>
         ) : (
           currentSchedules.map((item, idx) => (
@@ -131,12 +139,12 @@ export default function ScheduleScreen() {
               <View style={styles.infoColumn}>
                 <View style={styles.subjectRow}>
                   <BookOpen size={18} color={Colors.primary} style={{marginRight: 8}} />
-                  <Text style={styles.subjectName}>{item.subjects?.name || 'Materia'}</Text>
+                  <Text style={styles.subjectName}>{item.subjects?.name || t('dashboard.subject')}</Text>
                 </View>
                 
                 <View style={styles.detailRow}>
                   <MapPin size={14} color={Colors.text.muted} style={{marginRight: 4}} />
-                  <Text style={styles.detailText}>Aula {item.classroom || 'Por asignar'}</Text>
+                  <Text style={styles.detailText}>{t('dashboard.classroom')} {item.classroom || 'Por asignar'}</Text>
                   {(item.grade || item.section) && (
                     <>
                       <View style={styles.dot} />
@@ -158,113 +166,126 @@ export default function ScheduleScreen() {
           ))
         )}
         <View style={{height: 40}} />
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+const createStyles = (Colors, theme) => StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    backgroundColor: Colors.primary,
-    paddingTop: 0,
-    borderBottomLeftRadius: BorderRadius['2xl'],
-    borderBottomRightRadius: BorderRadius['2xl'],
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    paddingTop: 20,
+    padding: 24,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   backButton: {
     position: 'absolute',
     left: 20,
-    top: 50,
+    top: 20,
     zIndex: 10,
   },
   headerTitle: { 
-    color: Colors.text.inverse, 
-    fontSize: Typography.size.xl, 
-    fontWeight: Typography.weight.bold,
+    color: theme === 'dark' ? Colors.primary : '#FFF', 
+    fontSize: 20, 
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 20
+    marginTop: 0,
   },
   headerSubtitle: { 
-    color: 'rgba(255,255,255,0.7)', 
-    fontSize: Typography.size.xs, 
+    color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', 
+    fontSize: 12, 
     textAlign: 'center',
     marginTop: 4,
     textTransform: 'uppercase',
-    letterSpacing: 1
+    letterSpacing: 1,
   },
   daySelector: {
     marginTop: 24,
-    marginBottom: 20,
+    marginBottom: 0,
   },
   daySelectorContent: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: 20,
     gap: 10,
   },
   dayBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: BorderRadius.full,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dayBtnActive: {
     backgroundColor: '#FFF',
   },
   dayText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.sm,
+    color: theme === 'dark' ? Colors.text.muted : 'rgba(255,255,255,0.7)',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   dayTextActive: {
-    color: Colors.primary,
+    color: theme === 'dark' ? Colors.primary : '#0B1956',
   },
   content: {
-    padding: Spacing.xl,
+    padding: 20,
   },
   emptyCard: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 24,
     padding: 40,
     alignItems: 'center',
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
     marginTop: 20,
   },
   emptyText: {
     color: Colors.text.muted,
     textAlign: 'center',
-    fontSize: Typography.size.md,
-    lineHeight: 22,
+    fontSize: 16,
   },
   scheduleCard: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.lg,
+    borderRadius: 24,
+    marginBottom: 16,
     overflow: 'hidden',
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
   },
   timeColumn: {
     width: 80,
-    padding: Spacing.lg,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
     borderRightColor: Colors.gray[100],
   },
   startTime: {
-    fontSize: Typography.size.md,
-    fontWeight: Typography.weight.bold,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.primary,
     marginTop: 6,
   },
   endTime: {
-    fontSize: Typography.size.xs,
+    fontSize: 12,
     color: Colors.text.muted,
     marginTop: 2,
   },
   infoColumn: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: 20,
     justifyContent: 'center',
   },
   subjectRow: {
@@ -273,8 +294,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subjectName: {
-    fontSize: Typography.size.md,
-    fontWeight: Typography.weight.bold,
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.text.primary,
     flex: 1,
   },
@@ -284,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   detailText: {
-    fontSize: Typography.size.xs,
+    fontSize: 12,
     color: Colors.text.secondary,
   },
   dot: {
@@ -317,8 +338,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   teacherName: {
-    fontSize: Typography.size.xs,
+    fontSize: 12,
     color: Colors.text.primary,
-    fontWeight: Typography.weight.medium,
+    fontWeight: '500',
   }
 });

@@ -1,56 +1,39 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import api from '../src/utils/api';
-import { AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react-native';
+import { AlertCircle, CheckCircle, ArrowLeft, ChevronDown } from 'lucide-react-native';
 import { useAuth } from '../src/context/AuthContext';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
 
 export default function ApplyConductScreen() {
+  const { colors: Colors, theme } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedCode, setSelectedCode] = useState(null);
   const [observation, setObservation] = useState('');
-  const [currentPeriod, setCurrentPeriod] = useState(1);
   
   const { studentId } = useLocalSearchParams();
   const router = useRouter();
   const { profile } = useAuth();
 
   useEffect(() => {
-    fetchData();
+    fetchCodes();
   }, []);
 
-  const fetchData = async () => {
+  const fetchCodes = async () => {
     try {
       setLoading(true);
-      const [codesRes, periodRes] = await Promise.all([
-        api.get(profile?.role === 'teacher' ? '/teacher/conduct-codes' : '/coordinator/conduct-codes'),
-        api.get('/coordinator/academic-periods').catch(() => ({ data: [{ period_number: 1 }] }))
-      ]);
-      setCodes(codesRes.data);
-      const periodData = periodRes.data;
-      if (Array.isArray(periodData) && periodData.length > 0) {
-        setCurrentPeriod(periodData[0].period_number);
-      } else if (periodData?.period_number) {
-        setCurrentPeriod(periodData.period_number);
-      }
+      const endpoint = profile?.role === 'teacher' ? '/teacher/conduct-codes' : '/coordinator/conduct-codes';
+      const response = await api.get(endpoint);
+      setCodes(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los datos');
+      Alert.alert('Error', 'No se pudieron cargar los códigos de conducta');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'Positivo': return Colors.status.approved;
-      case 'Leve': return Colors.status.pending;
-      case 'Grave': return Colors.status.rejected;
-      case 'Muy Grave': return Colors.primary;
-      default: return Colors.text.muted;
     }
   };
 
@@ -66,7 +49,7 @@ export default function ApplyConductScreen() {
         student_id: studentId,
         code_id: selectedCode.id,
         observation: observation,
-        period: currentPeriod
+        period: 1 // Default to 1 for now
       });
       Alert.alert('Éxito', 'Código de conducta aplicado correctamente', [
         { text: 'OK', onPress: () => router.back() }
@@ -82,7 +65,7 @@ export default function ApplyConductScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color="#0B1956" />
       </View>
     );
   }
@@ -91,7 +74,7 @@ export default function ApplyConductScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft color={Colors.text.inverse} size={24} />
+          <ArrowLeft color="#FFF" size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Aplicar Código</Text>
         <Text style={styles.headerSubtitle}>Registro de Conducta</Text>
@@ -109,14 +92,14 @@ export default function ApplyConductScreen() {
               <View style={[styles.badge, { backgroundColor: getCategoryColor(code.category) + '20' }]}>
                 <Text style={[styles.badgeText, { color: getCategoryColor(code.category) }]}>{code.category}</Text>
               </View>
-              {selectedCode?.id === code.id && <CheckCircle color={Colors.status.approved} size={20} />}
+              {selectedCode?.id === code.id && <CheckCircle color="#10b981" size={20} />}
             </View>
             <Text style={styles.codeName}>{code.name}</Text>
             <Text style={styles.codeDesc}>{code.description}</Text>
           </TouchableOpacity>
         ))}
 
-        <Text style={[styles.sectionTitle, { marginTop: Spacing.xl }]}>Observación (Opcional)</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Observación (Opcional)</Text>
         <TextInput
           style={styles.input}
           placeholder="Añada detalles adicionales..."
@@ -132,10 +115,10 @@ export default function ApplyConductScreen() {
           disabled={!selectedCode || saving}
         >
           {saving ? (
-            <ActivityIndicator color={Colors.text.inverse} />
+            <ActivityIndicator color="#FFF" />
           ) : (
             <>
-              <AlertCircle color={Colors.text.inverse} size={20} style={{ marginRight: 8 }} />
+              <AlertCircle color="#FFF" size={20} style={{ marginRight: 8 }} />
               <Text style={styles.submitBtnText}>Aplicar Sanción / Reconocimiento</Text>
             </>
           )}
@@ -146,61 +129,80 @@ export default function ApplyConductScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getCategoryColor = (category) => {
+  switch (category) {
+    case 'Positivo': return '#10b981';
+    case 'Leve': return '#f59e0b';
+    case 'Grave': return '#f97316';
+    case 'Muy Grave': return '#ef4444';
+    default: return '#0B1956';
+  }
+};
+
+const createStyles = (Colors, theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   header: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.xl,
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    padding: 24,
     paddingTop: 40,
-    borderBottomLeftRadius: BorderRadius['2xl'],
-    borderBottomRightRadius: BorderRadius['2xl'],
-    ...Shadows.elevated,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    borderBottomWidth: theme === 'dark' ? 1 : 0,
+    borderBottomColor: Colors.gray[200],
   },
-  backBtn: { marginBottom: Spacing.md },
-  headerTitle: { color: Colors.text.inverse, fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
-  headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
-  content: { padding: Spacing.xl },
-  sectionTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: Colors.primary, marginBottom: Spacing.md },
+  backBtn: { marginBottom: 16 },
+  headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 24, fontWeight: 'bold' },
+  headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 4 },
+  content: { padding: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.text.primary, marginBottom: 12 },
   codeCard: {
     backgroundColor: Colors.card,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
-    ...Shadows.card,
+    borderColor: theme === 'dark' ? Colors.gray[200] : 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: theme === 'dark' ? 0.2 : 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   codeCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.gray[50],
+    borderColor: '#3b82f6',
+    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
   },
-  codeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: BorderRadius.full },
-  badgeText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
-  codeName: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: Colors.primary, marginBottom: 4 },
-  codeDesc: { fontSize: Typography.size.xs, color: Colors.text.muted },
+  codeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  badgeText: { fontSize: 12, fontWeight: 'bold' },
+  codeName: { fontSize: 16, fontWeight: 'bold', color: Colors.text.primary, marginBottom: 4 },
+  codeDesc: { fontSize: 13, color: Colors.text.muted },
   input: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    fontSize: Typography.size.md,
-    color: Colors.primary,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 15,
+    color: Colors.text.primary,
     textAlignVertical: 'top',
     minHeight: 100,
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: theme === 'dark' ? 0.2 : 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[200],
   },
   submitBtn: {
-    backgroundColor: Colors.status.rejected,
+    backgroundColor: '#ef4444',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    marginTop: Spacing['2xl'],
-    ...Shadows.elevated,
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 24,
   },
   submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText: { color: Colors.text.inverse, fontSize: Typography.size.lg, fontWeight: Typography.weight.bold }
+  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });
-

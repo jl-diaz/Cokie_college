@@ -1,23 +1,39 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator, Dimensions, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Globe } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const { login } = useAuth();
+  const { theme, colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors, theme), [colors, theme]);
+
+  const toggleLanguage = async () => {
+    const newLang = i18n.language === 'es' ? 'en' : 'es';
+    await i18n.changeLanguage(newLang);
+    try {
+      await AsyncStorage.setItem('language', newLang);
+    } catch (e) {
+      console.error('Error saving language:', e);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Por favor completa todos los campos');
+      setError(t('login.fieldsRequired', 'Por favor completa todos los campos'));
       return;
     }
 
@@ -27,7 +43,7 @@ export default function LoginScreen() {
       await login(email, password);
       router.replace('/home');
     } catch (err) {
-      setError('Credenciales inválidas o error de conexión');
+      setError(t('login.invalidCredentials', 'Credenciales inválidas o error de conexión'));
     } finally {
       setLoading(false);
     }
@@ -35,15 +51,29 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <StatusBar 
+        barStyle={theme === 'dark' ? 'light-content' : 'auto'} 
+        backgroundColor={theme === 'dark' ? colors.card : '#0B1956'} 
+      />
       
-      {/* Hero Header with Layered Waves */}
+      {/* Hero Header with Layered Waves & Language Switcher */}
       <View style={styles.heroContainer}>
         <View style={styles.heroBackground}>
+          <TouchableOpacity 
+            onPress={toggleLanguage} 
+            style={styles.langSwitchBtn}
+            activeOpacity={0.7}
+          >
+            <Globe size={18} color={colors.text.headerTxtC || '#FFF'} />
+            <Text style={[styles.langSwitchText, { color: colors.text.headerTxtC || '#FFF' }]}>
+              {i18n.language?.toUpperCase() || 'ES'}
+            </Text>
+          </TouchableOpacity>
+
           <Text style={styles.heroTitle}>
             Cokie <Text style={styles.heroTitleAccent}>College</Text>
           </Text>
-          <Text style={styles.heroSubtitle}>PLATAFORMA ESTUDIANTIL</Text>
+          <Text style={styles.heroSubtitle}>{t('login.heroSubtitle', 'PLATAFORMA ESTUDIANTIL')}</Text>
         </View>
         <Svg
           height="140"
@@ -52,78 +82,82 @@ export default function LoginScreen() {
           preserveAspectRatio="none"
           style={styles.heroCurve}
         >
-          {/* Decorative layer 1 */}
           <Path
             d="M0,70 C90,130 285,40 375,100 L375,140 L0,140 Z"
             fill="rgba(255, 255, 255, 0.15)"
           />
-          {/* Main curve layer */}
           <Path
             d="M0,90 C120,150 255,60 375,110 L375,140 L0,140 Z"
-            fill={Colors.background}
+            fill={theme === 'dark' ? colors.background : '#F5F7FA'}
           />
         </Svg>
       </View>
 
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
-        <View style={styles.formContainer}>
-          <View style={styles.card}>
-            <Text style={styles.welcomeText}>¡Hola de nuevo!</Text>
-            <Text style={styles.subWelcomeText}>Ingresa tus credenciales institucionales</Text>
-            
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Correo Electrónico</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="usuario@gmail.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholderTextColor={Colors.gray[400]}
-              />
-            </View>
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start' }} 
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formContainer}>
+            <View style={styles.card}>
+              <Text style={styles.welcomeText}>{t('login.welcome', '¡Hola de nuevo!')}</Text>
+              <Text style={styles.subWelcomeText}>{t('login.subWelcome', 'Ingresa tus credenciales institucionales')}</Text>
+              
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('login.emailLabel', 'Correo Electrónico')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('login.emailPlaceholder', 'usuario@gmail.com')}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
+                />
+              </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Contraseña</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholderTextColor={Colors.gray[400]}
-              />
-            </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('login.passwordLabel', 'Contraseña')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
+                />
+              </View>
 
-            <TouchableOpacity 
-              style={[styles.button, loading && styles.buttonDisabled]} 
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color={Colors.text.inverse} size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Iniciar Sesión</Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.button, loading && styles.buttonDisabled]} 
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color={theme === 'dark' ? colors.text.primary : '#fff'} size="small" />
+                ) : (
+                  <Text style={styles.buttonText}>{t('login.loginBtn', 'Iniciar Sesión')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   heroContainer: {
     height: 300,
@@ -132,24 +166,44 @@ const styles = StyleSheet.create({
   },
   heroBackground: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: theme === 'dark' ? colors.card : '#0B1956',
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 0,
+    borderBottomWidth: theme === 'dark' ? 1 : 0,
+    borderBottomColor: colors.gray[200],
+    position: 'relative',
+  },
+  langSwitchBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 20,
+  },
+  langSwitchText: {
+    fontSize: 11,
+    fontWeight: '800',
+    marginLeft: 4,
   },
   heroTitle: {
-    color: Colors.text.inverse,
-    fontSize: Typography.size['4xl'],
-    fontWeight: Typography.weight.extraBold,
+    color: theme === 'dark' ? colors.text.primary : '#FFFFFF',
+    fontSize: 40,
+    fontWeight: '900',
     letterSpacing: -1,
   },
   heroTitleAccent: {
-    color: Colors.text.inverse,
+    color: theme === 'dark' ? colors.primary : '#FFFFFF',
   },
   heroSubtitle: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: Typography.size.xs,
-    fontWeight: Typography.weight.bold,
+    color: theme === 'dark' ? colors.text.secondary : 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 2,
     marginTop: 6,
     textTransform: 'uppercase',
@@ -164,81 +218,90 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    paddingHorizontal: Spacing['2xl'],
+    paddingHorizontal: 24,
     justifyContent: 'flex-start',
     marginTop: 0,
   },
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
-    paddingHorizontal: Spacing['2xl'],
-    paddingVertical: Spacing['3xl'],
-    ...Shadows.card,
+    backgroundColor: colors.card,
+    borderRadius: 30,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    shadowColor: theme === 'dark' ? '#000' : '#0B1956',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: theme === 'dark' ? 0.25 : 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: colors.gray[200],
   },
   welcomeText: {
-    fontSize: Typography.size['2xl'],
-    fontWeight: Typography.weight.extraBold,
-    color: Colors.primary,
+    fontSize: 24,
+    fontWeight: '800',
+    color: theme === 'dark' ? colors.primary : '#0B1956',
     textAlign: 'center',
   },
   subWelcomeText: {
-    fontSize: Typography.size.sm,
-    color: Colors.text.secondary,
+    fontSize: 13,
+    color: colors.text.secondary,
     textAlign: 'center',
-    marginBottom: Spacing['2xl'],
+    marginBottom: 28,
     marginTop: 6,
   },
   inputGroup: {
-    marginBottom: Spacing.xl,
+    marginBottom: 20,
   },
   label: {
-    fontSize: Typography.size.xs,
-    fontWeight: Typography.weight.bold,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text.muted,
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   input: {
-    backgroundColor: Colors.gray[50],
+    backgroundColor: theme === 'dark' ? colors.background : '#F8FAFC',
     paddingVertical: 14,
     paddingHorizontal: 18,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: Colors.gray[200],
-    fontSize: Typography.size.md,
-    color: Colors.primary,
-    fontWeight: Typography.weight.medium,
+    borderColor: colors.gray[200],
+    fontSize: 15,
+    color: colors.text.primary,
+    fontWeight: '600',
   },
   errorText: {
-    color: Colors.status.absent,
+    color: '#E53E3E',
     backgroundColor: '#FFF5F5',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.xl,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
     textAlign: 'center',
-    fontSize: Typography.size.sm,
-    fontWeight: Typography.weight.bold,
+    fontSize: 13,
+    fontWeight: '600',
     borderWidth: 1,
     borderColor: '#FED7D7',
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 16,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.elevated,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
     marginTop: 10,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: Colors.text.inverse,
-    fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.bold,
+    color: colors.text.inverse,
+    fontSize: 16,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
 });
-

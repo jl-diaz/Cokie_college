@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect } from 'react';
 import { View, Image, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,10 +22,10 @@ export default function SplashScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: '#0B1957' }]}>
       <Animated.View style={{ opacity: fadeAnim }}>
         <Image 
-          source={require('../src/CokieCollegeLogo.jpg')} 
+          source={require('../src/CokieCollegeLogo-main.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
@@ -36,7 +37,6 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1957',
     alignItems: 'center',
     justifyContent: 'center',
   },

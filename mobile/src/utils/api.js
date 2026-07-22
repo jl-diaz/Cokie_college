@@ -18,17 +18,4 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Interceptor para manejar errores globales (como 401)
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido
-      await supabase.auth.signOut();
-      // El onAuthStateChange en AuthContext se encargará de redirigir
-    }
-    return Promise.reject(error);
-  }
-);
-
 export default api;

@@ -1,12 +1,19 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
 import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function CoordinatorJustificationsScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -149,6 +156,10 @@ export default function CoordinatorJustificationsScreen() {
 
   return (
     <View style={styles.container}>
+      <PageHeader 
+        title={t('titles.justifications', 'Gestión de Justificaciones')} 
+        subtitle={t('justifications.coordinatorSubtitle', 'Revisión y aprobación de inasistencias')} 
+      />
       <View style={styles.header}>
         
         <View style={styles.tabContainer}>
@@ -333,54 +344,61 @@ export default function CoordinatorJustificationsScreen() {
 
       {/* Process Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {statusToSet === 'approved' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color={Colors.primary} />
-              </TouchableOpacity>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {statusToSet === 'approved' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+                  </Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <X size={24} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
+                
+                <Text style={styles.modalSubtitle}>
+                  Estudiante: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
+                </Text>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Observación (Opcional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Añade un comentario sobre la decisión..."
+                    multiline
+                    numberOfLines={4}
+                    value={observation}
+                    onChangeText={setObservation}
+                  />
+                </View>
+                
+                <TouchableOpacity 
+                  style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
+                  onPress={processRequest}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>Confirmar</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <Text style={styles.modalSubtitle}>
-              Estudiante: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
-            </Text>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Observación (Opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Añade un comentario sobre la decisión..."
-                multiline
-                numberOfLines={4}
-                value={observation}
-                onChangeText={setObservation}
-              />
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
-              onPress={processRequest}
-              disabled={processing}
-            >
-              {processing ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Confirmar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
     padding: Spacing.xl,

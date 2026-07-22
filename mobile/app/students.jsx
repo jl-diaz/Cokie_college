@@ -1,11 +1,18 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '../src/utils/api';
 import { Mail, Book, Search, User, ClipboardList, BookOpen, AlertCircle, Calendar, X } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function StudentsScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +31,7 @@ export default function StudentsScreen() {
       setStudents(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo cargar el listado de estudiantes.');
+      Alert.alert(t('dashboard.error', 'Error'), t('students.loadError', 'No se pudieron cargar los estudiantes.'));
     } finally {
       setLoading(false);
     }
@@ -40,7 +47,7 @@ export default function StudentsScreen() {
     setActionSheetVisible(true);
   };
 
-  const navigateTo = (route, params) => {
+  const navigateTo = (path, params) => {
     setActionSheetVisible(false);
     router.push({ pathname: route, params });
   };
@@ -152,7 +159,7 @@ export default function StudentsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -171,7 +178,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl },
   card: {
     flexDirection: 'row',

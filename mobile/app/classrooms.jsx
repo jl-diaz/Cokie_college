@@ -5,9 +5,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, Calendar, ChevronRight, BookOpen, X } from 'lucide-react-native';
 import api from '../src/utils/api';
 import { useAuth } from '../src/context/AuthContext';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function ClassroomsScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedClassroom, setSelectedClassroom] = useState(null);
@@ -26,7 +32,7 @@ export default function ClassroomsScreen() {
       const response = await api.get(endpoint);
       setClassrooms(response.data);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los salones.');
+      Alert.alert(t('dashboard.error', 'Error'), t('classrooms.loadError', 'No se pudieron cargar los salones.'));
     } finally {
       setLoading(false);
     }
@@ -49,10 +55,10 @@ export default function ClassroomsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Salones</Text>
-        <Text style={styles.headerSubtitle}>Gestión de aulas y grupos</Text>
-      </View>
+      <PageHeader 
+        title={t('menu.classrooms', 'Salones')} 
+        subtitle={t('classrooms.subtitle', 'Gestión de aulas y grupos académicos')} 
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -123,7 +129,7 @@ export default function ClassroomsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -134,7 +140,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: '#FFF', fontSize: Typography.size.xl, fontWeight: 'bold' },
   headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   scrollContent: { padding: Spacing.xl },
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: Colors.text.muted, textAlign: 'center' },

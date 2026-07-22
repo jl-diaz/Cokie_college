@@ -1,11 +1,18 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import api from '../src/utils/api';
 import { ChevronDown, Calendar, Clock, BookOpen, User, Check, Hash, X } from 'lucide-react-native';
 import { useAuth } from '../src/context/AuthContext';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function AssignScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const { profile } = useAuth();
   const [teachers, setTeachers] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -134,10 +141,10 @@ export default function AssignScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Asignar Horario</Text>
-        <Text style={styles.headerSubtitle}>Configura clases y horarios</Text>
-      </View>
+      <PageHeader 
+        title={t('menu.assign_classes', 'Asignar Horario')} 
+        subtitle={t('assign.subtitle', 'Configura clases, docentes y horarios académicos')} 
+      />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
@@ -426,7 +433,7 @@ export default function AssignScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -439,7 +446,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
   content: { flex: 1 },
   scrollContent: { padding: Spacing.xl },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   card: {
     backgroundColor: Colors.card,
     borderRadius: BorderRadius['2xl'],

@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
 import { FileText, Calendar, Plus, X, Upload, CheckCircle, Clock, XCircle } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function JustificationsScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors, theme } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [justifications, setJustifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -47,23 +52,23 @@ export default function JustificationsScreen() {
         type: ['application/pdf', 'image/*'],
       });
       
-      if (!result.canceled) {
-        setFormData({ ...formData, evidence: result.assets[0] });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setFormData(prev => ({ ...prev, evidence: result.assets[0] }));
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error picking document:', error);
+      Alert.alert(t('dashboard.error', 'Error'), 'No se pudo seleccionar el archivo.');
     }
   };
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      // Format date without timezone issues
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
-      setFormData({ ...formData, date: formattedDate });
+      setFormData(prev => ({ ...prev, date: formattedDate }));
     }
   };
 
@@ -73,7 +78,7 @@ export default function JustificationsScreen() {
 
   const handleSubmit = async () => {
     if (!formData.date || !formData.reason) {
-      Alert.alert('Error', 'Por favor completa la fecha y el motivo.');
+      Alert.alert(t('dashboard.error', 'Error'), t('dashboard.pleaseCompleteFields', 'Por favor completa la fecha y el motivo.'));
       return;
     }
 
@@ -82,16 +87,16 @@ export default function JustificationsScreen() {
       await api.post('/student/justifications', {
         absence_date: formData.date,
         reason: formData.reason,
-        evidence_url: formData.evidence ? 'mock-url' : null
+        evidence_url: formData.evidence ? formData.evidence.name : null
       });
       
-      Alert.alert('Éxito', 'Solicitud enviada correctamente.');
+      Alert.alert(t('dashboard.success', 'Éxito'), t('dashboard.requestSent', 'Solicitud enviada correctamente.'));
       setModalVisible(false);
       setFormData({ date: '', reason: '', evidence: null });
       fetchJustifications();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo enviar la solicitud.');
+      Alert.alert(t('dashboard.error', 'Error'), t('dashboard.couldNotSend', 'No se pudo enviar la solicitud.'));
     } finally {
       setSubmitting(false);
     }
@@ -99,9 +104,9 @@ export default function JustificationsScreen() {
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'approved': return { color: Colors.status.approved, bg: '#f0fdf4', icon: CheckCircle, label: 'Aprobada' };
-      case 'rejected': return { color: Colors.status.rejected, bg: '#fef2f2', icon: XCircle, label: 'Rechazada' };
-      default: return { color: Colors.status.pending, bg: '#fffbeb', icon: Clock, label: 'Pendiente' };
+      case 'approved': return { color: Colors.status.approved, bg: '#f0fdf4', icon: CheckCircle, label: t('dashboard.approved', 'Aprobada') };
+      case 'rejected': return { color: Colors.status.rejected, bg: '#fef2f2', icon: XCircle, label: t('dashboard.rejected', 'Rechazada') };
+      default: return { color: Colors.status.pending, bg: '#fffbeb', icon: Clock, label: t('dashboard.pending', 'Pendiente') };
     }
   };
 
@@ -121,12 +126,12 @@ export default function JustificationsScreen() {
           </View>
         </View>
         
-        <Text style={styles.reasonLabel}>Motivo:</Text>
+        <Text style={styles.reasonLabel}>{t('dashboard.reason', 'Motivo')}:</Text>
         <Text style={styles.reasonText}>{item.reason}</Text>
         
         {item.coordinator_message && (
           <View style={styles.obsContainer}>
-            <Text style={styles.obsLabel}>Respuesta del Coordinador:</Text>
+            <Text style={styles.obsLabel}>{t('dashboard.coordinatorResponse', 'Respuesta de Coordinación')}:</Text>
             <Text style={styles.obsText}>{item.coordinator_message}</Text>
           </View>
         )}
@@ -144,12 +149,12 @@ export default function JustificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Justificaciones</Text>
-        <Text style={styles.headerSubtitle}>Gestiona tus permisos de ausencia</Text>
-      </View>
-
+      <PageHeader 
+        title={t('titles.justifications', 'Justificaciones')} 
+        subtitle={t('titles.justificationsSubtitle', 'Gestión de ausencias e inasistencias')} 
+      />
       <FlatList
+        style={styles.container}
         data={justifications}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
@@ -158,229 +163,274 @@ export default function JustificationsScreen() {
         onRefresh={onRefresh}
         ListHeaderComponent={
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mis Solicitudes</Text>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.sectionTitle}>{t('dashboard.myRequests', 'Mis Solicitudes')}</Text>
+            <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
               <Plus size={20} color="#FFF" />
-              <Text style={styles.addBtnText}>Nueva</Text>
+              <Text style={styles.addBtnText}>{t('dashboard.new', 'Nueva')}</Text>
             </TouchableOpacity>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyCard}>
             <FileText size={48} color={Colors.gray[300]} style={{marginBottom: 16}} />
-            <Text style={styles.emptyText}>No has realizado ninguna solicitud de justificación.</Text>
+            <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No has enviado solicitudes de justificación')}</Text>
           </View>
         }
         ListFooterComponent={<View style={{height: 40}} />}
       />
 
-      {/* New Justification Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nueva Justificación</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color={Colors.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={[]} // Empty data for a "fake" ScrollView effect if needed, but better to use a simple View if not many inputs
-              renderItem={null}
-              ListHeaderComponent={
-                <View>
-<View style={styles.formGroup}>
-                      <Text style={styles.label}>Fecha de Ausencia</Text>
-                      <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker}>
-                        <Calendar size={18} color={Colors.primary} />
-                        <Text style={[styles.datePickerText, formData.date ? styles.selectedText : null]}>
-                          {formData.date || 'Seleccionar fecha'}
-                        </Text>
-                      </TouchableOpacity>
-                      {showDatePicker && (
-                        <DateTimePicker
-                          value={formData.date ? new Date(formData.date) : new Date()}
-                          mode="date"
-                          display="default"
-                          onChange={handleDateChange}
-                          maximumDate={new Date()}
-                        />
-                      )}
-                    </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Motivo</Text>
-                    <TextInput
-                      style={[styles.input, styles.textArea]}
-                      placeholder="Explica el motivo de tu ausencia..."
-                      placeholderTextColor={Colors.text.muted}
-                      numberOfLines={4}
-                      value={formData.reason}
-                      onChangeText={(text) => setFormData({ ...formData, reason: text })}
-                    />
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Evidencia (Imagen o PDF)</Text>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument}>
-                      <Upload size={20} color={Colors.primary} />
-                      <Text style={styles.uploadBtnText}>
-                        {formData.evidence ? formData.evidence.name : 'Subir archivo'}
-                      </Text>
+      {/* Modal para Crear Solicitud de Justificación */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
+              <View style={styles.modalContent}>
+                <ScrollView 
+                  keyboardShouldPersistTaps="handled" 
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
+                    <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
+                      <X size={24} color={Colors.primary} />
                     </TouchableOpacity>
                   </View>
 
+                  {/* Fecha de Inasistencia */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>{t('justifications.dateLabel', 'Fecha de Inasistencia')}</Text>
+                    <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
+                      <Calendar size={20} color={Colors.primary} />
+                      <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
+                        {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                      />
+                    )}
+                  </View>
+
+                  {/* Motivo */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>{t('dashboard.reason', 'Motivo')}</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      multiline
+                      numberOfLines={4}
+                      placeholder={t('justifications.reasonPlaceholder', 'Describe la razón de tu ausencia...')}
+                      placeholderTextColor={Colors.text.muted}
+                      value={formData.reason}
+                      onChangeText={(text) => setFormData(prev => ({ ...prev, reason: text }))}
+                    />
+                  </View>
+
+                  {/* Adjuntar Evidencia */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>{t('justifications.evidenceLabel', 'Comprobante / Evidencia (Opcional)')}</Text>
+                    <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} activeOpacity={0.8}>
+                      <Upload size={20} color={Colors.primary} />
+                      <Text style={[styles.uploadBtnText, { flex: 1 }]} numberOfLines={1}>
+                        {formData.evidence ? (formData.evidence.name || 'Archivo Seleccionado') : t('justifications.attachFile', 'Adjuntar archivo PDF o imagen')}
+                      </Text>
+                      {formData.evidence && (
+                        <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, evidence: null }))} style={{ padding: 4 }}>
+                          <X size={18} color="#e74c3c" />
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Botón Enviar */}
                   <TouchableOpacity 
-                    style={styles.submitBtn} 
-                    onPress={handleSubmit}
+                    style={[styles.submitBtn, submitting && { opacity: 0.7 }]} 
+                    onPress={handleSubmit} 
                     disabled={submitting}
+                    activeOpacity={0.8}
                   >
                     {submitting ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text style={styles.submitBtnText}>Enviar Solicitud</Text>
+                      <Text style={styles.submitBtnText}>{t('dashboard.save', 'Enviar Solicitud')}</Text>
                     )}
                   </TouchableOpacity>
-                </View>
-              }
-            />
-          </View>
-        </View>
+                </ScrollView>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+const createStyles = (Colors, theme) => StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.xl,
-    paddingTop: 10,
-    borderBottomLeftRadius: BorderRadius['2xl'],
-    borderBottomRightRadius: BorderRadius['2xl'],
-  },
-  headerTitle: { color: '#FFF', fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
-  headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
-  content: { padding: Spacing.xl },
-  sectionHeader: {
-    flexDirection: 'row',    justifyContent: 'space-between',
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    padding: 24,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    borderBottomWidth: theme === 'dark' ? 1 : 0,
+    borderBottomColor: Colors.gray[200],
   },
-  sectionTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: Colors.primary },
+  headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
+  headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
+  content: { paddingHorizontal: 20, paddingTop: 20 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    ...Shadows.elevated,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
   },
-  addBtnText: { color: '#FFF', fontWeight: 'bold', marginLeft: 6, fontSize: Typography.size.sm },
+  addBtnText: { color: '#FFF', fontWeight: 'bold', marginLeft: 6, fontSize: 14 },
   emptyCard: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 24,
     padding: 40,
     alignItems: 'center',
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
     marginTop: 20,
   },
-  emptyText: { color: Colors.text.muted, textAlign: 'center', lineHeight: 22 },
+  emptyText: { color: Colors.text.muted, textAlign: 'center', fontSize: 16 },
   card: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    ...Shadows.card,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[100],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',    marginBottom: Spacing.lg,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   dateInfo: { flexDirection: 'row', alignItems: 'center' },
-  dateText: { marginLeft: 8, fontWeight: Typography.weight.bold, color: Colors.text.primary, fontSize: Typography.size.md },
+  dateText: { marginLeft: 8, fontWeight: 'bold', color: Colors.text.primary, fontSize: 16 },
   statusBadge: {
     flexDirection: 'row',
-    alignItems: 'center',    paddingHorizontal: 12,
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: BorderRadius.full,
+    borderRadius: 20,
   },
-  statusText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, marginLeft: 6 },
-  reasonLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: Colors.text.muted, textTransform: 'uppercase', marginBottom: 4 },
-  reasonText: { fontSize: Typography.size.md, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.lg },
+  statusText: { fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
+  reasonLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.muted, textTransform: 'uppercase', marginBottom: 4 },
+  reasonText: { fontSize: 16, color: Colors.text.primary, marginBottom: 16 },
   obsContainer: {
     backgroundColor: Colors.gray[50],
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
+    padding: 16,
+    borderRadius: 16,
     borderLeftWidth: 4,
     borderLeftColor: Colors.primaryLight,
   },
-  obsLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: Colors.primary, marginBottom: 4 },
-  obsText: { fontSize: Typography.size.sm, color: Colors.text.secondary, fontStyle: 'italic' },
+  obsLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.primary, marginBottom: 4 },
+  obsText: { fontSize: 14, color: Colors.text.secondary, fontStyle: 'italic' },
   
-  // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'],
-    borderTopRightRadius: BorderRadius['2xl'],
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 24,
     maxHeight: '90%',
   },
   modalHeader: {
-    flexDirection: 'row',    justifyContent: 'space-between',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
   },
-  modalTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: Colors.primary },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: Colors.primary },
   formGroup: { marginBottom: 20 },
-  label: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: Colors.text.primary, marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: 'bold', color: Colors.text.primary, marginBottom: 8 },
   input: {
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     padding: 16,
-    fontSize: Typography.size.md,
+    fontSize: 16,
     color: Colors.text.primary,
   },
-  textArea: { height: 50, textAlignVertical: 'top' },
+  textArea: { height: 100, textAlignVertical: 'top' },
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.gray[200],
     borderStyle: 'dashed',
   },
-  uploadBtnText: { marginLeft: 10, color: Colors.text.secondary, fontSize: Typography.size.sm },
+  uploadBtnText: { marginLeft: 10, color: Colors.text.secondary, fontSize: 14 },
   submitBtn: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     padding: 18,
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 20,
-    ...Shadows.elevated,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
   },
-  submitBtnText: { color: '#FFF', fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
+  submitBtnText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   datePickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.gray[200],
   },
   datePickerText: {
     marginLeft: 10,
-    fontSize: Typography.size.md,
+    fontSize: 16,
     color: Colors.text.muted,
   },
 });

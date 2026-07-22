@@ -1,10 +1,17 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
 import { Search, Plus, Trash2, Edit2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import PageHeader from '../src/components/PageHeader';
 
 export default function ConductCatalogScreen() {
+  const { t } = useTranslation();
+  const { colors: Colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,7 +41,7 @@ export default function ConductCatalogScreen() {
       setCodes(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo cargar el catálogo de conducta.');
+      Alert.alert(t('dashboard.error', 'Error'), t('conduct.loadError', 'No se pudo cargar el catálogo de conducta.'));
     } finally {
       setLoading(false);
     }
@@ -83,19 +90,19 @@ export default function ConductCatalogScreen() {
 
   const handleDelete = (id) => {
     Alert.alert(
-      'Confirmar eliminación',
-      '¿Deseas eliminar este código del catálogo?',
+      t('dashboard.delete', 'Eliminar'),
+      t('conduct.deleteConfirm', '¿Estás seguro de eliminar este código?'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('dashboard.cancel', 'Cancelar'), style: 'cancel' },
         {
-          text: 'Eliminar',
+          text: t('dashboard.delete', 'Eliminar'),
           style: 'destructive',
           onPress: async () => {
             try {
               await api.delete(`/admin/conduct-codes/${id}`);
               fetchCodes();
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo eliminar el código.');
+            } catch (err) {
+              Alert.alert(t('dashboard.error', 'Error'), t('conduct.deleteError', 'No se pudo eliminar el código.'));
             }
           }
         }
@@ -104,15 +111,15 @@ export default function ConductCatalogScreen() {
   };
 
   const filteredCodes = codes.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.code.toLowerCase().includes(searchTerm.toLowerCase())
+    c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getCategoryStyle = (cat) => {
-    switch (cat) {
-      case 'Positivo': return { color: Colors.status.approved, bg: '#f0fdf4' };
-      case 'Leve': return { color: Colors.status.pending, bg: '#fffbeb' };
-      case 'Grave': return { color: Colors.status.rejected, bg: '#fef2f2' };
+  const getCategoryStyle = (category) => {
+    switch (category) {
+      case 'Positivo': return { color: '#15803d', bg: '#dcfce7' };
+      case 'Leve': return { color: '#b45309', bg: '#fef3c7' };
+      case 'Grave': return { color: '#b91c1c', bg: '#fee2e2' };
       case 'Muy Grave': return { color: '#7f1d1d', bg: '#fee2e2' };
       default: return { color: Colors.text.muted, bg: Colors.gray[100] };
     }
@@ -120,14 +127,16 @@ export default function ConductCatalogScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Catálogo de Conducta</Text>
-        <Text style={styles.headerSubtitle}>Define los códigos disciplinarios</Text>
-        
+      <PageHeader 
+        title={t('titles.conductCatalog', 'Catálogo de Conducta')} 
+        subtitle={t('titles.conductCatalogSubtitle', 'Reglamento y códigos disciplinarios')} 
+      />
+
+      <View style={styles.searchWrapper}>
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
-            placeholder="Buscar código o descripción..."
+            placeholder={t('dashboard.search', 'Buscar código o descripción...')}
             placeholderTextColor={Colors.text.muted}
             value={searchTerm}
             onChangeText={setSearchTerm}
@@ -182,61 +191,68 @@ export default function ConductCatalogScreen() {
       </TouchableOpacity>
 
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color={Colors.primary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView>
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Código</Text>
-                <TextInput
-                  placeholder="Ej. L-01"
-                  placeholderTextColor={Colors.text.muted}
-                  value={formData.code}
-                  onChangeText={(v) => setFormData({ ...formData, code: v })}
-                  style={styles.input}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Descripción</Text>
-                <TextInput
-                  placeholder="Ej. Uso inadecuado del uniforme"
-                  placeholderTextColor={Colors.text.muted}
-                  value={formData.name}
-                  onChangeText={(v) => setFormData({ ...formData, name: v })}
-                  style={[styles.input, styles.textArea]}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Categoría</Text>
-                <View style={styles.categoryRow}>
-                  {categories.map(cat => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
-                      onPress={() => setFormData({ ...formData, category: cat })}
-                    >
-                      <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          style={styles.modalOverlay}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                    <X size={24} color={Colors.primary} />
+                  </TouchableOpacity>
                 </View>
-              </View>
 
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
-                {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Guardar Código</Text>}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
+                <ScrollView keyboardShouldPersistTaps="handled">
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Código</Text>
+                    <TextInput
+                      placeholder="Ej. L-01"
+                      placeholderTextColor={Colors.text.muted}
+                      value={formData.code}
+                      onChangeText={(v) => setFormData({ ...formData, code: v })}
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Descripción</Text>
+                    <TextInput
+                      placeholder="Ej. Uso inadecuado del uniforme"
+                      placeholderTextColor={Colors.text.muted}
+                      value={formData.name}
+                      onChangeText={(v) => setFormData({ ...formData, name: v })}
+                      style={[styles.input, styles.textArea]}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Categoría</Text>
+                    <View style={styles.categoryRow}>
+                      {categories.map(cat => (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
+                          onPress={() => setFormData({ ...formData, category: cat })}
+                        >
+                          <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
+                            {cat}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
+                    {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Guardar Código</Text>}
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -244,7 +260,7 @@ export default function ConductCatalogScreen() {
 
 
 
-const styles = StyleSheet.create({
+const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -265,7 +281,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl, pb: 100 },
   card: {
     flexDirection: 'row',

@@ -39,16 +39,6 @@ const adminController = {
     createUser: async (req, res) => {
         try {
             const { full_name, email, role, grade, section, first_surname, second_surname, level } = req.body;
-
-            // Validación básica de entrada
-            if (!full_name || !email || !role || !first_surname) {
-                return res.status(400).json({ error: 'Faltan campos obligatorios: full_name, email, role, first_surname' });
-            }
-
-            if (!['student', 'teacher', 'coordinator', 'super_admin'].includes(role)) {
-                return res.status(400).json({ error: 'Rol no válido' });
-            }
-
             const year = new Date().getFullYear();
 
             // Concatenar nombre completo para la DB si vienen por separado
@@ -152,11 +142,6 @@ const adminController = {
     createConductCode: async (req, res) => {
         try {
             const { code, name, description, category } = req.body;
-            
-            if (!code || !name || !category) {
-                return res.status(400).json({ error: 'Faltan campos obligatorios: code, name, category' });
-            }
-
             const { data, error } = await supabaseAdmin
                 .from('conduct_codes')
                 .insert([{ code, name, description, category }])
@@ -214,11 +199,6 @@ const adminController = {
     createSchedule: async (req, res) => {
         try {
             const { teacher_id, subject_id, grade, section, day_of_week, start_time, end_time } = req.body;
-
-            if (!teacher_id || !subject_id || !grade || !section || !day_of_week || !start_time || !end_time) {
-                return res.status(400).json({ error: 'Faltan campos obligatorios para el horario' });
-            }
-
             const { data, error } = await supabaseAdmin
                 .from('schedules')
                 .insert([{ teacher_id, subject_id, grade, section, day_of_week, start_time, end_time }])
@@ -232,18 +212,15 @@ const adminController = {
         }
     },
 
-    // --- Periodos Académicos ---
     getAcademicPeriods: async (req, res) => {
         try {
-            const now = new Date().toISOString();
             const { data, error } = await supabaseAdmin
                 .from('academic_periods')
                 .select('*')
-                .lte('start_date', now)
-                .gte('end_date', now)
                 .order('period_number', { ascending: true });
+
             if (error) throw error;
-            res.json(data || []);
+            res.json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
