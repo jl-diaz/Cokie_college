@@ -26,10 +26,7 @@ const authenticate = async (req, res, next) => {
         if (profileError || !profile) {
             console.error(`Perfil no encontrado para el usuario ID: ${user.id}. Error:`, profileError);
             return res.status(403).json({ 
-                error: 'Perfil de usuario no encontrado',
-                details: 'El usuario existe en Auth pero no se pudo recuperar su registro en la tabla profiles. Verifique que el UUID en la tabla coincida exactamente con el de Auth.',
-                userId: user.id,
-                dbError: profileError?.message
+                error: 'Perfil de usuario no encontrado. Por favor contacte al administrador.'
             });
         }
 

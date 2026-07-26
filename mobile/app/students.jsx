@@ -1,17 +1,19 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '../src/utils/api';
 import { Mail, Book, Search, User, ClipboardList, BookOpen, AlertCircle, Calendar, X } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
-import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
+import { useTranslation } from 'react-i18next';
+import { useAlert } from '../src/context/AlertContext';
 
 export default function StudentsScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,11 @@ export default function StudentsScreen() {
       setStudents(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert(t('dashboard.error', 'Error'), t('students.loadError', 'No se pudieron cargar los estudiantes.'));
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo cargar el listado de estudiantes.'
+      });
     } finally {
       setLoading(false);
     }
@@ -47,25 +53,28 @@ export default function StudentsScreen() {
     setActionSheetVisible(true);
   };
 
-  const navigateTo = (path, params) => {
+  const navigateTo = (route, params) => {
     setActionSheetVisible(false);
     router.push({ pathname: route, params });
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <PageHeader 
+        title={t('menu.students', 'Estudiantes')} 
+        subtitle={t('home.studentsDesc', 'Directorio de estudiantes asignados')} 
+      >
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
-            placeholder="Buscar por nombre o carnet..."
+            placeholder={t('users.searchPlaceholder', 'Buscar por nombre o carnet...')}
             placeholderTextColor={Colors.text.muted}
             value={searchTerm}
             onChangeText={setSearchTerm}
             style={styles.searchInput}
           />
         </View>
-      </View>
+      </PageHeader>
 
       {loading ? (
         <View style={styles.center}>
@@ -103,7 +112,7 @@ export default function StudentsScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No se encontraron estudiantes en tu nivel.</Text>
+              <Text style={styles.emptyText}>{t('users.notFound', 'No se encontraron estudiantes en tu nivel.')}</Text>
             </View>
           }
         />
@@ -130,7 +139,7 @@ export default function StudentsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: Colors.primaryLight }]}>
                 <Calendar color="#FFF" size={20} />
               </View>
-              <Text style={styles.actionText}>Ver Horario de Clases</Text>
+              <Text style={styles.actionText}>{t('classrooms.viewSchedule', 'Ver Horario de Clases')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -140,7 +149,7 @@ export default function StudentsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: '#8b5cf6' }]}>
                 <ClipboardList color="#FFF" size={20} />
               </View>
-              <Text style={styles.actionText}>Ver Diario Pedagógico</Text>
+              <Text style={styles.actionText}>{t('titles.diary', 'Ver Diario Pedagógico')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -150,7 +159,7 @@ export default function StudentsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: Colors.status.approved }]}>
                 <BookOpen color="#FFF" size={20} />
               </View>
-              <Text style={styles.actionText}>Ver Notas del Estudiante</Text>
+              <Text style={styles.actionText}>{t('titles.gradesSubtitleCoordinator', 'Ver Notas del Estudiante')}</Text>
             </TouchableOpacity>
           </View>
         </View>

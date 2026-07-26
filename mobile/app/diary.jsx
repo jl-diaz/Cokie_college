@@ -47,7 +47,7 @@ export default function DiaryScreen() {
     }
   };
 
-  const absences = diaryData.attendance.filter(a => a.status === 'absent');
+  const absences = diaryData.attendance.filter(a => a.status === 'absent' || a.status === 'justified');
 
   if (loading && diaryData.conduct.length === 0) {
     return (
@@ -131,17 +131,44 @@ export default function DiaryScreen() {
               <Text style={[styles.emptyText, { textAlign: 'center' }]}>{t('dashboard.excellentAttendance')}</Text>
             </View>
           ) : (
-            absences.map(att => (
-              <View key={att.id} style={styles.absenceCard}>
-                <View style={styles.absenceIcon}>
-                  <Calendar color="#e74c3c" size={18} />
+            absences.map(att => {
+              const isJustified = att.status === 'justified';
+              return (
+                <View key={att.id} style={[styles.absenceCard, isJustified && { backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4', borderColor: '#bbf7d0', borderWidth: 1 }]}>
+                  <View style={[styles.absenceIcon, isJustified && { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                    {isJustified ? (
+                      <CheckCircle color="#10b981" size={18} />
+                    ) : (
+                      <Calendar color="#e74c3c" size={18} />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.absenceDate}>{new Date(att.date).toLocaleDateString()}</Text>
+                      <Text style={{ 
+                        fontSize: 11, 
+                        fontWeight: 'bold', 
+                        color: isJustified ? '#166534' : '#991b1b',
+                        backgroundColor: isJustified ? '#dcfce7' : '#fee2e2',
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 12
+                      }}>
+                        {isJustified ? 'Justificada' : 'Inasistencia'}
+                      </Text>
+                    </View>
+                    <Text style={styles.absenceLabel}>
+                      {att.subjects?.name || (isJustified ? 'Inasistencia Justificada' : 'Clase')}
+                    </Text>
+                    {isJustified && att.coordinator_message && (
+                      <Text style={{ fontSize: 11, color: Colors.text.muted, marginTop: 2, italic: 'italic' }}>
+                        Nota: {att.coordinator_message}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View>
-                  <Text style={styles.absenceDate}>{new Date(att.date).toLocaleDateString()}</Text>
-                  <Text style={styles.absenceLabel}>{t('dashboard.absence')}</Text>
-                </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
       </View>
@@ -154,7 +181,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   periodSelectorContainer: {
     alignItems: 'center',
-    marginTop: -20,
+    marginTop: -10,
     zIndex: 10,
   },
   periodSelector: {

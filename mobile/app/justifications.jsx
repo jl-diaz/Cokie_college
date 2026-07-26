@@ -8,9 +8,12 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
 
+import { useAlert } from '../src/context/AlertContext';
+
 export default function JustificationsScreen() {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [justifications, setJustifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +60,11 @@ export default function JustificationsScreen() {
       }
     } catch (error) {
       console.error('Error picking document:', error);
-      Alert.alert(t('dashboard.error', 'Error'), 'No se pudo seleccionar el archivo.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo seleccionar el archivo.'
+      });
     }
   };
 
@@ -76,27 +83,65 @@ export default function JustificationsScreen() {
     setShowDatePicker(true);
   };
 
+  const getBase64FromUri = async (uri) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('Error converting file to base64:', e);
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!formData.date || !formData.reason) {
-      Alert.alert(t('dashboard.error', 'Error'), t('dashboard.pleaseCompleteFields', 'Por favor completa la fecha y el motivo.'));
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.error', 'Campos Requeridos'),
+        message: t('dashboard.pleaseCompleteFields', 'Por favor completa la fecha y el motivo.')
+      });
       return;
     }
 
     setSubmitting(true);
     try {
+      let finalEvidenceUrl = null;
+      if (formData.evidence) {
+        if (formData.evidence.uri) {
+          const b64 = await getBase64FromUri(formData.evidence.uri);
+          finalEvidenceUrl = b64 || formData.evidence.uri || formData.evidence.name;
+        } else {
+          finalEvidenceUrl = formData.evidence.name;
+        }
+      }
+
       await api.post('/student/justifications', {
         absence_date: formData.date,
         reason: formData.reason,
-        evidence_url: formData.evidence ? formData.evidence.name : null
+        evidence_url: finalEvidenceUrl
       });
       
-      Alert.alert(t('dashboard.success', 'Éxito'), t('dashboard.requestSent', 'Solicitud enviada correctamente.'));
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', '¡Enviado!'),
+        message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
+      });
       setModalVisible(false);
       setFormData({ date: '', reason: '', evidence: null });
       fetchJustifications();
     } catch (error) {
       console.error(error);
-      Alert.alert(t('dashboard.error', 'Error'), t('dashboard.couldNotSend', 'No se pudo enviar la solicitud.'));
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: error.response?.data?.error || t('dashboard.couldNotSend', 'No se pudo enviar la solicitud.')
+      });
     } finally {
       setSubmitting(false);
     }
@@ -183,11 +228,12 @@ export default function JustificationsScreen() {
       <Modal
         visible={modalVisible}
         transparent
+        statusBarTranslucent
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          behavior="padding" 
           style={styles.modalOverlay}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

@@ -8,16 +8,19 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
 
+import { useAlert } from '../src/context/AlertContext';
+
 export default function UsersScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  
+
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -41,10 +44,11 @@ export default function UsersScreen() {
   });
 
   const roles = [
-    { label: 'Estudiante', value: 'student' },
-    { label: 'Docente', value: 'teacher' },
-    { label: 'Coordinador', value: 'coordinator' },
-    { label: 'Super Admin', value: 'super_admin' }
+    { label: t('users.tabStudents', 'Estudiante'), value: 'student' },
+    { label: t('users.tabTeachers', 'Docente'), value: 'teacher' },
+    { label: t('users.tabCoordinators', 'Coordinador'), value: 'coordinator' },
+    { label: t('users.tabAdmins', 'Super Admin'), value: 'super_admin' },
+    { label: t('users.tabCafetin', 'Cafetín'), value: 'cafetin' }
   ];
 
   const levels = [
@@ -70,11 +74,12 @@ export default function UsersScreen() {
   ];
 
   const roleFilterTabs = [
-    { label: 'Todos', value: '' },
-    { label: 'Estudiantes', value: 'student' },
-    { label: 'Docentes', value: 'teacher' },
-    { label: 'Coordinadores', value: 'coordinator' },
-    { label: 'Admins', value: 'super_admin' }
+    { label: t('users.tabAll', 'Todos'), value: '' },
+    { label: t('users.tabStudents', 'Estudiantes'), value: 'student' },
+    { label: t('users.tabTeachers', 'Docentes'), value: 'teacher' },
+    { label: t('users.tabCoordinators', 'Coordinadores'), value: 'coordinator' },
+    { label: t('users.tabAdmins', 'Admins'), value: 'super_admin' },
+    { label: t('users.tabCafetin', 'Cafetín'), value: 'cafetin' }
   ];
 
   useEffect(() => {
@@ -85,12 +90,17 @@ export default function UsersScreen() {
     setLoading(true);
     try {
       const response = await api.get('/admin/users', {
-        params: roleFilter ? { role: roleFilter } : {}
+        params: roleFilter ? { role: roleFilter, limit: 100 } : { limit: 100 }
       });
-      setUsers(response.data);
+      const userData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setUsers(userData);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los usuarios');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: t('dashboard.couldNotSend', 'No se pudieron cargar los usuarios')
+      });
     } finally {
       setLoading(false);
     }
@@ -128,7 +138,21 @@ export default function UsersScreen() {
 
   const handleSaveUser = async () => {
     if (!formData.full_name || !formData.email) {
-      Alert.alert('Error', 'Nombre Completo y Correo son obligatorios.');
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.error', 'Campos Incompletos'),
+        message: t('dashboard.pleaseCompleteFields', 'Por favor completa los campos requeridos.')
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Correo Inválido'),
+        message: t('users.invalidEmail', 'Por favor ingresa un correo electrónico válido.')
+      });
       return;
     }
 
@@ -144,45 +168,61 @@ export default function UsersScreen() {
           section: formData.role === 'student' ? formData.section : '',
           level: (formData.role === 'coordinator' || formData.role === 'teacher') ? formData.level : ''
         });
-        Alert.alert('Éxito', 'Usuario actualizado correctamente.');
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Éxito!'),
+          message: t('users.userUpdated', 'Usuario actualizado correctamente.')
+        });
       } else {
         // Create Mode
         await api.post('/admin/users', formData);
-        Alert.alert('Éxito', 'Usuario creado exitosamente.');
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Éxito!'),
+          message: t('users.userCreated', 'Usuario creado exitosamente.')
+        });
       }
       setModalVisible(false);
       fetchUsers();
     } catch (error) {
       console.error(error);
-      const errorMsg = error.response?.data?.error || 'Error al guardar usuario';
-      Alert.alert('Error', errorMsg);
+      const errorMsg = error.response?.data?.error || t('dashboard.error', 'Error al guardar usuario');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: errorMsg
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteUser = (id) => {
-    Alert.alert(
-      'Confirmar eliminación',
-      '¿Estás seguro de que deseas eliminar este usuario?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/admin/users/${id}`);
-              Alert.alert('Éxito', 'Usuario eliminado.');
-              fetchUsers();
-            } catch (error) {
-              console.error(error);
-              Alert.alert('Error', 'No se pudo eliminar el usuario.');
-            }
-          }
+    showConfirm({
+      type: 'danger',
+      title: t('users.confirmDeleteTitle', 'Confirmar eliminación'),
+      message: t('users.confirmDeleteBody', '¿Estás seguro de que deseas eliminar este usuario?'),
+      confirmText: t('dashboard.delete', 'Eliminar'),
+      cancelText: t('dashboard.cancel', 'Cancelar'),
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/users/${id}`);
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Eliminado!'),
+            message: t('users.userDeleted', 'Usuario eliminado correctamente.')
+          });
+          fetchUsers();
+        } catch (error) {
+          console.error(error);
+          showAlert({
+            type: 'error',
+            title: t('dashboard.error', 'Error'),
+            message: 'No se pudo eliminar el usuario.'
+          });
         }
-      ]
-    );
+      }
+    });
   };
 
   const filteredUsers = users.filter(u => 
@@ -195,6 +235,7 @@ export default function UsersScreen() {
       case 'super_admin': return { bg: '#fee2e2', text: '#ef4444' };
       case 'coordinator': return { bg: '#ffedd5', text: '#f97316' };
       case 'teacher': return { bg: '#e0f2fe', text: '#0284c7' };
+      case 'cafetin': return { bg: '#d1fae5', text: '#059669' };
       default: return { bg: '#dcfce7', text: '#15803d' };
     }
   };
@@ -224,12 +265,11 @@ export default function UsersScreen() {
       <PageHeader 
         title={t('menu.users', 'Gestión de Usuarios')} 
         subtitle={t('users.subtitle', 'Administración de roles y cuentas institucionales')} 
-      />
-      <View style={styles.header}>
+      >
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
-            placeholder="Buscar por nombre o código..."
+            placeholder={t('users.searchPlaceholder', 'Buscar por nombre o código...')}
             placeholderTextColor={Colors.text.muted}
             value={searchTerm}
             onChangeText={setSearchTerm}
@@ -254,7 +294,7 @@ export default function UsersScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </PageHeader>
 
       {loading ? (
         <View style={styles.center}>
@@ -264,6 +304,10 @@ export default function UsersScreen() {
         <FlatList
           data={filteredUsers}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const badge = getRoleBadgeColor(item.role);
@@ -305,7 +349,7 @@ export default function UsersScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No se encontraron usuarios.</Text>
+              <Text style={styles.emptyText}>{t('users.notFound', 'No se encontraron usuarios.')}</Text>
             </View>
           }
         />
@@ -319,10 +363,11 @@ export default function UsersScreen() {
         visible={modalVisible}
         animationType="slide"
         transparent
+        statusBarTranslucent
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          behavior="padding" 
           style={styles.modalOverlay}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -575,28 +620,38 @@ const createStyles = (Colors) => StyleSheet.create({
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
   tabsScroll: {
-    marginHorizontal: -20,
+    marginHorizontal: -16,
+    marginTop: 4,
   },
   tabsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     gap: 8,
   },
   tabBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   tabBtnActive: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
   },
   tabBtnText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
     fontSize: Typography.size.xs,
   },
   tabBtnTextActive: {
-    color: Colors.text.tabBtnTextColor,
+    color: '#0B1956',
+    fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl, pb: 100 },

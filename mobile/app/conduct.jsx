@@ -1,16 +1,18 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
 import { Search, Plus, Trash2, Edit2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 
 export default function ConductCatalogScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,11 @@ export default function ConductCatalogScreen() {
       setCodes(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert(t('dashboard.error', 'Error'), t('conduct.loadError', 'No se pudo cargar el catálogo de conducta.'));
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: t('conduct.loadError', 'No se pudo cargar el catálogo de conducta.')
+      });
     } finally {
       setLoading(false);
     }
@@ -65,7 +71,11 @@ export default function ConductCatalogScreen() {
 
   const handleSave = async () => {
     if (!formData.code || !formData.name) {
-      Alert.alert('Error', 'Código y Descripción son obligatorios.');
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.warning', 'Atención'),
+        message: t('dashboard.pleaseCompleteFields', 'Código y Descripción son obligatorios.')
+      });
       return;
     }
 
@@ -73,41 +83,58 @@ export default function ConductCatalogScreen() {
     try {
       if (editingCode) {
         await api.put(`/admin/conduct-codes/${editingCode.id}`, formData);
-        Alert.alert('Éxito', 'Código actualizado.');
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Éxito!'),
+          message: 'Código actualizado correctamente.'
+        });
       } else {
         await api.post('/admin/conduct-codes', formData);
-        Alert.alert('Éxito', 'Código creado.');
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Éxito!'),
+          message: 'Código creado correctamente.'
+        });
       }
       setModalVisible(false);
       fetchCodes();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo guardar el código.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo guardar el código.'
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = (id) => {
-    Alert.alert(
-      t('dashboard.delete', 'Eliminar'),
-      t('conduct.deleteConfirm', '¿Estás seguro de eliminar este código?'),
-      [
-        { text: t('dashboard.cancel', 'Cancelar'), style: 'cancel' },
-        {
-          text: t('dashboard.delete', 'Eliminar'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/admin/conduct-codes/${id}`);
-              fetchCodes();
-            } catch (err) {
-              Alert.alert(t('dashboard.error', 'Error'), t('conduct.deleteError', 'No se pudo eliminar el código.'));
-            }
-          }
+    showConfirm({
+      type: 'danger',
+      title: t('dashboard.delete', 'Eliminar'),
+      message: t('conduct.deleteConfirm', '¿Estás seguro de eliminar este código?'),
+      confirmText: t('dashboard.delete', 'Eliminar'),
+      cancelText: t('dashboard.cancel', 'Cancelar'),
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/conduct-codes/${id}`);
+          fetchCodes();
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Eliminado!'),
+            message: 'Código eliminado correctamente.'
+          });
+        } catch (err) {
+          showAlert({
+            type: 'error',
+            title: t('dashboard.error', 'Error'),
+            message: t('conduct.deleteError', 'No se pudo eliminar el código.')
+          });
         }
-      ]
-    );
+      }
+    });
   };
 
   const filteredCodes = codes.filter(c => 
@@ -130,9 +157,7 @@ export default function ConductCatalogScreen() {
       <PageHeader 
         title={t('titles.conductCatalog', 'Catálogo de Conducta')} 
         subtitle={t('titles.conductCatalogSubtitle', 'Reglamento y códigos disciplinarios')} 
-      />
-
-      <View style={styles.searchWrapper}>
+      >
         <View style={styles.searchContainer}>
           <Search size={20} color={Colors.text.muted} style={styles.searchIcon} />
           <TextInput
@@ -143,7 +168,7 @@ export default function ConductCatalogScreen() {
             style={styles.searchInput}
           />
         </View>
-      </View>
+      </PageHeader>
 
       {loading ? (
         <View style={styles.center}>
@@ -190,9 +215,9 @@ export default function ConductCatalogScreen() {
         <Plus size={28} color="#FFF" />
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          behavior="padding" 
           style={styles.modalOverlay}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

@@ -81,6 +81,13 @@ export default function GradesScreen() {
     };
   };
 
+  const getGradeColor = (average) => {
+    const num = parseFloat(average);
+    if (num >= 8) return { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' };
+    if (num >= 6) return { bg: '#fefce8', border: '#fde68a', text: '#854d0e' };
+    return { bg: '#fef2f2', border: '#fecaca', text: '#991b1b' };
+  };
+
   const getOverallAverage = () => {
     if (averages.length > 0) {
       const validAverages = averages
@@ -163,8 +170,8 @@ export default function GradesScreen() {
                     <Text style={styles.subjectName}>{subject}</Text>
                   </View>
                   <View style={styles.subjectStatsRow}>
-                    <View style={styles.gradeBadge}>
-                      <Text style={styles.gradeBadgeText}>{stats.average}</Text>
+                    <View style={[styles.gradeBadge, { backgroundColor: getGradeColor(stats.average).bg, borderColor: getGradeColor(stats.average).border }]}>
+                      <Text style={[styles.gradeBadgeText, { color: getGradeColor(stats.average).text }]}>{stats.average}</Text>
                     </View>
                     {isExpanded ? <ChevronUp size={20} color={Colors.text.muted} /> : <ChevronDown size={20} color={Colors.text.muted} />}
                   </View>
@@ -222,7 +229,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
   periodSelectorContainer: {
     alignItems: 'center',
-    marginTop: -25,
+    marginTop: -10,
   },
   periodSelector: {
     flexDirection: 'row',

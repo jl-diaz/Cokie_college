@@ -39,6 +39,8 @@ const sendNotification = async (userId, title, body, data = {}) => {
             title,
             body,
             data,
+            channelId: 'default',
+            priority: 'high',
         }];
 
         const tickets = [];

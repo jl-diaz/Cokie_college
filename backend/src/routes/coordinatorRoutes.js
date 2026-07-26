@@ -35,4 +35,8 @@ router.post('/justifications/student', coordinatorController.createJustification
 // Asignación de Maestros
 router.post('/schedules', coordinatorController.assignTeacher);
 
+// Tickets de Extensión de Notas
+router.get('/grade-tickets', coordinatorController.getGradeTickets);
+router.put('/grade-tickets/:id', coordinatorController.processGradeTicket);
+
 module.exports = router;

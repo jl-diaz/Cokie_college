@@ -1,17 +1,19 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import api from '../src/utils/api';
 import { ChevronDown, Calendar, Clock, BookOpen, User, Check, Hash, X } from 'lucide-react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
-import { useTranslation } from 'react-i18next';
+import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 
 export default function AssignScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const { profile } = useAuth();
   const [teachers, setTeachers] = useState([]);
@@ -74,45 +76,63 @@ export default function AssignScreen() {
 
   const fetchData = async () => {
     try {
+      const endpoint = profile?.role === 'coordinator' ? '/coordinator/teachers' : '/admin/users';
       const [tchRes, subRes] = await Promise.all([
-        api.get('/admin/users', { params: { role: 'teacher' } }),
+        api.get(endpoint, { params: { role: 'teacher' } }),
         api.get('/admin/subjects')
       ]);
-      setTeachers(tchRes.data);
-      setSubjects(subRes.data);
+      setTeachers(Array.isArray(tchRes.data) ? tchRes.data : []);
+      setSubjects(Array.isArray(subRes.data) ? subRes.data : []);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los datos de docentes y materias.');
+      setTeachers([]);
+      setSubjects([]);
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudieron cargar los datos de docentes y materias.'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const getTeacherName = (id) => {
-    const found = teachers.find(t => t.id === id);
-    return found ? found.full_name : 'Selecciona un Docente';
+    const list = Array.isArray(teachers) ? teachers : [];
+    const found = list.find(t => t.id === id);
+    return found ? found.full_name : t('assign.selectTeacher', 'Selecciona un Docente');
   };
 
   const getSubjectName = (id) => {
-    const found = subjects.find(s => s.id === id);
-    return found ? found.name : 'Selecciona una Materia';
+    const list = Array.isArray(subjects) ? subjects : [];
+    const found = list.find(s => s.id === id);
+    return found ? found.name : t('assign.selectSubject', 'Selecciona una Materia');
   };
 
   const getDayName = (val) => {
-    const found = days.find(d => d.value === val);
+    const list = Array.isArray(days) ? days : [];
+    const found = list.find(d => d.value === val);
     return found ? found.label : 'Lunes';
   };
 
   const handleSaveAssignment = async () => {
     if (!formData.teacher_id || !formData.subject_id || !formData.grade || !formData.section || !formData.start_time || !formData.end_time) {
-      Alert.alert('Error', 'Todos los campos son obligatorios.');
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.warning', 'Atención'),
+        message: t('dashboard.pleaseCompleteFields', 'Todos los campos son obligatorios.')
+      });
       return;
     }
 
     setSubmitting(true);
     try {
       await api.post('/admin/schedules', formData);
-      Alert.alert('Éxito', 'Clase y horario asignados correctamente.');
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', '¡Éxito!'),
+        message: 'Clase y horario asignados correctamente.'
+      });
       setFormData({
         teacher_id: '',
         subject_id: '',
@@ -125,7 +145,11 @@ export default function AssignScreen() {
     } catch (error) {
       console.error(error);
       const errorMsg = error.response?.data?.error || 'Error al asignar el horario';
-      Alert.alert('Error', errorMsg);
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: errorMsg
+      });
     } finally {
       setSubmitting(false);
     }
@@ -142,17 +166,17 @@ export default function AssignScreen() {
   return (
     <View style={styles.container}>
       <PageHeader 
-        title={t('menu.assign_classes', 'Asignar Horario')} 
-        subtitle={t('assign.subtitle', 'Configura clases, docentes y horarios académicos')} 
+        title={t('titles.assign', 'Asignar Horario')}
+        subtitle={t('titles.assignSubtitle', 'Configura clases, docentes y horarios académicos')}
       />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Detalles de la Asignación</Text>
+          <Text style={styles.cardTitle}>{t('dashboard.details', 'Detalles de la Asignación')}</Text>
 
           {/* Teacher Selection */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Docente</Text>
+            <Text style={styles.label}>{t('assign.teacher', 'Docente')}</Text>
             <TouchableOpacity style={styles.selectTrigger} onPress={() => setTeacherModal(true)}>
               <User size={18} color={Colors.text.muted} style={styles.icon} />
               <Text style={[styles.selectText, formData.teacher_id ? styles.selectedText : null]}>
@@ -164,7 +188,7 @@ export default function AssignScreen() {
 
           {/* Subject Selection */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Materia</Text>
+            <Text style={styles.label}>{t('assign.subject', 'Materia')}</Text>
             <TouchableOpacity style={styles.selectTrigger} onPress={() => setSubjectModal(true)}>
               <BookOpen size={18} color={Colors.text.muted} style={styles.icon} />
               <Text style={[styles.selectText, formData.subject_id ? styles.selectedText : null]}>
@@ -177,21 +201,21 @@ export default function AssignScreen() {
           {/* Grade and Section */}
           <View style={styles.row}>
             <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-              <Text style={styles.label}>Grado</Text>
+              <Text style={styles.label}>{t('assign.grade', 'Grado')}</Text>
               <TouchableOpacity style={styles.selectTrigger} onPress={() => setGradeModal(true)}>
                 <Hash size={16} color={Colors.text.muted} style={styles.icon} />
                 <Text style={[styles.selectText, formData.grade ? styles.selectedText : null]}>
-                  {formData.grade || 'Grado'}
+                  {formData.grade || t('assign.grade', 'Grado')}
                 </Text>
                 <ChevronDown size={18} color={Colors.text.muted} />
               </TouchableOpacity>
             </View>
 
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Sección</Text>
+              <Text style={styles.label}>{t('assign.section', 'Sección')}</Text>
               <TouchableOpacity style={styles.selectTrigger} onPress={() => setSectionModal(true)}>
                 <Text style={[styles.selectText, formData.section ? styles.selectedText : null, { paddingLeft: 8 }]}>
-                  {formData.section || 'Sección'}
+                  {formData.section || t('assign.section', 'Sección')}
                 </Text>
                 <ChevronDown size={18} color={Colors.text.muted} />
               </TouchableOpacity>
@@ -200,7 +224,7 @@ export default function AssignScreen() {
 
           {/* Day Selector */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Día de la semana</Text>
+            <Text style={styles.label}>{t('assign.dayOfWeek', 'Día de la semana')}</Text>
             <TouchableOpacity style={styles.selectTrigger} onPress={() => setDayModal(true)}>
               <Calendar size={18} color={Colors.text.muted} style={styles.icon} />
               <Text style={styles.selectedText}>
@@ -213,7 +237,7 @@ export default function AssignScreen() {
           {/* Time Selectors */}
           <View style={styles.row}>
             <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-              <Text style={styles.label}>Hora Inicio</Text>
+              <Text style={styles.label}>{t('assign.startTime', 'Hora Inicio')}</Text>
               <TouchableOpacity style={styles.selectTrigger} onPress={() => setTimeModalType('start')}>
                 <Clock size={16} color={Colors.text.muted} style={styles.icon} />
                 <Text style={[styles.selectText, formData.start_time ? styles.selectedText : null]}>
@@ -224,7 +248,7 @@ export default function AssignScreen() {
             </View>
 
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Hora Fin</Text>
+              <Text style={styles.label}>{t('assign.endTime', 'Hora Fin')}</Text>
               <TouchableOpacity style={styles.selectTrigger} onPress={() => setTimeModalType('end')}>
                 <Clock size={16} color={Colors.text.muted} style={styles.icon} />
                 <Text style={[styles.selectText, formData.end_time ? styles.selectedText : null]}>
@@ -243,7 +267,7 @@ export default function AssignScreen() {
             {submitting ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.submitBtnText}>Asignar Horario</Text>
+              <Text style={styles.submitBtnText}>{t('assign.submitBtn', 'Asignar Horario')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -255,13 +279,13 @@ export default function AssignScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Docente</Text>
+              <Text style={styles.modalTitle}>{t('assign.selectTeacher', 'Seleccionar Docente')}</Text>
               <TouchableOpacity onPress={() => setTeacherModal(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalList}>
-              {teachers.map(t => (
+              {(Array.isArray(teachers) ? teachers : []).map(t => (
                 <TouchableOpacity
                   key={t.id}
                   style={styles.listItem}
@@ -284,13 +308,13 @@ export default function AssignScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Materia</Text>
+              <Text style={styles.modalTitle}>{t('assign.selectSubject', 'Seleccionar Materia')}</Text>
               <TouchableOpacity onPress={() => setSubjectModal(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalList}>
-              {subjects.map(s => (
+              {(Array.isArray(subjects) ? subjects : []).map(s => (
                 <TouchableOpacity
                   key={s.id}
                   style={styles.listItem}
@@ -313,7 +337,7 @@ export default function AssignScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Día</Text>
+              <Text style={styles.modalTitle}>{t('assign.selectDay', 'Seleccionar Día')}</Text>
               <TouchableOpacity onPress={() => setDayModal(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>
@@ -342,7 +366,7 @@ export default function AssignScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Grado</Text>
+              <Text style={styles.modalTitle}>{t('assign.selectGrade', 'Seleccionar Grado')}</Text>
               <TouchableOpacity onPress={() => setGradeModal(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>
@@ -371,7 +395,7 @@ export default function AssignScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seleccionar Sección</Text>
+              <Text style={styles.modalTitle}>{t('assign.selectSection', 'Seleccionar Sección')}</Text>
               <TouchableOpacity onPress={() => setSectionModal(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>

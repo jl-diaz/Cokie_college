@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import api from '../src/utils/api';
-import { AlertCircle, CheckCircle, ArrowLeft, ChevronDown } from 'lucide-react-native';
+import { AlertCircle, CheckCircle, ChevronDown } from 'lucide-react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
+import { useAlert } from '../src/context/AlertContext';
+import PageHeader from '../src/components/PageHeader';
 
 export default function ApplyConductScreen() {
+  const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +36,11 @@ export default function ApplyConductScreen() {
       setCodes(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los códigos de conducta');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudieron cargar los códigos de conducta'
+      });
     } finally {
       setLoading(false);
     }
@@ -39,7 +48,11 @@ export default function ApplyConductScreen() {
 
   const handleApply = async () => {
     if (!selectedCode) {
-      Alert.alert('Error', 'Debe seleccionar un código de conducta');
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.warning', 'Atención'),
+        message: 'Debe seleccionar un código de conducta'
+      });
       return;
     }
     try {
@@ -48,15 +61,21 @@ export default function ApplyConductScreen() {
       await api.post(endpoint, {
         student_id: studentId,
         code_id: selectedCode.id,
-        observation: observation,
-        period: 1 // Default to 1 for now
+        observation: observation
       });
-      Alert.alert('Éxito', 'Código de conducta aplicado correctamente', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', '¡Éxito!'),
+        message: t('class.conductApplied', 'Código de conducta aplicado correctamente')
+      });
+      router.back();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo aplicar el código');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo aplicar el código'
+      });
     } finally {
       setSaving(false);
     }
@@ -65,23 +84,20 @@ export default function ApplyConductScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0B1956" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft color="#FFF" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Aplicar Código</Text>
-        <Text style={styles.headerSubtitle}>Registro de Conducta</Text>
-      </View>
+      <PageHeader 
+        title={t('class.reportConduct', 'Aplicar Código')}
+        subtitle={t('titles.diarySubtitle', 'Registro de Conducta')}
+      />
 
       <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>Seleccione un Código</Text>
+        <Text style={styles.sectionTitle}>{t('class.selectConductCode', 'Seleccione un Código')}</Text>
         {codes.map(code => (
           <TouchableOpacity 
             key={code.id}
@@ -99,10 +115,11 @@ export default function ApplyConductScreen() {
           </TouchableOpacity>
         ))}
 
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Observación (Opcional)</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('class.observationsLabel', 'Observación (Opcional)')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Añada detalles adicionales..."
+          placeholder={t('dashboard.detailsPlaceholder', 'Añada detalles adicionales...')}
+          placeholderTextColor={Colors.text.muted}
           multiline
           numberOfLines={4}
           value={observation}
@@ -119,7 +136,7 @@ export default function ApplyConductScreen() {
           ) : (
             <>
               <AlertCircle color="#FFF" size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Aplicar Sanción / Reconocimiento</Text>
+              <Text style={styles.submitBtnText}>{t('class.applyConductBtn', 'Aplicar Código de Conducta')}</Text>
             </>
           )}
         </TouchableOpacity>

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Users, ChevronRight, User } from 'lucide-react-native';
 import api from '../../src/utils/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { Typography, Spacing, BorderRadius, Shadows } from '../../src/constants/theme';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useAlert } from '../../src/context/AlertContext';
+import PageHeader from '../../src/components/PageHeader';
 
 export default function CoordinatorTeachersScreen() {
+  const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +30,11 @@ export default function CoordinatorTeachersScreen() {
       const response = await api.get('/coordinator/teachers');
       setTeachers(response.data);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los maestros.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudieron cargar los maestros.'
+      });
     } finally {
       setLoading(false);
     }
@@ -37,11 +45,11 @@ export default function CoordinatorTeachersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Maestros</Text>
-        <Text style={styles.headerSubtitle}>Maestros de {profile?.level || 'tu nivel'}</Text>
-      </View>
+    <View style={styles.container}>
+      <PageHeader 
+        title={t('menu.teachers', 'Maestros')} 
+        subtitle={t('home.teachersDesc', 'Maestros de tu nivel')} 
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -50,7 +58,7 @@ export default function CoordinatorTeachersScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {teachers.length === 0 ? (
-            <Text style={styles.emptyText}>No hay maestros registrados en este nivel.</Text>
+            <Text style={styles.emptyText}>{t('users.notFound', 'No hay maestros registrados en este nivel.')}</Text>
           ) : (
             teachers.map((t) => (
               <TouchableOpacity
@@ -73,7 +81,7 @@ export default function CoordinatorTeachersScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
