@@ -1,15 +1,24 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { Home, Users, FileText, BookOpen, Calendar, LogOut, X } from 'lucide-react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions, StatusBar, Platform, ScrollView } from 'react-native';
+import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
 export default function CustomDrawer({ visible, onClose }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'ios'
+    ? Math.max(insets.top + 10, 50)
+    : (StatusBar.currentHeight || insets.top || 24);
+  const bottomPadding = Platform.OS === 'ios'
+    ? Math.max(insets.bottom + 5, 10)
+    : Math.max(insets.bottom + 70, 10);
+
   const slideAnim = useRef(new Animated.Value(-width)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
@@ -59,30 +68,49 @@ export default function CustomDrawer({ visible, onClose }) {
 
   if (!profile) return null;
 
+  const commonMenuItems = [
+    { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar },
+    { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell }
+  ];
+
   const menuItems = {
     super_admin: [
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
       { name: t('menu.users', 'Usuarios'), path: '/users', icon: Users },
       { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText },
+      ...commonMenuItems
     ],
     coordinator: [
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
+      { name: t('menu.teachers', 'Maestros'), path: '/coordinator', icon: Users },
       { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users },
-      { name: t('menu.justifications', 'Justificaciones'), path: '/justifications', icon: FileText },
+      { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText },
+      { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText },
       { name: t('menu.assign_classes', 'Asignar Clases'), path: '/assign', icon: BookOpen },
+      ...commonMenuItems
     ],
     teacher: [
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
       { name: t('menu.schedule', 'Mi Horario'), path: '/schedule', icon: Calendar },
       { name: t('menu.activeClass', 'Clase Activa'), path: '/class', icon: BookOpen },
       { name: t('menu.grades', 'Notas'), path: '/teacher-grades', icon: FileText },
+      ...commonMenuItems
     ],
     student: [
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
       { name: t('menu.grades', 'Mis Notas'), path: '/grades', icon: FileText },
       { name: t('menu.diary', 'Diario Pedagógico'), path: '/diary', icon: BookOpen },
       { name: t('menu.schedule', 'Horario'), path: '/schedule', icon: Calendar },
       { name: t('menu.justifications', 'Justificaciones'), path: '/justifications', icon: FileText },
+      ...commonMenuItems
+    ],
+    cafetin: [
+      { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
+      { name: t('menu.cafetin', 'Gestión Cafetín'), path: '/cafetin', icon: Utensils },
     ]
   };
 
@@ -113,7 +141,7 @@ export default function CustomDrawer({ visible, onClose }) {
           <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
         </Animated.View>
         
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100, backgroundColor: drawerBg }]}>
+        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100, backgroundColor: drawerBg, paddingTop: topPadding }]}>
            <View style={[styles.header, { borderBottomColor: borderColor }]}>
              <View style={{ flex: 1 }}>
                <Text style={[styles.brand, { color: textColor }]}>Cokie<Text style={[styles.brandAccent, { color: theme === 'dark' ? colors.primary : '#FFF' }]}>College</Text></Text>
@@ -134,28 +162,30 @@ export default function CustomDrawer({ visible, onClose }) {
             </View>
           </View>
 
-          <View style={styles.navContainer}>
-            {currentMenu.map((item, index) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.path;
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.navItem, 
-                    isActive && { backgroundColor: activeItemBg, borderLeftColor: theme === 'dark' ? colors.primary : '#FFF', borderLeftWidth: 4 }
-                  ]}
-                  onPress={() => handleNavigate(item.path)}
-                  activeOpacity={0.7}
-                >
-                  <Icon size={22} color={isActive ? activeItemText : inactiveItemText} style={styles.navIcon} />
-                  <Text style={[styles.navText, { color: isActive ? activeItemText : inactiveItemText }, isActive && { fontWeight: '800' }]}>{item.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.navContainer}>
+              {currentMenu.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.path;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.navItem, 
+                      isActive && { backgroundColor: activeItemBg, borderLeftColor: theme === 'dark' ? colors.primary : '#FFF', borderLeftWidth: 4 }
+                    ]}
+                    onPress={() => handleNavigate(item.path)}
+                    activeOpacity={0.7}
+                  >
+                    <Icon size={22} color={isActive ? activeItemText : inactiveItemText} style={styles.navIcon} />
+                    <Text style={[styles.navText, { color: isActive ? activeItemText : inactiveItemText }, isActive && { fontWeight: '800' }]}>{item.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
 
-          <View style={[styles.footer, { borderTopColor: borderColor }]}>
+          <View style={[styles.footer, { borderTopColor: borderColor, paddingBottom: bottomPadding }]}>
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
               <LogOut size={22} color="#ff6b6b" style={styles.navIcon} />
               <Text style={styles.logoutText}>{t('menu.logout', 'Cerrar Sesión')}</Text>
@@ -184,7 +214,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 20,
-    paddingTop: 65,
   },
   header: {
     flexDirection: 'row',
@@ -281,7 +310,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
-    paddingBottom: 60,
   },
   logoutBtn: {
     flexDirection: 'row',

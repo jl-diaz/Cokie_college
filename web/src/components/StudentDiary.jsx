@@ -45,7 +45,7 @@ const StudentDiary = () => {
     }
   };
 
-  const absences = diaryData.attendance.filter(a => a.status === 'absent');
+  const absences = diaryData.attendance.filter(a => a.status === 'absent' || a.status === 'justified');
 
   return (
     <div className="p-6 md:p-10 font-poppins text-[#1a1a2e]">
@@ -140,19 +140,32 @@ const StudentDiary = () => {
                     <p className="text-[#8a8da0] font-medium">¡Excelente asistencia! No tienes faltas en este periodo.</p>
                   </div>
                 ) : (
-                  absences.map(att => (
-                    <div key={att.id} className="flex items-center justify-between p-5 rounded-2xl bg-[#F5F7FA] border border-[#0B1956]/5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#fdf0ef] text-[#e74c3c] flex items-center justify-center font-bold">
-                          <Calendar size={18} />
+                  absences.map(att => {
+                    const isJustified = att.status === 'justified';
+                    return (
+                      <div key={att.id} className={`flex items-center justify-between p-5 rounded-2xl border ${isJustified ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'bg-[#F5F7FA] border-[#0B1956]/5'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${isJustified ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fdf0ef] text-[#e74c3c]'}`}>
+                            {isJustified ? <CheckCircle size={18} /> : <Calendar size={18} />}
+                          </div>
+                          <div>
+                            <p className="font-bold text-[#0B1956]">{new Date(att.date).toLocaleDateString()}</p>
+                            <p className="text-[12px] text-[#8a8da0] font-medium mt-0.5">
+                              {att.subjects?.name || (isJustified ? 'Inasistencia Justificada' : 'Clase')}
+                            </p>
+                            {isJustified && att.coordinator_message && (
+                              <p className="text-[11px] text-[#15803d] font-semibold mt-1">
+                                Nota: {att.coordinator_message}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-[#0B1956]">{new Date(att.date).toLocaleDateString()}</p>
-                          <p className="text-[12px] text-[#8a8da0] font-medium uppercase mt-0.5">Inasistencia</p>
-                        </div>
+                        <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${isJustified ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#991b1b]'}`}>
+                          {isJustified ? 'Justificada' : 'Inasistencia'}
+                        </span>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

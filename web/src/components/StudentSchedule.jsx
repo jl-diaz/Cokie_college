@@ -53,10 +53,14 @@ const StudentSchedule = () => {
   };
 
   const getSchedulesForDay = (dayId) => {
-    if (!Array.isArray(schedules)) return [];
-    return schedules
-      .filter(s => s && parseInt(s.day_of_week) === dayId)
-      .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+    const raw = Array.isArray(schedules) ? schedules.filter(s => s && parseInt(s.day_of_week) === dayId) : [];
+    const fixedItems = [
+      { id: 'fixed-web-1', start_time: '08:30:00', end_time: '09:00:00', isFixed: true, type: 'recess', subjects: { name: 'Receso' }, profiles: { full_name: 'Tiempo de descanso' } },
+      { id: 'fixed-web-2', start_time: '10:30:00', end_time: '11:00:00', isFixed: true, type: 'recess', subjects: { name: 'Receso' }, profiles: { full_name: 'Tiempo de descanso' } },
+      { id: 'fixed-web-3', start_time: '12:00:00', end_time: '12:00:00', isFixed: true, type: 'exit', subjects: { name: 'Salida' }, profiles: { full_name: 'Fin de la jornada' } }
+    ];
+
+    return [...raw, ...fixedItems].sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
   };
 
   const currentDaySchedules = getSchedulesForDay(activeDay);

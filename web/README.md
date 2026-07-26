@@ -1,27 +1,63 @@
-# CokieCollege - Aplicación Web
+# 💻 CokieCollege — Aplicación Web
 
-Plataforma administrativa y de consulta para estudiantes, diseñada para ofrecer una experiencia fluida y moderna.
+Portal web administrativo e institucional desarrollado con **React**, **Vite** y **Vanilla CSS**, diseñado para ofrecer una experiencia fluida, rápida y moderna en computadoras de escritorio y laptops.
 
-## Tecnologías
+---
 
-- **React + Vite:** Para un desarrollo rápido y optimizado.
-- **Tailwind CSS:** Para el diseño visual basado en los mockups.
-- **GSAP & Lenis:** Implementación de scroll suave y micro-animaciones.
-- **Lucide React:** Iconografía consistente.
+## 🛠️ Stack Tecnológico
 
-## Instalación
+- **Core:** React 18+ & Vite (Build ultrarrápido y Hot Module Replacement).
+- **Estilos:** Vanilla CSS con variables de diseño personalizadas y media queries adaptativos.
+- **Scroll & Animaciones:** `Lenis Scroll` (scroll suave de alta gama) y `Framer Motion` / `GSAP` para micro-animaciones.
+- **Iconografía:** `Lucide React` (iconos vectoriales consistentes).
+- **Autenticación & API:** Integración con la REST API de Node.js/Express y Supabase Auth.
 
-1. `cd web`
-2. `npm install`
-3. Ejecuta el entorno de desarrollo: `npm run dev`
+---
 
-## Características
+## 🎨 Características Principales
 
-- **Dashboard Adaptativo:** La interfaz cambia completamente según el rol del usuario (Admin, Coordinador, Maestro, Estudiante).
-- **Transiciones Fluidas:** Uso de `framer-motion` para transiciones de página y GSAP para efectos visuales.
-- **Responsive Design:** Optimizado para laptops y monitores de escritorio.
+- **Dashboard Dinámico por Rol**: Adaptación automática de widgets y navegación según el perfil del usuario autenticado:
+  - **Super Admin**: Estadísticas globales, altas/bajas de usuarios y monitoreo de salones.
+  - **Coordinador**: Aprobación de justificaciones de ausencia y tickets de extensión de notas.
+  - **Docente**: Carga de notas por periodos y actividades evaluativas.
+  - **Estudiante**: Consulta de materias, promedios ponderados y diario pedagógico.
+- **Micro-interacciones y Scroll Suave**: Navegación fluida tipo SPA (Single Page Application) optimizada para monitores de alta resolución.
+- **Diseño Adaptativo (Responsive)**: Totalmente funcional en laptops, tablets y monitores ultrawide.
 
-## Decisiones Técnicas
+---
 
-- **Lenis Scroll:** Se eligió para dar un toque "premium" a la navegación web, similar a las interfaces modernas de alta gama.
-- **Framer Motion:** Utilizado para la persistencia de componentes y animaciones de entrada/salida en el Dashboard.
+## 📂 Estructura de Carpetas
+
+```
+web/
+├── public/                       # Archivos estáticos y favicon
+├── src/
+    ├── assets/                   # Imágenes, logos y recursos multimedia
+    ├── components/               # Componentes UI reutilizables (Navbar, Cards, Modales)
+    ├── pages/                    # Páginas principales (Dashboard, Login, Perfil)
+    ├── services/                 # Llamadas a la API Backend mediante Fetch/Axios
+    ├── styles/                   # Hojas de estilo CSS globales y módulos
+    ├── App.jsx                   # Componente principal y ruteo
+    └── main.jsx                  # Punto de entrada de React
+├── index.html                    # Plantilla HTML5 con metas SEO
+├── package.json                  # Dependencias y scripts de Vite
+└── vite.config.js                # Configuración del bundler Vite
+```
+
+---
+
+## 🚀 Instalación y Ejecución
+
+```bash
+# Entrar a la carpeta del proyecto web
+cd web
+
+# Instalar dependencias
+npm install
+
+# Iniciar servidor de desarrollo local
+npm run dev
+
+# Compilar paquete de producción (Build optimizado)
+npm run build
+```

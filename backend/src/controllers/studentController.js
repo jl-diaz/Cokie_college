@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { getPeriodForDate } = require('../utils/periodHelper');
 
 const studentController = {
     getGrades: async (req, res) => {
@@ -89,23 +90,95 @@ const studentController = {
     getDiary: async (req, res) => {
         try {
             const student_id = req.user.id;
-            const { period } = req.query;
+            let { period } = req.query;
 
-            const { data: conduct, error: conductError } = await supabaseAdmin
+            if (!period) {
+                period = await getPeriodForDate(new Date());
+            } else {
+                period = parseInt(period);
+            }
+
+            let { data: conduct, error: conductError } = await supabaseAdmin
                 .from('conduct_records')
                 .select('*, conduct_codes(*)')
                 .eq('student_id', student_id)
                 .eq('period', period);
 
-            const { data: attendance, error: attendanceError } = await supabaseAdmin
+            if (conductError) {
+                console.warn('Fallback in getDiary: querying conduct_records and conduct_codes separately:', conductError.message);
+                const { data: rawConduct } = await supabaseAdmin
+                    .from('conduct_records')
+                    .select('*')
+                    .eq('student_id', student_id)
+                    .eq('period', period);
+
+                const { data: codes } = await supabaseAdmin
+                    .from('conduct_codes')
+                    .select('*');
+
+                conduct = (rawConduct || []).map(r => ({
+                    ...r,
+                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null
+                }));
+            }
+
+            let { data: attendance, error: attendanceError } = await supabaseAdmin
                 .from('attendance')
-                .select('*')
+                .select('*, subjects(name)')
                 .eq('student_id', student_id)
                 .eq('period', period);
 
-            if (conductError || attendanceError) throw conductError || attendanceError;
+            if (attendanceError) {
+                console.warn('Fallback in getDiary: querying attendance and subjects separately:', attendanceError.message);
+                const { data: rawAttendance } = await supabaseAdmin
+                    .from('attendance')
+                    .select('*')
+                    .eq('student_id', student_id)
+                    .eq('period', period);
 
-            res.json({ conduct, attendance });
+                const { data: subjects } = await supabaseAdmin
+                    .from('subjects')
+                    .select('id, name');
+
+                attendance = (rawAttendance || []).map(a => ({
+                    ...a,
+                    subjects: (subjects || []).find(s => s.id === a.subject_id) || { name: 'Materia' }
+                }));
+            }
+
+            // Incluir solicitudes de justificación APROBADAS para este periodo
+            const { data: justifications } = await supabaseAdmin
+                .from('justifications')
+                .select('*')
+                .eq('student_id', student_id)
+                .eq('status', 'approved');
+
+            const attendanceList = [...(attendance || [])];
+            if (justifications) {
+                for (const just of justifications) {
+                    const justPeriod = await getPeriodForDate(just.absence_date);
+                    if (justPeriod === period) {
+                        const existingIndex = attendanceList.findIndex(a => a.date === just.absence_date);
+                        if (existingIndex >= 0) {
+                            attendanceList[existingIndex].status = 'justified';
+                            attendanceList[existingIndex].coordinator_message = just.coordinator_message || just.reason;
+                        } else {
+                            attendanceList.push({
+                                id: just.id,
+                                student_id: just.student_id,
+                                status: 'justified',
+                                period: period,
+                                date: just.absence_date,
+                                created_at: just.created_at,
+                                coordinator_message: just.coordinator_message || just.reason,
+                                subjects: { name: 'Inasistencia Justificada' }
+                            });
+                        }
+                    }
+                }
+            }
+
+            res.json({ conduct, attendance: attendanceList });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -116,13 +189,25 @@ const studentController = {
             const student_id = req.user.id;
             const { absence_date, reason, evidence_url } = req.body;
 
+            if (!absence_date || !reason || !reason.trim()) {
+                return res.status(400).json({ error: 'La fecha de ausencia y el motivo son obligatorios.' });
+            }
+
+            const inputDate = new Date(absence_date);
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+
+            if (inputDate > today) {
+                return res.status(400).json({ error: 'La fecha de inasistencia no puede ser una fecha futura.' });
+            }
+
             const { data, error } = await supabaseAdmin
                 .from('justifications')
                 .insert([{
                     student_id,
                     absence_date,
-                    reason,
-                    evidence_url,
+                    reason: reason.trim(),
+                    evidence_url: evidence_url || null,
                     status: 'pending'
                 }])
                 .select()

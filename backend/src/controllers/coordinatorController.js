@@ -1,4 +1,40 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { sendNotification } = require('../utils/notificationService');
+const { getPeriodForDate } = require('../utils/periodHelper');
+
+const ensureJustifiedAttendanceRecord = async (student_id, absence_date) => {
+    try {
+        const periodNum = await getPeriodForDate(absence_date);
+        const { data: updated } = await supabaseAdmin
+            .from('attendance')
+            .update({ status: 'justified', period: periodNum })
+            .eq('student_id', student_id)
+            .eq('date', absence_date)
+            .select();
+
+        if (!updated || updated.length === 0) {
+            const { data: firstSubject } = await supabaseAdmin
+                .from('subjects')
+                .select('id')
+                .limit(1)
+                .maybeSingle();
+
+            if (firstSubject) {
+                await supabaseAdmin
+                    .from('attendance')
+                    .insert([{
+                        student_id,
+                        subject_id: firstSubject.id,
+                        status: 'justified',
+                        period: periodNum,
+                        date: absence_date
+                    }]);
+            }
+        }
+    } catch (e) {
+        console.error('Error al asegurar registro de asistencia justificada:', e);
+    }
+};
 
 const coordinatorController = {
     // --- Gestión de Estudiantes ---
@@ -35,23 +71,95 @@ const coordinatorController = {
     getStudentDiary: async (req, res) => {
         try {
             const { studentId } = req.params;
-            const { period } = req.query;
+            let { period } = req.query;
 
-            const { data: conduct, error: conductError } = await supabaseAdmin
+            if (!period) {
+                period = await getPeriodForDate(new Date());
+            } else {
+                period = parseInt(period);
+            }
+
+            let { data: conduct, error: conductError } = await supabaseAdmin
                 .from('conduct_records')
                 .select('*, conduct_codes(*)')
                 .eq('student_id', studentId)
                 .eq('period', period);
 
-            const { data: attendance, error: attendanceError } = await supabaseAdmin
+            if (conductError) {
+                console.warn('Fallback in getStudentDiary: querying conduct_records and conduct_codes separately:', conductError.message);
+                const { data: rawConduct } = await supabaseAdmin
+                    .from('conduct_records')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .eq('period', period);
+
+                const { data: codes } = await supabaseAdmin
+                    .from('conduct_codes')
+                    .select('*');
+
+                conduct = (rawConduct || []).map(r => ({
+                    ...r,
+                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null
+                }));
+            }
+
+            let { data: attendance, error: attendanceError } = await supabaseAdmin
                 .from('attendance')
-                .select('*')
+                .select('*, subjects(name)')
                 .eq('student_id', studentId)
                 .eq('period', period);
 
-            if (conductError || attendanceError) throw conductError || attendanceError;
+            if (attendanceError) {
+                console.warn('Fallback in getStudentDiary: querying attendance and subjects separately:', attendanceError.message);
+                const { data: rawAttendance } = await supabaseAdmin
+                    .from('attendance')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .eq('period', period);
 
-            res.json({ conduct, attendance });
+                const { data: subjects } = await supabaseAdmin
+                    .from('subjects')
+                    .select('id, name');
+
+                attendance = (rawAttendance || []).map(a => ({
+                    ...a,
+                    subjects: (subjects || []).find(s => s.id === a.subject_id) || { name: 'Materia' }
+                }));
+            }
+
+            // Incluir justificaciones aprobadas
+            const { data: justifications } = await supabaseAdmin
+                .from('justifications')
+                .select('*')
+                .eq('student_id', studentId)
+                .eq('status', 'approved');
+
+            const attendanceList = [...(attendance || [])];
+            if (justifications) {
+                for (const just of justifications) {
+                    const justPeriod = await getPeriodForDate(just.absence_date);
+                    if (justPeriod === period) {
+                        const existingIndex = attendanceList.findIndex(a => a.date === just.absence_date);
+                        if (existingIndex >= 0) {
+                            attendanceList[existingIndex].status = 'justified';
+                            attendanceList[existingIndex].coordinator_message = just.coordinator_message || just.reason;
+                        } else {
+                            attendanceList.push({
+                                id: just.id,
+                                student_id: just.student_id,
+                                status: 'justified',
+                                period: period,
+                                date: just.absence_date,
+                                created_at: just.created_at,
+                                coordinator_message: just.coordinator_message || just.reason,
+                                subjects: { name: 'Inasistencia Justificada' }
+                            });
+                        }
+                    }
+                }
+            }
+
+            res.json({ conduct, attendance: attendanceList });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -118,24 +226,105 @@ const coordinatorController = {
     addConductRecord: async (req, res) => {
         try {
             const coordinator_id = req.user.id;
-            const { student_id, code_id, observation, period } = req.body;
+            let { student_id, code_id, observation, period } = req.body;
 
-            const { data, error } = await supabaseAdmin
+            if (!student_id) {
+                return res.status(400).json({ error: 'El ID de estudiante es obligatorio.' });
+            }
+
+            const isUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+            let targetCodeId = typeof code_id === 'object' ? code_id?.id : code_id;
+
+            if (!isUUID(targetCodeId)) {
+                try {
+                    const { data: codeByCode } = await supabaseAdmin
+                        .from('conduct_codes')
+                        .select('id')
+                        .eq('code', String(targetCodeId || '').trim())
+                        .maybeSingle();
+
+                    if (codeByCode && codeByCode.id) {
+                        targetCodeId = codeByCode.id;
+                    } else {
+                        const { data: fallbackCode } = await supabaseAdmin
+                            .from('conduct_codes')
+                            .select('id')
+                            .limit(1)
+                            .maybeSingle();
+                        if (fallbackCode) targetCodeId = fallbackCode.id;
+                    }
+                } catch (codeErr) {
+                    console.error('Error resolving conduct code:', codeErr);
+                }
+            }
+
+            if (!targetCodeId || !isUUID(targetCodeId)) {
+                return res.status(400).json({ error: 'Debes seleccionar un código de conducta válido.' });
+            }
+
+            if (!period || Number(period) === 1) {
+                period = await getPeriodForDate(new Date());
+            } else {
+                period = parseInt(period);
+            }
+
+            let { data, error } = await supabaseAdmin
                 .from('conduct_records')
                 .insert([{
                     student_id,
                     teacher_id: coordinator_id,
-                    code_id,
-                    observation,
+                    code_id: targetCodeId,
+                    observation: observation ? String(observation).trim() : null,
                     period
                 }])
-                .select()
-                .single();
+                .select();
 
-            if (error) throw error;
-            res.status(201).json(data);
+            if (error && (error.code === '23503' || error.message?.includes('foreign key'))) {
+                console.warn('Teacher ID foreign key failed in conduct_records for coordinator, retrying without teacher_id:', error.message);
+                const retry = await supabaseAdmin
+                    .from('conduct_records')
+                    .insert([{ 
+                        student_id, 
+                        code_id: targetCodeId, 
+                        observation: observation ? String(observation).trim() : null, 
+                        period 
+                    }])
+                    .select();
+                data = retry.data;
+                error = retry.error;
+            }
+
+            if (error) {
+                console.error('Error inserting conduct record from coordinator:', error);
+                return res.status(400).json({ error: error.message || 'Error al guardar el reporte de conducta' });
+            }
+
+            const recordData = Array.isArray(data) ? data[0] : data;
+
+            // Notificar al estudiante en segundo plano
+            (async () => {
+                try {
+                    const { data: conductCode } = await supabaseAdmin
+                        .from('conduct_codes')
+                        .select('*')
+                        .eq('id', targetCodeId)
+                        .maybeSingle();
+
+                    const categoryEmoji = conductCode?.category === 'Positivo' ? '⭐' : '⚠️';
+                    const title = `${categoryEmoji} Reporte de Conducta (${conductCode?.category || 'Conducta'})`;
+                    const body = `Se ha registrado el código "${conductCode?.code || ''} - ${conductCode?.name || 'Reporte de conducta'}". ${observation ? `Observación: ${observation}` : ''}`;
+
+                    await sendNotification(student_id, title, body, { type: 'conduct', codeId: targetCodeId });
+                } catch (notifErr) {
+                    console.error('Error sending conduct notification from coordinator:', notifErr);
+                }
+            })();
+
+            res.status(201).json(recordData);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            console.error('CRITICAL Error in coordinator addConductRecord:', error);
+            res.status(500).json({ error: error.message || 'Error al guardar el reporte de conducta' });
         }
     },
 
@@ -205,7 +394,13 @@ const coordinatorController = {
     getJustificationRequests: async (req, res) => {
         try {
             const { level } = req.user;
-            console.log('Fetching justifications for level:', level);
+            const { status, page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
+            console.log('Fetching justifications for level:', level, 'status:', status);
             
             // 1. Obtener IDs de estudiantes según el nivel del coordinador
             let query = supabaseAdmin
@@ -227,14 +422,13 @@ const coordinatorController = {
             }
 
             if (!students || students.length === 0) {
-                console.log('No students found for this level');
                 return res.json([]);
             }
 
             const studentIds = students.map(s => s.id);
 
-            // 2. Obtener justificaciones con una sintaxis más simple para la relación
-            const { data, error } = await supabaseAdmin
+            // 2. Obtener justificaciones con filtro por estado opcional y paginación
+            let justQuery = supabaseAdmin
                 .from('justifications')
                 .select(`
                     *,
@@ -242,9 +436,16 @@ const coordinatorController = {
                         full_name,
                         institutional_code
                     )
-                `)
-                .in('student_id', studentIds)
-                .order('created_at', { ascending: false });
+                `, { count: 'exact' })
+                .in('student_id', studentIds);
+
+            if (status) {
+                justQuery = justQuery.eq('status', status);
+            }
+
+            justQuery = justQuery.order('created_at', { ascending: false }).range(from, to);
+
+            const { data, count, error } = await justQuery;
 
             if (error) {
                 console.error('Error fetching justifications from table:', error);
@@ -274,15 +475,9 @@ const coordinatorController = {
 
             if (justError) throw justError;
 
-            // 2. Si se aprueba, actualizar la asistencia
+            // 2. Si se aprueba, asegurar registro de asistencia justificada
             if (status === 'approved') {
-                const { error: attError } = await supabaseAdmin
-                    .from('attendance')
-                    .update({ status: 'justified' })
-                    .eq('student_id', justification.student_id)
-                    .eq('date', justification.absence_date);
-
-                if (attError) throw attError;
+                await ensureJustifiedAttendanceRecord(justification.student_id, justification.absence_date);
             }
 
             res.json({ message: `Solicitud ${status}`, justification });
@@ -318,14 +513,8 @@ const coordinatorController = {
 
             if (justError) throw justError;
 
-            // 3. Actualizar asistencia
-            const { error: attError } = await supabaseAdmin
-                .from('attendance')
-                .update({ status: 'justified' })
-                .eq('student_id', student.id)
-                .eq('date', absence_date);
-
-            if (attError) throw attError;
+            // 3. Asegurar asistencia justificada
+            await ensureJustifiedAttendanceRecord(student.id, absence_date);
 
             res.json({ message: 'Justificación directa registrada correctamente' });
         } catch (error) {
@@ -365,14 +554,8 @@ const coordinatorController = {
 
             if (justError) throw justError;
 
-            // 3. Actualizar asistencia
-            const { error: attError } = await supabaseAdmin
-                .from('attendance')
-                .update({ status: 'justified' })
-                .eq('student_id', student_id)
-                .eq('date', absence_date);
-
-            if (attError) throw attError;
+            // 3. Asegurar asistencia justificada
+            await ensureJustifiedAttendanceRecord(student_id, absence_date);
 
             res.status(201).json(data);
         } catch (error) {
@@ -449,6 +632,109 @@ const coordinatorController = {
             if (error) throw error;
             res.json(data);
         } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    // --- Tickets de Extensión de Notas ---
+
+    getGradeTickets: async (req, res) => {
+        try {
+            const { level } = req.user;
+            let query = supabaseAdmin
+                .from('grade_extension_tickets')
+                .select(`
+                    *,
+                    teacher:teacher_id (
+                        full_name,
+                        email,
+                        institutional_code,
+                        level
+                    )
+                `)
+                .order('created_at', { ascending: false });
+
+            if (level) {
+                query = query.eq('level', level);
+            }
+
+            const { data, error } = await query;
+            if (error && error.code !== 'PGRST205') throw error;
+
+            res.json(data || []);
+        } catch (error) {
+            console.error('Error in getGradeTickets:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    processGradeTicket: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status, coordinator_message } = req.body; // 'approved' | 'rejected'
+            const coordinator_id = req.user.id;
+
+            if (!['approved', 'rejected'].includes(status)) {
+                return res.status(400).json({ error: 'Estado no válido' });
+            }
+
+            // 1. Obtener ticket actual
+            const { data: ticket, error: ticketErr } = await supabaseAdmin
+                .from('grade_extension_tickets')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (ticketErr || !ticket) {
+                return res.status(404).json({ error: 'Ticket no encontrado' });
+            }
+
+            let approvedUntil = null;
+            if (status === 'approved') {
+                const now = new Date();
+                now.setDate(now.getDate() + Number(ticket.days_requested));
+                now.setHours(23, 59, 59, 999);
+                approvedUntil = now.toISOString();
+            }
+
+            // 2. Actualizar ticket
+            const { data: updatedTicket, error: updateErr } = await supabaseAdmin
+                .from('grade_extension_tickets')
+                .update({
+                    status,
+                    coordinator_id,
+                    coordinator_message: coordinator_message ? coordinator_message.trim() : null,
+                    approved_until: approvedUntil
+                })
+                .eq('id', id)
+                .select(`
+                    *,
+                    teacher:teacher_id (
+                        full_name,
+                        email,
+                        institutional_code
+                    )
+                `)
+                .single();
+
+            if (updateErr) throw updateErr;
+
+            // 3. Notificar al profesor
+            const isApp = status === 'approved';
+            const notifTitle = isApp ? 'Ticket de Extensión Aprobado' : 'Ticket de Extensión Denegado';
+            const notifBody = isApp 
+                ? `Tu solicitud para el Periodo ${ticket.period} fue APROBADA. Tienes ${ticket.days_requested} día(s) adicionales para ingresar notas.`
+                : `Tu solicitud para el Periodo ${ticket.period} fue DENEGADA.${coordinator_message ? ` Motivo: ${coordinator_message}` : ''}`;
+
+            await sendNotification(ticket.teacher_id, notifTitle, notifBody, {
+                type: 'grade_ticket',
+                ticketId: id,
+                status
+            });
+
+            res.json({ message: `Ticket ${status === 'approved' ? 'aprobado' : 'denegado'} correctamente`, ticket: updatedTicket });
+        } catch (error) {
+            console.error('Error in processGradeTicket:', error);
             res.status(500).json({ error: error.message });
         }
     }

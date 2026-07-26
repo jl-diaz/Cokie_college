@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.cokiecollege.app",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "../CokieCollegeMockUp/img/CokieCollege.png",
         "backgroundColor": "#0B1957"

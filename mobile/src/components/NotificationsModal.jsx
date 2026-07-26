@@ -1,29 +1,86 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { X, Bell, CheckCheck, Trash2, Info, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import api from '../utils/api';
 
-export default function NotificationsModal({ visible, onClose }) {
+export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const { t } = useTranslation();
   const { colors, theme } = useTheme();
 
   const [notificationsList, setNotificationsList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleMarkAllAsRead = () => {
-    setNotificationsList(prev => prev.map(n => ({ ...n, unread: false })));
-  };
-
-  const handleClearAll = () => {
-    setNotificationsList([]);
-  };
-
-  const getIcon = (type) => {
-    switch (type) {
-      case 'success': return <CheckCircle size={18} color="#2ecc71" />;
-      case 'warning': return <AlertTriangle size={18} color="#f39c12" />;
-      default: return <Info size={18} color={colors.primary} />;
+  useEffect(() => {
+    if (visible) {
+      fetchNotifications();
     }
+  }, [visible]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/notifications');
+      const data = Array.isArray(res.data) ? res.data : [];
+      setNotificationsList(data.map(n => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        unread: !n.read,
+        time: new Date(n.created_at).toLocaleString()
+      })));
+      if (onReadChange) {
+        const unread = data.filter(n => !n.read).length;
+        onReadChange(unread);
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.put('/notifications/mark-read');
+      setNotificationsList(prev => prev.map(n => ({ ...n, unread: false })));
+      if (onReadChange) {
+        onReadChange(0);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      try {
+        await api.delete('/notifications');
+      } catch (err) {
+        if (err.response?.status === 404) {
+          await api.delete('/notifications/clear');
+        } else {
+          throw err;
+        }
+      }
+      setNotificationsList([]);
+      if (onReadChange) {
+        onReadChange(0);
+      }
+    } catch (err) {
+      console.error('Error clearing notifications:', err);
+      setNotificationsList([]);
+      if (onReadChange) {
+        onReadChange(0);
+      }
+    }
+  };
+
+  const getIcon = (type, title = '') => {
+    if (type === 'success') return <CheckCircle size={18} color="#2ecc71" />;
+    if (type === 'warning' || title.includes('Conducta') || title.includes('⚠️')) return <AlertTriangle size={18} color="#f39c12" />;
+    return <Info size={18} color={colors.primary} />;
   };
 
   if (!visible) return null;
@@ -88,7 +145,7 @@ export default function NotificationsModal({ visible, onClose }) {
                   ]}
                 >
                   <View style={styles.iconContainer}>
-                    {getIcon(item.type)}
+                    {getIcon(item.type, item.title)}
                   </View>
                   <View style={styles.notifContent}>
                     <View style={styles.titleRow}>

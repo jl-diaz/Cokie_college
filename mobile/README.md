@@ -1,127 +1,115 @@
-# CokieCollege - Aplicación Móvil
+# 📱 CokieCollege — Aplicación Móvil
 
-Aplicación móvil nativa (iOS/Android) desarrollada con **Expo (React Native)** para la gestión académica, asistencia, calificaciones y diario pedagógico en tiempo real.
+Aplicación móvil nativa multiplataforma (**iOS y Android**) desarrollada con **Expo 54** y **React Native 0.81**, diseñada para la gestión académica, control de asistencia, seguimiento conductual, registro de notas, pre-pedido de almuerzos y despacho mediante código QR en tiempo real.
 
 ---
 
-## 🎨 Personalización de Color Primario en Modo Oscuro
+## ✨ Novedades y Componentes Exclusivos
 
-La aplicación permite personalizar el color primario en el Modo Oscuro por usuario.
+### 💬 1. Sistema de Alertas y Confirmaciones Amigables (`AlertContext`)
+Se reemplazaron las ventanas flotantes grises del sistema operativo (`Alert.alert`) por un **Modal UI Integrado** personalizado ([AlertContext.jsx](file:///c:/Users/USUARIO/StudioProjects/CokieCollege/mobile/src/context/AlertContext.jsx)):
+- **Adaptativo**: Compatible con la paleta de colores del Modo Claro y Modo Oscuro.
+- **Categorización Visual**:
+  - `success` (Verde): Ícono `CheckCircle2` para guardado de notas, envío de justificaciones y despachos.
+  - `danger` (Rojo): Ícono `Trash2` o `XCircle` para confirmación de eliminación o errores críticos.
+  - `warning` (Amarillo): Ícono `AlertTriangle` para campos requeridos o advertencias de plazos.
+  - `info` (Azul): Ícono `Info` para notificaciones informativas.
 
-### ¿Cómo cambiar el color desde la App?
-- Mantén presionado (**Long Press**, ~300ms) el ícono de **Sol / Luna** en la barra superior de navegación.
-- Se abrirá un modal flotante con la paleta de colores primarios disponibles.
-- Al seleccionar una opción, se editarán automáticamente:
-  - `darkColors.primary`
-  - `darkColors.primaryLight`
-  - `darkColors.primaryDark`
-  - `darkColors.text.headerTxtC`
-- La preferencia elegida se guardará automáticamente en el dispositivo por usuario utilizando `AsyncStorage`.
+---
 
-### ¿Cómo agregar, editar o eliminar opciones de color?
-Todas las opciones de la lista están centralizadas en el archivo:
-`mobile/src/constants/themePresets.js`
+### 🎨 2. Personalización de Color Primario en Modo Oscuro
+Permite a cada usuario personalizar la paleta de acento del Modo Oscuro:
+- **¿Cómo cambiar el color?**: Mantén presionado (**Long Press**, ~300ms) el ícono de **Sol / Luna** en la barra superior.
+- **Persistencia**: La elección del tema y color se guarda localmente en el dispositivo utilizando `@react-native-async-storage/async-storage`.
+- **Configuración**: Presets centralizados en `mobile/src/constants/themePresets.js`.
 
-Ejemplo de estructura de preset:
-```javascript
-{
-  id: 'purple',
-  name: 'Violeta Neón',
-  primary: '#8b5cf6',
-  primaryLight: '#a78bfa',
-  primaryDark: '#7c3aed',
-  headerTxtC: '#a78bfa',
-}
+---
+
+### 🚦 3. Semáforo de Conducta de 4 Colores (Diario Pedagógico)
+Evaluador visual inteligente integrado en el módulo de conducta:
+1. **🔵 Azul (Sobresaliente)**: `>= 6` códigos positivos, `<= 1` falta leve y `<= 2` ausencias.
+2. **🟢 Verde (Normal)**: Estado regular y dentro de la norma académica.
+3. **🟡 Amarillo (Precaución)**: `1` falta Grave O `>= 6` faltas leves.
+4. **🔴 Rojo (Alerta Crítica)**: `1` falta Muy Grave, `>= 2` faltas Graves O `>= 12` faltas Leves.
+
+---
+
+### 🌐 4. Internacionalización Completa (i18n)
+- Soporte para cambio dinámico entre **Español (`es`)** e **Inglés (`en`)** mediante el botón de globo terráqueo en la barra superior.
+- Archivos de traducción localizados en `mobile/src/locales/es.json` y `mobile/src/locales/en.json`.
+
+---
+
+### 🍱 5. Pre-pedido de Almuerzo & Despacho por QR
+- **Estudiantes/Docentes**: Selección de platillo fuerte, acompañamientos, tortillas y bebida con cálculo automático de costo y **generación de código QR**.
+- **Personal de Cafetín**: Escaneo o ingreso de código QR para verificar la orden y confirmar la entrega.
+
+---
+
+## 📂 Estructura de Carpetas (Expo Router)
+
 ```
-Puedes agregar nuevos objetos al arreglo `DARK_PRIMARY_PRESETS` o modificar los colores existentes sin alterar la lógica de la app.
+mobile/
+├── app/                          # Pantallas y rutas principales (Expo Router)
+│   ├── _layout.jsx               # Layout raíz (ThemeProvider, AuthProvider, AlertProvider)
+│   ├── index.jsx                 # Pantalla de bienvenida / Splash
+│   ├── (auth)/login.jsx          # Login con credenciales institucionales
+│   ├── home.jsx                  # Dashboard principal por rol
+│   ├── users.jsx                 # Gestión de usuarios (Admin)
+│   ├── teacher-grades.jsx        # Calificaciones con timer y rango 0-10 (Docentes)
+│   ├── coordinator-justifications.jsx # Aprobación de inasistencias y filtro por estado
+│   ├── cafetin.jsx               # Menú diario, pedidos y despacho QR
+│   ├── lunch.jsx                 # Pre-pedido de almuerzo y código QR del usuario
+│   ├── diary.jsx                 # Diario pedagógico y semáforo de conducta
+│   ├── justifications.jsx        # Solicitud de ausencia y adjunto de evidencias
+│   └── announcements.jsx         # Avisos institucionales
+└── src/
+    ├── components/               # Componentes UI reutilizables (PageHeader, CustomDrawer, etc.)
+    ├── constants/                # Tema visual, colores y presets (`themePresets.js`)
+    ├── context/                  # AuthContext, ThemeContext, AlertContext
+    ├── hooks/                    # `usePushNotifications.js`
+    ├── locales/                  # `es.json` y `en.json`
+    └── utils/                    # Configuración de Axios (`api.js`)
+```
 
 ---
 
-## 🚦 Semáforo de Conducta de 4 Colores (Diario Pedagógico)
+## 📦 Generación de APKs y Updates OTA con EAS
 
-En el apartado **Diario Pedagógico**, se incluye un indicador visual de 4 colores entre el filtro de periodo y los registros de conducta:
-
-1. **🔵 Azul (Sobresaliente)**:
-   - Acumular `>= 6` códigos positivos.
-   - Tener máximo `1` código leve (`<= 1`).
-   - Tener máximo `2` ausencias injustificadas (`<= 2`).
-2. **🟢 Verde (Normal - Default)**:
-   - Estado regular y dentro de la norma académica.
-3. **🟡 Amarillo (Precaución)**:
-   - Tener `1` código Grave OR `>= 6` códigos leves (acumulado equivalente `>= 6` puntos).
-4. **🔴 Rojo (Alerta Crítica)**:
-   - Tener `1` código Muy Grave OR `>= 2` códigos Graves OR `>= 12` códigos Leves.
-   - *Nota:* 6 códigos Leves equivalen a 1 Grave (1 Grave + 6 Leves = 2 Graves equivalentes = Rojo).
-
----
-
-## 🔔 Centro de Notificaciones
-
-- Toca el ícono de **Campana** en el header para abrir el panel de notificaciones.
-- El panel incluye la función **"Probar Notificación"** que dispara una notificación local nativa mediante `expo-notifications` para verificar el correcto funcionamiento en dispositivos físicos o simuladores.
-
----
-
-## 📦 Generación de APKs y Actualizaciones Automáticas (OTA) con EAS
-
-Para distribuir la aplicación en Android sin publicar en Google Play y enviar actualizaciones instantáneas sin obligar al usuario a descargar nuevamente la APK, utiliza **EAS (Expo Application Services)**.
-
-### 1. Requisitos Previos e Instalación de EAS CLI
-
-Instala la herramienta CLI de EAS globalmente y autentícate con tu cuenta de Expo:
+### 1. Instalación de EAS CLI e Inicio
 ```bash
 npm install -g eas-cli
 eas login
-```
-
-### 2. Inicializar el Proyecto en EAS
-Dentro de la carpeta `mobile/`:
-```bash
 cd mobile
 eas project:init
 ```
-*Esto vinculará el proyecto con tu cuenta de Expo y actualizará el `extra.eas.projectId` en `app.json`.*
 
----
-
-### 3. Generar archivo APK de Android
-
-Para generar la APK directamente en los servidores de Expo sin necesidad de Android Studio local:
-
-#### Opción A: Build de Prueba (Perfil Preview)
+### 2. Generar APK para Android
 ```bash
+# Perfil de prueba / Preview (Descarga directa .apk)
 eas build -p android --profile preview
-```
 
-#### Opción B: Build de Producción (Perfil Production APK)
-```bash
+# Perfil de Producción
 eas build -p android --profile production
 ```
 
-Una vez finalizada la compilación en la nube, la terminal te proporcionará un **enlace directo de descarga `.apk`** para instalar en teléfonos Android.
-
----
-
-### 4. Publicar Actualizaciones Sencillas Over-The-Air (OTA)
-**¡Sin volver a descargar o reinstalar la APK!**
-
-Expo Updates permite enviar correcciones de código JavaScript, diseño y componentes en tiempo real a los usuarios que ya tienen la APK instalada.
-
-#### ¿Cómo enviar una actualización instantánea?
-1. Realiza los cambios necesarios en el código fuente de `mobile/`.
-2. Ejecuta el comando de actualización apuntando a la rama deseada (por ejemplo, `production` o `preview`):
+### 3. Publicar Actualizaciones Sencillas Over-The-Air (OTA)
+Envía correcciones de código en tiempo real sin requerir que los usuarios reinstalen la APK:
 ```bash
-eas update --branch production --message "Corrección de errores y nueva interfaz"
+eas update --branch production --message "Mejoras en el modal de alerta y correcciones i18n"
 ```
-3. Al abrir la app en el teléfono móvil, Expo verificará automáticamente en segundo plano la presencia de nuevas actualizaciones y la aplicará en el siguiente inicio.
 
 ---
 
-## 🛠️ Tecnologías y Librerías
+## 🛠️ Requisitos e Instalación Local
 
-- **Expo 54 / React Native 0.81**
-- **Expo Router 6** (Navegación tipo App Directory)
-- **i18next & react-i18next** (Soporte multilenguaje Español e Inglés)
-- **lucide-react-native** (Sistema de iconografía)
-- **@react-native-async-storage/async-storage** (Persistencia local)
-- **expo-notifications** (Alertas nativas y push tokens)
+```bash
+# Entrar a la carpeta
+cd mobile
+
+# Instalar dependencias
+npm install --legacy-peer-deps
+
+# Iniciar servidor de desarrollo de Expo
+npx expo start
+```

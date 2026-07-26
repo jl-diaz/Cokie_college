@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
 import api from '../src/utils/api';
 import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -8,11 +8,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 
 export default function CoordinatorJustificationsScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { showAlert } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,8 @@ export default function CoordinatorJustificationsScreen() {
   
   const [selectedReq, setSelectedReq] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [evidenceModalVisible, setEvidenceModalVisible] = useState(false);
+  const [evidenceUrlToView, setEvidenceUrlToView] = useState('');
   const [observation, setObservation] = useState('');
   const [statusToSet, setStatusToSet] = useState('');
   const [view, setView] = useState('requests'); // 'requests' or 'create'
@@ -32,22 +36,40 @@ export default function CoordinatorJustificationsScreen() {
   const [creating, setCreating] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [statusFilter, setStatusFilter] = useState(''); // '' (todas), 'pending', 'approved', 'rejected'
+
+  const pendingRequests = React.useMemo(() => {
+    if (!Array.isArray(requests)) return [];
+    return requests.filter(r => r.status === 'pending');
+  }, [requests]);
+
+  const historyRequests = React.useMemo(() => {
+    if (!Array.isArray(requests)) return [];
+    return requests.filter(r => r.status !== 'pending');
+  }, [requests]);
+
   useEffect(() => {
     if (view === 'requests') {
       fetchRequests();
     } else {
       fetchStudents();
     }
-  }, [view]);
+  }, [view, statusFilter]);
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/coordinator/justifications');
+      const response = await api.get('/coordinator/justifications', {
+        params: statusFilter ? { status: statusFilter } : {}
+      });
       setRequests(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar las solicitudes de justificación.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: t('dashboard.couldNotSend', 'No se pudieron cargar las solicitudes de justificación.')
+      });
     } finally {
       setLoading(false);
     }
@@ -59,7 +81,11 @@ export default function CoordinatorJustificationsScreen() {
       setStudents(response.data);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudieron cargar los estudiantes.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudieron cargar los estudiantes.'
+      });
     }
   };
 
@@ -78,12 +104,20 @@ export default function CoordinatorJustificationsScreen() {
         status: statusToSet,
         coordinator_message: observation
       });
-      Alert.alert('Éxito', `Justificación ${statusToSet === 'approved' ? 'aprobada' : 'rechazada'}.`);
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', 'Éxito'),
+        message: `Justificación ${statusToSet === 'approved' ? 'aprobada' : 'rechazada'}.`
+      });
       setModalVisible(false);
       fetchRequests();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo procesar la solicitud.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo procesar la solicitud.'
+      });
     } finally {
       setProcessing(false);
     }
@@ -91,7 +125,11 @@ export default function CoordinatorJustificationsScreen() {
 
   const createJustification = async () => {
     if (!selectedStudent || !absenceDate || !reason.trim()) {
-      Alert.alert('Error', 'Completa todos los campos');
+      showAlert({
+        type: 'warning',
+        title: t('dashboard.error', 'Error'),
+        message: t('dashboard.pleaseCompleteFields', 'Completa todos los campos')
+      });
       return;
     }
     setCreating(true);
@@ -101,23 +139,31 @@ export default function CoordinatorJustificationsScreen() {
         absence_date: absenceDate,
         reason
       });
-      Alert.alert('Éxito', 'Justificación registrada y aprobada correctamente');
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', 'Éxito'),
+        message: 'Justificación registrada y aprobada correctamente'
+      });
       setSelectedStudent(null);
       setAbsenceDate('');
       setReason('');
       setView('requests');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo registrar la justificación.');
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: 'No se pudo registrar la justificación.'
+      });
     } finally {
       setCreating(false);
     }
   };
 
   const openEvidence = (url) => {
-    if (url) {
-      Linking.openURL(url);
-    }
+    if (!url) return;
+    setEvidenceUrlToView(url);
+    setEvidenceModalVisible(true);
   };
 
   const formatDate = (dateString) => {
@@ -129,7 +175,6 @@ export default function CoordinatorJustificationsScreen() {
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      // Format date without timezone issues
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -151,17 +196,19 @@ export default function CoordinatorJustificationsScreen() {
     );
   }
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const historyRequests = requests.filter(r => r.status !== 'pending');
+  const statusFilterTabs = [
+    { label: t('users.tabAll', 'Todas'), value: '' },
+    { label: t('dashboard.pending', 'Pendientes'), value: 'pending' },
+    { label: t('dashboard.approved', 'Aprobadas'), value: 'approved' },
+    { label: t('dashboard.rejected', 'Rechazadas'), value: 'rejected' }
+  ];
 
   return (
     <View style={styles.container}>
       <PageHeader 
         title={t('titles.justifications', 'Gestión de Justificaciones')} 
         subtitle={t('justifications.coordinatorSubtitle', 'Revisión y aprobación de inasistencias')} 
-      />
-      <View style={styles.header}>
-        
+      >
         <View style={styles.tabContainer}>
           <TouchableOpacity 
             style={[styles.tab, view === 'requests' && styles.activeTab]} 
@@ -176,15 +223,38 @@ export default function CoordinatorJustificationsScreen() {
             <Text style={[styles.tabText, view === 'create' && styles.activeTabText]}>Ingreso Manual</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </PageHeader>
 
       {view === 'requests' ? (
         <ScrollView style={styles.content}>
-          <Text style={styles.sectionTitle}>Pendientes ({pendingRequests.length})</Text>
+          {/* Sub-filtro por Estado */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+            {statusFilterTabs.map(st => (
+              <TouchableOpacity
+                key={st.value}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor: statusFilter === st.value ? Colors.primary : Colors.gray[100]
+                }}
+                onPress={() => setStatusFilter(st.value)}
+              >
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  color: statusFilter === st.value ? '#FFF' : Colors.text.muted
+                }}>
+                  {st.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.sectionTitle}>{t('dashboard.pending', 'Pendientes')} ({pendingRequests.length})</Text>
           
           {pendingRequests.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay solicitudes pendientes.</Text>
+              <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes pendientes.')}</Text>
             </View>
           ) : (
             pendingRequests.map(req => (
@@ -343,9 +413,9 @@ export default function CoordinatorJustificationsScreen() {
       )}
 
       {/* Process Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          behavior="padding" 
           style={styles.modalOverlay}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -390,7 +460,60 @@ export default function CoordinatorJustificationsScreen() {
               </View>
             </View>
           </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+      {/* Evidence Viewer Modal */}
+      <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '85%', width: '90%' }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FileText size={20} color={Colors.primary} style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>Evidencia Adjunta</Text>
+              </View>
+              <TouchableOpacity onPress={() => setEvidenceModalVisible(false)}>
+                <X size={24} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingVertical: 16, alignItems: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
+              {evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
+                <Image
+                  source={{ uri: evidenceUrlToView }}
+                  style={{ width: '100%', height: 350, borderRadius: 12, resizeMode: 'contain' }}
+                />
+              ) : evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://') ? (
+                <View style={{ alignItems: 'center', padding: 20 }}>
+                  <ExternalLink size={48} color={Colors.primary} style={{ marginBottom: 12 }} />
+                  <Text style={{ fontSize: 14, color: Colors.text.primary, textAlign: 'center', marginBottom: 16 }}>
+                    El archivo está disponible como enlace web externo.
+                  </Text>
+                  <TouchableOpacity
+                    style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
+                    onPress={() => Linking.openURL(evidenceUrlToView)}
+                  >
+                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Abrir Enlace Web</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ alignItems: 'center', padding: 24, backgroundColor: Colors.gray[100] || '#f8fafc', borderRadius: 16, width: '100%' }}>
+                  <FileText size={56} color={Colors.primary} style={{ marginBottom: 12 }} />
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 6 }}>
+                    {evidenceUrlToView}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.text.muted, textAlign: 'center' }}>
+                    Documento comprobante registrado en la solicitud de justificación.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.submitBtn, { backgroundColor: Colors.gray[500] || '#64748b', marginTop: 12 }]}
+              onPress={() => setEvidenceModalVisible(false)}
+            >
+              <Text style={styles.submitBtnText}>Cerrar Previsualización</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );

@@ -7,8 +7,13 @@ const adminController = {
     
     getUsers: async (req, res) => {
         try {
-            const { role, search } = req.query;
-            let query = supabaseAdmin.from('profiles').select('*');
+            const { role, search, page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
+            let query = supabaseAdmin.from('profiles').select('*', { count: 'exact' });
 
             if (role) {
                 query = query.eq('role', role);
@@ -27,10 +32,18 @@ const adminController = {
                 }
             }
 
-            const { data, error } = await query;
+            query = query.order('created_at', { ascending: false }).range(from, to);
+
+            const { data, count, error } = await query;
             if (error) throw error;
 
-            res.json(data);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -39,13 +52,25 @@ const adminController = {
     createUser: async (req, res) => {
         try {
             const { full_name, email, role, grade, section, first_surname, second_surname, level } = req.body;
+            
+            // Validación de campos requeridos
+            if (!full_name || !email || !role) {
+                return res.status(400).json({ error: 'El nombre completo, correo electrónico y rol son obligatorios.' });
+            }
+
+            // Validar formato de correo electrónico
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ error: 'El correo electrónico ingresado tiene un formato inválido.' });
+            }
+
             const year = new Date().getFullYear();
 
             // Concatenar nombre completo para la DB si vienen por separado
-            const combinedFullName = `${full_name} ${first_surname} ${second_surname}`.trim();
+            const combinedFullName = `${full_name} ${first_surname || ''} ${second_surname || ''}`.trim();
 
             // 1. Generar código y contraseña
-            const institutional_code = generateInstitutionalCode(first_surname, second_surname, year);
+            const institutional_code = generateInstitutionalCode(first_surname || 'E', second_surname || 'S', year);
             const password = generateRandomPassword();
 
             // 2. Crear usuario en Supabase Auth (Service Role)
@@ -67,14 +92,22 @@ const adminController = {
                     email,
                     institutional_code,
                     role,
-                    grade,
-                    section,
-                    level
+                    grade: grade || null,
+                    section: section || null,
+                    level: level || null
                 }])
                 .select()
                 .single();
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Error al crear perfil en DB:', profileError);
+                if (profileError.code === '22P02' || profileError.message?.includes('user_role')) {
+                    return res.status(400).json({
+                        error: "El rol 'cafetin' no existe aún en el tipo ENUM de tu base de datos Supabase. Ejecuta esta instrucción en el SQL Editor de Supabase:\n\nALTER TYPE user_role ADD VALUE IF NOT EXISTS 'cafetin';"
+                    });
+                }
+                throw profileError;
+            }
 
             // 4. Enviar correo (Intentar enviar, pero no bloquear si falla)
             try {

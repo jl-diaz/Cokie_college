@@ -28,7 +28,9 @@ import api from '../utils/api';
 import StudentSchedule from '../components/StudentSchedule';
 import StudentDiary from '../components/StudentDiary';
 import StudentJustifications from '../components/StudentJustifications';
-import StudentGrades from '../components/StudentGrades'; // NEW IMPORT
+import StudentGrades from '../components/StudentGrades';
+import AdminEvents from '../components/AdminEvents';
+import AdminAnnouncements from '../components/AdminAnnouncements';
 
 
 // --- Sub-componentes para Admin ---
@@ -1066,7 +1068,6 @@ const TeacherAttendance = () => {
         student_id: s.id,
         subject_id: selectedClass.subject_id,
         status: s.status,
-        period: 1, // Assume period 1 or let them pick
         date: new Date().toISOString()
       }));
       await api.post('/teacher/attendance', { attendances });
@@ -1087,8 +1088,7 @@ const TeacherAttendance = () => {
       await api.post('/teacher/conduct-records', {
         student_id: conductModal.student.id,
         code_id: selectedCode,
-        observation: observation,
-        period: 1
+        observation: observation
       });
       alert('Código de conducta aplicado');
       setConductModal({ isOpen: false, student: null });
@@ -1934,6 +1934,8 @@ const Dashboard = () => {
       { name: 'Inicio', path: '/dashboard', icon: Home },
       { name: 'Usuarios', path: '/dashboard/users', icon: Users },
       { name: 'Catálogo Conducta', path: '/dashboard/conduct', icon: FileText },
+      { name: 'Eventos', path: '/dashboard/events', icon: Calendar },
+      { name: 'Avisos', path: '/dashboard/announcements', icon: Bell },
     ],
     coordinator: [
       { name: 'Inicio', path: '/dashboard', icon: Home },
@@ -2077,37 +2079,107 @@ const Dashboard = () => {
             >
               <Routes>
                 <Route path="/" element={
-                  <div className="p-6 md:p-10 max-w-6xl mx-auto h-full">
-                    {/* Welcome Banner */}
-                    <div className="bg-gradient-to-br from-[#0B1956] to-[#426bc2] rounded-3xl p-8 md:p-10 text-white mb-10 relative overflow-hidden shadow-lg">
-                      <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-                      <div className="relative z-10">
-                        <h2 className="text-3xl font-extrabold mb-2 tracking-tight text-white">¡Buen día, {profile?.full_name?.split(' ')[0] || 'Usuario'}!</h2>
-                        <div className="flex gap-2 mt-4 flex-wrap">
-                          <span className="bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide uppercase shadow-sm">{profile?.role.replace('_', ' ')}</span>
-                          {profile?.level && <span className="bg-[#f5a623]/20 border border-[#f5a623]/40 text-[#f5a623] px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide uppercase shadow-sm">{profile.level}</span>}
+                  <div className="p-6 md:p-10 max-w-6xl mx-auto h-full space-y-8">
+                    {/* Welcome Banner PRO MAX */}
+                    <div className="bg-gradient-to-br from-[#0B1956] via-[#1c358e] to-[#426bc2] rounded-3xl p-8 md:p-10 text-white relative overflow-hidden shadow-xl border border-white/10">
+                      <div className="absolute -right-12 -top-12 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                      <div className="absolute right-20 -bottom-10 w-40 h-40 bg-lilac/20 rounded-full blur-2xl pointer-events-none"></div>
+                      
+                      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold text-white/90 mb-3 border border-white/20">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Plataforma Académica Cokie College
+                          </div>
+                          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
+                            ¡Bienvenido(a), {profile?.full_name?.split(' ')[0] || 'Usuario'}!
+                          </h2>
+                          <p className="text-white/80 text-sm mt-2 max-w-lg leading-relaxed">
+                            Accede a la gestión de clases, diario pedagógico, calificaciones, eventos y avisos institucionales.
+                          </p>
+
+                          <div className="flex gap-2.5 mt-5 flex-wrap">
+                            <span className="bg-white/20 backdrop-blur-md border border-white/25 px-3.5 py-1.5 rounded-xl text-xs font-bold tracking-wider uppercase shadow-sm">
+                              Rol: {profile?.role?.replace('_', ' ')}
+                            </span>
+                            {profile?.level && (
+                              <span className="bg-[#F6BE2F]/20 backdrop-blur-md border border-[#F6BE2F]/50 text-[#F6BE2F] px-3.5 py-1.5 rounded-xl text-xs font-bold tracking-wider uppercase shadow-sm">
+                                Nivel: {profile.level}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-white dark:bg-[#13192B] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                          <Users size={24} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Acceso</p>
+                          <p className="text-base font-bold text-slate-800 dark:text-white capitalize">{profile?.role?.replace('_', ' ')}</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-[#13192B] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                          <Calendar size={24} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Horario</p>
+                          <p className="text-base font-bold text-slate-800 dark:text-white">Lunes a Viernes</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-[#13192B] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                          <Bell size={24} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Avisos</p>
+                          <p className="text-base font-bold text-slate-800 dark:text-white">Al instante</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-[#13192B] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                          <BookOpen size={24} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Estado</p>
+                          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">Activo</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Quick Actions (Cards Grid) */}
-                    <div className="mb-8">
-                      <h3 className="text-[16px] font-bold text-[#0B1956] mb-5">
-                        Menú Principal
-                      </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                        {currentMenu.filter(m => m.path !== '/dashboard').map((item, index) => {
+                    <div>
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg font-bold text-[#0B1956] dark:text-white tracking-tight">
+                          Módulos y Herramientas
+                        </h3>
+                        <span className="text-xs font-semibold text-slate-400">Selecciona un módulo</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {currentMenu.filter(m => m.path !== '/dashboard').map((item) => {
                           const Icon = item.icon;
                           return (
                             <Link 
                               key={item.path} 
                               to={item.path}
-                              className="menu-card bg-white dark:bg-[#13192B] p-5 md:p-6 rounded-[24px] shadow-sm border border-[#0B1956]/5 dark:border-slate-800/80 hover:-translate-y-1 hover:shadow-md dark:hover:shadow-[#000]/40 transition-all duration-300 flex flex-col items-center text-center group"
+                              className="group bg-white dark:bg-[#13192B] p-6 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800 hover:-translate-y-1 hover:shadow-xl hover:border-[#0B1956]/30 dark:hover:border-slate-700 transition-all duration-300 flex items-center gap-5"
                             >
-                              <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-[#F5F7FA] dark:bg-slate-800/80 group-hover:bg-[#0B1956]/5 dark:group-hover:bg-slate-700/80 flex items-center justify-center mb-3 md:mb-4 transition-colors">
-                                <Icon size={28} className="text-[#0B1956] dark:text-[#F6BE2F] opacity-80 group-hover:opacity-100" />
+                              <div className="w-14 h-14 rounded-2xl bg-[#0B1956]/5 dark:bg-slate-800 text-[#0B1956] dark:text-[#F6BE2F] group-hover:bg-[#0B1956] group-hover:text-white dark:group-hover:bg-[#F6BE2F] dark:group-hover:text-[#0B1956] flex items-center justify-center flex-shrink-0 transition-colors duration-300">
+                                <Icon size={26} />
                               </div>
-                              <h4 className="font-bold text-[#0B1956] dark:text-slate-200 text-[12px] md:text-sm tracking-tight">{item.name}</h4>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-[#0B1956] dark:text-white text-base tracking-tight group-hover:text-[#0B1956] transition-colors">{item.name}</h4>
+                                <p className="text-slate-400 text-xs mt-1 truncate">Acceder al módulo de {item.name.toLowerCase()}</p>
+                              </div>
                             </Link>
                           );
                         })}
@@ -2118,6 +2190,8 @@ const Dashboard = () => {
                 <Route path="/users" element={<AdminUsers />} />
                 <Route path="/assign" element={<AdminSchedules />} />
                 <Route path="/conduct" element={<ConductCatalog />} />
+                <Route path="/events" element={<AdminEvents />} />
+                <Route path="/announcements" element={<AdminAnnouncements />} />
                 
                 {/* Nuevas vistas */}
                 <Route path="/coordinator-teachers" element={<CoordinatorTeachers />} />

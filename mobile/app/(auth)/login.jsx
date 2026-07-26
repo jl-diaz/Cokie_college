@@ -5,6 +5,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Globe } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -12,6 +13,11 @@ const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'ios' 
+    ? Math.max(insets.top + 10, 50) 
+    : (StatusBar.currentHeight || insets.top || 24) + 12;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,7 +67,7 @@ export default function LoginScreen() {
         <View style={styles.heroBackground}>
           <TouchableOpacity 
             onPress={toggleLanguage} 
-            style={styles.langSwitchBtn}
+            style={[styles.langSwitchBtn, { top: topPadding }]}
             activeOpacity={0.7}
           >
             <Globe size={18} color={colors.text.headerTxtC || '#FFF'} />
@@ -176,7 +182,6 @@ const createStyles = (colors, theme) => StyleSheet.create({
   },
   langSwitchBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',

@@ -13,9 +13,25 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
   } catch (error) {
-    console.error('Error in API interceptor:', error);
+    console.error('Error in API request interceptor:', error);
   }
   return config;
 });
+
+// Interceptor de respuesta para manejar tokens expirados o desautorizados
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('Sesión expirada o token inválido (401). Cerrando sesión...');
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.error('Error durante el cierre de sesión automático:', e);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

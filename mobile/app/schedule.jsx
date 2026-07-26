@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import api from '../src/utils/api';
-import { Calendar, Clock, MapPin, BookOpen, ArrowLeft } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, BookOpen, ArrowLeft, Coffee, LogOut } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
@@ -23,10 +23,8 @@ export default function ScheduleScreen() {
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeDay, setActiveDay] = useState(new Date().getDay() || 1);
   const { profile } = useAuth();
   const router = useRouter();
-  
   const { teacher_id, teacher_name, student_id, student_name } = useLocalSearchParams();
 
   useEffect(() => {
@@ -70,9 +68,22 @@ export default function ScheduleScreen() {
     }
   };
 
-  const currentSchedules = schedules
-    .filter(s => parseInt(s.day_of_week) === activeDay)
-    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const todayDayIndex = new Date().getDay(); // 0 = Domingo, 6 = Sábado
+  const isWeekendToday = todayDayIndex === 0 || todayDayIndex === 6;
+
+  // Si se ingresa en fin de semana, activeDay inicia en null para mostrar únicamente el mensaje de descanso
+  const [activeDay, setActiveDay] = useState(isWeekendToday ? null : (todayDayIndex >= 1 && todayDayIndex <= 5 ? todayDayIndex : 1));
+
+  const fixedItems = [
+    { id: 'fixed-1', start_time: '08:30:00', end_time: '09:00:00', isFixed: true, type: 'recess', title: 'Receso' },
+    { id: 'fixed-2', start_time: '10:30:00', end_time: '11:00:00', isFixed: true, type: 'recess', title: 'Receso' },
+    { id: 'fixed-3', start_time: '12:00:00', end_time: '12:00:00', isFixed: true, type: 'exit', title: 'Salida' }
+  ];
+
+  const currentSchedules = activeDay ? [
+    ...schedules.filter(s => parseInt(s.day_of_week) === activeDay),
+    ...fixedItems
+  ].sort((a, b) => a.start_time.localeCompare(b.start_time)) : [];
 
   if (loading && schedules.length === 0) {
     return (
@@ -122,48 +133,99 @@ export default function ScheduleScreen() {
       </View>
 
       <View style={styles.content}>
-        {currentSchedules.length === 0 ? (
+        {/* Mostrar mensaje de fin de semana SOLO cuando no hay día seleccionado */}
+        {activeDay === null ? (
+          <View style={styles.weekendCard}>
+            <View style={styles.weekendIconBg}>
+              <Coffee size={28} color={theme === 'dark' ? Colors.primary : '#15803D'} />
+            </View>
+            <View style={styles.weekendTextContainer}>
+              <Text style={styles.weekendTitle}>
+                {t('dashboard.weekendTitle', '¡Es fin de semana!')}
+              </Text>
+              <Text style={styles.weekendSubtitle}>
+                {t('dashboard.weekendRest', 'Aprovecha a descansar y recargar energías. Selecciona un día para consultar el horario.')}
+              </Text>
+            </View>
+          </View>
+        ) : currentSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <Calendar size={48} color={Colors.gray[300]} style={{marginBottom: 16}} />
             <Text style={styles.emptyText}>{t('dashboard.noClassesToday')}</Text>
           </View>
         ) : (
-          currentSchedules.map((item, idx) => (
-            <View key={item.id || idx} style={styles.scheduleCard}>
-              <View style={[styles.timeColumn, { backgroundColor: Colors.primary + '08' }]}>
-                <Clock size={16} color={Colors.primary} />
-                <Text style={styles.startTime}>{item.start_time.substring(0, 5)}</Text>
-                <Text style={styles.endTime}>{item.end_time.substring(0, 5)}</Text>
-              </View>
-              
-              <View style={styles.infoColumn}>
-                <View style={styles.subjectRow}>
-                  <BookOpen size={18} color={Colors.primary} style={{marginRight: 8}} />
-                  <Text style={styles.subjectName}>{item.subjects?.name || t('dashboard.subject')}</Text>
+          currentSchedules.map((item, idx) => {
+            if (item.isFixed) {
+              const isExit = item.type === 'exit';
+              return (
+                <View 
+                  key={item.id || idx} 
+                  style={[
+                    styles.scheduleCard, 
+                    { 
+                      backgroundColor: isExit ? (theme === 'dark' ? '#2A1B1B' : '#FFF5F5') : (theme === 'dark' ? '#1B2A23' : '#F0FDF4'),
+                      borderColor: isExit ? '#FCA5A5' : '#86EFAC',
+                      borderWidth: 1
+                    }
+                  ]}
+                >
+                  <View style={[styles.timeColumn, { backgroundColor: isExit ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)' }]}>
+                    <Clock size={16} color={isExit ? '#EF4444' : '#16A34A'} />
+                    <Text style={[styles.startTime, { color: isExit ? '#EF4444' : '#16A34A' }]}>{item.start_time.substring(0, 5)}</Text>
+                    {!isExit && <Text style={styles.endTime}>{item.end_time.substring(0, 5)}</Text>}
+                  </View>
+                  
+                  <View style={styles.infoColumn}>
+                    <View style={styles.subjectRow}>
+                      {isExit ? (
+                        <LogOut size={18} color="#EF4444" style={{marginRight: 8}} />
+                      ) : (
+                        <Coffee size={18} color="#16A34A" style={{marginRight: 8}} />
+                      )}
+                      <Text style={[styles.subjectName, { color: isExit ? '#B91C1C' : '#15803D' }]}>{item.title}</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: isExit ? '#EF4444' : '#16A34A', fontWeight: '500' }}>
+                      {isExit ? 'Fin de la jornada escolar' : 'Tiempo libre y descanso'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+
+            return (
+              <View key={item.id || idx} style={styles.scheduleCard}>
+                <View style={[styles.timeColumn, { backgroundColor: Colors.primary + '08' }]}>
+                  <Clock size={16} color={Colors.primary} />
+                  <Text style={styles.startTime}>{item.start_time.substring(0, 5)}</Text>
+                  <Text style={styles.endTime}>{item.end_time.substring(0, 5)}</Text>
                 </View>
                 
-                <View style={styles.detailRow}>
-                  <MapPin size={14} color={Colors.text.muted} style={{marginRight: 4}} />
-                  <Text style={styles.detailText}>{t('dashboard.classroom')} {item.classroom || 'Por asignar'}</Text>
-                  {(item.grade || item.section) && (
-                    <>
-                      <View style={styles.dot} />
-                      <Text style={styles.detailText}>{item.grade}º {item.section}</Text>
-                    </>
+                <View style={styles.infoColumn}>
+                  <View style={styles.subjectRow}>
+                    <BookOpen size={18} color={Colors.primary} style={{marginRight: 8}} />
+                    <Text style={styles.subjectName}>{item.subjects?.name || t('dashboard.subject')}</Text>
+                  </View>
+                  
+                  <View style={styles.detailRow}>
+                    {(item.grade || item.section) && (
+                      <>
+                        <Text style={styles.detailText}>{item.grade}º {item.section}</Text>
+                      </>
+                    )}
+                  </View>
+
+                  {item.profiles && (
+                    <View style={styles.teacherRow}>
+                      <View style={styles.teacherAvatar}>
+                        <Text style={styles.teacherInitial}>{item.profiles.full_name[0]}</Text>
+                      </View>
+                      <Text style={styles.teacherName}>{item.profiles.full_name}</Text>
+                    </View>
                   )}
                 </View>
-
-                {item.profiles && (
-                  <View style={styles.teacherRow}>
-                    <View style={styles.teacherAvatar}>
-                      <Text style={styles.teacherInitial}>{item.profiles.full_name[0]}</Text>
-                    </View>
-                    <Text style={styles.teacherName}>{item.profiles.full_name}</Text>
-                  </View>
-                )}
               </View>
-            </View>
-          ))
+            );
+          })
         )}
         <View style={{height: 40}} />
       </View>
@@ -265,7 +327,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderColor: Colors.gray[100],
   },
   timeColumn: {
-    width: 80,
+    width: 100,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -341,5 +403,43 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontSize: 12,
     color: Colors.text.primary,
     fontWeight: '500',
+  },
+  weekendCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme === 'dark' ? Colors.card : '#F0FDF4',
+    borderColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.3)' : '#86EFAC',
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  weekendIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  weekendTextContainer: {
+    flex: 1,
+  },
+  weekendTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme === 'dark' ? Colors.primary : '#15803D',
+    marginBottom: 2,
+  },
+  weekendSubtitle: {
+    fontSize: 13,
+    color: theme === 'dark' ? Colors.text.secondary : '#166534',
+    lineHeight: 18,
   }
 });
