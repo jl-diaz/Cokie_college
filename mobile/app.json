@@ -33,7 +33,8 @@
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/fd2a2f1c-190e-4d55-90ec-58fa0db18620"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -53,9 +54,11 @@
     "extra": {
       "supabaseUrl": "your_supabase_url",
       "supabaseAnonKey": "your_supabase_anon_key",
+      "router": {},
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "fd2a2f1c-190e-4d55-90ec-58fa0db18620"
       }
-    }
+    },
+    "owner": "diaz_jl"
   }
 }

@@ -23,7 +23,7 @@ import api from '../src/utils/api';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 
-const LEVELS = ['Todos', 'Primaria', 'Secundaria'];
+const LEVELS = ['Todos', 'Primaria', 'Tercer Ciclo'];
 
 export default function EventsScreen() {
   const { t } = useTranslation();
@@ -192,8 +192,7 @@ export default function EventsScreen() {
   const getLevelColor = (lvl) => {
     switch (lvl) {
       case 'Primaria': return '#3b82f6';
-      case 'Secundaria': return '#8b5cf6';
-      case 'Bachillerato': return '#f59e0b';
+      case 'Tercer Ciclo': return '#8b5cf6';
       default: return '#10b981';
     }
   };

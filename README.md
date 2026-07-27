@@ -97,7 +97,7 @@ npx expo start
 cd mobile
 
 # Generar archivo APK de Android para distribución directa
-eas build -p android --profile preview
+npx eas-cli build -p android --profile preview
 
 # Enviar actualización instantánea Over-The-Air (sin reinstalar la APK)
 eas update --branch production --message "Actualización de rendimiento y UI"

@@ -32,7 +32,6 @@ export default function HomeScreen() {
       case 'coordinator':
         return [
           lunchModule,
-          { name: t('menu.teachers', 'Maestros'), path: '/coordinator', icon: Users, color: '#3b82f6', desc: t('home.teachersDesc', 'Maestros de tu nivel') },
           { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users, color: '#8b5cf6', desc: t('home.studentsDesc', 'Ver listado de estudiantes') },
           { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText, color: '#f59e0b', desc: t('home.coordinatorJustificationsDesc', 'Aprobar ausencias') },
           { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText, color: '#ec4899', desc: t('home.gradeTicketsDesc', 'Aprobar extensión de notas') },
@@ -68,7 +67,7 @@ export default function HomeScreen() {
   const modules = getRoleModules();
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.greetingRow}>
           <Text style={styles.welcomeText}>

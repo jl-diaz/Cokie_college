@@ -90,7 +90,6 @@ const createStyles = (Colors) => StyleSheet.create({
   header: {
     backgroundColor: Colors.primary,
     padding: Spacing.xl,
-    marginTop: -130,
     paddingTop: 20,
     borderBottomLeftRadius: BorderRadius['2xl'],
     borderBottomRightRadius: BorderRadius['2xl'],

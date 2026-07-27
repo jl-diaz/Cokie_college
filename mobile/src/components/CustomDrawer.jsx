@@ -84,7 +84,6 @@ export default function CustomDrawer({ visible, onClose }) {
     coordinator: [
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
       { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
-      { name: t('menu.teachers', 'Maestros'), path: '/coordinator', icon: Users },
       { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users },
       { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText },
       { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText },

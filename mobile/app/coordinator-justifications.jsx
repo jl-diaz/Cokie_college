@@ -460,6 +460,9 @@ export default function CoordinatorJustificationsScreen() {
               </View>
             </View>
           </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Evidence Viewer Modal */}
       <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent>
         <View style={styles.modalOverlay}>

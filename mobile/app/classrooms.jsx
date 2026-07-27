@@ -92,7 +92,7 @@ export default function ClassroomsScreen() {
   const getClassLevel = (grade) => {
     const g = parseInt(grade, 10);
     if (g >= 1 && g <= 6) return 'Primaria';
-    if (g >= 7 && g <= 11) return 'Secundaria';
+    if (g >= 7 && g <= 11) return 'Tercer Ciclo';
     return 'Nivel General';
   };
 

@@ -104,9 +104,10 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start' }} 
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingBottom: 40 }} 
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <View style={styles.formContainer}>
             <View style={styles.card}>
@@ -123,6 +124,9 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
                   keyboardType="email-address"
                   placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
                 />
@@ -136,6 +140,8 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  autoComplete="password"
+                  textContentType="password"
                   placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
                 />
               </View>

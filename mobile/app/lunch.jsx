@@ -15,7 +15,8 @@ import {
   CheckCircle, 
   Sparkles, 
   ChevronRight,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/context/ThemeContext';
