@@ -70,18 +70,14 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
 
-if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+// En Vercel Serverless las funciones son efímeras. No debemos iniciar setInterval ni servidores persistentes.
+if (process.env.VERCEL !== '1' && !process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`Servidor corriendo en el puerto ${PORT}`);
         startEventScheduler();
     });
-} else {
-    try {
-        startEventScheduler();
-    } catch (e) {
-        console.error('Error starting scheduler:', e);
-    }
 }
 
 module.exports = app;
+
 
