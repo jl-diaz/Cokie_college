@@ -10,6 +10,9 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Configurar trust proxy para Vercel / proxies de producción
+app.set('trust proxy', 1);
+
 // Rate limiting por capas para alto estrés y prevención de abuso
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos

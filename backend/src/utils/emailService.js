@@ -17,9 +17,28 @@ const transporter = nodemailer.createTransport({
  * @param {string} code - Código institucional
  * @param {string} password - Contraseña temporal
  */
+const fs = require('fs');
+
+/**
+ * Envía un correo de bienvenida con las credenciales usando Nodemailer.
+ * @param {string} full_name - Primer Nombre
+ * @param {string} email - Correo del usuario
+ * @param {string} code - Código institucional
+ * @param {string} password - Contraseña temporal
+ */
 const sendWelcomeEmail = async (full_name, email, code, password) => {
     try {
-        const logoPath = path.join(__dirname, '../../../src/CokieHallLogo.png');
+        let logoPath = path.join(__dirname, '../../../src/CokieHallLogo.png');
+        if (!fs.existsSync(logoPath)) {
+            logoPath = path.join(__dirname, '../CokieHallLogo.png');
+        }
+        const attachments = fs.existsSync(logoPath) ? [
+            {
+                filename: 'CokieHallLogo.png',
+                path: logoPath,
+                cid: 'logo'
+            }
+        ] : [];
 
         const mailOptions = {
             from: `"Cokie College" <${process.env.EMAIL_USER}>`,
@@ -184,13 +203,7 @@ const sendWelcomeEmail = async (full_name, email, code, password) => {
                 </body>
                 </html>
             `,
-            attachments: [
-                {
-                    filename: 'CokieHallLogo.png',
-                    path: logoPath,
-                    cid: 'logo'
-                }
-            ]
+            attachments: attachments
         };
 
         const info = await transporter.sendMail(mailOptions);
