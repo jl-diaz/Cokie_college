@@ -70,7 +70,18 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
 
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
-    startEventScheduler();
-});
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en el puerto ${PORT}`);
+        startEventScheduler();
+    });
+} else {
+    try {
+        startEventScheduler();
+    } catch (e) {
+        console.error('Error starting scheduler:', e);
+    }
+}
+
+module.exports = app;
+

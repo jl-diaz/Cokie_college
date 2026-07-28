@@ -25,7 +25,7 @@ export default function SplashScreen() {
     <View style={[styles.container, { backgroundColor: '#0B1957' }]}>
       <Animated.View style={{ opacity: fadeAnim }}>
         <Image 
-          source={require('../src/CokieCollegeLogo-main.png')} 
+          source={require('../assets/icon.png')} 
           style={styles.logo}
           resizeMode="contain"
         />

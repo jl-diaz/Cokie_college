@@ -4,10 +4,10 @@
     "slug": "cokie-college",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "../CokieCollegeMockUp/img/CokieCollege.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "../CokieCollegeMockUp/img/CokieCollege.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B1957"
     },
@@ -22,12 +22,12 @@
       "package": "com.cokiecollege.app",
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
-        "foregroundImage": "../CokieCollegeMockUp/img/CokieCollege.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B1957"
       }
     },
     "web": {
-      "favicon": "../CokieCollegeMockUp/img/CokieCollege.png",
+      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "updates": {
@@ -41,19 +41,18 @@
     },
     "plugins": [
       "expo-router",
-      "expo-dev-client",
       [
         "expo-notifications",
         {
-          "icon": "../CokieCollegeMockUp/img/CokieCollege.png",
+          "icon": "./assets/icon.png",
           "color": "#0B1957"
         }
       ]
     ],
     "scheme": "cokie-college",
     "extra": {
-      "supabaseUrl": "your_supabase_url",
-      "supabaseAnonKey": "your_supabase_anon_key",
+      "supabaseUrl": "https://ocqffplvqnqmwoeyxblr.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jcWZmcGx2cW5xbXdvZXl4YmxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNjE0NjksImV4cCI6MjA5NDYzNzQ2OX0.jey5Hn73UTqLxTTf_sVV-yUNv5iQo-41BpCQxvvl1Bg",
       "router": {},
       "eas": {
         "projectId": "fd2a2f1c-190e-4d55-90ec-58fa0db18620"

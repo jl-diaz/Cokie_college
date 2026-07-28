@@ -84,7 +84,9 @@ export default function LunchScreen() {
           setExistingOrder(null);
         }
       } catch (ordErr) {
-        console.error('Error al consultar pedido del día:', ordErr);
+        if (ordErr.response?.status !== 404) {
+          console.error('Error al consultar pedido del día:', ordErr);
+        }
         setExistingOrder(null);
       }
 
