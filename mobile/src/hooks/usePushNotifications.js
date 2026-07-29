@@ -22,12 +22,11 @@ export function usePushNotifications() {
   const { profile } = useAuth();
 
   useEffect(() => {
+    let isMounted = true;
+
     registerForPushNotificationsAsync().then(token => {
-      if (token) {
+      if (token && isMounted) {
         setExpoPushToken(token);
-        if (profile?.id) {
-          saveTokenToDatabase(token, profile.id);
-        }
       }
     });
 
@@ -40,10 +39,17 @@ export function usePushNotifications() {
     });
 
     return () => {
+      isMounted = false;
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [profile?.id]);
+  }, []);
+
+  useEffect(() => {
+    if (expoPushToken && profile?.id) {
+      saveTokenToDatabase(expoPushToken, profile.id);
+    }
+  }, [expoPushToken, profile?.id]);
 
   const saveTokenToDatabase = async (token, userId) => {
     try {
@@ -55,7 +61,7 @@ export function usePushNotifications() {
       if (error) {
         console.error('Error saving push token to database:', error);
       } else {
-        console.log('Push token saved to database');
+        console.log('Push token successfully saved to Supabase for user:', userId);
       }
     } catch (error) {
       console.error('Exception saving push token:', error);
@@ -69,13 +75,6 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync() {
-  // Check if running inside Expo Go client (SDK 53 removed push notification functionality from Expo Go on Android)
-  const isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
-  if (isExpoGo) {
-    console.log('[PushNotifications] Running in Expo Go. Remote push tokens require a Development Build (npx expo run:android / eas build). Local notifications remain fully functional.');
-    return null;
-  }
-
   let token = null;
 
   if (Platform.OS === 'android') {
@@ -91,31 +90,29 @@ async function registerForPushNotificationsAsync() {
     }
   }
 
-  if (Device.isDevice) {
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        console.log('Push notification permission not granted.');
-        return null;
-      }
-
-      const rawProjectId =
-        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-      const projectId = (rawProjectId && rawProjectId !== 'your-eas-project-id') ? rawProjectId : undefined;
-
-      const tokenObj = await Notifications.getExpoPushTokenAsync(
-        projectId ? { projectId } : undefined
-      );
-      token = tokenObj?.data;
-      console.log('Expo Push Token generated:', token);
-    } catch (e) {
-      console.warn('Could not generate Expo push token:', e.message);
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
+    if (finalStatus !== 'granted') {
+      console.log('Push notification permission not granted.');
+      return null;
+    }
+
+    const rawProjectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+    const projectId = (rawProjectId && rawProjectId !== 'your-eas-project-id') ? rawProjectId : undefined;
+
+    const tokenObj = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined
+    );
+    token = tokenObj?.data;
+    console.log('Expo Push Token generated successfully:', token);
+  } catch (e) {
+    console.warn('Could not generate Expo push token:', e.message);
   }
 
   return token;

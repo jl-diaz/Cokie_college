@@ -1,25 +1,34 @@
-import React from 'react';
-import { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1500,
+      duration: 1200,
       useNativeDriver: true,
     }).start();
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
 
     const timer = setTimeout(() => {
-      router.replace('/(auth)/login');
-    }, 3000);
+      if (user) {
+        router.replace('/home');
+      } else {
+        router.replace('/(auth)/login');
+      }
+    }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [loading, user]);
 
   return (
     <View style={[styles.container, { backgroundColor: '#0B1957' }]}>

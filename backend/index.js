@@ -73,15 +73,6 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
 
-// Middleware global de manejo de errores para evitar FUNCTION_INVOCATION_FAILED en Vercel
-app.use((err, req, res, next) => {
-    console.error('[UNHANDLED SERVER ERROR]:', err);
-    res.status(500).json({
-        error: 'Error interno del servidor',
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-});
-
 // En Vercel Serverless las funciones son efímeras. No debemos iniciar setInterval ni servidores persistentes.
 if (process.env.VERCEL !== '1' && !process.env.VERCEL) {
     app.listen(PORT, () => {
@@ -91,6 +82,5 @@ if (process.env.VERCEL !== '1' && !process.env.VERCEL) {
 }
 
 module.exports = app;
-
 
 

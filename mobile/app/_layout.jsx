@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { TouchableOpacity, View, Text, Platform } from 'react-native';
 import { Menu, Sun, Moon, Bell, Globe } from 'lucide-react-native';
 import '../src/i18n';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +49,9 @@ function LayoutInner() {
 
   const hasBadge = unreadCount > 0 || !!notification;
 
-  return (
+  const isWeb = Platform.OS === 'web';
+
+  const content = (
     <AuthProvider>
       <AlertProvider>
         <StatusBar style={theme === 'dark' ? "light" : "auto"} />
@@ -195,6 +197,34 @@ function LayoutInner() {
       </AlertProvider>
     </AuthProvider>
   );
+
+  if (isWeb) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: theme === 'dark' ? '#090D16' : '#E2E8F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <View style={{
+          width: '100%',
+          maxWidth: 520,
+          height: '100%',
+          backgroundColor: colors.background,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.18,
+          shadowRadius: 30,
+          elevation: 12,
+          overflow: 'hidden',
+        }}>
+          {content}
+        </View>
+      </View>
+    );
+  }
+
+  return content;
 }
 
 export default function Layout() {

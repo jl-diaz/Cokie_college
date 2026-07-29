@@ -23,9 +23,15 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const { theme, colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors, theme), [colors, theme]);
+
+  React.useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/home');
+    }
+  }, [user, authLoading]);
 
   const toggleLanguage = async () => {
     const newLang = i18n.language === 'es' ? 'en' : 'es';

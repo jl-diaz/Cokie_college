@@ -1,1 +1,25 @@
-{}
+{
+  "name": "cokie-college",
+  "version": "1.0.0",
+  "main": "backend/index.js",
+  "scripts": {
+    "start": "node backend/index.js",
+    "dev": "nodemon backend/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "crypto-random-string": "^5.0.0",
+    "dotenv": "^17.4.2",
+    "expo-server-sdk": "^6.1.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "nodemailer": "^8.0.7",
+    "resend": "^6.12.3"
+  }
+}

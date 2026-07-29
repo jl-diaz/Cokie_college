@@ -7,7 +7,6 @@ node_modules/
 coverage/
 
 # Production
-dist/
 build/
 
 # Misc
@@ -38,3 +37,5 @@ Estudio-base-de-datos.md
 Estudio-mobile.md
 Estudio-web.md
 /.agents/
+/CokieHall/JS/CokieCollege.apk
+

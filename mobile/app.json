@@ -20,6 +20,7 @@
     },
     "android": {
       "package": "com.cokiecollege.app",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -27,8 +28,13 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "favicon": "./assets/icon.png",
+      "bundler": "metro",
+      "name": "CokieCollege",
+      "shortName": "CokieCollege",
+      "themeColor": "#0B1957",
+      "backgroundColor": "#0B1957",
+      "display": "standalone"
     },
     "updates": {
       "enabled": true,
