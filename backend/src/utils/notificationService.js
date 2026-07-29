@@ -1,6 +1,16 @@
-const { Expo } = require('expo-server-sdk');
 const { supabaseAdmin } = require('../config/supabase');
-const expo = new Expo();
+
+let Expo;
+let expo;
+
+const getExpoClient = async () => {
+    if (!Expo) {
+        const expoModule = await import('expo-server-sdk');
+        Expo = expoModule.Expo || expoModule.default?.Expo || expoModule.default;
+        expo = new Expo();
+    }
+    return { Expo, expo };
+};
 
 /**
  * Envía una notificación push a través de Expo y guarda en la BD.
@@ -27,6 +37,8 @@ const sendNotification = async (userId, title, body, data = {}) => {
 
         const pushToken = profile?.push_token;
         if (!pushToken) return;
+
+        const { Expo, expo } = await getExpoClient();
 
         if (!Expo.isExpoPushToken(pushToken)) {
             console.error(`Push token ${pushToken} no es válido`);
@@ -73,6 +85,7 @@ const sendNotification = async (userId, title, body, data = {}) => {
  */
 const checkPushReceipts = async (receiptIds) => {
     try {
+        const { expo } = await getExpoClient();
         let receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
         for (let chunk of receiptIdChunks) {
             let receipts = await expo.getPushNotificationReceiptsAsync(chunk);
