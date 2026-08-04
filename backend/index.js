@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Configurar trust proxy para Vercel / proxies de producción
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Rate limiting por capas para alto estrés y prevención de abuso
 const generalLimiter = rateLimit({
@@ -72,6 +72,16 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
+
+// Middleware global para captura de errores no controlados y evitar crash serverless
+app.use((err, req, res, next) => {
+    console.error('[SERVER ERROR]:', err);
+    res.status(err.status || 500).json({
+        error: true,
+        message: err.message || 'Error interno del servidor en Vercel Serverless Function.',
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
 
 // En Vercel Serverless las funciones son efímeras. No debemos iniciar setInterval ni servidores persistentes.
 if (process.env.VERCEL !== '1' && !process.env.VERCEL) {

@@ -4,3 +4,4 @@ python-socketio
 opencv-python
 mediapipe==0.10.35
 numpy
+gTTS
