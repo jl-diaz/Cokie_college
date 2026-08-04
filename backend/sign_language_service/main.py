@@ -18,12 +18,12 @@ socket_app = socketio.ASGIApp(sio, app)
 user_sessions = {}
 inference_lock = asyncio.Lock()
 
-# ── Health check para que Render no devuelva 404 ──
-@app.get("/")
+# ── Health check para que Render no devuelva 404 / 405 ──
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"status": "ok", "service": "Sign Language Interpreter"}
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     from isl_model import _models_loaded
     return {"status": "healthy", "models_loaded": _models_loaded}
