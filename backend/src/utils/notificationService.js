@@ -1,6 +1,19 @@
-const { Expo } = require('expo-server-sdk');
 const { supabaseAdmin } = require('../config/supabase');
-const expo = new Expo();
+
+let ExpoClass = null;
+let expoClient = null;
+
+/**
+ * Carga dinámica de expo-server-sdk para compatibilidad entre CommonJS y ES Modules en Vercel
+ */
+const getExpoClient = async () => {
+    if (!expoClient) {
+        const expoModule = await import('expo-server-sdk');
+        ExpoClass = expoModule.Expo || (expoModule.default && expoModule.default.Expo) || expoModule.default;
+        expoClient = new ExpoClass();
+    }
+    return { Expo: ExpoClass, expo: expoClient };
+};
 
 /**
  * Envía una notificación push a través de Expo y guarda en la BD.
@@ -27,6 +40,8 @@ const sendNotification = async (userId, title, body, data = {}) => {
 
         const pushToken = profile?.push_token;
         if (!pushToken) return;
+
+        const { Expo, expo } = await getExpoClient();
 
         if (!Expo.isExpoPushToken(pushToken)) {
             console.error(`Push token ${pushToken} no es válido`);
@@ -73,6 +88,7 @@ const sendNotification = async (userId, title, body, data = {}) => {
  */
 const checkPushReceipts = async (receiptIds) => {
     try {
+        const { expo } = await getExpoClient();
         let receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
         for (let chunk of receiptIdChunks) {
             let receipts = await expo.getPushNotificationReceiptsAsync(chunk);
@@ -81,7 +97,6 @@ const checkPushReceipts = async (receiptIds) => {
                 if (status === 'error') {
                     console.error(`Error en receipt ${receiptId}: ${message}`);
                     if (details && details.error === 'DeviceNotRegistered') {
-                        // Idealmente tendríamos el token mapeado, pero podemos loguearlo
                         console.log(`Un dispositivo ya no está registrado. Debe actualizarse en la DB.`);
                     }
                 }
@@ -90,7 +105,7 @@ const checkPushReceipts = async (receiptIds) => {
     } catch (error) {
         console.error('Error revisando push receipts:', error);
     }
-}
+};
 
 module.exports = {
     sendNotification,
