@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-python-socketio
+python-socketio>=5.0,<6.0
 opencv-python-headless
 mediapipe==0.10.35
 numpy

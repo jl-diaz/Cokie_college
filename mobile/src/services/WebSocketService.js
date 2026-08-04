@@ -20,6 +20,11 @@ class WebSocketService {
     this.socket = io(url, {
       transports: ['websocket'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
+      timeout: 30000, // 30s para esperar cold-start de Render
     });
 
     this.socket.on('connect', () => {
@@ -27,9 +32,26 @@ class WebSocketService {
       this.isConnected = true;
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Desconectado del servidor');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Desconectado del servidor:', reason);
       this.isConnected = false;
+    });
+
+    this.socket.on('connect_error', (err) => {
+      console.warn('Error de conexión con intérprete:', err.message);
+      this.isConnected = false;
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`Reconectado al intérprete después de ${attemptNumber} intentos`);
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`Intento de reconexión #${attemptNumber}...`);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('No se pudo reconectar al servidor de intérprete después de todos los intentos');
     });
 
     this.socket.on('translation_result', async (data) => {

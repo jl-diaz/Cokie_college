@@ -3,6 +3,7 @@ import socketio
 import uvicorn
 import base64
 import io
+import os
 import asyncio
 from gtts import gTTS
 from isl_model import ISLModel, load_models
@@ -16,6 +17,16 @@ socket_app = socketio.ASGIApp(sio, app)
 
 user_sessions = {}
 inference_lock = asyncio.Lock()
+
+# ── Health check para que Render no devuelva 404 ──
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "Sign Language Interpreter"}
+
+@app.get("/health")
+async def health():
+    from isl_model import _models_loaded
+    return {"status": "healthy", "models_loaded": _models_loaded}
 
 # Precargar modelos globales de Mediapipe en memoria al iniciar la app
 load_models()
@@ -71,5 +82,6 @@ async def process_frame(sid, data):
                 await sio.emit('translation_result', {'text': translation}, room=sid)
 
 if __name__ == '__main__':
-    print("Iniciando servidor en puerto 8000...")
-    uvicorn.run(socket_app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Iniciando servidor en puerto {port}...")
+    uvicorn.run(socket_app, host="0.0.0.0", port=port)
