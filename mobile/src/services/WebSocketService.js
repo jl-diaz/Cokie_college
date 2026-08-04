@@ -25,7 +25,7 @@ class WebSocketService {
     }
 
     this.socket = io(url, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'], // Priorizar websocket
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 20,

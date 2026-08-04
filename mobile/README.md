@@ -96,7 +96,7 @@ npx eas-cli build -p android --profile production
 ### 3. Publicar Actualizaciones Sencillas Over-The-Air (OTA)
 Envía correcciones de código en tiempo real sin requerir que los usuarios reinstalen la APK:
 ```bash
-eas update --branch production --message "Mejoras en el modal de alerta y correcciones i18n"
+npx eas-cli update --branch production --message "Mensaje"
 ```
 
 ---

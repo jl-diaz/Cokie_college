@@ -7,6 +7,8 @@ import { Mic, MicOff, SwitchCamera } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
+import { captureRef } from 'react-native-view-shot';
+import { Platform } from 'react-native';
 
 export default function InterpreterScreenNative() {
   const { t } = useTranslation();
@@ -18,6 +20,7 @@ export default function InterpreterScreenNative() {
   const [isActive, setIsActive] = useState(true);
   const [facingMode, setFacingMode] = useState('front');
   const cameraRef = useRef(null);
+  const containerRef = useRef(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   useEffect(() => {
@@ -52,20 +55,34 @@ export default function InterpreterScreenNative() {
       intervalId = setInterval(async () => {
         if (!cameraRef.current) return;
         try {
-          const photo = await cameraRef.current.takePictureAsync({
-            base64: true,
-            quality: 0.3,
-            skipProcessing: true,
-          });
-          if (photo && photo.base64) {
-            WebSocketService.sendFrame(photo.base64);
+          let base64Data = null;
+          
+          if (Platform.OS === 'ios' && containerRef.current) {
+            // En iOS usamos captureRef para evitar el sonido del obturador (shutter sound)
+            base64Data = await captureRef(containerRef, {
+              format: 'jpg',
+              quality: 0.3,
+              result: 'base64',
+            });
+          } else {
+            // En Android tomamos foto (en Android no siempre suena y captureRef puede fallar con SurfaceView)
+            const photo = await cameraRef.current.takePictureAsync({
+              base64: true,
+              quality: 0.3,
+              skipProcessing: true,
+            });
+            base64Data = photo?.base64;
+          }
+
+          if (base64Data) {
+            WebSocketService.sendFrame(base64Data);
           }
         } catch (e) {
-          if (!e.message.includes('unmounted')) {
+          if (!e.message?.includes('unmounted')) {
             console.log('Error capturando frame:', e);
           }
         }
-      }, 1000); // 1 cuadro por segundo - balanceado para Render free tier
+      }, 400); // 400ms para que sea mucho más rápido y fluido
     }
 
     return () => {
@@ -93,7 +110,7 @@ export default function InterpreterScreenNative() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
 
-      <View style={styles.cameraContainer}>
+      <View style={styles.cameraContainer} ref={containerRef}>
         <CameraView 
           ref={cameraRef}
           style={StyleSheet.absoluteFill} 
