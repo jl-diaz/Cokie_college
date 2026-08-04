@@ -11,8 +11,14 @@ from isl_model import ISLModel, load_models
 # Inicializamos FastAPI
 app = FastAPI(title="Sign Language Interpreter API")
 
-# Inicializamos el servidor Socket.IO
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+# Inicializamos el servidor Socket.IO con opciones para Render proxy
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    ping_timeout=60,
+    ping_interval=25,
+    max_http_buffer_size=10000000
+)
 socket_app = socketio.ASGIApp(sio, app)
 
 user_sessions = {}
@@ -25,8 +31,13 @@ async def root():
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    from isl_model import _models_loaded
-    return {"status": "healthy", "models_loaded": _models_loaded}
+    from isl_model import _models_loaded, _global_gesture_recognizer, _global_hand_landmarker
+    return {
+        "status": "healthy",
+        "models_loaded": _models_loaded,
+        "gesture_recognizer": _global_gesture_recognizer is not None,
+        "hand_landmarker": _global_hand_landmarker is not None
+    }
 
 # Precargar modelos globales de Mediapipe en memoria al iniciar la app
 load_models()
@@ -55,31 +66,35 @@ async def disconnect(sid):
 async def process_frame(sid, data):
     """
     Evento principal. Recibe un frame de video en base64 desde la app.
+    Si el servidor está ocupado procesando otro frame, descarta este para evitar backlog.
     """
     model = user_sessions.get(sid)
-    if model:
-        # Mediapipe Tasks Python API es síncrona y pesada. 
-        # Usamos asyncio.to_thread con un Lock para evitar colisiones y no bloquear el event loop.
-        async with inference_lock:
-            translation = await asyncio.to_thread(model.process_frame_base64, data)
+    if not model:
+        return
+    
+    # Si el lock está ocupado, descartar frame para evitar acumulación
+    if inference_lock.locked():
+        return
+    
+    async with inference_lock:
+        translation = await asyncio.to_thread(model.process_frame_base64, data)
+    
+    # Si se detectó una seña estable, enviar el texto inmediatamente
+    if translation:
+        print(f"Traducción detectada para {sid}: {translation}")
         
-        # Si se detectó una seña estable, enviar el texto
-        if translation:
-            print(f"Traducción detectada para {sid}: {translation}")
-            
-            try:
-                # gTTS realiza una petición de red síncrona que bloquea el hilo por varios segundos.
-                # Debe ir en un thread separado para que el servidor no desconecte clientes.
-                audio_b64 = await asyncio.to_thread(generate_audio_b64, translation)
-                
-                await sio.emit('translation_result', {
-                    'text': translation,
-                    'audioBase64': audio_b64
-                }, room=sid)
-            except Exception as e:
-                print(f"Error generando TTS: {e}")
-                # Enviar sin audio en caso de error de red
-                await sio.emit('translation_result', {'text': translation}, room=sid)
+        # Enviar texto inmediatamente (sin esperar audio)
+        await sio.emit('translation_result', {'text': translation}, room=sid)
+        
+        # Generar y enviar audio en segundo plano sin bloquear
+        try:
+            audio_b64 = await asyncio.to_thread(generate_audio_b64, translation)
+            await sio.emit('translation_audio', {
+                'text': translation,
+                'audioBase64': audio_b64
+            }, room=sid)
+        except Exception as e:
+            print(f"Error generando TTS: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))

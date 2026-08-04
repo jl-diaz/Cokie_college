@@ -17,13 +17,20 @@ class WebSocketService {
       return;
     }
 
+    // Si ya hay una conexión previa, limpiarla para evitar listeners duplicados
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
     this.socket = io(url, {
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       timeout: 30000, // 30s para esperar cold-start de Render
     });
 
@@ -54,12 +61,22 @@ class WebSocketService {
       console.error('No se pudo reconectar al servidor de intérprete después de todos los intentos');
     });
 
-    this.socket.on('translation_result', async (data) => {
+    // Texto de traducción (llega inmediatamente)
+    this.socket.on('translation_result', (data) => {
       if (data && data.text) {
+        console.log('Traducción recibida:', data.text);
+        this.lastSpokenText = data.text;
+        this.lastSpokenTime = Date.now();
+      }
+    });
+
+    // Audio de traducción (llega después del texto, evento separado)
+    this.socket.on('translation_audio', async (data) => {
+      if (data && data.audioBase64) {
         const now = Date.now();
         
-        // Evitar repetir el mismo texto en menos de 3 segundos
-        if (data.text === this.lastSpokenText && (now - this.lastSpokenTime) < 3000) {
+        // Evitar repetir el mismo audio en menos de 3 segundos
+        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 3000) {
           return;
         }
         
@@ -67,58 +84,60 @@ class WebSocketService {
         if (this.isPlaying) {
           return;
         }
-        
-        console.log('Traducción recibida:', data.text);
-        this.lastSpokenText = data.text;
-        this.lastSpokenTime = now;
-        
-        // Si el backend nos mandó el audio (mp3 en base64)
-        if (data.audioBase64) {
-          try {
-            this.isPlaying = true;
-            
-            // Forzar audio por altavoz principal saltando el modo silencio
-            await Audio.setAudioModeAsync({
-              allowsRecordingIOS: false,
-              playsInSilentModeIOS: true,
-              staysActiveInBackground: true,
-              playThroughEarpieceAndroid: false,
-            });
-            
-            const soundUri = `data:audio/mp3;base64,${data.audioBase64}`;
-            const { sound } = await Audio.Sound.createAsync(
-              { uri: soundUri },
-              { shouldPlay: true }
-            );
-            
-            // Liberar cuando termine
-            sound.setOnPlaybackStatusUpdate((status) => {
-              if (status.didJustFinish) {
-                this.isPlaying = false;
-                sound.unloadAsync();
-              }
-            });
-          } catch (e) {
-            console.error("Error reproduciendo audio del backend:", e);
-            this.isPlaying = false;
-          }
+
+        try {
+          this.isPlaying = true;
+          this._lastAudioText = data.text;
+          this._lastAudioTime = now;
+          
+          // Forzar audio por altavoz principal saltando el modo silencio
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            playThroughEarpieceAndroid: false,
+          });
+          
+          const soundUri = `data:audio/mp3;base64,${data.audioBase64}`;
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: soundUri },
+            { shouldPlay: true }
+          );
+          
+          // Liberar cuando termine
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.didJustFinish) {
+              this.isPlaying = false;
+              sound.unloadAsync();
+            }
+          });
+        } catch (e) {
+          console.error("Error reproduciendo audio del backend:", e);
+          this.isPlaying = false;
         }
       }
     });
   }
 
   sendFrame(base64Image) {
-    if (this.socket && this.isConnected) {
+    if (this.socket && (this.socket.connected || this.isConnected)) {
       this.socket.emit('process_frame', base64Image);
     }
   }
 
   disconnect() {
     if (this.socket) {
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
-      this.isConnected = false;
     }
+    // Resetear todo el estado interno
+    this.isConnected = false;
+    this.isPlaying = false;
+    this.lastSpokenText = '';
+    this.lastSpokenTime = 0;
+    this._lastAudioText = '';
+    this._lastAudioTime = 0;
   }
 }
 

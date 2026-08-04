@@ -58,15 +58,14 @@ export default function InterpreterScreenNative() {
             skipProcessing: true,
           });
           if (photo && photo.base64) {
-            const base64Data = `data:image/jpeg;base64,${photo.base64}`;
-            WebSocketService.sendFrame(base64Data);
+            WebSocketService.sendFrame(photo.base64);
           }
         } catch (e) {
           if (!e.message.includes('unmounted')) {
             console.log('Error capturando frame:', e);
           }
         }
-      }, 250); // 4 cuadros por segundo
+      }, 1000); // 1 cuadro por segundo - balanceado para Render free tier
     }
 
     return () => {
