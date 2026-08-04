@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 python-socketio
-opencv-python
+opencv-python-headless
 mediapipe==0.10.35
 numpy
 gTTS
