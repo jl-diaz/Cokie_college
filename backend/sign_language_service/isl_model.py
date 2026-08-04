@@ -171,49 +171,56 @@ def classify_letter_from_landmarks(landmarks):
     return None
 
 
+# Variables globales para evitar cargar los modelos pesados en cada conexión
+_global_gesture_recognizer = None
+_global_hand_landmarker = None
+_models_loaded = False
+
+def load_models():
+    global _global_gesture_recognizer, _global_hand_landmarker, _models_loaded
+    if _models_loaded:
+        return
+        
+    model_path = os.path.join(os.path.dirname(__file__) or '.', 'gesture_recognizer.task')
+    hand_model_path = os.path.join(os.path.dirname(__file__) or '.', 'hand_landmarker.task')
+    
+    if os.path.exists(model_path):
+        try:
+            base_options = python.BaseOptions(model_asset_path=model_path)
+            options = vision.GestureRecognizerOptions(
+                base_options=base_options,
+                num_hands=2,
+                min_hand_detection_confidence=0.5,
+                min_hand_presence_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+            _global_gesture_recognizer = vision.GestureRecognizer.create_from_options(options)
+            print("[OK] GestureRecognizer cargado correctamente (Global)")
+        except Exception as e:
+            print(f"[WARN] No se pudo cargar GestureRecognizer: {e}")
+    
+    if os.path.exists(hand_model_path):
+        try:
+            hand_base = python.BaseOptions(model_asset_path=hand_model_path)
+            hand_options = vision.HandLandmarkerOptions(
+                base_options=hand_base,
+                num_hands=2,
+                min_hand_detection_confidence=0.5,
+                min_hand_presence_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+            _global_hand_landmarker = vision.HandLandmarker.create_from_options(hand_options)
+            print("[OK] HandLandmarker cargado correctamente (Global)")
+        except Exception as e:
+            print(f"[WARN] No se pudo cargar HandLandmarker: {e}")
+            
+    _models_loaded = True
+
 class ISLModel:
     def __init__(self):
-        model_path = os.path.join(os.path.dirname(__file__) or '.', 'gesture_recognizer.task')
-        hand_model_path = os.path.join(os.path.dirname(__file__) or '.', 'hand_landmarker.task')
-        
-        self.gesture_recognizer = None
-        self.hand_landmarker = None
-        
-        # 1. Intentar cargar el GestureRecognizer (reconoce gestos completos)
-        if os.path.exists(model_path):
-            try:
-                base_options = python.BaseOptions(model_asset_path=model_path)
-                options = vision.GestureRecognizerOptions(
-                    base_options=base_options,
-                    num_hands=2,
-                    min_hand_detection_confidence=0.5,
-                    min_hand_presence_confidence=0.5,
-                    min_tracking_confidence=0.5
-                )
-                self.gesture_recognizer = vision.GestureRecognizer.create_from_options(options)
-                print("[OK] GestureRecognizer cargado correctamente")
-            except Exception as e:
-                print(f"[WARN] No se pudo cargar GestureRecognizer: {e}")
-        else:
-            print(f"[WARN] Modelo gesture_recognizer.task no encontrado en {model_path}")
-        
-        # 2. Cargar HandLandmarker como respaldo para letras por landmarks
-        if os.path.exists(hand_model_path):
-            try:
-                hand_base = python.BaseOptions(model_asset_path=hand_model_path)
-                hand_options = vision.HandLandmarkerOptions(
-                    base_options=hand_base,
-                    num_hands=2,
-                    min_hand_detection_confidence=0.5,
-                    min_hand_presence_confidence=0.5,
-                    min_tracking_confidence=0.5
-                )
-                self.hand_landmarker = vision.HandLandmarker.create_from_options(hand_options)
-                print("[OK] HandLandmarker cargado correctamente")
-            except Exception as e:
-                print(f"[WARN] No se pudo cargar HandLandmarker: {e}")
-        else:
-            print(f"[WARN] Modelo hand_landmarker.task no encontrado en {hand_model_path}")
+        load_models()
+        self.gesture_recognizer = _global_gesture_recognizer
+        self.hand_landmarker = _global_hand_landmarker
         
         # Historial para estabilizar predicciones (evitar parpadeo)
         self.recent_predictions = []
