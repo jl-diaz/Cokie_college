@@ -20,5 +20,5 @@ COPY . .
 ENV PORT=8000
 EXPOSE $PORT
 
-# Comando para ejecutar el servidor con uvicorn
-CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+# Comando para ejecutar el servidor con uvicorn confiando en el proxy de Render
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
