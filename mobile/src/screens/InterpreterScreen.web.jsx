@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CameraView, Camera } from 'expo-camera';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -16,13 +15,19 @@ export default function InterpreterScreenWeb() {
   const [hasPermission, setHasPermission] = useState(null);
   const [isActive, setIsActive] = useState(true);
   const [facing, setFacing] = useState('front');
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const cameraRef = useRef(null);
+  
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasPermission(true);
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        setHasPermission(false);
+      }
     })();
 
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL;
@@ -34,33 +39,56 @@ export default function InterpreterScreenWeb() {
   }, []);
 
   useEffect(() => {
+    let stream = null;
+    if (hasPermission && isActive) {
+      navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: facing === 'front' ? 'user' : 'environment' } 
+      })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch(err => console.error("Error webcam:", err));
+    }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [hasPermission, isActive, facing]);
+
+  useEffect(() => {
     let intervalId;
-    if (hasPermission && isActive && isCameraReady && cameraRef.current) {
-      intervalId = setInterval(async () => {
-        try {
-          if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({
-              quality: 0.3,
-              base64: true,
-              skipProcessing: true
-            });
+    if (hasPermission && isActive) {
+      intervalId = setInterval(() => {
+        if (videoRef.current && canvasRef.current) {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            if (photo && photo.base64) {
-               WebSocketService.sendFrame(photo.base64);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.3);
+            const base64 = dataUrl.split(',')[1];
+            
+            if (base64) {
+              WebSocketService.sendFrame(base64);
             }
           }
-        } catch (e) {
-          if (!e.message.includes('unmounted')) {
-            console.log('Error capturando frame web:', e);
-          }
         }
-      }, 1000); // 1 frame por segundo en web para no saturar el navegador
+      }, 1000);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [hasPermission, isActive, isCameraReady]);
+  }, [hasPermission, isActive]);
 
   function toggleCameraType() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
@@ -83,14 +111,15 @@ export default function InterpreterScreenWeb() {
       <Stack.Screen options={{ title: '' }} />
 
       <View style={styles.cameraContainer}>
-        <CameraView 
-          style={StyleSheet.absoluteFill} 
-          facing={facing} 
-          ref={cameraRef}
-          onCameraReady={() => setIsCameraReady(true)}
+        <video 
+          ref={videoRef}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          autoPlay
+          playsInline
+          muted
         />
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
         
-        {/* Botón Flotante Liquid Glass para rotar cámara */}
         <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
           <SwitchCamera color="#fff" size={28} />
         </TouchableOpacity>
