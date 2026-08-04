@@ -13,7 +13,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  FlatList
 } from 'react-native';
 import { 
   Utensils, 
@@ -66,6 +67,9 @@ export default function CafetinScreen() {
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [refreshingOrders, setRefreshingOrders] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const lastTapRef = useRef({});
 
   // --- ESTADOS MÓDULO 3: QR SCANNER / DESPACHO ---
@@ -126,16 +130,33 @@ export default function CafetinScreen() {
     }
   };
 
-  const fetchTodayOrders = async () => {
-    setLoadingOrders(true);
+  const fetchTodayOrders = async (pageNum = 1) => {
+    if (pageNum === 1) setLoadingOrders(true);
+    else setLoadingMore(true);
+
     try {
-      const res = await api.get('/cafetin/orders');
-      setOrders(res.data || []);
+      const res = await api.get('/cafetin/orders', { params: { page: pageNum, limit: 50 } });
+      const { data, totalPages: fetchedTotalPages } = res.data;
+      
+      if (pageNum === 1) {
+        setOrders(data);
+      } else {
+        setOrders(prev => [...prev, ...data]);
+      }
+      setTotalPages(fetchedTotalPages);
+      setPage(pageNum);
     } catch (error) {
       console.error('Error al cargar pedidos:', error);
     } finally {
       setLoadingOrders(false);
+      setLoadingMore(false);
       setRefreshingOrders(false);
+    }
+  };
+
+  const loadMoreOrders = () => {
+    if (page < totalPages && !loadingMore && !loadingOrders) {
+      fetchTodayOrders(page + 1);
     }
   };
 
@@ -488,14 +509,8 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 2: PEDIDOS RECIBIDOS --- */}
       {activeTab === 'pedidos' && (
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshingOrders} onRefresh={() => { setRefreshingOrders(true); fetchTodayOrders(); }} />
-          }
-        >
-          <View style={styles.noticeBox}>
+        <View style={styles.content}>
+          <View style={[styles.noticeBox, { marginHorizontal: 20, marginTop: 10 }]}>
             <Sparkles size={18} color={Colors.primary} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.noticeTitle}>💡 Doble clic para cambiar estado</Text>
@@ -514,46 +529,57 @@ export default function CafetinScreen() {
               <Text style={styles.emptyDesc}>Los pedidos de los usuarios aparecerán aquí en cuanto sean ordenados.</Text>
             </View>
           ) : (
-            orders.map((order) => {
-              const badge = getStatusBadge(order.status);
-              const formattedTime = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            <FlatList
+              data={orders}
+              keyExtractor={item => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              refreshControl={
+                <RefreshControl refreshing={refreshingOrders} onRefresh={() => { setRefreshingOrders(true); fetchTodayOrders(1); }} />
+              }
+              onEndReached={loadMoreOrders}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} style={{ margin: 20 }} /> : null}
+              renderItem={({ item: order }) => {
+                const badge = getStatusBadge(order.status);
+                const formattedTime = new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-              return (
-                <TouchableOpacity
-                  key={order.id}
-                  style={[styles.orderCard, order.status === 'preparado' && styles.orderCardPrepared]}
-                  onPress={() => handleCardTap(order)}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.orderCardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.customerName}>{order.user?.full_name || 'Cliente'}</Text>
-                      <Text style={styles.orderTime}><Clock size={12} color={Colors.text.secondary} /> {formattedTime}</Text>
+                return (
+                  <TouchableOpacity
+                    style={[styles.orderCard, order.status === 'preparado' && styles.orderCardPrepared, { marginHorizontal: 20 }]}
+                    onPress={() => handleCardTap(order)}
+                    activeOpacity={0.9}
+                  >
+                    <View style={styles.orderCardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.customerName}>{order.user?.full_name || 'Cliente'}</Text>
+                        <Text style={styles.orderTime}><Clock size={12} color={Colors.text.secondary} /> {formattedTime}</Text>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                        <Text style={[styles.statusBadgeText, { color: badge.color }]}>{badge.label}</Text>
+                      </View>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-                      <Text style={[styles.statusBadgeText, { color: badge.color }]}>{badge.label}</Text>
+
+                    <View style={styles.orderItemsList}>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Fuerte:</Text> {order.fuerte?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 1:</Text> {order.acompanamiento1?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 2:</Text> {order.acompanamiento2?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Tortillas:</Text> {order.tortillas_qty}</Text>
+                      {order.refresco?.name ? (
+                        <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Refresco:</Text> {order.refresco?.name}</Text>
+                      ) : null}
                     </View>
-                  </View>
 
-                  <View style={styles.orderItemsList}>
-                    <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Fuerte:</Text> {order.fuerte?.name}</Text>
-                    <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 1:</Text> {order.acompanamiento1?.name}</Text>
-                    <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 2:</Text> {order.acompanamiento2?.name}</Text>
-                    <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Tortillas:</Text> {order.tortillas_qty}</Text>
-                    {order.refresco?.name ? (
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Refresco:</Text> {order.refresco?.name}</Text>
-                    ) : null}
-                  </View>
-
-                  <View style={styles.orderCardFooter}>
-                    <Text style={styles.priceLabel}>Monto total a cobrar:</Text>
-                    <Text style={styles.priceValue}>${Number(order.total_price).toFixed(2)}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+                    <View style={styles.orderCardFooter}>
+                      <Text style={styles.priceLabel}>Monto total a cobrar:</Text>
+                      <Text style={styles.priceValue}>${Number(order.total_price).toFixed(2)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+            />
           )}
-        </ScrollView>
+        </View>
       )}
 
       {/* --- MÓDULO 3: ESCÁNER QR --- */}
@@ -673,21 +699,31 @@ export default function CafetinScreen() {
                 <Text style={styles.amountBoxValue}>${Number(scannedOrder.total_price).toFixed(2)}</Text>
               </View>
 
-              <TouchableOpacity
-                style={[styles.dispatchButton, confirmingDispatch && { opacity: 0.6 }]}
-                onPress={handleConfirmDispatch}
-                disabled={confirmingDispatch}
-                activeOpacity={0.85}
-              >
-                {confirmingDispatch ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <>
-                    <CheckCircle size={22} color="#FFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.dispatchButtonText}>Confirmar Despacho del Pedido</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {scannedOrder.status === 'entregado' ? (
+                <View style={{ marginTop: 20, padding: 16, backgroundColor: '#fee2e2', borderRadius: 12, alignItems: 'center' }}>
+                  <AlertCircle size={28} color="#ef4444" style={{ marginBottom: 8 }} />
+                  <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 16 }}>¡ATENCIÓN!</Text>
+                  <Text style={{ color: '#991b1b', textAlign: 'center', marginTop: 4 }}>
+                    Este pedido ya fue marcado como ENTREGADO anteriormente. No es posible despacharlo de nuevo.
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.dispatchButton, confirmingDispatch && { opacity: 0.6 }]}
+                  onPress={handleConfirmDispatch}
+                  disabled={confirmingDispatch}
+                  activeOpacity={0.85}
+                >
+                  {confirmingDispatch ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <>
+                      <CheckCircle size={22} color="#FFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.dispatchButtonText}>Confirmar Despacho del Pedido</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </ScrollView>

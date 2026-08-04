@@ -15,6 +15,10 @@ const adminController = {
 
             let query = supabaseAdmin.from('profiles').select('*', { count: 'exact' });
 
+            if (req.user.role !== 'super_admin') {
+                query = query.eq('is_active', true);
+            }
+
             if (role) {
                 query = query.eq('role', role);
             }
@@ -51,7 +55,7 @@ const adminController = {
 
     createUser: async (req, res) => {
         try {
-            const { full_name, email, role, grade, section, first_surname, second_surname, level } = req.body;
+            const { full_name, email, role, grade, section, first_surname, second_surname, level, materia_principal } = req.body;
             
             // Validación de campos requeridos
             if (!full_name || !email || !role) {
@@ -83,6 +87,17 @@ const adminController = {
 
             if (authError) throw authError;
 
+            // Auto-asignar level según el grado
+            let computedLevel = level || null;
+            if (!computedLevel && grade) {
+                const gradeNum = parseInt(grade);
+                if (gradeNum >= 2 && gradeNum <= 6) {
+                    computedLevel = 'Primaria';
+                } else if (gradeNum >= 7 && gradeNum <= 11) {
+                    computedLevel = 'Tercer Ciclo';
+                }
+            }
+
             // 3. Crear perfil en la tabla 'profiles'
             const { data: profile, error: profileError } = await supabaseAdmin
                 .from('profiles')
@@ -94,7 +109,8 @@ const adminController = {
                     role,
                     grade: grade || null,
                     section: section || null,
-                    level: level || null
+                    level: computedLevel,
+                    specialty_subject_id: role === 'teacher' ? (materia_principal || null) : null
                 }])
                 .select()
                 .single();
@@ -150,11 +166,13 @@ const adminController = {
     deleteUser: async (req, res) => {
         try {
             const { id } = req.params;
-            const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
-            if (authError) throw authError;
+            const { error } = await supabaseAdmin
+                .from('profiles')
+                .update({ is_active: false })
+                .eq('id', id);
 
-            // El perfil se elimina por CASCADE en la DB
-            res.json({ message: 'Usuario eliminado correctamente' });
+            if (error) throw error;
+            res.json({ message: 'Usuario desactivado correctamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -164,9 +182,26 @@ const adminController = {
 
     getConductCodes: async (req, res) => {
         try {
-            const { data, error } = await supabaseAdmin.from('conduct_codes').select('*');
+            const { page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
+            const { data, count, error } = await supabaseAdmin
+                .from('conduct_codes')
+                .select('*', { count: 'exact' })
+                .order('name', { ascending: true })
+                .range(from, to);
+
             if (error) throw error;
-            res.json(data);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

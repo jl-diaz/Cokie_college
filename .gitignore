@@ -37,5 +37,5 @@ Estudio-base-de-datos.md
 Estudio-mobile.md
 Estudio-web.md
 /.agents/
-/CokieHall/JS/CokieCollege.apk
-
+*.apk
+CokieHall/JS/*.apk

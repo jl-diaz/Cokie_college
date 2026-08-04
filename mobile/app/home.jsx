@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils } from 'lucide-react-native';
+import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils, Camera } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -17,6 +17,7 @@ export default function HomeScreen() {
     const lunchModule = { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils, color: '#10b981', desc: t('home.lunchDesc', 'Encargar tu almuerzo del día') };
 
     const commonModules = [
+      { name: t('menu.interpreter', 'Intérprete (ISL)'), path: '/interpreter', icon: Camera, color: '#06b6d4', desc: t('home.interpreterDesc', 'Traductor de señas en tiempo real') },
       { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar, color: '#ec4899', desc: t('home.eventsDesc', 'Fechas y actividades institucionales') },
       { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell, color: '#f59e0b', desc: t('home.announcementsDesc', 'Comunicados oficiales') }
     ];
@@ -32,6 +33,7 @@ export default function HomeScreen() {
       case 'coordinator':
         return [
           lunchModule,
+          { name: t('menu.classrooms', 'Salones'), path: '/classrooms', icon: BookOpen, color: '#0ea5e9', desc: 'Ver salones y descargar reportes' },
           { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users, color: '#8b5cf6', desc: t('home.studentsDesc', 'Ver listado de estudiantes') },
           { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText, color: '#f59e0b', desc: t('home.coordinatorJustificationsDesc', 'Aprobar ausencias') },
           { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText, color: '#ec4899', desc: t('home.gradeTicketsDesc', 'Aprobar extensión de notas') },
@@ -199,14 +201,18 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 16,
   },
   card: {
-    width: '48%',
+    minWidth: 140,
+    flex: 1,
+    flexBasis: 160,
+    maxWidth: 300,
     backgroundColor: Colors.card,
     borderRadius: 22,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: theme === 'dark' ? 0.3 : 0.04,

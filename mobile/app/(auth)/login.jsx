@@ -238,8 +238,11 @@ const createStyles = (colors, theme) => StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'flex-start',
     marginTop: 0,
+    alignItems: 'center',
   },
   card: {
+    width: '100%',
+    maxWidth: 450,
     backgroundColor: colors.card,
     borderRadius: 30,
     paddingHorizontal: 24,

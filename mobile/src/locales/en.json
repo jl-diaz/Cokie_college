@@ -55,7 +55,8 @@
     "lunchDesc": "Order your daily lunch",
     "cafetinDesc": "Daily menu, orders & QR dispatch",
     "eventsDesc": "Institutional dates and activities",
-    "announcementsDesc": "Official announcements"
+    "announcementsDesc": "Official announcements",
+    "interpreterDesc": "Real-time sign language translation"
   },
   "menu": {
     "home": "Home",
@@ -77,7 +78,8 @@
     "lunch": "Order Lunch",
     "logout": "Log Out",
     "admin": "Management",
-    "activeClass": "Active Class"
+    "activeClass": "Active Class",
+    "interpreter": "Interpreter (ISL)"
   },
   "drawer": {
     "subBrand": "Student Platform"

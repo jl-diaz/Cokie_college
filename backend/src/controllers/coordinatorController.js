@@ -1,4 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
+const { generateSchedule } = require('../utils/scheduleGenerator');
 const { sendNotification } = require('../utils/notificationService');
 const { getPeriodForDate } = require('../utils/periodHelper');
 
@@ -47,7 +48,8 @@ const coordinatorController = {
             let query = supabaseAdmin
                 .from('profiles')
                 .select('*')
-                .eq('role', 'student');
+                .eq('role', 'student')
+                .eq('is_active', true);
 
             // Filtrar por el nivel del coordinador
             if (level === 'Primaria') {
@@ -211,13 +213,26 @@ const coordinatorController = {
 
     getConductCodes: async (req, res) => {
         try {
-            const { data, error } = await supabaseAdmin
+            const { page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
+            const { data, count, error } = await supabaseAdmin
                 .from('conduct_codes')
-                .select('*')
-                .order('name', { ascending: true });
+                .select('*', { count: 'exact' })
+                .order('name', { ascending: true })
+                .range(from, to);
             
             if (error) throw error;
-            res.json(data);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -230,6 +245,27 @@ const coordinatorController = {
 
             if (!student_id) {
                 return res.status(400).json({ error: 'El ID de estudiante es obligatorio.' });
+            }
+
+            const coordinator_level = req.user.level;
+            
+            // Mitigación de BOLA: Verificar si el estudiante pertenece al nivel del coordinador
+            const { data: studentProfile, error: studentError } = await supabaseAdmin
+                .from('profiles')
+                .select('grade')
+                .eq('id', student_id)
+                .single();
+
+            if (studentError || !studentProfile) {
+                return res.status(404).json({ error: 'Estudiante no encontrado.' });
+            }
+
+            const grade = studentProfile.grade;
+            if (coordinator_level === 'Primaria' && !['1','2','3','4','5','6'].includes(grade)) {
+                return res.status(403).json({ error: 'No tienes permiso para registrar conducta a estudiantes de este nivel.' });
+            }
+            if ((coordinator_level === 'Secundaria' || coordinator_level === 'Tercer Ciclo') && !['7','8','9','10','11'].includes(grade)) {
+                return res.status(403).json({ error: 'No tienes permiso para registrar conducta a estudiantes de este nivel.' });
             }
 
             const isUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -335,7 +371,8 @@ const coordinatorController = {
             let query = supabaseAdmin
                 .from('profiles')
                 .select('*')
-                .eq('role', 'teacher');
+                .eq('role', 'teacher')
+                .eq('is_active', true);
             
             if (level) {
                 query = query.eq('level', level);
@@ -422,7 +459,7 @@ const coordinatorController = {
             }
 
             if (!students || students.length === 0) {
-                return res.json([]);
+                return res.json({ data: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 });
             }
 
             const studentIds = students.map(s => s.id);
@@ -452,7 +489,13 @@ const coordinatorController = {
                 throw error;
             }
 
-            res.json(data || []);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             console.error('CRITICAL ERROR in getJustificationRequests:', error);
             res.status(500).json({ error: error.message || 'Internal Server Error' });
@@ -464,8 +507,28 @@ const coordinatorController = {
             const { id } = req.params;
             const { status, coordinator_message } = req.body;
             const coordinator_id = req.user.id;
+            const coordinator_level = req.user.level;
 
-            // 1. Actualizar solicitud
+            // 1. Validar IDOR (Propiedad del nivel)
+            const { data: existingJust, error: existingErr } = await supabaseAdmin
+                .from('justifications')
+                .select('*, student:student_id(grade)')
+                .eq('id', id)
+                .single();
+
+            if (existingErr || !existingJust) {
+                return res.status(404).json({ error: 'Justificación no encontrada' });
+            }
+
+            const grade = existingJust.student?.grade;
+            if (coordinator_level === 'Primaria' && !['1','2','3','4','5','6'].includes(grade)) {
+                return res.status(403).json({ error: 'No tienes permiso para procesar justificaciones de este nivel' });
+            }
+            if ((coordinator_level === 'Secundaria' || coordinator_level === 'Tercer Ciclo') && !['7','8','9','10','11'].includes(grade)) {
+                return res.status(403).json({ error: 'No tienes permiso para procesar justificaciones de este nivel' });
+            }
+
+            // 2. Actualizar solicitud
             const { data: justification, error: justError } = await supabaseAdmin
                 .from('justifications')
                 .update({ status, coordinator_message, coordinator_id })
@@ -563,28 +626,122 @@ const coordinatorController = {
         }
     },
 
-    // --- Asignación de Maestros ---
+    // --- Generador de Horarios ---
 
-    assignTeacher: async (req, res) => {
+    generateScheduleProposal: async (req, res) => {
         try {
-            const { teacher_id, subject_id, grade, section, day_of_week, start_time, end_time } = req.body;
+            const { level } = req.user;
+            if (!level) {
+                return res.status(400).json({ error: 'El coordinador no tiene un nivel asignado.' });
+            }
+
+            // Verificar si ya existe un horario guardado para los maestros de este nivel
+            let teacherLevels = [level];
+            if (level === 'Secundaria' || level === 'Tercer Ciclo') {
+                teacherLevels = ['Secundaria', 'Tercer Ciclo'];
+            }
+            
+            const { data: existingTeachers } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .eq('role', 'teacher')
+                .in('level', teacherLevels);
+            
+            if (existingTeachers && existingTeachers.length > 0) {
+                const teacherIds = existingTeachers.map(t => t.id);
+                const { data: existingSchedules } = await supabaseAdmin
+                    .from('schedules')
+                    .select('id')
+                    .in('teacher_id', teacherIds)
+                    .limit(1);
+
+                if (existingSchedules && existingSchedules.length > 0) {
+                    return res.status(400).json({ 
+                        error: 'Ya existe un horario aprobado para este nivel. Elimínalo primero para generar uno nuevo.',
+                        code: 'SCHEDULE_EXISTS'
+                    });
+                }
+            }
+
+            const proposal = await generateSchedule(level);
+            res.json(proposal);
+        } catch (error) {
+            console.error('Error al generar propuesta de horario:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    applySchedule: async (req, res) => {
+        try {
+            const { proposal } = req.body;
+            const { level } = req.user;
+
+            if (!proposal || !Array.isArray(proposal)) {
+                return res.status(400).json({ error: 'Propuesta inválida' });
+            }
+
+            // Opcional: Eliminar horarios anteriores para los salones/maestros de este nivel
+            // Para simplificar, borramos los de los maestros de este nivel
+            const { data: teachers } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .eq('role', 'teacher')
+                .eq('level', level);
+            
+            if (teachers && teachers.length > 0) {
+                const teacherIds = teachers.map(t => t.id);
+                await supabaseAdmin
+                    .from('schedules')
+                    .delete()
+                    .in('teacher_id', teacherIds);
+            }
+
+            // Insertar nuevos
+            // Cleanup proposal objects to match db schema
+            const recordsToInsert = proposal.map(p => ({
+                teacher_id: p.teacher_id,
+                subject_id: p.subject_id,
+                grade: p.grade,
+                section: p.section,
+                day_of_week: p.day_of_week,
+                start_time: p.start_time,
+                end_time: p.end_time
+            }));
 
             const { data, error } = await supabaseAdmin
                 .from('schedules')
-                .insert([{
-                    teacher_id,
-                    subject_id,
-                    grade,
-                    section,
-                    day_of_week,
-                    start_time,
-                    end_time
-                }])
-                .select()
-                .single();
+                .insert(recordsToInsert)
+                .select();
 
             if (error) throw error;
-            res.status(201).json(data);
+            res.status(201).json({ message: 'Horario aplicado correctamente', data });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    deleteSchedule: async (req, res) => {
+        try {
+            const { level } = req.user;
+            let teacherLevels = [level];
+            if (level === 'Secundaria' || level === 'Tercer Ciclo') {
+                teacherLevels = ['Secundaria', 'Tercer Ciclo'];
+            }
+            const { data: teachers } = await supabaseAdmin
+                .from('profiles')
+                .select('id')
+                .eq('role', 'teacher')
+                .in('level', teacherLevels);
+
+            if (teachers && teachers.length > 0) {
+                const teacherIds = teachers.map(t => t.id);
+                const { error } = await supabaseAdmin
+                    .from('schedules')
+                    .delete()
+                    .in('teacher_id', teacherIds);
+                if (error) throw error;
+            }
+            res.json({ message: 'Horario eliminado exitosamente.' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -641,6 +798,12 @@ const coordinatorController = {
     getGradeTickets: async (req, res) => {
         try {
             const { level } = req.user;
+            const { page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
             let query = supabaseAdmin
                 .from('grade_extension_tickets')
                 .select(`
@@ -651,17 +814,25 @@ const coordinatorController = {
                         institutional_code,
                         level
                     )
-                `)
+                `, { count: 'exact' })
                 .order('created_at', { ascending: false });
 
             if (level) {
                 query = query.eq('level', level);
             }
 
-            const { data, error } = await query;
+            query = query.range(from, to);
+
+            const { data, count, error } = await query;
             if (error && error.code !== 'PGRST205') throw error;
 
-            res.json(data || []);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             console.error('Error in getGradeTickets:', error);
             res.status(500).json({ error: error.message });
@@ -678,15 +849,20 @@ const coordinatorController = {
                 return res.status(400).json({ error: 'Estado no válido' });
             }
 
-            // 1. Obtener ticket actual
+            // 1. Obtener ticket actual y validar nivel (IDOR)
             const { data: ticket, error: ticketErr } = await supabaseAdmin
                 .from('grade_extension_tickets')
-                .select('*')
+                .select('*, teacher:teacher_id(level)')
                 .eq('id', id)
                 .single();
 
             if (ticketErr || !ticket) {
                 return res.status(404).json({ error: 'Ticket no encontrado' });
+            }
+
+            const ticketLevel = ticket.level || ticket.teacher?.level;
+            if (req.user.level && ticketLevel && req.user.level !== ticketLevel) {
+                return res.status(403).json({ error: 'No tienes permiso para procesar tickets de este nivel' });
             }
 
             let approvedUntil = null;

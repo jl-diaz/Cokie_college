@@ -19,6 +19,7 @@ import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/the
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
+import { generateClassroomReportsZip } from '../src/utils/pdfGenerator';
 
 export default function ClassroomsScreen() {
   const { t } = useTranslation();
@@ -33,6 +34,8 @@ export default function ClassroomsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClassroom, setSelectedClassroom] = useState(null);
   const [isActionSheetVisible, setActionSheetVisible] = useState(false);
+  const [showPeriodSelector, setShowPeriodSelector] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   useEffect(() => {
     fetchClassrooms();
@@ -58,6 +61,7 @@ export default function ClassroomsScreen() {
 
   const handleClassroomPress = (classroom) => {
     setSelectedClassroom(classroom);
+    setShowPeriodSelector(false);
     setActionSheetVisible(true);
   };
 
@@ -77,6 +81,38 @@ export default function ClassroomsScreen() {
       pathname: '/schedule', 
       params: { grade: selectedClassroom.grade, section: selectedClassroom.section } 
     });
+  };
+
+  const handleDownloadZip = async (period) => {
+    if (!selectedClassroom) return;
+    try {
+      setDownloadingZip(true);
+      // fetch students for this classroom
+      const res = await api.get('/coordinator/students', {
+        params: { grade: selectedClassroom.grade, section: selectedClassroom.section }
+      });
+      // The backend /coordinator/students might return all if no params, we need to filter them if it doesn't handle params
+      let studentsList = res.data || [];
+      if (studentsList.length > 0 && !studentsList[0].grade) {
+         // Fallback if backend didn't filter
+         studentsList = studentsList.filter(s => s.grade === selectedClassroom.grade && s.section === selectedClassroom.section);
+      } else if (studentsList.length > 0) {
+         studentsList = studentsList.filter(s => s.grade === selectedClassroom.grade && s.section === selectedClassroom.section);
+      }
+      
+      if (studentsList.length === 0) {
+        showAlert({ type: 'warning', title: 'Atención', message: 'No hay estudiantes en este salón.' });
+        setDownloadingZip(false);
+        return;
+      }
+      
+      await generateClassroomReportsZip(selectedClassroom.id, period, studentsList);
+      setActionSheetVisible(false);
+    } catch (error) {
+      showAlert({ type: 'error', title: 'Error', message: error.message || 'No se pudo generar el ZIP.' });
+    } finally {
+      setDownloadingZip(false);
+    }
   };
 
   const filteredClassrooms = useMemo(() => {
@@ -223,6 +259,52 @@ export default function ClassroomsScreen() {
               </View>
               <ChevronRight color={Colors.text.muted} size={18} />
             </TouchableOpacity>
+
+            {profile?.role === 'coordinator' && (
+              <>
+                {!showPeriodSelector ? (
+                  <TouchableOpacity onPress={() => setShowPeriodSelector(true)} style={styles.actionItem} activeOpacity={0.8}>
+                    <View style={[styles.actionIconBox, { backgroundColor: '#10b981' }]}>
+                      <BookOpen color="#FFF" size={20} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.actionText}>Descargar Boletines (ZIP)</Text>
+                      <Text style={styles.actionSubtext}>Genera un archivo ZIP con todos los PDFs del salón</Text>
+                    </View>
+                    <ChevronRight color={Colors.text.muted} size={18} />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={[styles.actionItem, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                    <Text style={[styles.actionText, { marginBottom: 10, textAlign: 'center' }]}>Selecciona el Periodo a Descargar</Text>
+                    {downloadingZip ? (
+                      <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 10 }} />
+                    ) : (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                        {[1, 2, 3, 4].map(p => (
+                          <TouchableOpacity 
+                            key={p} 
+                            style={{ padding: 10, backgroundColor: Colors.primaryLight, borderRadius: 8, minWidth: 40, alignItems: 'center', opacity: p > 2 ? 0.6 : 1 }}
+                            onPress={() => {
+                              if (p > 2) {
+                                showAlert({
+                                  type: 'warning',
+                                  title: 'Periodo Incompleto',
+                                  message: 'El boletín de este periodo aún no está disponible para descargar.'
+                                });
+                                return;
+                              }
+                              handleDownloadZip(p);
+                            }}
+                          >
+                            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>P{p}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
           </View>
         </View>
       </Modal>

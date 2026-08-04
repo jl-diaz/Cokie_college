@@ -55,7 +55,8 @@
     "lunchDesc": "Encargar tu almuerzo del día",
     "cafetinDesc": "Menú del día, pedidos y despacho QR",
     "eventsDesc": "Fechas y actividades institucionales",
-    "announcementsDesc": "Comunicados oficiales"
+    "announcementsDesc": "Comunicados oficiales",
+    "interpreterDesc": "Traducción de lenguaje de señas en tiempo real"
   },
   "menu": {
     "home": "Inicio",
@@ -77,6 +78,7 @@
     "lunch": "Almuerzos",
     "admin": "Gestión",
     "activeClass": "Clase Activa",
+    "interpreter": "Intérprete (ISL)",
     "logout": "Cerrar Sesión"
   },
   "drawer": {

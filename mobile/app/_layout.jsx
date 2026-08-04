@@ -1,11 +1,13 @@
+import '../src/utils/textDecoderPolyfill';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity, View, Text, Platform } from 'react-native';
-import { Menu, Sun, Moon, Bell, Globe } from 'lucide-react-native';
+import { TouchableOpacity, View, Text, Platform, Pressable } from 'react-native';
+import { Menu, Sun, Moon, Bell, Globe, ArrowLeft } from 'lucide-react-native';
+import { useRouter, useRootNavigationState, useSegments } from 'expo-router';
 import '../src/i18n';
 import { useTranslation } from 'react-i18next';
-import { AuthProvider } from '../src/context/AuthContext';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { AlertProvider } from '../src/context/AlertContext';
@@ -21,23 +23,39 @@ function LayoutInner() {
   const { theme, toggleTheme, colors, openColorModal } = useTheme();
   const { t, i18n } = useTranslation();
   const { notification } = usePushNotifications();
+  const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
+  const segments = useSegments();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!rootNavigationState?.key) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!authLoading && !user && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
+  }, [user, authLoading, rootNavigationState?.key]);
 
   const fetchUnreadCount = useCallback(async () => {
+    if (!user) return;
     try {
       const res = await api.get('/notifications');
       const data = Array.isArray(res.data) ? res.data : [];
       const count = data.filter(n => !n.read).length;
       setUnreadCount(count);
     } catch (err) {
-      // Ignorar si el usuario no ha iniciado sesión aún
+      // Ignorar
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 12000);
     return () => clearInterval(interval);
-  }, [fetchUnreadCount, notification]);
+  }, [fetchUnreadCount, notification, user]);
 
   const toggleLanguage = async () => {
     const newLang = i18n.language === 'es' ? 'en' : 'es';
@@ -52,10 +70,9 @@ function LayoutInner() {
   const isWeb = Platform.OS === 'web';
 
   const content = (
-    <AuthProvider>
-      <AlertProvider>
-        <StatusBar style={theme === 'dark' ? "light" : "auto"} />
-        <Stack
+    <>
+      <StatusBar style={theme === 'dark' ? "light" : "auto"} />
+      <Stack
           screenOptions={({ route }) => ({
             headerStyle: {
               backgroundColor: colors.headerC,
@@ -76,13 +93,36 @@ function LayoutInner() {
               justifyContent: 'center',
               alignItems: 'flex-start',
             },
+            headerLeft: () => {
+              if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (router.canGoBack()) {
+                      router.back();
+                    } else {
+                      router.replace('/home');
+                    }
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    alignSelf: 'center',
+                    padding: 8,
+                    marginLeft: 4,
+                  }}
+                >
+                  <ArrowLeft size={24} color={colors.text.headerTxtC} />
+                </TouchableOpacity>
+              );
+            },
             headerRight: () => {
                if (route.name === 'index' || route.name === '(auth)/login') return null;
                return (
                  <View style={{
                    flexDirection: 'row',
                    alignItems: 'center',
-                   alignSelf: 'flex-end',
+                   alignSelf: 'center',
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
                    paddingHorizontal: 4,
@@ -177,6 +217,8 @@ function LayoutInner() {
           <Stack.Screen name="class" options={{ title: ('') }} />
           <Stack.Screen name="classrooms" options={{ title: ('') }} />
           <Stack.Screen name="coordinator-justifications" options={{ title: ('') }} />
+          <Stack.Screen name="coordinator-tickets" options={{ title: ('') }} />
+          <Stack.Screen name="apply-conduct" options={{ title: ('') }} />
           <Stack.Screen name="coordinator" options={{ title: ('') }} />
           <Stack.Screen name="teacher-grades" options={{ title: ('') }} />
           <Stack.Screen name="events" options={{ title: ('') }} />
@@ -193,44 +235,22 @@ function LayoutInner() {
           }} 
           onReadChange={(count) => setUnreadCount(count)}
         />
-        <DarkColorModal />
-      </AlertProvider>
-    </AuthProvider>
+      <DarkColorModal />
+    </>
   );
 
-  if (isWeb) {
-    return (
-      <View style={{
-        flex: 1,
-        backgroundColor: theme === 'dark' ? '#090D16' : '#E2E8F0',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <View style={{
-          width: '100%',
-          maxWidth: 520,
-          height: '100%',
-          backgroundColor: colors.background,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.18,
-          shadowRadius: 30,
-          elevation: 12,
-          overflow: 'hidden',
-        }}>
-          {content}
-        </View>
-      </View>
-    );
-  }
-
+  // En Web permitimos que use todo el espacio (comportamiento nativo PWA)
   return content;
 }
 
 export default function Layout() {
   return (
-    <ThemeProvider>
-      <LayoutInner />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <AlertProvider>
+          <LayoutInner />
+        </AlertProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

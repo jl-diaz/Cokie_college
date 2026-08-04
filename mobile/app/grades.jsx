@@ -7,6 +7,9 @@ import { ChevronDown, ChevronUp, Award, Book } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
+import { generateAndDownloadStudentReport } from '../src/utils/pdfGenerator';
+import { useAlert } from '../src/context/AlertContext';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function GradesScreen() {
   const { t } = useTranslation();
@@ -17,7 +20,13 @@ export default function GradesScreen() {
   const [loading, setLoading] = useState(true);
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState(1);
-  const { studentId, isCoordinatorView } = useLocalSearchParams();
+  const [studentDetails, setStudentDetails] = useState({});
+  const { profile } = useAuth();
+  const params = useLocalSearchParams();
+  const { studentId: paramStudentId, id, isCoordinatorView: paramIsCoordinatorView, isCoordinator, name, grade, section, code } = params;
+  const studentId = paramStudentId || id || profile?.id;
+  const isCoordinatorView = paramIsCoordinatorView === 'true' || isCoordinator === 'true';
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     fetchGradesAndAverages();
@@ -29,7 +38,7 @@ export default function GradesScreen() {
       let gradesEndpoint = '/student/grades';
       let averagesEndpoint = '/student/averages';
       
-      if (isCoordinatorView === 'true' && studentId) {
+      if (isCoordinatorView && studentId) {
         gradesEndpoint = `/coordinator/students/${studentId}/grades`;
         averagesEndpoint = `/coordinator/students/${studentId}/averages`;
       }
@@ -40,8 +49,38 @@ export default function GradesScreen() {
       ]);
       setGrades(gradesRes.data);
       setAverages(averagesRes.data || []);
+      
+      if (isCoordinatorView) {
+        setStudentDetails({ 
+          full_name: name || 'Estudiante',
+          grade: grade || '',
+          section: section || 'A',
+          institutional_code: code || ''
+        });
+      } else {
+        setStudentDetails(profile || {});
+      }
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (selectedPeriod > 2) {
+      showAlert({
+        type: 'warning',
+        title: 'Periodo Incompleto',
+        message: 'El boletín de este periodo aún no está disponible para descargar.'
+      });
+      return;
+    }
+    try {
+      setLoading(true);
+      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails);
+    } catch (error) {
+      showAlert({ type: 'error', title: 'Error', message: 'No se pudo generar el boletín PDF.' });
     } finally {
       setLoading(false);
     }
@@ -115,7 +154,7 @@ export default function GradesScreen() {
     <ScrollView style={styles.container}>
       <PageHeader 
         title={t('titles.grades', 'Calificaciones y Notas')} 
-        subtitle={isCoordinatorView === 'true' ? t('titles.gradesSubtitleCoordinator', 'Consulta de notas del estudiante') : t('titles.gradesSubtitle', 'Resumen de rendimiento académico')} 
+        subtitle={isCoordinatorView ? t('titles.gradesSubtitleCoordinator', 'Consulta de notas del estudiante') : t('titles.gradesSubtitle', 'Resumen de rendimiento académico')} 
       />
 
       <View style={styles.periodSelectorContainer}>
@@ -134,6 +173,19 @@ export default function GradesScreen() {
           ))}
         </View>
       </View>
+
+      {isCoordinatorView && (
+        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+          <TouchableOpacity 
+            style={[styles.downloadBtn, { backgroundColor: Colors.primary }]} 
+            onPress={handleDownloadPDF}
+            activeOpacity={0.8}
+          >
+            <Book size={20} color="#FFF" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Descargar Boletín P{selectedPeriod} (PDF)</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.content}>
         <View style={styles.summaryCard}>
@@ -227,6 +279,18 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   periodSelectorContainer: {
     alignItems: 'center',
     marginTop: -10,

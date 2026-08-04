@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     grade TEXT,
     section TEXT,
     level TEXT,
+    push_token TEXT,
+    is_active BOOLEAN DEFAULT true,
+    specialty_subject_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -91,6 +94,7 @@ CREATE TABLE IF NOT EXISTS justifications (
 CREATE TABLE IF NOT EXISTS subjects (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     name TEXT NOT NULL,
+    weekly_hours INTEGER DEFAULT 4,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -344,3 +348,15 @@ CREATE INDEX IF NOT EXISTS idx_events_level_date ON events(level, event_date);
 CREATE INDEX IF NOT EXISTS idx_announcements_level_created ON announcements(level, created_at);
 CREATE INDEX IF NOT EXISTS idx_profiles_role_level ON profiles(role, level);
 CREATE INDEX IF NOT EXISTS idx_grade_extension_tickets_teacher_period ON grade_extension_tickets(teacher_id, period);
+
+-- Agregar FOREIGN KEY para specialty_subject_id en profiles (si aún no se ha agregado al inicio)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.table_constraints 
+        WHERE constraint_name = 'profiles_specialty_subject_id_fkey'
+    ) THEN
+        ALTER TABLE profiles ADD CONSTRAINT profiles_specialty_subject_id_fkey FOREIGN KEY (specialty_subject_id) REFERENCES subjects(id) ON DELETE SET NULL;
+    END IF;
+END $$;

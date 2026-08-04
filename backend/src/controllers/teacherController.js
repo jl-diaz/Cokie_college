@@ -279,12 +279,26 @@ const teacherController = {
 
     getConductCodes: async (req, res) => {
         try {
-            const { data, error } = await supabaseAdmin
+            const { page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
+
+            const { data, count, error } = await supabaseAdmin
                 .from('conduct_codes')
-                .select('*')
-                .order('code', { ascending: true });
+                .select('*', { count: 'exact' })
+                .order('code', { ascending: true })
+                .range(from, to);
+            
             if (error) throw error;
-            res.json(data);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

@@ -153,7 +153,14 @@ export default function StudentsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              onPress={() => navigateTo('/grades', { studentId: selectedStudent?.id, isCoordinatorView: 'true' })}
+              onPress={() => navigateTo('/grades', { 
+                studentId: selectedStudent?.id, 
+                isCoordinatorView: 'true',
+                name: selectedStudent?.full_name,
+                grade: selectedStudent?.grade,
+                section: selectedStudent?.section,
+                code: selectedStudent?.institutional_code
+              })}
               style={styles.actionButton}
             >
               <View style={[styles.actionIcon, { backgroundColor: Colors.status.approved }]}>

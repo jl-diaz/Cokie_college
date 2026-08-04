@@ -18,6 +18,9 @@ export default function ConductCatalogScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -36,11 +39,21 @@ export default function ConductCatalogScreen() {
     fetchCodes();
   }, []);
 
-  const fetchCodes = async () => {
-    setLoading(true);
+  const fetchCodes = async (pageNum = 1) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
+
     try {
-      const response = await api.get('/admin/conduct-codes');
-      setCodes(response.data);
+      const response = await api.get('/admin/conduct-codes', { params: { page: pageNum, limit: 50 } });
+      const { data, totalPages: fetchedTotalPages } = response.data;
+      
+      if (pageNum === 1) {
+        setCodes(data);
+      } else {
+        setCodes(prev => [...prev, ...data]);
+      }
+      setTotalPages(fetchedTotalPages);
+      setPage(pageNum);
     } catch (error) {
       console.error(error);
       showAlert({
@@ -50,6 +63,13 @@ export default function ConductCatalogScreen() {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreCodes = () => {
+    if (page < totalPages && !loadingMore && !loading) {
+      fetchCodes(page + 1);
     }
   };
 
@@ -179,6 +199,9 @@ export default function ConductCatalogScreen() {
           data={filteredCodes}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          onEndReached={loadMoreCodes}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} style={{ margin: 20 }} /> : null}
           renderItem={({ item }) => {
             const style = getCategoryStyle(item.category);
             return (

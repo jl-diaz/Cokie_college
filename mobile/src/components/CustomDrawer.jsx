@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
+const DRAWER_WIDTH = Math.min(width * 0.75, 320);
 
 export default function CustomDrawer({ visible, onClose }) {
   const { t } = useTranslation();
@@ -16,10 +17,10 @@ export default function CustomDrawer({ visible, onClose }) {
     ? Math.max(insets.top + 10, 50)
     : (StatusBar.currentHeight || insets.top || 24);
   const bottomPadding = Platform.OS === 'ios'
-    ? Math.max(insets.bottom + 5, 10)
-    : Math.max(insets.bottom + 70, 10);
+    ? Math.max(insets.bottom + 20, 24)
+    : Math.max(insets.bottom + 20, 24);
 
-  const slideAnim = useRef(new Animated.Value(-width)).current;
+  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const pathname = usePathname();
@@ -53,7 +54,7 @@ export default function CustomDrawer({ visible, onClose }) {
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
-          toValue: -width,
+          toValue: -DRAWER_WIDTH,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -205,8 +206,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   drawer: {
-    width: width * 0.75,
-    height: height,
+    width: DRAWER_WIDTH,
+    height: '100%',
     backgroundColor: '#0B1956',
     shadowColor: '#000',
     shadowOffset: { width: 5, height: 0 },

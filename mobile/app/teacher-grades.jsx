@@ -452,7 +452,7 @@ export default function TeacherGradesScreen() {
       <View style={styles.topControlContainer}>
         {!selectedClass && (
           <View style={styles.periodTabs}>
-            {[1, 2, 3, 4].map(p => (
+            {[1, 2].map(p => (
               <TouchableOpacity 
                 key={p} 
                 onPress={() => setSelectedPeriod(p)}

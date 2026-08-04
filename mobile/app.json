@@ -42,9 +42,7 @@
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/fd2a2f1c-190e-4d55-90ec-58fa0db18620"
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "plugins": [
       "expo-router",
       [
@@ -52,6 +50,12 @@
         {
           "icon": "./assets/icon.png",
           "color": "#0B1957"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Necesitamos acceso a la cámara para traducir el lenguaje de señas."
         }
       ]
     ],

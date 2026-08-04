@@ -108,3 +108,15 @@ npm run dev
 # Iniciar en modo producción
 npm start
 ```
+---
+
+## Interprete
+```bash
+##Seleccionar carpeta
+cd backend/sign_language_service/
+
+##Instalar dependencias
+pip install -r requirements.txt
+
+##Iniciar servicio
+python main.py

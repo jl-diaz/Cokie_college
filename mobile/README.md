@@ -87,10 +87,10 @@ eas project:init
 ### 2. Generar APK para Android
 ```bash
 # Perfil de prueba / Preview (Descarga directa .apk)
-eas build -p android --profile preview
+npx eas-cli build -p android --profile preview
 
 # Perfil de Producción
-eas build -p android --profile production
+npx eas-cli build -p android --profile production
 ```
 
 ### 3. Publicar Actualizaciones Sencillas Over-The-Air (OTA)
@@ -112,4 +112,6 @@ npm install --legacy-peer-deps
 
 # Iniciar servidor de desarrollo de Expo
 npx expo start
-```
+
+# Editar /dist
+npx expo export -p web

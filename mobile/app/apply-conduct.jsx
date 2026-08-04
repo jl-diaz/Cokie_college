@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import api from '../src/utils/api';
@@ -19,6 +19,9 @@ export default function ApplyConductScreen() {
   const [saving, setSaving] = useState(false);
   const [selectedCode, setSelectedCode] = useState(null);
   const [observation, setObservation] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   const { studentId } = useLocalSearchParams();
   const router = useRouter();
@@ -28,12 +31,22 @@ export default function ApplyConductScreen() {
     fetchCodes();
   }, []);
 
-  const fetchCodes = async () => {
+  const fetchCodes = async (pageNum = 1) => {
     try {
-      setLoading(true);
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
       const endpoint = profile?.role === 'teacher' ? '/teacher/conduct-codes' : '/coordinator/conduct-codes';
-      const response = await api.get(endpoint);
-      setCodes(response.data);
+      const response = await api.get(endpoint, { params: { page: pageNum, limit: 50 } });
+      const { data, totalPages: fetchedTotalPages } = response.data;
+      
+      if (pageNum === 1) {
+        setCodes(data);
+      } else {
+        setCodes(prev => [...prev, ...data]);
+      }
+      setTotalPages(fetchedTotalPages);
+      setPage(pageNum);
     } catch (error) {
       console.error(error);
       showAlert({
@@ -43,6 +56,13 @@ export default function ApplyConductScreen() {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreCodes = () => {
+    if (page < totalPages && !loadingMore && !loading) {
+      fetchCodes(page + 1);
     }
   };
 
@@ -96,11 +116,17 @@ export default function ApplyConductScreen() {
         subtitle={t('titles.diarySubtitle', 'Registro de Conducta')}
       />
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.sectionTitle}>{t('class.selectConductCode', 'Seleccione un Código')}</Text>
-        {codes.map(code => (
+      <FlatList 
+        style={styles.content}
+        data={codes}
+        keyExtractor={item => item.id}
+        onEndReached={loadMoreCodes}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          <Text style={styles.sectionTitle}>{t('class.selectConductCode', 'Seleccione un Código')}</Text>
+        }
+        renderItem={({ item: code }) => (
           <TouchableOpacity 
-            key={code.id}
             style={[styles.codeCard, selectedCode?.id === code.id && styles.codeCardSelected]}
             onPress={() => setSelectedCode(code)}
           >
@@ -113,35 +139,39 @@ export default function ApplyConductScreen() {
             <Text style={styles.codeName}>{code.name}</Text>
             <Text style={styles.codeDesc}>{code.description}</Text>
           </TouchableOpacity>
-        ))}
+        )}
+        ListFooterComponent={
+          <View>
+            {loadingMore && <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 10 }} />}
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('class.observationsLabel', 'Observación (Opcional)')}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t('dashboard.detailsPlaceholder', 'Añada detalles adicionales...')}
+              placeholderTextColor={Colors.text.muted}
+              multiline
+              numberOfLines={4}
+              value={observation}
+              onChangeText={setObservation}
+            />
 
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('class.observationsLabel', 'Observación (Opcional)')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('dashboard.detailsPlaceholder', 'Añada detalles adicionales...')}
-          placeholderTextColor={Colors.text.muted}
-          multiline
-          numberOfLines={4}
-          value={observation}
-          onChangeText={setObservation}
-        />
-
-        <TouchableOpacity 
-          style={[styles.submitBtn, (!selectedCode || saving) && styles.submitBtnDisabled]}
-          onPress={handleApply}
-          disabled={!selectedCode || saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <AlertCircle color="#FFF" size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>{t('class.applyConductBtn', 'Aplicar Código de Conducta')}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <View style={{ height: 40 }} />
-      </ScrollView>
+            <TouchableOpacity 
+              style={[styles.submitBtn, (!selectedCode || saving) && styles.submitBtnDisabled]}
+              onPress={handleApply}
+              disabled={!selectedCode || saving}
+            >
+              {saving ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <AlertCircle color="#FFF" size={20} style={{ marginRight: 8 }} />
+                  <Text style={styles.submitBtnText}>{t('class.applyConductBtn', 'Aplicar Código de Conducta')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <View style={{ height: 40 }} />
+          </View>
+        }
+      />
     </View>
   );
 }

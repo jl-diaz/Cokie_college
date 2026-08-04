@@ -20,6 +20,9 @@ export default function UsersScreen() {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -30,6 +33,7 @@ export default function UsersScreen() {
   const [levelDropdownOpen, setLevelDropdownOpen] = useState(false);
   const [gradeDropdownOpen, setGradeDropdownOpen] = useState(false);
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
+  const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -40,7 +44,8 @@ export default function UsersScreen() {
     role: 'student',
     grade: '',
     section: '',
-    level: ''
+    level: '',
+    materia_principal: ''
   });
 
   const roles = [
@@ -56,22 +61,23 @@ export default function UsersScreen() {
     { label: 'Tercer Ciclo', value: 'Tercer Ciclo' }
   ];
 
-  const grades = [
-    { label: '2º Grado', value: '2' },
-    { label: '3º Grado', value: '3' },
-    { label: '4º Grado', value: '4' },
-    { label: '5º Grado', value: '5' },
-    { label: '6º Grado', value: '6' },
-    { label: '7º Grado', value: '7' },
-    { label: '8º Grado', value: '8' },
-    { label: '9º Grado', value: '9' }
-  ];
+  const [grades] = useState([...Array(9)].map((_, i) => ({ label: `${i + 1}º Grado`, value: i + 1 })));
+  const [sections] = useState(['A', 'B', 'C'].map(s => ({ label: `Sección '${s}'`, value: s })));
+  const [subjects, setSubjects] = useState([]);
 
-  const sections = [
-    { label: 'Sección A', value: 'A' },
-    { label: 'Sección B', value: 'B' },
-    { label: 'Sección C', value: 'C' }
-  ];
+  useEffect(() => {
+    fetchUsers(1, true);
+    fetchSubjects();
+  }, [roleFilter]);
+
+  const fetchSubjects = async () => {
+    try {
+      const res = await api.get('/admin/subjects');
+      setSubjects(res.data.map(s => ({ label: s.name, value: s.id })));
+    } catch (error) {
+      console.error('Error fetching subjects', error);
+    }
+  };
 
   const roleFilterTabs = [
     { label: t('users.tabAll', 'Todos'), value: '' },
@@ -83,17 +89,26 @@ export default function UsersScreen() {
   ];
 
   useEffect(() => {
-    fetchUsers();
+    setPage(1);
+    fetchUsers(1, true);
   }, [roleFilter]);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (pageNum = page, reset = false) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
+
     try {
       const response = await api.get('/admin/users', {
-        params: roleFilter ? { role: roleFilter, limit: 100 } : { limit: 100 }
+        params: { role: roleFilter || undefined, limit: 50, page: pageNum }
       });
-      const userData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      setUsers(userData);
+      const userData = response.data?.data || [];
+      
+      if (reset) {
+        setUsers(userData);
+      } else {
+        setUsers(prev => [...prev, ...userData]);
+      }
+      setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
       console.error(error);
       showAlert({
@@ -103,6 +118,15 @@ export default function UsersScreen() {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (page < totalPages && !loadingMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchUsers(nextPage);
     }
   };
 
@@ -131,7 +155,8 @@ export default function UsersScreen() {
       role: user.role || 'student',
       grade: user.grade || '',
       section: user.section || '',
-      level: user.level || ''
+      level: user.level || '',
+      materia_principal: user.materia_principal || ''
     });
     setModalVisible(true);
   };
@@ -166,7 +191,8 @@ export default function UsersScreen() {
           role: formData.role,
           grade: formData.role === 'student' ? formData.grade : '',
           section: formData.role === 'student' ? formData.section : '',
-          level: (formData.role === 'coordinator' || formData.role === 'teacher') ? formData.level : ''
+          level: (formData.role === 'coordinator' || formData.role === 'teacher') ? formData.level : '',
+          materia_principal: formData.role === 'teacher' ? formData.materia_principal : null
         });
         showAlert({
           type: 'success',
@@ -183,7 +209,8 @@ export default function UsersScreen() {
         });
       }
       setModalVisible(false);
-      fetchUsers();
+      setPage(1);
+      fetchUsers(1, true);
     } catch (error) {
       console.error(error);
       const errorMsg = error.response?.data?.error || t('dashboard.error', 'Error al guardar usuario');
@@ -200,25 +227,26 @@ export default function UsersScreen() {
   const handleDeleteUser = (id) => {
     showConfirm({
       type: 'danger',
-      title: t('users.confirmDeleteTitle', 'Confirmar eliminación'),
-      message: t('users.confirmDeleteBody', '¿Estás seguro de que deseas eliminar este usuario?'),
-      confirmText: t('dashboard.delete', 'Eliminar'),
+      title: t('users.confirmDeleteTitle', 'Desactivar usuario'),
+      message: t('users.confirmDeleteBody', '¿Estás seguro de que deseas desactivar este usuario? Ya no aparecerá en las listas.'),
+      confirmText: t('dashboard.delete', 'Desactivar'),
       cancelText: t('dashboard.cancel', 'Cancelar'),
       onConfirm: async () => {
         try {
           await api.delete(`/admin/users/${id}`);
           showAlert({
             type: 'success',
-            title: t('dashboard.success', '¡Eliminado!'),
-            message: t('users.userDeleted', 'Usuario eliminado correctamente.')
+            title: t('dashboard.success', '¡Desactivado!'),
+            message: t('users.userDeleted', 'Usuario desactivado correctamente.')
           });
-          fetchUsers();
+          setPage(1);
+          fetchUsers(1, true);
         } catch (error) {
           console.error(error);
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
-            message: 'No se pudo eliminar el usuario.'
+            message: 'No se pudo desactivar el usuario.'
           });
         }
       }
@@ -253,6 +281,11 @@ export default function UsersScreen() {
   const getGradeLabel = (grade) => {
     const found = grades.find(g => g.value === grade);
     return found ? found.label : (grade || 'Seleccionar Grado');
+  };
+
+  const getSubjectLabel = (subjectId) => {
+    const found = subjects.find(s => s.value === subjectId);
+    return found ? found.label : 'Seleccionar Materia';
   };
 
   const getSectionLabel = (section) => {
@@ -330,6 +363,11 @@ export default function UsersScreen() {
                         </Text>
                       </View>
                     )}
+                    {item.is_active === false && (
+                      <View style={[styles.roleBadge, { backgroundColor: '#f3f4f6' }]}>
+                        <Text style={[styles.roleBadgeText, { color: '#6b7280' }]}>INACTIVO</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
                 <View style={styles.cardActions}>
@@ -337,7 +375,7 @@ export default function UsersScreen() {
                     <Edit2 size={18} color={Colors.primary} />
                   </TouchableOpacity>
 
-                  {!(item.role === 'super_admin') && (
+                  {!(item.role === 'super_admin') && item.is_active !== false && (
                     <TouchableOpacity onPress={() => handleDeleteUser(item.id)} style={[styles.actionBtn, styles.deleteBtn]}>
                       <Trash2 size={18} color={Colors.status.rejected} />
                     </TouchableOpacity>
@@ -347,6 +385,9 @@ export default function UsersScreen() {
               </View>
             );
           }}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} style={{ margin: 20 }} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>{t('users.notFound', 'No se encontraron usuarios.')}</Text>
@@ -505,6 +546,39 @@ export default function UsersScreen() {
                         </TouchableOpacity>
                       ))}
                     </View>
+                  )}
+                </View>
+              )}
+
+              {formData.role === 'teacher' && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Materia Principal / Especialidad</Text>
+                  <TouchableOpacity 
+                    style={styles.dropdownTrigger} 
+                    onPress={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
+                  >
+                    <Book size={18} color={Colors.text.muted} style={styles.inputIcon} />
+                    <Text style={styles.dropdownTriggerText}>
+                      {getSubjectLabel(formData.materia_principal)}
+                    </Text>
+                    <ChevronDown size={18} color={Colors.text.muted} />
+                  </TouchableOpacity>
+
+                  {subjectDropdownOpen && (
+                    <ScrollView style={[styles.dropdownList, { maxHeight: 150 }]} nestedScrollEnabled>
+                      {subjects.map(s => (
+                        <TouchableOpacity
+                          key={s.value}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setFormData({ ...formData, materia_principal: s.value });
+                            setSubjectDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemText}>{s.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   )}
                 </View>
               )}

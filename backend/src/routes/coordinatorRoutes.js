@@ -32,8 +32,10 @@ router.put('/justifications/:id', coordinatorController.processJustification);
 router.post('/justifications/direct', coordinatorController.directJustification);
 router.post('/justifications/student', coordinatorController.createJustificationForStudent);
 
-// Asignación de Maestros
-router.post('/schedules', coordinatorController.assignTeacher);
+// Asignación de Maestros (Generador Automático)
+router.get('/schedules/generate', coordinatorController.generateScheduleProposal);
+router.post('/schedules/apply', coordinatorController.applySchedule);
+router.delete('/schedules', coordinatorController.deleteSchedule);
 
 // Tickets de Extensión de Notas
 router.get('/grade-tickets', coordinatorController.getGradeTickets);

@@ -77,6 +77,11 @@ export function usePushNotifications() {
 async function registerForPushNotificationsAsync() {
   let token = null;
 
+  if (!Device.isDevice) {
+    console.log('Must use physical device for Push Notifications');
+    return null;
+  }
+
   if (Platform.OS === 'android') {
     try {
       await Notifications.setNotificationChannelAsync('default', {
@@ -102,13 +107,12 @@ async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    const rawProjectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-    const projectId = (rawProjectId && rawProjectId !== 'your-eas-project-id') ? rawProjectId : undefined;
+    const rawProjectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+    const projectId = (rawProjectId && rawProjectId !== 'your-eas-project-id') 
+      ? rawProjectId 
+      : 'fd2a2f1c-190e-4d55-90ec-58fa0db18620'; // Fallback to hardcoded app.json project id if missing in constants
 
-    const tokenObj = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined
-    );
+    const tokenObj = await Notifications.getExpoPushTokenAsync({ projectId });
     token = tokenObj?.data;
     console.log('Expo Push Token generated successfully:', token);
   } catch (e) {

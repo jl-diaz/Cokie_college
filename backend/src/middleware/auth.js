@@ -30,6 +30,12 @@ const authenticate = async (req, res, next) => {
             });
         }
 
+        if (profile.is_active === false) {
+            return res.status(403).json({ 
+                error: 'Tu cuenta ha sido desactivada. Por favor contacte al administrador.'
+            });
+        }
+
         req.user = { ...user, ...profile };
         next();
     } catch (error) {

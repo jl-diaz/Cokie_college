@@ -19,6 +19,9 @@ export default function CoordinatorJustificationsScreen() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   const [selectedReq, setSelectedReq] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,19 +53,29 @@ export default function CoordinatorJustificationsScreen() {
 
   useEffect(() => {
     if (view === 'requests') {
-      fetchRequests();
+      setPage(1);
+      fetchRequests(1, true);
     } else {
       fetchStudents();
     }
   }, [view, statusFilter]);
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (pageNum = page, reset = false) => {
     try {
-      setLoading(true);
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+
       const response = await api.get('/coordinator/justifications', {
-        params: statusFilter ? { status: statusFilter } : {}
+        params: { status: statusFilter || undefined, page: pageNum, limit: 50 }
       });
-      setRequests(response.data);
+      const newRequests = response.data?.data || [];
+      
+      if (reset) {
+        setRequests(newRequests);
+      } else {
+        setRequests(prev => [...prev, ...newRequests]);
+      }
+      setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
       console.error(error);
       showAlert({
@@ -72,6 +85,15 @@ export default function CoordinatorJustificationsScreen() {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (page < totalPages && !loadingMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchRequests(nextPage);
     }
   };
 
@@ -110,7 +132,8 @@ export default function CoordinatorJustificationsScreen() {
         message: `Justificación ${statusToSet === 'approved' ? 'aprobada' : 'rechazada'}.`
       });
       setModalVisible(false);
-      fetchRequests();
+      setPage(1);
+      fetchRequests(1, true);
     } catch (error) {
       console.error(error);
       showAlert({
@@ -332,6 +355,21 @@ export default function CoordinatorJustificationsScreen() {
               </View>
             ))
           )}
+
+          {page < totalPages && (
+            <TouchableOpacity 
+              style={{ padding: 16, alignItems: 'center', backgroundColor: Colors.gray[100], borderRadius: 12, marginTop: 10 }}
+              onPress={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <ActivityIndicator color={Colors.primary} size="small" />
+              ) : (
+                <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Cargar Más</Text>
+              )}
+            </TouchableOpacity>
+          )}
+
           <View style={{ height: 40 }} />
         </ScrollView>
       ) : (

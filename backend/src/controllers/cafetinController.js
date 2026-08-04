@@ -148,14 +148,19 @@ const cafetinController = {
         try {
             const cafetinId = req.user.id;
             const today = getElSalvadorDate();
+            const { page = 1, limit = 50 } = req.query;
+            const pageNum = parseInt(page) || 1;
+            const limitNum = parseInt(limit) || 50;
+            const from = (pageNum - 1) * limitNum;
+            const to = from + limitNum - 1;
 
-            // Limpieza de pedidos de días anteriores
+            // Limpieza de pedidos de días anteriores (solo una vez por día, opcional)
             await supabaseAdmin
                 .from('lunch_orders')
                 .delete()
                 .lt('date', today);
 
-            const { data, error } = await supabaseAdmin
+            const { data, count, error } = await supabaseAdmin
                 .from('lunch_orders')
                 .select(`
                     *,
@@ -164,13 +169,20 @@ const cafetinController = {
                     acompanamiento1:cafetin_menu_items!acompanamiento1_item_id(name),
                     acompanamiento2:cafetin_menu_items!acompanamiento2_item_id(name),
                     refresco:cafetin_menu_items!refresco_item_id(name)
-                `)
+                `, { count: 'exact' })
                 .eq('cafetin_id', cafetinId)
                 .eq('date', today)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .range(from, to);
 
             if (error) throw error;
-            res.json(data || []);
+            res.json({
+                data: data || [],
+                total: count || 0,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil((count || 0) / limitNum)
+            });
         } catch (error) {
             console.error('Error al obtener pedidos del día:', error);
             res.status(500).json({ error: error.message });

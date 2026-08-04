@@ -29,6 +29,9 @@ export default function CoordinatorTicketsScreen() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Modal State
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -37,14 +40,26 @@ export default function CoordinatorTicketsScreen() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchTickets();
+    setPage(1);
+    fetchTickets(1, true);
   }, []);
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (pageNum = page, reset = false) => {
     try {
-      setLoading(true);
-      const res = await api.get('/coordinator/grade-tickets');
-      setTickets(res.data || []);
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+      
+      const res = await api.get('/coordinator/grade-tickets', {
+        params: { page: pageNum, limit: 50 }
+      });
+      const newTickets = res.data?.data || [];
+      
+      if (reset) {
+        setTickets(newTickets);
+      } else {
+        setTickets(prev => [...prev, ...newTickets]);
+      }
+      setTotalPages(res.data?.totalPages || 1);
     } catch (error) {
       console.error('Error fetching grade tickets:', error);
       showAlert({
@@ -54,6 +69,15 @@ export default function CoordinatorTicketsScreen() {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (page < totalPages && !loadingMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchTickets(nextPage);
     }
   };
 
@@ -90,7 +114,8 @@ export default function CoordinatorTicketsScreen() {
       });
       setSelectedTicket(null);
       setActionType(null);
-      fetchTickets();
+      setPage(1);
+      fetchTickets(1, true);
     } catch (error) {
       console.error('Error processing ticket:', error);
       showAlert({
@@ -243,6 +268,9 @@ export default function CoordinatorTicketsScreen() {
               <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes registradas.')}</Text>
             </View>
           }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={Colors.primary} style={{ margin: 20 }} /> : null}
         />
       )}
 
