@@ -207,7 +207,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderRadius: 25,
     backgroundColor: 'rgba(11, 25, 86, 0.65)',
     alignItems: 'center',
-    justify.content: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
