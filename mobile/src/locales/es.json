@@ -443,5 +443,12 @@
     "friday": "Vie",
     "saturday": "Sáb",
     "sunday": "Dom"
+  },
+  "interpreter": {
+    "title": "Intérprete de Lenguaje de Señas (ISL)",
+    "noPermission": "No hay permisos de cámara o no se encontró webcam",
+    "instructions": "Modo Exposición: Coloca las manos y rostro frente a la cámara",
+    "active": "Traduciendo y hablando en vivo...",
+    "paused": "Intérprete Pausado"
   }
 }

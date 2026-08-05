@@ -225,6 +225,7 @@ function LayoutInner() {
           <Stack.Screen name="announcements" options={{ title: ('') }} />
           <Stack.Screen name="cafetin" options={{ title: ('') }} />
           <Stack.Screen name="lunch" options={{ title: ('') }} />
+          <Stack.Screen name="interpreter" options={{ title: ('') }} />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
         <NotificationsModal 

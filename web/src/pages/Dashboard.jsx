@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import io from 'socket.io-client';
 import { 
   Users, 
   UserCheck, 
@@ -23,7 +24,11 @@ import {
   AlertCircle, 
   ChevronRight, 
   Sparkles,
-  Award
+  Award,
+  Volume2,
+  VideoOff,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -1525,6 +1530,274 @@ const AdminAnnouncements = () => {
   );
 };
 
+// --- SUBMODULE 5: INTÉRPRETE ISL EN TIEMPO REAL ---
+const AdminInterpreter = () => {
+  const { t } = useTranslation();
+  const [isConnected, setIsConnected] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [lastTranslation, setLastTranslation] = useState('');
+  const [history, setHistory] = useState([]);
+  const [statusMessage, setStatusMessage] = useState('Conectando al servidor...');
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const socketRef = useRef(null);
+  const isCapturingRef = useRef(false);
+
+  useEffect(() => {
+    const serverUrl = import.meta.env.VITE_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+    
+    const socket = io(serverUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 15,
+      timeout: 20000,
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setIsConnected(true);
+      setStatusMessage('Conectado al Intérprete');
+    });
+
+    socket.on('disconnect', () => {
+      setIsConnected(false);
+      setStatusMessage('Desconectado del servidor');
+    });
+
+    socket.on('translation_result', (data) => {
+      if (data && data.text) {
+        setLastTranslation(data.text);
+        setHistory((prev) => [
+          { text: data.text, time: new Date().toLocaleTimeString() },
+          ...prev.slice(0, 19),
+        ]);
+
+        if (!isMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(data.text);
+            utterance.lang = 'es-MX';
+            utterance.rate = 1.0;
+            window.speechSynthesis.speak(utterance);
+          } catch (e) {
+            console.warn('Speech error:', e);
+          }
+        }
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isMuted]);
+
+  useEffect(() => {
+    let stream = null;
+
+    if (isActive) {
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        })
+        .then((s) => {
+          stream = s;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(console.warn);
+          }
+        })
+        .catch((err) => {
+          console.error('Error cámara:', err);
+          setStatusMessage('No se pudo acceder a la cámara web');
+        });
+    }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [isActive]);
+
+  useEffect(() => {
+    let intervalId;
+
+    if (isActive) {
+      intervalId = setInterval(() => {
+        if (!videoRef.current || !socketRef.current || !socketRef.current.connected || isCapturingRef.current) return;
+        const video = videoRef.current;
+
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          isCapturingRef.current = true;
+          try {
+            if (!canvasRef.current) {
+              canvasRef.current = document.createElement('canvas');
+            }
+            const canvas = canvasRef.current;
+            canvas.width = 480;
+            canvas.height = Math.round(480 * (video.videoHeight / video.videoWidth));
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.35);
+            const base64 = dataUrl.split(',')[1];
+
+            if (base64) {
+              socketRef.current.emit('process_frame', base64);
+            }
+          } catch (e) {
+            console.warn('Frame capture error:', e);
+          } finally {
+            isCapturingRef.current = false;
+          }
+        }
+      }, 200);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isActive]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#13192B] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+              Intérprete de Lenguaje de Señas (ISL)
+            </h2>
+          </div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+            Traducción e interpretación por voz y subtítulos en tiempo real para exposiciones escolares
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 border ${
+            isConnected 
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+            <span>{statusMessage}</span>
+          </div>
+
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
+              isMuted
+                ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400'
+                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+            }`}
+            title={isMuted ? 'Voz desactivada' : 'Voz activada'}
+          >
+            {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+
+          <button
+            onClick={() => setIsActive(!isActive)}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md ${
+              isActive
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+            }`}
+          >
+            {isActive ? 'Pausar Intérprete' : 'Iniciar Cámara'}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Grid: Camera Video & Live Subtitles */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Video Frame */}
+        <div className="lg:col-span-2 relative bg-slate-900 rounded-3xl overflow-hidden shadow-xl border border-slate-800 aspect-video flex items-center justify-center">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+            muted
+          />
+
+          {!isActive && (
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center text-white space-y-3">
+              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+                <VideoOff className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-bold">Cámara Pausada</h3>
+              <p className="text-xs text-slate-400 max-w-sm">
+                Haz clic en "Iniciar Cámara" para reanudar la captura de señas en tiempo real.
+              </p>
+            </div>
+          )}
+
+          {/* Classroom Subtitle Overlay (Modo Exposición) */}
+          <div className="absolute bottom-4 left-4 right-4 bg-slate-950/90 backdrop-blur-md p-5 rounded-2xl border border-amber-400/40 shadow-2xl space-y-2">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <Volume2 className="w-4 h-4 animate-bounce" />
+              <span className="text-[11px] font-black uppercase tracking-wider">Subtítulos de Presentación en Vivo</span>
+            </div>
+
+            {lastTranslation ? (
+              <p className="text-2xl sm:text-3xl font-black text-white text-center leading-tight tracking-tight">
+                "{lastTranslation}"
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-slate-400 text-center italic">
+                Coloca las manos frente a la cámara para interpretar en el salón de clases...
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Translation History Sidebar */}
+        <div className="bg-white dark:bg-[#13192B] p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col h-[480px]">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-[#0B1956] dark:text-[#F6BE2F]">
+              <Sparkles className="w-4 h-4" />
+              <h3 className="text-sm font-black uppercase tracking-wider">Historial de Señas</h3>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {history.length} registros
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1">
+            {history.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 space-y-2">
+                <Clock className="w-8 h-8 opacity-40" />
+                <p className="text-xs font-semibold">Las señas traducidas aparecerán aquí ordenadas cronológicamente.</p>
+              </div>
+            ) : (
+              history.map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-2xl border transition-all ${
+                    idx === 0
+                      ? 'bg-amber-500/10 border-amber-500/30 text-slate-900 dark:text-white font-bold shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800/80 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Detectado</span>
+                    <span>{item.time}</span>
+                  </div>
+                  <p className="text-sm font-bold">{item.text}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 // --- MAIN DASHBOARD LAYOUT ---
 export default function Dashboard() {
@@ -1544,6 +1817,7 @@ export default function Dashboard() {
 
   const navItems = [
     { name: t('menu.users', 'Usuarios'), path: '/dashboard/users', icon: Users, alias: 'users' },
+    { name: t('menu.interpreter', 'Intérprete (ISL)'), path: '/dashboard/interpreter', icon: Sparkles, alias: 'interpreter' },
     { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/dashboard/conduct', icon: FileText, alias: 'conduct' },
     { name: t('menu.events', 'Eventos'), path: '/dashboard/events', icon: Calendar, alias: 'events' },
     { name: t('menu.announcements', 'Avisos'), path: '/dashboard/announcements', icon: Bell, alias: 'announcements' }
@@ -1654,7 +1928,7 @@ export default function Dashboard() {
               <span className="text-xs font-black uppercase tracking-wider">Superadmin Mode</span>
             </div>
             <p className="text-[11px] text-white/70 leading-relaxed">
-              Plataforma optimizada con control total sobre cuentas, códigos, eventos y avisos institucionales.
+              Plataforma optimizada con control total sobre cuentas, intérprete de señas, eventos y avisos institucionales.
             </p>
           </div>
         </aside>
@@ -1714,6 +1988,7 @@ export default function Dashboard() {
         <main className="flex-1 min-w-0">
           <Routes>
             <Route path="users" element={<AdminUsers />} />
+            <Route path="interpreter" element={<AdminInterpreter />} />
             <Route path="conduct" element={<AdminConduct />} />
             <Route path="events" element={<AdminEvents />} />
             <Route path="announcements" element={<AdminAnnouncements />} />

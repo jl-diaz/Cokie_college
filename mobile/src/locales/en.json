@@ -443,5 +443,12 @@
     "friday": "Fri",
     "saturday": "Sat",
     "sunday": "Sun"
+  },
+  "interpreter": {
+    "title": "Sign Language Interpreter (ISL)",
+    "noPermission": "Camera permission missing or webcam not found",
+    "instructions": "Exhibition Mode: Position hands and face in front of camera",
+    "active": "Translating and speaking live...",
+    "paused": "Interpreter Paused"
   }
 }

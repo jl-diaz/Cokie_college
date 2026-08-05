@@ -2,13 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
-import { Mic, MicOff, SwitchCamera } from 'lucide-react-native';
+import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
-import { captureRef } from 'react-native-view-shot';
-import { Platform } from 'react-native';
 
 export default function InterpreterScreenNative() {
   const { t } = useTranslation();
@@ -19,9 +18,12 @@ export default function InterpreterScreenNative() {
   const [hasPermission, setHasPermission] = useState(null);
   const [isActive, setIsActive] = useState(true);
   const [facingMode, setFacingMode] = useState('front');
-  const cameraRef = useRef(null);
-  const containerRef = useRef(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [lastTranslation, setLastTranslation] = useState('');
+  const [subtitleHistory, setSubtitleHistory] = useState([]);
+  
+  const cameraRef = useRef(null);
+  const isCapturingRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -40,10 +42,30 @@ export default function InterpreterScreenNative() {
       }
     })();
 
-    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL;
+    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
 
+    // Escuchar traducciones en tiempo real para voz instantánea y subtítulos
+    const handleTranslation = (text) => {
+      setLastTranslation(text);
+      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+      
+      // Síntesis de voz instantánea a 0ms de delay
+      try {
+        Speech.speak(text, {
+          language: 'es-MX',
+          pitch: 1.0,
+          rate: 1.0,
+        });
+      } catch (err) {
+        console.warn('Error en Speech nativo:', err);
+      }
+    };
+
+    WebSocketService.addListener(handleTranslation);
+
     return () => {
+      WebSocketService.removeListener(handleTranslation);
       WebSocketService.disconnect();
     };
   }, []);
@@ -53,36 +75,30 @@ export default function InterpreterScreenNative() {
 
     if (isActive && isCameraReady && hasPermission) {
       intervalId = setInterval(async () => {
-        if (!cameraRef.current) return;
+        if (!cameraRef.current || isCapturingRef.current) return;
+        
+        isCapturingRef.current = true;
         try {
-          let base64Data = null;
-          
-          if (Platform.OS === 'ios' && containerRef.current) {
-            // En iOS usamos captureRef para evitar el sonido del obturador (shutter sound)
-            base64Data = await captureRef(containerRef, {
-              format: 'jpg',
-              quality: 0.3,
-              result: 'base64',
-            });
-          } else {
-            // En Android tomamos foto (en Android no siempre suena y captureRef puede fallar con SurfaceView)
-            const photo = await cameraRef.current.takePictureAsync({
-              base64: true,
-              quality: 0.3,
-              skipProcessing: true,
-            });
-            base64Data = photo?.base64;
-          }
+          // Captura rápida de fotograma usando takePictureAsync sin sonido de obturador
+          const photo = await cameraRef.current.takePictureAsync({
+            base64: true,
+            quality: 0.25,
+            skipProcessing: true,
+            shutterSound: false,
+            pictureSize: '640x480',
+          });
 
-          if (base64Data) {
-            WebSocketService.sendFrame(base64Data);
+          if (photo?.base64) {
+            WebSocketService.sendFrame(photo.base64);
           }
         } catch (e) {
           if (!e.message?.includes('unmounted')) {
-            console.log('Error capturando frame:', e);
+            console.log('Error capturando frame nativo:', e);
           }
+        } finally {
+          isCapturingRef.current = false;
         }
-      }, 400); // 400ms para que sea mucho más rápido y fluido
+      }, 250); // 250ms (~4 FPS) ultra fluido
     }
 
     return () => {
@@ -110,23 +126,53 @@ export default function InterpreterScreenNative() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
 
-      <View style={styles.cameraContainer} ref={containerRef}>
+      <View style={styles.cameraContainer}>
         <CameraView 
           ref={cameraRef}
           style={StyleSheet.absoluteFill} 
           facing={facingMode}
           onCameraReady={() => setIsCameraReady(true)}
-          animateShutter={false} // Intento de silenciar obturador nativo
+          animateShutter={false}
         />
         
+        {/* Botón flotante para girar cámara */}
         <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
-          <SwitchCamera color="#fff" size={28} />
+          <SwitchCamera color="#fff" size={26} />
         </TouchableOpacity>
         
-        <View style={styles.overlay}>
-          <Text style={styles.overlayText}>
-            {t('interpreter.instructions', 'Coloca tus manos y rostro en el encuadre.')}
+        {/* Instrucciones superiores */}
+        <View style={styles.instructionBadge}>
+          <Sparkles color="#F6BE2F" size={16} style={{ marginRight: 6 }} />
+          <Text style={styles.instructionText}>
+            {t('interpreter.instructions', 'Modo Exposición: Coloca las manos y rostro frente a la cámara')}
           </Text>
+        </View>
+
+        {/* Subtítulos gigantes para salón de clases */}
+        <View style={styles.subtitleOverlay}>
+          <View style={styles.subtitleHeader}>
+            <Volume2 color="#10b981" size={20} />
+            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL</Text>
+          </View>
+
+          {lastTranslation ? (
+            <Text style={styles.subtitleMainText}>
+              "{lastTranslation}"
+            </Text>
+          ) : (
+            <Text style={styles.subtitlePlaceholder}>
+              Interpretando señas de la exposición...
+            </Text>
+          )}
+
+          {/* Historial reciente */}
+          {subtitleHistory.length > 1 && (
+            <View style={styles.historyContainer}>
+              <Text style={styles.historyText} numberOfLines={1}>
+                Anterior: {subtitleHistory.slice(1).join(' • ')}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -135,12 +181,12 @@ export default function InterpreterScreenNative() {
           style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
           onPress={() => setIsActive(!isActive)}
         >
-          {isActive ? <Mic color="#fff" size={32} /> : <MicOff color="#fff" size={32} />}
+          {isActive ? <Mic color="#fff" size={30} /> : <MicOff color="#fff" size={30} />}
         </TouchableOpacity>
         <Text style={styles.footerText}>
           {isActive 
-            ? t('interpreter.active', 'Traduciendo y hablando...') 
-            : t('interpreter.paused', 'Pausado')}
+            ? t('interpreter.active', 'Traduciendo y hablando en vivo...') 
+            : t('interpreter.paused', 'Intérprete Pausado')}
         </Text>
       </View>
     </View>
@@ -154,14 +200,14 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   cameraContainer: { flex: 1, overflow: 'hidden', position: 'relative' },
   floatingRotateButton: {
     position: 'absolute',
-    top: 60,
+    top: 50,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(11, 25, 86, 0.65)',
     alignItems: 'center',
-    justifyContent: 'center',
+    justify.content: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
@@ -169,25 +215,112 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
+    zIndex: 20,
   },
-  overlay: {
-    position: 'absolute', top: 130, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 16, borderRadius: 12, alignItems: 'center'
+  instructionBadge: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 80,
+    backgroundColor: 'rgba(11, 25, 86, 0.75)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(246, 190, 47, 0.4)',
+    zIndex: 10,
   },
-  overlayText: { color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  instructionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+  },
+  subtitleOverlay: {
+    position: 'absolute',
+    bottom: 20,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(11, 15, 25, 0.88)',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#F6BE2F',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  subtitleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  subtitleHeaderTitle: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  subtitleMainText: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '900',
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  subtitlePlaceholder: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 16,
+    fontWeight: '600',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  historyContainer: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  historyText: {
+    color: '#F6BE2F',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   footer: {
-    height: 120, backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
-    alignItems: 'center', justifyContent: 'center',
+    height: 110, 
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    alignItems: 'center', 
+    justifyContent: 'center',
+    paddingBottom: 10,
   },
   micButton: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#10b981',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 6, elevation: 8,
+    width: 58, 
+    height: 58, 
+    borderRadius: 29, 
+    backgroundColor: '#10b981',
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 6,
+    shadowColor: '#10b981', 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, 
+    shadowRadius: 6, 
+    elevation: 8,
   },
   micButtonDisabled: { 
     backgroundColor: '#ef4444',
     shadowColor: '#ef4444',
   },
-  footerText: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '500' }
+  footerText: { 
+    color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.9)', 
+    fontSize: 13, 
+    fontWeight: '700' 
+  }
 });

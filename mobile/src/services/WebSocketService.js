@@ -67,6 +67,9 @@ class WebSocketService {
         console.log('Traducción recibida:', data.text);
         this.lastSpokenText = data.text;
         this.lastSpokenTime = Date.now();
+        if (this.listeners && this.listeners.length > 0) {
+          this.listeners.forEach(cb => cb(data.text));
+        }
       }
     });
 
@@ -75,8 +78,8 @@ class WebSocketService {
       if (data && data.audioBase64) {
         const now = Date.now();
         
-        // Evitar repetir el mismo audio en menos de 3 segundos
-        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 3000) {
+        // Evitar repetir el mismo audio en menos de 2.5 segundos
+        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 2500) {
           return;
         }
         
@@ -90,7 +93,7 @@ class WebSocketService {
           this._lastAudioText = data.text;
           this._lastAudioTime = now;
           
-          // Forzar audio por altavoz principal saltando el modo silencio
+          // Forzar audio por altavoz principal saltando el modo silencio en iOS
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
@@ -104,7 +107,6 @@ class WebSocketService {
             { shouldPlay: true }
           );
           
-          // Liberar cuando termine
           sound.setOnPlaybackStatusUpdate((status) => {
             if (status.didJustFinish) {
               this.isPlaying = false;
@@ -119,6 +121,17 @@ class WebSocketService {
     });
   }
 
+  addListener(callback) {
+    if (!this.listeners) this.listeners = [];
+    this.listeners.push(callback);
+  }
+
+  removeListener(callback) {
+    if (this.listeners) {
+      this.listeners = this.listeners.filter(cb => cb !== callback);
+    }
+  }
+
   sendFrame(base64Image) {
     if (this.socket && (this.socket.connected || this.isConnected)) {
       this.socket.emit('process_frame', base64Image);
@@ -131,7 +144,7 @@ class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
-    // Resetear todo el estado interno
+    this.listeners = [];
     this.isConnected = false;
     this.isPlaying = false;
     this.lastSpokenText = '';
