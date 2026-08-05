@@ -44,14 +44,17 @@ export default function InterpreterScreenNative() {
 
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
+    // Desactivar audio duplicado del servidor porque expo-speech gestiona la locución nativa
+    WebSocketService.disableBackendAudio = true;
 
-    // Escuchar traducciones en tiempo real para voz instantánea y subtítulos
-    const handleTranslation = (text) => {
+    // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
+    const handleTranslation = async (text) => {
       setLastTranslation(text);
       setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
       
-      // Síntesis de voz instantánea a 0ms de delay
+      // Detener cualquier habla en curso y emitir la nueva seña
       try {
+        await Speech.stop();
         Speech.speak(text, {
           language: 'es-MX',
           pitch: 1.0,
@@ -65,6 +68,7 @@ export default function InterpreterScreenNative() {
     WebSocketService.addListener(handleTranslation);
 
     return () => {
+      WebSocketService.disableBackendAudio = false;
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.disconnect();
     };

@@ -1545,6 +1545,16 @@ const AdminInterpreter = () => {
   const socketRef = useRef(null);
   const isCapturingRef = useRef(false);
 
+  const unlockWebAudio = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.resume();
+        const silentUtterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(silentUtterance);
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
     const serverUrl = import.meta.env.VITE_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     
@@ -1573,17 +1583,32 @@ const AdminInterpreter = () => {
           ...prev.slice(0, 19),
         ]);
 
-        if (!isMuted && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          try {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(data.text);
-            utterance.lang = 'es-MX';
-            utterance.rate = 1.0;
-            window.speechSynthesis.speak(utterance);
-          } catch (e) {
-            console.warn('Speech error:', e);
+        if (!isMuted && typeof window !== 'undefined') {
+          // Opción 1: Web Speech Synthesis (Nativa de navegador)
+          if ('speechSynthesis' in window) {
+            try {
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.resume();
+              const utterance = new SpeechSynthesisUtterance(data.text);
+              utterance.lang = 'es-MX';
+              utterance.rate = 1.0;
+              utterance.volume = 1.0;
+              window.speechSynthesis.speak(utterance);
+            } catch (e) {
+              console.warn('Speech error:', e);
+            }
           }
         }
+      }
+    });
+
+    // Opción 2: Respaldo HTML5 Audio en base64 desde el servidor
+    socket.on('translation_audio', (data) => {
+      if (!isMuted && data && data.audioBase64) {
+        try {
+          const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+          audio.play().catch(e => console.warn('HTML5 Audio playback prevented:', e));
+        } catch (e) {}
       }
     });
 
@@ -1688,7 +1713,7 @@ const AdminInterpreter = () => {
           </div>
 
           <button
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={() => { unlockWebAudio(); setIsMuted(!isMuted); }}
             className={`p-2.5 rounded-xl border text-xs font-bold transition-all ${
               isMuted
                 ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 dark:text-rose-400'
@@ -1700,7 +1725,7 @@ const AdminInterpreter = () => {
           </button>
 
           <button
-            onClick={() => setIsActive(!isActive)}
+            onClick={() => { unlockWebAudio(); setIsActive(!isActive); }}
             className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all shadow-md ${
               isActive
                 ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'

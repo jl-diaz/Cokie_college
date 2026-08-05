@@ -73,13 +73,18 @@ class WebSocketService {
       }
     });
 
-    // Audio de traducción (llega después del texto, evento separado)
+    // Audio de traducción (llega después del texto desde el servidor)
     this.socket.on('translation_audio', async (data) => {
+      // Si la locución local (expo-speech o WebSpeech) está activa, ignorar para evitar voz doble
+      if (this.disableBackendAudio) {
+        return;
+      }
+
       if (data && data.audioBase64) {
         const now = Date.now();
         
-        // Evitar repetir el mismo audio en menos de 2.5 segundos
-        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 2500) {
+        // Evitar repetir el mismo audio en menos de 3 segundos
+        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 3000) {
           return;
         }
         
@@ -93,7 +98,7 @@ class WebSocketService {
           this._lastAudioText = data.text;
           this._lastAudioTime = now;
           
-          // Forzar audio por altavoz principal saltando el modo silencio en iOS
+          // Forzar audio por altavoz principal en iOS y Android
           await Audio.setAudioModeAsync({
             allowsRecordingIOS: false,
             playsInSilentModeIOS: true,

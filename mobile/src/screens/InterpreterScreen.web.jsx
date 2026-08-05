@@ -22,6 +22,17 @@ export default function InterpreterScreenWeb() {
   const canvasRef = useRef(null);
   const isCapturingRef = useRef(false);
 
+  // Función para desbloquear el audio en navegadores web al primer clic del usuario
+  const unlockWebAudio = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.resume();
+        const silentUtterance = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(silentUtterance);
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
@@ -30,13 +41,15 @@ export default function InterpreterScreenWeb() {
       setLastTranslation(text);
       setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
 
-      // Web Speech API instantánea a 0ms de retardo
+      // Web Speech API instantánea con reactivación de motor
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel(); // Limpiar cola anterior
+          window.speechSynthesis.resume(); // Forzar estado activo
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'es-MX';
           utterance.rate = 1.0;
+          utterance.volume = 1.0;
           window.speechSynthesis.speak(utterance);
         } catch (e) {
           console.warn('Error en Web Speech:', e);
@@ -159,7 +172,7 @@ export default function InterpreterScreenWeb() {
         />
         
         {/* Botón flotante para alternar cámara */}
-        <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+        <TouchableOpacity onPress={() => { unlockWebAudio(); toggleCameraType(); }} style={styles.floatingRotateButton}>
           <SwitchCamera color="#fff" size={26} />
         </TouchableOpacity>
         
@@ -201,7 +214,7 @@ export default function InterpreterScreenWeb() {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
-          onPress={() => setIsActive(!isActive)}
+          onPress={() => { unlockWebAudio(); setIsActive(!isActive); }}
         >
           {isActive ? <Mic color="#fff" size={30} /> : <MicOff color="#fff" size={30} />}
         </TouchableOpacity>
