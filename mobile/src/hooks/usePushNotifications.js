@@ -6,13 +6,17 @@ import Constants from 'expo-constants';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {
+  console.warn('Notification handler setup warning:', e);
+}
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState('');

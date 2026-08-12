@@ -46,7 +46,7 @@
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 30000,
       "url": "https://u.expo.dev/fd2a2f1c-190e-4d55-90ec-58fa0db18620"
     },
     "runtimeVersion": "1.0.0",

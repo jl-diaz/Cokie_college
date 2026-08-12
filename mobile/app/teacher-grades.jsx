@@ -452,7 +452,7 @@ export default function TeacherGradesScreen() {
       <View style={styles.topControlContainer}>
         {!selectedClass && (
           <View style={styles.periodTabs}>
-            {[1, 2].map(p => (
+            {[1, 2, 3, 4].map(p => (
               <TouchableOpacity 
                 key={p} 
                 onPress={() => setSelectedPeriod(p)}
@@ -548,9 +548,14 @@ export default function TeacherGradesScreen() {
         onRequestClose={() => setTicketModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
         >
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={() => setTicketModalVisible(false)} 
+          />
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{t('teacherGrades.requestExtraTime', 'Solicitar Tiempo Extra')}</Text>
             <Text style={styles.modalSubtitle}>{t('dashboard.period', 'Periodo')} {selectedPeriod}</Text>

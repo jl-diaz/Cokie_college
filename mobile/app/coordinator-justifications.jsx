@@ -451,53 +451,54 @@ export default function CoordinatorJustificationsScreen() {
       )}
 
       {/* Process Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent>
+      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView 
-          behavior="padding" 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>
-                    {statusToSet === 'approved' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
-                  </Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <X size={24} color={Colors.primary} />
-                  </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.modalSubtitle}>
-                  Estudiante: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
-                </Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Observación (Opcional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Añade un comentario sobre la decisión..."
-                    multiline
-                    numberOfLines={4}
-                    value={observation}
-                    onChangeText={setObservation}
-                  />
-                </View>
-                
-                <TouchableOpacity 
-                  style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
-                  onPress={processRequest}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>Confirmar</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {statusToSet === 'approved' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X size={24} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+            
+            <Text style={styles.modalSubtitle}>
+              Estudiante: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
+            </Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Observación (Opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Añade un comentario sobre la decisión..."
+                multiline
+                numberOfLines={4}
+                value={observation}
+                onChangeText={setObservation}
+              />
+            </View>
+            
+            <TouchableOpacity 
+              style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
+              onPress={processRequest}
+              disabled={processing}
+            >
+              {processing ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>Confirmar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 

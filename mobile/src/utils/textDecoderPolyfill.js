@@ -1,35 +1,70 @@
-// Polyfill for TextDecoder to support latin1 in React Native / Expo environment
-// This prevents crashes when libraries like fast-png / jspdf try to instantiate TextDecoder with 'latin1'
-const originalTextDecoder = global.TextDecoder;
+// Polyfill for TextDecoder & TextEncoder in React Native / Expo Hermes engine
+// Prevents startup crashes when libraries like fast-png / jspdf / html2canvas reference TextDecoder/TextEncoder
 
-if (originalTextDecoder) {
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = class TextDecoderPolyfill {
+    constructor(encoding = 'utf-8') {
+      this.encoding = encoding ? String(encoding).toLowerCase() : 'utf-8';
+    }
+
+    decode(buffer) {
+      if (!buffer) return '';
+      const arr = new Uint8Array(buffer);
+      let str = '';
+      for (let i = 0; i < arr.length; i++) {
+        str += String.fromCharCode(arr[i]);
+      }
+      return str;
+    }
+  };
+} else {
   try {
-    new originalTextDecoder('latin1');
+    new global.TextDecoder('latin1');
   } catch (e) {
-    // If 'latin1' is not supported, we polyfill it
+    const NativeTextDecoder = global.TextDecoder;
     global.TextDecoder = class TextDecoderPolyfill {
-      constructor(encoding) {
-        this.encoding = encoding ? encoding.toLowerCase() : 'utf-8';
+      constructor(encoding = 'utf-8') {
+        this.encoding = encoding ? String(encoding).toLowerCase() : 'utf-8';
         try {
-          this.decoder = new originalTextDecoder(this.encoding);
+          this.nativeDecoder = new NativeTextDecoder(this.encoding);
         } catch (err) {
-          // Fallback to utf-8 if the specific encoding is not supported by the native TextDecoder
-          this.decoder = new originalTextDecoder('utf-8');
+          try {
+            this.nativeDecoder = new NativeTextDecoder('utf-8');
+          } catch (e2) {
+            this.nativeDecoder = null;
+          }
         }
       }
 
       decode(buffer, options) {
         if (this.encoding === 'latin1' || this.encoding === 'iso-8859-1') {
+          if (!buffer) return '';
           let str = '';
           const arr = new Uint8Array(buffer);
-          // Convert byte by byte
           for (let i = 0; i < arr.length; i++) {
             str += String.fromCharCode(arr[i]);
           }
           return str;
         }
-        return this.decoder ? this.decoder.decode(buffer, options) : '';
+        return this.nativeDecoder ? this.nativeDecoder.decode(buffer, options) : '';
       }
     };
   }
+}
+
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = class TextEncoderPolyfill {
+    constructor() {
+      this.encoding = 'utf-8';
+    }
+
+    encode(str) {
+      if (typeof str !== 'string') str = String(str || '');
+      const arr = new Uint8Array(str.length);
+      for (let i = 0; i < str.length; i++) {
+        arr[i] = str.charCodeAt(i) & 0xff;
+      }
+      return arr;
+    }
+  };
 }

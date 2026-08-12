@@ -1,8 +1,20 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TextInput, 
+  TouchableOpacity, 
+  Modal, 
+  ActivityIndicator, 
+  ScrollView, 
+  KeyboardAvoidingView, 
+  Platform, 
+  Keyboard 
+} from 'react-native';
 import api from '../src/utils/api';
-import { Search, Plus, Trash2, Edit2, X, AlertTriangle, CheckCircle, Info } from 'lucide-react-native';
+import { Search, Plus, Trash2, Edit2, X } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +34,8 @@ export default function ConductCatalogScreen() {
   const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  const [categoryFilter, setCategoryFilter] = useState('');
+
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCode, setEditingCode] = useState(null);
@@ -34,6 +48,13 @@ export default function ConductCatalogScreen() {
   });
 
   const categories = ['Positivo', 'Leve', 'Grave', 'Muy Grave'];
+  const categoryFilterTabs = [
+    { label: 'Todos', value: '' },
+    { label: 'Positivo', value: 'Positivo' },
+    { label: 'Leve', value: 'Leve' },
+    { label: 'Grave', value: 'Grave' },
+    { label: 'Muy Grave', value: 'Muy Grave' }
+  ];
 
   useEffect(() => {
     fetchCodes();
@@ -48,11 +69,11 @@ export default function ConductCatalogScreen() {
       const { data, totalPages: fetchedTotalPages } = response.data;
       
       if (pageNum === 1) {
-        setCodes(data);
+        setCodes(data || []);
       } else {
-        setCodes(prev => [...prev, ...data]);
+        setCodes(prev => [...prev, ...(data || [])]);
       }
-      setTotalPages(fetchedTotalPages);
+      setTotalPages(fetchedTotalPages || 1);
       setPage(pageNum);
     } catch (error) {
       console.error(error);
@@ -146,7 +167,7 @@ export default function ConductCatalogScreen() {
             title: t('dashboard.success', '¡Eliminado!'),
             message: 'Código eliminado correctamente.'
           });
-        } catch (err) {
+        } catch (error) {
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
@@ -157,10 +178,12 @@ export default function ConductCatalogScreen() {
     });
   };
 
-  const filteredCodes = codes.filter(c => 
-    c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCodes = codes.filter(c => {
+    const matchesSearch = c.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          c.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !categoryFilter || c.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const getCategoryStyle = (category) => {
     switch (category) {
@@ -188,6 +211,25 @@ export default function ConductCatalogScreen() {
             style={styles.searchInput}
           />
         </View>
+
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.tabsScroll} 
+          contentContainerStyle={styles.tabsContainer}
+        >
+          {categoryFilterTabs.map(tab => (
+            <TouchableOpacity
+              key={tab.value}
+              style={[styles.tabBtn, categoryFilter === tab.value && styles.tabBtnActive]}
+              onPress={() => setCategoryFilter(tab.value)}
+            >
+              <Text style={[styles.tabBtnText, categoryFilter === tab.value && styles.tabBtnTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </PageHeader>
 
       {loading ? (
@@ -238,75 +280,74 @@ export default function ConductCatalogScreen() {
         <Plus size={28} color="#FFF" />
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent>
+      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView 
-          behavior="padding" 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <X size={24} color={Colors.primary} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView keyboardShouldPersistTaps="handled">
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Código</Text>
-                    <TextInput
-                      placeholder="Ej. L-01"
-                      placeholderTextColor={Colors.text.muted}
-                      value={formData.code}
-                      onChangeText={(v) => setFormData({ ...formData, code: v })}
-                      style={styles.input}
-                    />
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Descripción</Text>
-                    <TextInput
-                      placeholder="Ej. Uso inadecuado del uniforme"
-                      placeholderTextColor={Colors.text.muted}
-                      value={formData.name}
-                      onChangeText={(v) => setFormData({ ...formData, name: v })}
-                      style={[styles.input, styles.textArea]}
-                    />
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Categoría</Text>
-                    <View style={styles.categoryRow}>
-                      {categories.map(cat => (
-                        <TouchableOpacity
-                          key={cat}
-                          style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
-                          onPress={() => setFormData({ ...formData, category: cat })}
-                        >
-                          <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
-                            {cat}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
-                    {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Guardar Código</Text>}
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X size={24} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Código</Text>
+                <TextInput
+                  placeholder="Ej. L-01"
+                  placeholderTextColor={Colors.text.muted}
+                  value={formData.code}
+                  onChangeText={(v) => setFormData({ ...formData, code: v })}
+                  style={styles.input}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Descripción</Text>
+                <TextInput
+                  placeholder="Ej. Uso inadecuado del uniforme"
+                  placeholderTextColor={Colors.text.muted}
+                  value={formData.name}
+                  onChangeText={(v) => setFormData({ ...formData, name: v })}
+                  style={[styles.input, styles.textArea]}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Categoría</Text>
+                <View style={styles.categoryRow}>
+                  {categories.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
+                      onPress={() => setFormData({ ...formData, category: cat })}
+                    >
+                      <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Guardar Código</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
   );
 }
-
-
 
 const createStyles = (Colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
@@ -326,9 +367,44 @@ const createStyles = (Colors) => StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingHorizontal: 12,
     height: 48,
+    marginBottom: 12,
   },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  tabsScroll: {
+    marginHorizontal: -16,
+    marginTop: 4,
+  },
+  tabsContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  tabBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  tabBtnActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 4,
+  },
+  tabBtnText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
+    fontSize: Typography.size.xs,
+  },
+  tabBtnTextActive: {
+    color: '#0B1956',
+    fontWeight: '800',
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl, pb: 100 },
   card: {

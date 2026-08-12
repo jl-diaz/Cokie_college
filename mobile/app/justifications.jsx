@@ -233,16 +233,19 @@ export default function JustificationsScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView 
-          behavior="padding" 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
-              <View style={styles.modalContent}>
-                <ScrollView 
-                  keyboardShouldPersistTaps="handled" 
-                  showsVerticalScrollIndicator={false}
-                >
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
+            <ScrollView 
+              keyboardShouldPersistTaps="handled" 
+              showsVerticalScrollIndicator={false}
+            >
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
                     <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
@@ -314,8 +317,6 @@ export default function JustificationsScreen() {
                   </TouchableOpacity>
                 </ScrollView>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
     </View>

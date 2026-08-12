@@ -83,7 +83,7 @@ export default function ClassScreen() {
 
       try {
         const codesRes = await api.get(codesEndpoint);
-        codeList = Array.isArray(codesRes.data) ? codesRes.data : [];
+        codeList = Array.isArray(codesRes.data?.data) ? codesRes.data.data : (Array.isArray(codesRes.data) ? codesRes.data : []);
       } catch (cErr) {
         console.error('Error fetching conduct codes:', cErr);
       }
@@ -545,96 +545,97 @@ export default function ClassScreen() {
       )}
 
       {/* Conduct Modal */}
-      <Modal visible={conductModalVisible} animationType="slide" transparent statusBarTranslucent>
+      <Modal visible={conductModalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setConductModalVisible(false)}>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalBackdrop}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <ShieldAlert size={22} color={Colors.primary} style={{ marginRight: 8 }} />
-                    <Text style={styles.modalTitle}>Reportar Conducta</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setConductModalVisible(false)} style={styles.closeHeaderBtn}>
-                    <X size={22} color={Colors.primary} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={styles.modalForm} keyboardShouldPersistTaps="handled">
-                  <View style={styles.studentBannerCard}>
-                    <Text style={styles.studentLabelTitle}>Estudiante Seleccionado:</Text>
-                    <Text style={styles.studentNameHighlight}>{selectedStudent?.full_name}</Text>
-                    <Text style={styles.studentCodeHighlight}>{selectedStudent?.institutional_code || 'S/C'}</Text>
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Código de Conducta *</Text>
-                    <TouchableOpacity 
-                      style={styles.dropdownTrigger} 
-                      onPress={() => setCodeDropdownOpen(!codeDropdownOpen)}
-                    >
-                      <Award size={18} color={Colors.primary} style={styles.inputIcon} />
-                      <Text style={styles.dropdownTriggerText} numberOfLines={1}>
-                        {getConductCodeLabel(selectedCode)}
-                      </Text>
-                      <ChevronDown size={18} color={Colors.text.muted} />
-                    </TouchableOpacity>
-
-                    {codeDropdownOpen && (
-                      <View style={styles.dropdownList}>
-                        <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
-                          {conductCodes.map(c => (
-                            <TouchableOpacity
-                              key={c.id}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setSelectedCode(c.id);
-                                setCodeDropdownOpen(false);
-                              }}
-                            >
-                              <Text style={styles.dropdownItemCode}>{c.code}</Text>
-                              <Text style={styles.dropdownItemText}>{c.name}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>Observaciones / Detalle (Opcional)</Text>
-                    <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-                      <FileText size={18} color={Colors.text.muted} style={styles.inputIcon} />
-                      <TextInput
-                        placeholder="Escribe aquí los detalles del reporte de conducta..."
-                        placeholderTextColor={Colors.text.muted}
-                        multiline
-                        numberOfLines={4}
-                        value={observation}
-                        onChangeText={setObservation}
-                        style={[styles.input, styles.textArea]}
-                      />
-                    </View>
-                  </View>
-                </ScrollView>
-
-                <TouchableOpacity 
-                  style={styles.submitBtn} 
-                  onPress={handleSaveConductRecord}
-                  disabled={savingConduct}
-                >
-                  {savingConduct ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.submitBtnText}>Aplicar Código de Conducta</Text>
-                  )}
-                </TouchableOpacity>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ShieldAlert size={22} color={Colors.primary} style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>Reportar Conducta</Text>
               </View>
+              <TouchableOpacity onPress={() => setConductModalVisible(false)} style={styles.closeHeaderBtn}>
+                <X size={22} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
+
+            <ScrollView style={styles.modalForm} keyboardShouldPersistTaps="handled">
+              <View style={styles.studentBannerCard}>
+                <Text style={styles.studentLabelTitle}>Estudiante Seleccionado:</Text>
+                <Text style={styles.studentNameHighlight}>{selectedStudent?.full_name}</Text>
+                <Text style={styles.studentCodeHighlight}>{selectedStudent?.institutional_code || 'S/C'}</Text>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Código de Conducta *</Text>
+                <TouchableOpacity 
+                  style={styles.dropdownTrigger} 
+                  onPress={() => setCodeDropdownOpen(!codeDropdownOpen)}
+                >
+                  <Award size={18} color={Colors.primary} style={styles.inputIcon} />
+                  <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+                    {getConductCodeLabel(selectedCode)}
+                  </Text>
+                  <ChevronDown size={18} color={Colors.text.muted} />
+                </TouchableOpacity>
+
+                {codeDropdownOpen && (
+                  <View style={styles.dropdownList}>
+                    <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                      {conductCodes.map(c => (
+                        <TouchableOpacity
+                          key={c.id}
+                          style={styles.dropdownItem}
+                          onPress={() => {
+                            setSelectedCode(c.id);
+                            setCodeDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={styles.dropdownItemCode}>{c.code}</Text>
+                          <Text style={styles.dropdownItemText}>{c.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Observaciones / Detalle (Opcional)</Text>
+                <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
+                  <FileText size={18} color={Colors.text.muted} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="Escribe aquí los detalles del reporte de conducta..."
+                    placeholderTextColor={Colors.text.muted}
+                    multiline
+                    numberOfLines={4}
+                    value={observation}
+                    onChangeText={setObservation}
+                    style={[styles.input, styles.textArea]}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.submitBtn} 
+              onPress={handleSaveConductRecord}
+              disabled={savingConduct}
+            >
+              {savingConduct ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>Aplicar Código de Conducta</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>

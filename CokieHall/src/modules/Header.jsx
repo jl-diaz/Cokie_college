@@ -35,6 +35,7 @@ import HorizontalScroll from './HorizontalScroll.jsx';
 import AppDownload from './AppDownload.jsx';
 import Footer from './Footer.jsx';
 import ScrollToTop from './ScrollToTop.jsx';
+import DownloadButton from './DownloadButton.jsx';
 
 import './Hero.css';
 import './Header.css';
@@ -221,28 +222,7 @@ function Header() {
               Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las
               herramientas para crecer, aprender y alcanzar su máximo potencial.
             </p>
-            <a 
-              href="https://github.com/jl-diaz/Cokie_college/releases/download/v1.0.0/CokieCollege.apk" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              download
-            >
-              <div className="botonCont">
-                <button className="button button-item">
-                  <span className="button-bg">
-                    <span className="button-bg-layers">
-                      <span className="button-bg-layer button-bg-layer-1 -purple"></span>
-                      <span className="button-bg-layer button-bg-layer-2 -turquoise"></span>
-                      <span className="button-bg-layer button-bg-layer-3 -yellow"></span>
-                    </span>
-                  </span>
-                  <span className="button-inner">
-                    <span className="button-inner-static">Descargar aplicación</span>
-                    <span className="button-inner-hover">Descargar aplicación</span>
-                  </span>
-                </button>
-              </div>
-            </a>
+            <DownloadButton />
             
           </div>
         </div>

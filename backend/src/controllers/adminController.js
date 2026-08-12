@@ -182,16 +182,22 @@ const adminController = {
 
     getConductCodes: async (req, res) => {
         try {
-            const { page = 1, limit = 50 } = req.query;
+            const { page = 1, limit = 50, category } = req.query;
             const pageNum = parseInt(page) || 1;
             const limitNum = parseInt(limit) || 50;
             const from = (pageNum - 1) * limitNum;
             const to = from + limitNum - 1;
 
-            const { data, count, error } = await supabaseAdmin
+            let query = supabaseAdmin
                 .from('conduct_codes')
-                .select('*', { count: 'exact' })
-                .order('name', { ascending: true })
+                .select('*', { count: 'exact' });
+
+            if (category) {
+                query = query.eq('category', category);
+            }
+
+            const { data, count, error } = await query
+                .order('code', { ascending: true })
                 .range(from, to);
 
             if (error) throw error;

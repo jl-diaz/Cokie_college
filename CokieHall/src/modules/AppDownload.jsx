@@ -7,6 +7,7 @@ import CokiePhone from '../assets/CokiePhone.png'
 import Cokie1 from '../assets/Cokie1.png';
 import kids1 from '../assets/kids1.png';
 
+import DownloadButton from './DownloadButton.jsx';
 import './AppDownload.css';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -124,28 +125,7 @@ function AppDownload() {
               Todo el control escolar y académico en la palma de tu mano
             </h2>
 
-            <a 
-              href="https://github.com/jl-diaz/Cokie_college/releases/download/v1.0.0/CokieCollege.apk" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              download
-            >
-              <div className="botonCont">
-                <button className="button button-item">
-                  <span className="button-bg">
-                    <span className="button-bg-layers">
-                      <span className="button-bg-layer button-bg-layer-1 -purple"></span>
-                      <span className="button-bg-layer button-bg-layer-2 -turquoise"></span>
-                      <span className="button-bg-layer button-bg-layer-3 -yellow"></span>
-                    </span>
-                  </span>
-                  <span className="button-inner">
-                    <span className="button-inner-static">Descargar aplicación</span>
-                    <span className="button-inner-hover">Descargar aplicación</span>
-                  </span>
-                </button>
-              </div>
-            </a>
+            <DownloadButton />
           </div>
 
         </div>

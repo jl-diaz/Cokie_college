@@ -732,14 +732,16 @@ export default function CafetinScreen() {
       {/* --- MODAL PARA AGREGAR ALIMENTO AL CATÁLOGO --- */}
       <Modal visible={modalAddItem} transparent animationType="slide" onRequestClose={() => setModalAddItem(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
 
                   <Text style={styles.inputLabel}>Nombre del Alimento *</Text>
                   <TextInput
@@ -792,9 +794,6 @@ export default function CafetinScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </Modal>
 

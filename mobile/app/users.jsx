@@ -408,12 +408,15 @@ export default function UsersScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <KeyboardAvoidingView 
-          behavior="padding" 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={styles.modalOverlay}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={{ flex: 1, justifyContent: 'flex-end', width: '100%' }}>
-              <View style={styles.modalContent}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            activeOpacity={1} 
+            onPress={Keyboard.dismiss} 
+          />
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
@@ -666,10 +669,8 @@ export default function UsersScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
-  </Modal>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
