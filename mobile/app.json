@@ -23,6 +23,7 @@
     },
     "android": {
       "package": "com.cokiecollege.app",
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
