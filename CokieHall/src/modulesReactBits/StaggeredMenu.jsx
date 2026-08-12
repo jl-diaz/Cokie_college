@@ -63,8 +63,7 @@ export const StaggeredMenu = ({
       if (preContainer) {
         gsap.set(preContainer, { xPercent: 0, opacity: 1 });
       }
-      gsap.set(plusH, { transformOrigin: '50% 50%', rotate: 0 });
-      gsap.set(plusV, { transformOrigin: '50% 50%', rotate: 90 });
+      gsap.set([plusH, plusV], { rotate: 0 });
       gsap.set(icon, { rotate: 0, transformOrigin: '50% 50%' });
       gsap.set(textInner, { yPercent: 0 });
       if (toggleBtnRef.current) gsap.set(toggleBtnRef.current, { color: menuButtonColor });
@@ -420,8 +419,10 @@ export const StaggeredMenu = ({
           </span>
         </span>
         <span ref={iconRef} className="sm-icon" aria-hidden="true">
-          <span ref={plusHRef} className="sm-icon-line" />
-          <span ref={plusVRef} className="sm-icon-line sm-icon-line-v" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <line ref={plusHRef} x1="1" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+            <line ref={plusVRef} x1="7" y1="1" x2="7" y2="13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
         </span>
       </button>
 

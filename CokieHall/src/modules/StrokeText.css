@@ -1,7 +1,9 @@
 .stroke-text {
   display: block;
   width: 100%;
+  max-width: 100%;
   line-height: 0;
+  overflow: hidden;
 }
 
 .stroke-text--hover {
@@ -11,7 +13,9 @@
 .stroke-text__svg {
   display: block;
   width: 100%;
-  height: var(--stroke-text-height, 160px);
+  max-width: 100%;
+  height: auto;
+  max-height: var(--stroke-text-height, 160px);
 }
 
 .stroke-text__stroke,

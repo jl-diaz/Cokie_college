@@ -68,29 +68,20 @@
 /* Ícono + rotado */
 .sm-icon {
   position: relative;
-  width: 13px;
-  height: 13px;
-  flex: 0 0 13px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   will-change: transform;
 }
 
-.sm-icon-line {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 100%;
-  height: 2px;
-  background: currentColor;
-  border-radius: 2px;
-  transform: translate(-50%, -50%);
-  will-change: transform;
-}
-
-.sm-icon-line-v {
-  /* La barra vertical empieza rotada 90° via GSAP */
+.sm-icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
 }
 
 /* ---- PRE-CAPAS (portal en <body>) ---- */
