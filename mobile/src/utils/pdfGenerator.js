@@ -2,13 +2,14 @@ import { Platform } from 'react-native';
 import './textDecoderPolyfill';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import JSZip from 'jszip';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { logoBase64, poppinsNormal } from './pdfResources';
 import api from './api';
 
 const generatePDFDocument = (student, gradesData, averagesData, period, allPeriodsData = null) => {
+  const { jsPDF } = require('jspdf');
+  const autoTableModule = require('jspdf-autotable');
+  const autoTable = autoTableModule.default || autoTableModule;
+
   const doc = new jsPDF();
   const isPeriod4 = period === 4;
   const year = new Date().getFullYear();
@@ -255,6 +256,8 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
 export const generateClassroomReportsZip = async (classroomId, period, studentsList) => {
   try {
     if (Platform.OS === 'web') {
+      const JSZipModule = require('jszip');
+      const JSZip = JSZipModule.default || JSZipModule;
       const zip = new JSZip();
       
       for (const student of studentsList) {
