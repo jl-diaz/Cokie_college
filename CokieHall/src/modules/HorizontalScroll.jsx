@@ -10,7 +10,7 @@ import CokieHall from '../assets/CokieHall.png';
 import Cokie1 from '../assets/Cokie1.png';
 import futb from '../assets/futb.png';
 import CokieNino from '../assets/CokieNino.png';
-import Kid from '../assets/Kid.png';
+import Kid from '../assets/kid.png';
 import CokieTekwando from '../assets/CokieTekwando.png';
 import atletismo from '../assets/atletismo.png';
 import taek from '../assets/taek.png';
