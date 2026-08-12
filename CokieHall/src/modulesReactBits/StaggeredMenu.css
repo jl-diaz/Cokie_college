@@ -1,0 +1,247 @@
+/* ========================================================
+   STAGGERED MENU — React Bits
+   El BOTÓN (.sm-toggle) vive dentro de la Navbar.
+   El PANEL (.staggered-menu-panel) y PRE-CAPAS (.sm-prelayers)
+   se renderizan via ReactDOM.createPortal en <body>.
+   ======================================================== */
+
+/* WRAPPER (solo contiene el botón) */
+.staggered-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  z-index: 1002;
+}
+
+/* ---- BOTÓN TOGGLE ---- */
+.sm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sm-toggle:hover {
+  background: rgba(255, 208, 116, 0.2);
+  border-color: #ffd074;
+  color: #ffd074;
+}
+
+.sm-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* Texto animado del botón (Menu / Close) */
+.sm-toggle-textWrap {
+  position: relative;
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sm-toggle-textInner {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.sm-toggle-line {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+/* Ícono + rotado */
+.sm-icon {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.sm-icon-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.sm-icon-line-v {
+  /* La barra vertical empieza rotada 90° via GSAP */
+}
+
+/* ---- PRE-CAPAS (portal en <body>) ---- */
+.sm-prelayers {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(380px, 90vw);
+  pointer-events: none;
+  z-index: 1099;
+}
+
+[data-position='left'] ~ .sm-prelayers,
+.sm-prelayers[data-position='left'] {
+  right: auto;
+  left: 0;
+}
+
+.sm-prelayer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  will-change: transform;
+}
+
+/* ---- PANEL PRINCIPAL (portal en <body>) ---- */
+.staggered-menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(380px, 90vw);
+  height: 100vh;
+  background: #0b1957;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding: 6rem 2rem 2.5rem;
+  overflow-y: auto;
+  z-index: 1100;
+  pointer-events: auto;
+  will-change: transform;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.55);
+}
+
+/* ---- LISTA DE ÍTEMS ---- */
+.sm-panel-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sm-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sm-panel-itemWrap {
+  overflow: hidden;
+  width: 100%;
+}
+
+.sm-panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  text-decoration: none;
+  font-size: clamp(1.2rem, 5vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  transition: color 0.25s ease;
+  cursor: pointer;
+}
+
+.sm-panel-item:hover {
+  color: var(--sm-accent, #ffd074);
+}
+
+.sm-panel-itemLabel {
+  display: inline-block;
+  will-change: transform;
+  transform-origin: 50% 100%;
+}
+
+/* Numeración a la derecha del ítem */
+.sm-panel-list[data-numbering] {
+  counter-reset: smItem;
+}
+
+.sm-panel-list[data-numbering] .sm-panel-item::after {
+  counter-increment: smItem;
+  content: counter(smItem, decimal-leading-zero);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--sm-accent, #ffd074);
+  letter-spacing: 0.05em;
+  opacity: var(--sm-num-opacity, 1);
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* ---- SOCIALS ---- */
+.sm-socials {
+  margin-top: auto;
+  padding-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.sm-socials-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--sm-accent, #ffd074);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 1;
+}
+
+.sm-socials-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sm-socials-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+
+.sm-socials-link:hover {
+  color: var(--sm-accent, #ffd074);
+}

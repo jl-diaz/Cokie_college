@@ -1,0 +1,10 @@
+.scroll-reveal-container {
+  display: block;
+  width: 100%;
+}
+
+.scroll-reveal-word {
+  display: inline-block;
+  white-space: pre-wrap;
+  transition: color 0.3s ease;
+}

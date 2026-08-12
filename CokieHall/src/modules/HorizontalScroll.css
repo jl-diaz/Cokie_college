@@ -1,0 +1,217 @@
+/* ================= GSAP SCROLL HORIZONTAL (ESCRITORIO) Y VERTICAL LIMPIO (MÓVIL) ================= */
+.hs-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background-color: #0b1957; /* Fondo sólido institucional */
+  color: #ffffff;
+}
+
+.hs-track {
+  display: flex;
+  flex-wrap: nowrap;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+}
+
+/* PANELS */
+.hs-panel {
+  width: 145vw;
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8rem;
+  padding: 0 5vw;
+  position: relative;
+  background-color: #0b1957;
+}
+
+/* PANEL INTRO MINIMALISTA CON LETRA DESTACADA */
+.hs-panel--intro {
+  width: 100vw;
+}
+
+.hs-intro-minimal {
+  max-width: 900px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hs-intro-title {
+  font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+  font-weight: 850;
+  line-height: 1.15;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+/* ENCABEZADOS DE NIVELES */
+.hs-level-header {
+  flex: 0 0 260px;
+  position: relative;
+  z-index: 10;
+}
+
+.hs-level-title {
+  font-size: clamp(2rem, 3.5vw, 3.2rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 10;
+}
+
+/* SECCIÓN CLUBES DEPORTES */
+.hs-panel--clubes {
+  width: 185vw;
+}
+
+/* FILA DE IMÁGENES DE NIVELES Y CLUBES EN ESCRITORIO */
+.hs-images-row,
+.hs-clubs-row {
+  display: flex;
+  gap: 1.8rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.hs-img-card {
+  position: relative;
+  width: 400px;
+  height: 290px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  transition: transform 0.35s ease;
+  background: #060e33;
+  flex-shrink: 0;
+}
+
+.hs-img-card:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
+/* CARTA EXTRA PNG SIN DISEÑO AL INICIO */
+.hs-img-card-png {
+  position: relative;
+  width: 400px;
+  height: 300px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hs-img-png {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.hs-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hs-club-card {
+  width: 320px;
+  height: 260px;
+}
+
+/* ================= DISEÑO VERTICAL LIMPIO PARA TELÉFONOS Y TABLETS (<= 768px) ================= */
+@media (max-width: 768px) {
+  .hs-container {
+    height: auto;
+    overflow: visible;
+    padding: 4rem 1.5rem;
+  }
+
+  .hs-track {
+    display: flex;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: auto !important;
+    gap: 4rem;
+    transform: none !important;
+  }
+
+  .hs-panel {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: auto !important;
+    display: flex;
+    flex-direction: column !important;
+    align-items: center;
+    justify-content: center;
+    gap: 1.8rem;
+    text-align: center;
+    padding: 0;
+  }
+
+  .hs-panel--intro {
+    width: 100% !important;
+    min-width: 100% !important;
+    padding: 2rem 0;
+  }
+
+  .hs-intro-title {
+    font-size: clamp(2.2rem, 7vw, 3.2rem);
+  }
+
+  .hs-level-header {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 100%;
+    text-align: center;
+  }
+
+  .hs-level-title {
+    font-size: clamp(2.2rem, 7vw, 3.2rem);
+    font-weight: 850;
+    text-align: center;
+    color: #ffffff;
+  }
+
+  .hs-img-card-png {
+    width: 100%;
+    max-width: 320px;
+    height: 260px;
+    margin: 0 auto;
+  }
+
+  .hs-images-row,
+  .hs-clubs-row {
+    display: flex;
+    flex-direction: column !important;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  .hs-img-card,
+  .hs-club-card {
+    width: 100%;
+    max-width: 340px;
+    height: 240px;
+    border-radius: 16px;
+  }
+}

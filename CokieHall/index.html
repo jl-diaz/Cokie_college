@@ -1,287 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cokie Hall</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="CSS/estiloIndex.css">
-</head>
-<body>
-
-  <header class="encabezado-superior" id="inicio">
-    <div class="contenedor encabezado-superior__fila">
-      <div class="marca">
-        <img class="marca__icono" alt="Escudo de Cokie Hall" src="img/cokie.png" width="100px">
-        <div>
-          <div class="marca__nombre">Cokie Hall</div>
-          <div class="marca__lema">CUIDAR · INSPIRAR · LOGRAR</div>
-        </div>
-      </div>
-      <div class="contacto-telefono">
-        <img class="contacto-telefono__icono" alt="Icono de teléfono" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23E8A33D' d='M6.6 10.8c1.5 3 3.9 5.4 6.9 6.9l2.3-2.3c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.2c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1z'/></svg>">
-        <span>2503 4400</span>
-      </div>
-    </div>
-    <nav class="navegacion-principal">
-      <ul class="contenedor navegacion-principal__lista">
-        <li><a class="navegacion-principal__enlace navegacion-principal__enlace--activo" href="#inicio">Inicio</a></li>
-        <li><a class="navegacion-principal__enlace" href="#nosotros">Sobre nosotros</a></li>
-        <li><a class="navegacion-principal__enlace" href="#niveles">Niveles</a></li>
-        <li><a class="navegacion-principal__enlace" href="#galeria">Galería</a></li>
-        <li><a class="navegacion-principal__enlace" href="#familias">Comunidad</a></li>
-        <li><a class="navegacion-principal__enlace" href="#contacto">Contacto</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <!-- ================= HERO ================= -->
- <header class="hero-bienvenida">
-
-  <!-- Slideshow de 3 imágenes en crossfade -->
-  <div class="hero-bienvenida__diapositivas">
-    <img class="hero-bienvenida__imagen" src="img/CokieHall.png" alt="Estudiantes de Cokie Hall en actividad deportiva">
-    <img class="hero-bienvenida__imagen" src="img/kids1.png" alt="Estudiantes de Cokie Hall en el salón de clases">
-    <img class="hero-bienvenida__imagen" src="img/futb.png" alt="Estudiantes de Cokie Hall en actividad comunitaria">
-  </div>
-
-  <div class="hero-bienvenida__capa"></div>
-
-  <div class="hero-bienvenida__contenido">
-    <img class="hero-bienvenida__logo" src="img/logoBlan.png" alt="Logotipo de Cokie Hall en blanco">
-    <h1 class="hero-bienvenida__titulo">Bienvenidos a Cokie Hall</h1>
-    <p class="hero-bienvenida__texto">
-      Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las herramientas para crecer, aprender y alcanzar su máximo potencial.
-    </p>
-    <div class="hero-bienvenida__botones">
-      <a class="boton-relleno-dorado" href="https://github.com/jl-diaz/Cokie_college/releases/download/v1.0.0/CokieCollege.apk" download="CokieCollege.apk">Descargar aplicación</a>
-    </div>
-  </div>
-
-  <div class="hero-bienvenida__indicadores">
-    <span class="hero-bienvenida__punto"></span>
-    <span class="hero-bienvenida__punto"></span>
-    <span class="hero-bienvenida__punto"></span>
-  </div>
-
-</header>
- 
-  <section class="seccion-bienvenida" id="nosotros">
-    <div class="contenedor contenedor1 seccion-bienvenida__fila">
-      <img class="seccion-bienvenida__imagen con-scroll-reveal" alt="Dos estudiantes de Cokie Hall con uniforme escolar" src="img/niños.png">
-      <div class="con-scroll-reveal">
-        <h2 class="seccion-bienvenida__titulo">Bienvenidos a Cokie Hall</h2>
-        <p class="seccion-bienvenida__parrafo">Somos una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje sobresaliente para cada estudiante.</p>
-        <p class="seccion-bienvenida__parrafo">El ambiente cálido y cercano que se vive en nuestra escuela es la clave de nuestro éxito, junto con la calidad de las relaciones y el alto nivel de cuidado entre todos los miembros de la comunidad.</p>
-        <p class="seccion-bienvenida__parrafo">La vida de nuestra escuela está impulsada por el entusiasmo y el deseo de superación. Queremos despertar en nuestros estudiantes una sed de aprendizaje que los acompañe durante toda su vida.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= TIRA DE GALERÍA ================= -->
-  <section class="galeria-tira" id="galeria">
-    <img class="galeria-tira__imagen con-scroll-reveal" alt="Estudiantes reunidos en el gimnasio escolar" src="img/foro.png">
-    <img class="galeria-tira__imagen con-scroll-reveal" alt="Estudiante trabajando en el salón de clases" src="img/kid.png">
-    <img class="galeria-tira__imagen con-scroll-reveal" alt="Estudiantes disfrazados en actividad escolar" src="img/kids1.png">
-    <img class="galeria-tira__imagen con-scroll-reveal" alt="Estudiantes tocando tambores en clase de música" src="img/futb.png">
-  </section>
-
-  <!-- ================= BANNER DE COMUNIDAD ================= -->
-  <section class="banner-comunidad">
-    <div class="contenedor">
-      <img class="banner-comunidad__icono con-scroll-reveal" alt="Icono de red social" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='%23E8A33D'/><path fill='%2316324F' d='M18.6 8.2c.01.15.01.31.01.46 0 4.66-3.55 10.03-10.03 10.03-1.99 0-3.84-.58-5.4-1.58.28.03.55.05.84.05 1.65 0 3.17-.56 4.38-1.51-1.55-.03-2.85-1.05-3.3-2.46.22.04.44.06.67.06.32 0 .63-.04.93-.12-1.62-.33-2.84-1.76-2.84-3.48v-.04c.48.27 1.02.43 1.6.45-.95-.64-1.58-1.73-1.58-2.96 0-.65.18-1.26.48-1.78 1.75 2.15 4.37 3.56 7.31 3.71-.06-.26-.09-.53-.09-.81 0-1.96 1.59-3.55 3.55-3.55 1.02 0 1.94.43 2.59 1.12.81-.16 1.57-.46 2.25-.86-.26.83-.83 1.53-1.56 1.97.72-.08 1.4-.28 2.04-.56-.48.71-1.08 1.34-1.77 1.85z'/></svg>">
-      <p class="banner-comunidad__mensaje con-scroll-reveal">"¡Felicidades a los 40 estudiantes que representaron a Cokie Hall en la feria regional de ciencias!"</p>
-      <a class="boton-contorno con-scroll-reveal" href="#contacto">Síguenos en redes</a>
-    </div>
-  </section>
-
-<!-- ================= NIVELES ACADÉMICOS ================= -->
-  <section class="seccion-niveles" id="niveles">
-  <div class="contenedor">
-    <h2 class="seccion-niveles__titulo">Nuestros Niveles Académicos</h2>
-    <div class="seccion-niveles__cuadricula">
-
-      <div class="tarjeta-nivel tarjeta-nivel--marino con-scroll-reveal">
-        <img class="tarjeta-nivel__imagen" src="img/kid.png" alt="Estudiantes del nivel Maternal">
-      </div>
-
-      <div class="tarjeta-nivel tarjeta-nivel--crema con-scroll-reveal">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-        <div class="tarjeta-nivel__texto">
-          <h3 class="tarjeta-nivel__titulo">Primaria</h3>
-          <p class="tarjeta-nivel__subtitulo">Desde los 6 años hasta los 12 años</p>
-        </div>
-      </div>
+    <!-- Título Primario -->
+    <title>Cokie Hall - Comunidad Educativa</title>
 
-      <div class="tarjeta-nivel tarjeta-nivel--dorado con-scroll-reveal">
-        <img class="tarjeta-nivel__imagen" src="img/futb.png" alt="Estudiantes del nivel Primaria">
-        
-      </div>
+    <!-- Meta Etiquetas de SEO -->
+    <meta name="title" content="Cokie Hall - Comunidad Educativa" />
+    <meta name="description" content="Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las herramientas para crecer, aprender y alcanzar su máximo potencial. Descarga nuestra aplicación móvil Cokie College." />
+    <meta name="keywords" content="Cokie Hall, Cokie College, educación, colegio, aplicación escolar, aprendizaje infantil, control escolar, educación de calidad, escuela" />
+    <meta name="author" content="Cokie Hall" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0B1957" />
 
-      <div class="tarjeta-nivel tarjeta-nivel--dorado con-scroll-reveal">
-       
-        <div class="tarjeta-nivel__texto">
-          <h3 class="tarjeta-nivel__titulo">Tercer ciclo</h3>
-          <p class="tarjeta-nivel__subtitulo">Desde los 13 años a los 15 años</p>
-        </div>
-      </div>
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cokie Hall - Comunidad Educativa" />
+    <meta property="og:description" content="Una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje sobresaliente. Todo el control escolar en la palma de tu mano." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:locale" content="es_ES" />
 
-      <div class="tarjeta-nivel tarjeta-nivel--crema con-scroll-reveal">
-        <img class="tarjeta-nivel__imagen" src="img/kids1.png" alt="Estudiantes de Bachillerato">
-       
-      </div>
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cokie Hall - Comunidad Educativa" />
+    <meta name="twitter:description" content="Una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje sobresaliente. Descarga la aplicación Cokie College." />
+    <meta name="twitter:image" content="/og-image.png" />
 
-      <div class="tarjeta-nivel tarjeta-nivel--marino con-scroll-reveal">
-       
-        <div class="tarjeta-nivel__texto">
-          <h3 class="tarjeta-nivel__titulo">Clubes deportivos</h3>
-          <p class="tarjeta-nivel__subtitulo">Desde los 8 años a los 15 años</p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-  
- <!-- ================= DESCARGA LA APP ================= -->
-<section class="seccion-descarga-app">
-
-  <div class="seccion-descarga-app__panel-izquierdo">
-    <div class="contenedor seccion-descarga-app__contenido-izquierdo">
-      <div class="seccion-descarga-app__texto con-scroll-reveal">
-        <h2 class="seccion-descarga-app__titulo">Descarga nuestra app</h2>
-        <p class="seccion-descarga-app__parrafo">Escanea el código QR para descargar la aplicación de Cokie Hall y llevar contigo el calendario escolar, boletines y notificaciones al instante.</p>
-        <div class="hero-bienvenida__botones">
-            <a class="boton-relleno-dorado" href="https://github.com/jl-diaz/Cokie_college/releases/download/v1.0.0/CokieCollege.apk" download="CokieCollege.apk">Descargar aplicación</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Espacio reservado para la imagen del teléfono (diseño hecho en Canva) -->
-  <div class="seccion-descarga-app__imagen-central con-scroll-reveal">
-    <img class="seccion-descarga-app__imagen-telefono" src="img/mockup.png" alt="Vista previa de la aplicación de Cokie Hall en un teléfono">
-  </div>
-
-  <div class="seccion-descarga-app__panel-derecho con-scroll-reveal">
-    <div class="seccion-descarga-app__testimonio">
-      <p class="seccion-descarga-app__cita">"Gracias a la app puedo ver mis calificaciones y el calendario escolar. ¡Es súper fácil de usar!"</p>
-      <div class="seccion-descarga-app__autor">
-        <img class="seccion-descarga-app__avatar" src="img/kid.png" alt="Estudiante de Cokie Hall">
-        <div>
-          <p class="seccion-descarga-app__nombre">Sofía Ramírez</p>
-          <p class="seccion-descarga-app__grado">Estudiante, 9° grado</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</section>
-  <!-- ================= TARJETAS DE ENLACES ================= -->
-  <section class="seccion-tarjetas" id="familias">
-    <div class="contenedor seccion-tarjetas__cuadricula">
-      <a class="tarjeta-enlace con-scroll-reveal" href="#contacto">
-        <img class="tarjeta-enlace__imagen" alt="Estudiante escribiendo en su cuaderno en clase" src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=80">
-        <span class="tarjeta-enlace__etiqueta tarjeta-enlace__etiqueta--dorado">Próximos eventos</span>
-      </a>
-      <a class="tarjeta-enlace con-scroll-reveal" href="#contacto">
-        <img class="tarjeta-enlace__imagen" alt="Estudiantes con balón de fútbol en el patio" src="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=600&q=80">
-        <span class="tarjeta-enlace__etiqueta tarjeta-enlace__etiqueta--marino">Boletines informativos</span>
-      </a>
-      <a class="tarjeta-enlace con-scroll-reveal" href="#contacto">
-        <img class="tarjeta-enlace__imagen" alt="Estudiantes sirviéndose el almuerzo en la cafetería" src="https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=600&q=80">
-        <span class="tarjeta-enlace__etiqueta tarjeta-enlace__etiqueta--gris">Pagos en línea</span>
-      </a>
-    </div>
-  </section>
-
-
-
-  <!-- ================= PIE DE PÁGINA ================= -->
-  <footer class="pie-pagina" id="contacto">
-    <div class="contenedor">
-      <div class="pie-pagina__cuadricula">
-        <div>
-          <h3 class="pie-pagina__titulo">Dirección</h3>
-          <p class="pie-pagina__linea">Colegio Cokie Hall</p>
-          <p class="pie-pagina__linea">Calle Los Robles, Boulevard del Hipódromo</p>
-          <p class="pie-pagina__linea">San Salvador, El Salvador</p>
-        </div>
-        <div>
-          <h3 class="pie-pagina__titulo">Enlaces rápidos</h3>
-          <ul class="pie-pagina__enlaces">
-            <li><a href="#inicio">Intranet</a></li>
-            <li><a href="#familias">Boletines escolares</a></li>
-            <li><a href="#familias">Calendario escolar</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="pie-pagina__titulo">Contacto telefonico</h3>
-          <p class="pie-pagina__telefono"><a href="tel:25034400" style="color: inherit; text-decoration: none;">2503 4400</a></p>
-        </div>
-      </div>
-      <div class="pie-pagina__base">
-        <span>© 2026 Colegio Cokie Hall. Todos los derechos reservados.</span>
-        <div class="pie-pagina__redes">
-          <a href="#" aria-label="Facebook"><img alt="Facebook" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='%23FFFFFF'/><path fill='%2316324F' d='M13.5 9H15V6.5h-1.75C11.5 6.5 10.5 7.6 10.5 9.4V11H9v2.5h1.5V19h2.5v-5.5H14.7L15 11h-2v-1.2c0-.5.2-.8.5-.8z'/></svg>"></a>
-          <a href="#" aria-label="Instagram"><img alt="Instagram" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='%23FFFFFF'/><rect x='7' y='7' width='10' height='10' rx='3' fill='none' stroke='%2316324F' stroke-width='1.4'/><circle cx='12' cy='12' r='2.4' fill='none' stroke='%2316324F' stroke-width='1.4'/></svg>"></a>
-          <a href="#" aria-label="YouTube"><img alt="YouTube" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='12' fill='%23FFFFFF'/><path fill='%2316324F' d='M10 9.5v5l4.5-2.5z'/></svg>"></a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script>
-    gsap.registerPlugin(ScrollTrigger);
-
-    // Revelado del héroe al cargar la página
-    gsap.from(".seccion-hero__texto", {
-      y: 40,
-      opacity: 0,
-      duration: 1,
-      ease: "power3.out",
-      delay: 0.2
-    });
-
-    document.querySelectorAll(".con-scroll-reveal").forEach((elemento, indice) => {
-      gsap.to(elemento, {
-        opacity: 1,
-        y: 0,
-        duration: 0.9,
-        ease: "power2.out",
-        delay: (indice % 4) * 0.08,
-        scrollTrigger: {
-          trigger: elemento,
-          start: "top 85%",
-          toggleActions: "play none none reverse"
-        }
-      });
-    });
-
-    gsap.to(".seccion-hero__imagen", {
-      yPercent: 12,
-      ease: "none",
-      scrollTrigger: {
-        trigger: ".seccion-hero",
-        start: "top top",
-        end: "bottom top",
-        scrub: true
-      }
-    });
-
-    gsap.from(".galeria-tira__imagen", {
-      scale: 1.08,
-      opacity: 0,
-      duration: 1,
-      stagger: 0.12,
-      ease: "power2.out",
-      scrollTrigger: {
-        trigger: ".galeria-tira",
-        start: "top 80%"
-      }
-    });
-  </script>
-</body>
+    <!-- Favicon & Iconos de App -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

@@ -1,0 +1,58 @@
+/* ================= BOTÓN FLOTANTE VOLVER ARRIBA ================= */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 999;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0b1957;
+  color: #ffd074;
+  border: 2px solid rgba(255, 208, 116, 0.4);
+  box-shadow: 0 10px 25px rgba(11, 25, 87, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.85);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.scroll-to-top-btn.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.scroll-to-top-btn:hover {
+  background: #ffd074;
+  color: #0b1957;
+  border-color: #ffffff;
+  transform: translateY(-4px) scale(1.08);
+  
+}
+
+.scroll-btn-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+}
+
+.scroll-to-top-btn:hover .scroll-btn-icon-wrapper {
+  transform: translateY(-2px);
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .scroll-to-top-btn {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 44px;
+    height: 44px;
+  }
+}
