@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { supabase } from './supabase';
+import Constants from 'expo-constants';
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  baseURL: process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl || 'https://cokie-college.vercel.app/api/',
 });
 
 // Interceptor para añadir el token de Supabase a todas las peticiones
