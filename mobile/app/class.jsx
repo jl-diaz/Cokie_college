@@ -863,18 +863,25 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
   },
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
+    width: '100%',
+    maxWidth: 480,
     backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'],
-    borderTopRightRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius['2xl'] || 24,
     maxHeight: '85%',
     padding: Spacing.xl,
+    borderWidth: theme === 'dark' ? 1 : 0,
+    borderColor: Colors.gray[200],
     ...Shadows.elevated,
   },
   modalHeader: {

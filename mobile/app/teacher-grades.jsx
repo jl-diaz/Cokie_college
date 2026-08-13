@@ -801,6 +801,8 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
     backgroundColor: Colors.card,
     borderRadius: BorderRadius['2xl'],
     padding: Spacing.xl,

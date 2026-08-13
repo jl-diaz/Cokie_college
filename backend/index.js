@@ -31,9 +31,16 @@ const strictWriteLimiter = rateLimit({
 });
 
 // Middleware de seguridad y optimización
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(compression());
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 app.use('/api/', generalLimiter);
