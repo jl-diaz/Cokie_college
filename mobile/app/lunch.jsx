@@ -899,14 +899,22 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    padding: 0,
+    margin: 0,
   },
   modalContent: {
+    width: '100%',
     backgroundColor: Colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    maxHeight: '90%',
   },
   modalTitle: {
     fontSize: 18,

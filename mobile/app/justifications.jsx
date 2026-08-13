@@ -416,13 +416,16 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   obsLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.primary, marginBottom: 4 },
   obsText: { fontSize: 14, color: Colors.text.secondary, fontStyle: 'italic' },
   
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {
     width: '100%',
-    maxWidth: 480,
     backgroundColor: Colors.card,
-    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     maxHeight: '90%',
   },
   modalHeader: {

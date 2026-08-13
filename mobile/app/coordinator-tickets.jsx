@@ -519,16 +519,22 @@ const createStyles = (Colors) => StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    padding: 0,
+    margin: 0,
   },
   modalContainer: {
     width: '100%',
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
+    borderTopLeftRadius: BorderRadius['2xl'] || 24,
+    borderTopRightRadius: BorderRadius['2xl'] || 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     padding: Spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.xl,
+    maxHeight: '90%',
     ...Shadows.elevated,
   },
   modalTitle: {
