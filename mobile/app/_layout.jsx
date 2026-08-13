@@ -34,11 +34,12 @@ function LayoutInner() {
     if (!rootNavigationState?.key) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isSplash = !segments[0] || segments[0] === 'index';
 
-    if (!authLoading && !user && !inAuthGroup) {
+    if (!authLoading && !user && !inAuthGroup && !isSplash) {
       router.replace('/(auth)/login');
     }
-  }, [user, authLoading, rootNavigationState?.key]);
+  }, [user, authLoading, rootNavigationState?.key, segments]);
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
