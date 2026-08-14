@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const APK_URL = 'https://github.com/jl-diaz/Cokie_college/releases/download/v1.2/CokieCollege.apk';
-const WEB_URL = 'https://cokie-college-ten.vercel.app/';
+const WEB_URL = 'https://app.cokiehall.lat/';
 
 function DownloadButton({ className = '' }) {
   const [isAndroid, setIsAndroid] = useState(false);
