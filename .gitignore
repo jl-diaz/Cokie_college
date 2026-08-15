@@ -8,6 +8,10 @@ coverage/
 
 # Production
 build/
+dist/
+dist-ssr/
+web-build/
+.expo/
 
 # Misc
 .DS_Store
