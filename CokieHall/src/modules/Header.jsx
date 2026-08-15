@@ -202,22 +202,24 @@ function Header() {
         {/* ===== HERO ===== */}
         <div id="hero" className="hero-container" style={{ height: '100vh' }}>
           <div className="hero-content">
-            <StrokeText
-              text="Cokie Hall"
-              strokeColor="#4820bd"
-              fillColor="#F8FAFC"
-              strokeWidth={1.4}
-              drawDuration={1.6}
-              fillDelay={0.2}
-              stagger={0.05}
-              ease="power2.out"
-              trigger="scroll"
-              fillMode="wipe"
-              fontSize={128}
-              fontWeight={800}
-              letterSpacing={-4}
-              reverse={false}
-            />
+            <h1 className="hero-title-h1" style={{ margin: 0, padding: 0, lineHeight: 1, fontSize: 'inherit', fontWeight: 'inherit', display: 'flex', justifyContent: 'center' }}>
+              <StrokeText
+                text="Cokie Hall"
+                strokeColor="#4820bd"
+                fillColor="#F8FAFC"
+                strokeWidth={1.4}
+                drawDuration={1.6}
+                fillDelay={0.2}
+                stagger={0.05}
+                ease="power2.out"
+                trigger="scroll"
+                fillMode="wipe"
+                fontSize={128}
+                fontWeight={800}
+                letterSpacing={-4}
+                reverse={false}
+              />
+            </h1>
             <p className="hero-subtitle">
               Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las
               herramientas para crecer, aprender y alcanzar su máximo potencial.

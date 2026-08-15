@@ -2,10 +2,11 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
-import { Search, Plus, Trash2, Edit2, X, ChevronDown, User, Mail, Shield, Book } from 'lucide-react-native';
+import { Search, Plus, Trash2, Edit2, X, ChevronDown, User, Mail, Shield, Book, CheckCircle2 } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../src/context/AuthContext';
 import PageHeader from '../src/components/PageHeader';
 
 import { useAlert } from '../src/context/AlertContext';
@@ -13,6 +14,7 @@ import { useAlert } from '../src/context/AlertContext';
 export default function UsersScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
+  const { profile: currentProfile } = useAuth();
   const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [users, setUsers] = useState([]);
@@ -181,8 +183,19 @@ export default function UsersScreen() {
       return;
     }
 
+    const computeStudentLevel = (role, grade, explicitLevel) => {
+      if (role === 'student' && grade) {
+        const g = parseInt(grade);
+        if (g >= 2 && g <= 6) return 'Primaria';
+        if (g >= 7 && g <= 11) return 'Tercer Ciclo';
+      }
+      return explicitLevel || '';
+    };
+
     setSaving(true);
     try {
+      const computedLevel = computeStudentLevel(formData.role, formData.grade, formData.level);
+
       if (editingUser) {
         // Edit Mode
         await api.put(`/admin/users/${editingUser.id}`, {
@@ -191,7 +204,7 @@ export default function UsersScreen() {
           role: formData.role,
           grade: formData.role === 'student' ? formData.grade : '',
           section: formData.role === 'student' ? formData.section : '',
-          level: (formData.role === 'coordinator' || formData.role === 'teacher') ? formData.level : '',
+          level: (formData.role === 'coordinator' || formData.role === 'teacher' || formData.role === 'student') ? computedLevel : '',
           materia_principal: formData.role === 'teacher' ? formData.materia_principal : null
         });
         showAlert({
@@ -201,7 +214,10 @@ export default function UsersScreen() {
         });
       } else {
         // Create Mode
-        await api.post('/admin/users', formData);
+        await api.post('/admin/users', {
+          ...formData,
+          level: computedLevel
+        });
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
@@ -224,11 +240,31 @@ export default function UsersScreen() {
     }
   };
 
+  const handleActivateUser = async (id) => {
+    try {
+      await api.put(`/admin/users/${id}`, { is_active: true });
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', '¡Activado!'),
+        message: 'Usuario reactivado correctamente.'
+      });
+      setPage(1);
+      fetchUsers(1, true);
+    } catch (error) {
+      console.error(error);
+      showAlert({
+        type: 'error',
+        title: t('dashboard.error', 'Error'),
+        message: error.response?.data?.error || 'No se pudo reactivar el usuario.'
+      });
+    }
+  };
+
   const handleDeleteUser = (id) => {
     showConfirm({
       type: 'danger',
       title: t('users.confirmDeleteTitle', 'Desactivar usuario'),
-      message: t('users.confirmDeleteBody', '¿Estás seguro de que deseas desactivar este usuario? Ya no aparecerá en las listas.'),
+      message: t('users.confirmDeleteBody', '¿Estás seguro de que deseas desactivar este usuario? Ya no aparecerá en las listas activas.'),
       confirmText: t('dashboard.delete', 'Desactivar'),
       cancelText: t('dashboard.cancel', 'Cancelar'),
       onConfirm: async () => {
@@ -246,7 +282,7 @@ export default function UsersScreen() {
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
-            message: 'No se pudo desactivar el usuario.'
+            message: error.response?.data?.error || 'No se pudo desactivar el usuario.'
           });
         }
       }
@@ -375,10 +411,19 @@ export default function UsersScreen() {
                     <Edit2 size={18} color={Colors.primary} />
                   </TouchableOpacity>
 
-                  {!(item.role === 'super_admin') && item.is_active !== false && (
-                    <TouchableOpacity onPress={() => handleDeleteUser(item.id)} style={[styles.actionBtn, styles.deleteBtn]}>
-                      <Trash2 size={18} color={Colors.status.rejected} />
+                  {item.is_active === false ? (
+                    <TouchableOpacity 
+                      onPress={() => handleActivateUser(item.id)} 
+                      style={[styles.actionBtn, { backgroundColor: '#dcfce7', marginTop: 8 }]}
+                    >
+                      <CheckCircle2 size={18} color="#16a34a" />
                     </TouchableOpacity>
+                  ) : (
+                    (item.id !== currentProfile?.id && (!(item.role === 'super_admin' || item.role === 'admin') || currentProfile?.full_name === 'Administrador Principal')) && (
+                      <TouchableOpacity onPress={() => handleDeleteUser(item.id)} style={[styles.actionBtn, styles.deleteBtn]}>
+                        <Trash2 size={18} color={Colors.status.rejected} />
+                      </TouchableOpacity>
+                    )
                   )}
 
                 </View>
@@ -492,8 +537,19 @@ export default function UsersScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Rol</Text>
                 <TouchableOpacity 
-                  style={styles.dropdownTrigger} 
-                  onPress={() => setRoleDropdownOpen(!roleDropdownOpen)}
+                  style={[styles.dropdownTrigger, editingUser?.id === currentProfile?.id && { opacity: 0.6 }]} 
+                  onPress={() => {
+                    if (editingUser?.id === currentProfile?.id) {
+                      showAlert({
+                        type: 'info',
+                        title: 'Rol Protegido',
+                        message: 'No puedes modificar tu propio rol de administrador.'
+                      });
+                      return;
+                    }
+                    setRoleDropdownOpen(!roleDropdownOpen);
+                  }}
+                  disabled={editingUser?.id === currentProfile?.id}
                 >
                   <Shield size={18} color={Colors.text.muted} style={styles.inputIcon} />
                   <Text style={styles.dropdownTriggerText}>
@@ -502,7 +558,7 @@ export default function UsersScreen() {
                   <ChevronDown size={18} color={Colors.text.muted} />
                 </TouchableOpacity>
 
-                {roleDropdownOpen && (
+                {roleDropdownOpen && editingUser?.id !== currentProfile?.id && (
                   <View style={styles.dropdownList}>
                     {roles.map(r => (
                       <TouchableOpacity

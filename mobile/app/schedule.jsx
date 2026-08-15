@@ -25,26 +25,26 @@ export default function ScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const { profile } = useAuth();
   const router = useRouter();
-  const { teacher_id, teacher_name, student_id, student_name } = useLocalSearchParams();
+  const { teacher_id, teacher_name, student_id, student_name, grade, section } = useLocalSearchParams();
 
   useEffect(() => {
     fetchSchedule();
-  }, [teacher_id, student_id]);
+  }, [teacher_id, student_id, grade, section]);
 
   const fetchSchedule = async () => {
     try {
       let endpoint = profile?.role === 'teacher' ? '/teacher/schedule' : '/student/schedule';
       
-      if (profile?.role === 'coordinator' && !teacher_id && !student_id) {
-        setSchedules([]);
-        setLoading(false);
-        return;
-      }
-
-      if (teacher_id) {
+      if (grade && section) {
+        endpoint = `/coordinator/classrooms/schedule?grade=${grade}&section=${section}`;
+      } else if (teacher_id) {
         endpoint = `/coordinator/teachers/${teacher_id}/schedule`;
       } else if (student_id) {
         endpoint = `/coordinator/students/${student_id}/schedule`;
+      } else if (profile?.role === 'coordinator') {
+        setSchedules([]);
+        setLoading(false);
+        return;
       }
       
       const response = await api.get(endpoint);
@@ -62,7 +62,7 @@ export default function ScheduleScreen() {
 
       setSchedules(uniqueSchedules);
     } catch (error) {
-      console.error(error);
+      console.error('Error al cargar horario:', error);
     } finally {
       setLoading(false);
     }
@@ -96,20 +96,24 @@ export default function ScheduleScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {(teacher_id || student_id) && (
+        {(teacher_id || student_id || (grade && section)) && (
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ArrowLeft color="#FFF" size={24} />
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>
-          {teacher_id 
-          ? `${t('titles.schedule')} ${teacher_name || t('dashboard.teacher') || 'Profesor'}` 
-          : student_id 
-            ? `${t('titles.schedule')} ${student_name || t('dashboard.student') || 'Estudiante'}` 
-            : t('titles.schedule')}
+          {grade && section
+            ? `Horario • ${grade}º Grado '${section}'`
+            : teacher_id 
+            ? `${t('titles.schedule')} ${teacher_name || t('dashboard.teacher') || 'Profesor'}` 
+            : student_id 
+              ? `${t('titles.schedule')} ${student_name || t('dashboard.student') || 'Estudiante'}` 
+              : t('titles.schedule')}
         </Text>
         <Text style={styles.headerSubtitle}>
-          {teacher_id || student_id ? t('titles.scheduleSubtitleCoordinator') : t('titles.scheduleSubtitle')}
+          {grade && section
+            ? 'Distribución horaria y docentes del grupo escolar'
+            : (teacher_id || student_id ? t('titles.scheduleSubtitleCoordinator') : t('titles.scheduleSubtitle'))}
         </Text>
 
         <ScrollView 

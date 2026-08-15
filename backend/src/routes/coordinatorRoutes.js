@@ -18,6 +18,7 @@ router.get('/students/:studentId/schedule', coordinatorController.getStudentSche
 router.get('/teachers', coordinatorController.getTeachers);
 router.get('/teachers/:teacherId/schedule', coordinatorController.getTeacherSchedule);
 router.get('/classrooms', coordinatorController.getClassrooms);
+router.get('/classrooms/schedule', coordinatorController.getClassroomSchedule);
 
 // Periodos académicos
 router.get('/academic-periods', adminController.getAcademicPeriods);

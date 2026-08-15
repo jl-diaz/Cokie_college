@@ -139,16 +139,17 @@ const Login = () => {
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                {t('login.emailLabel', 'Correo Electrónico')}
+                {t('login.emailLabel', 'Correo o Carnet Institucional')}
               </label>
               <div className="relative flex items-center">
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3.5 bg-slate-50 dark:bg-[#182038] focus:bg-white dark:focus:bg-[#1f294a] border border-slate-200 dark:border-slate-700 focus:border-[#0B1956] dark:focus:border-[#F6BE2F] rounded-2xl text-sm outline-none transition-all text-[#0B1956] dark:text-white font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  placeholder={t('login.emailPlaceholder', 'admin@cokiecollege.edu')}
+                  placeholder={t('login.emailPlaceholder', 'admin@cokiecollege.edu o DA26001')}
                   autoCapitalize="none"
+                  autoCorrect="off"
                   required
                 />
               </div>

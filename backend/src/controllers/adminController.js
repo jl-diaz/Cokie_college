@@ -89,7 +89,7 @@ const adminController = {
 
             // Auto-asignar level según el grado
             let computedLevel = level || null;
-            if (!computedLevel && grade) {
+            if (role === 'student' || (!computedLevel && grade)) {
                 const gradeNum = parseInt(grade);
                 if (gradeNum >= 2 && gradeNum <= 6) {
                     computedLevel = 'Primaria';
@@ -147,7 +147,41 @@ const adminController = {
     updateUser: async (req, res) => {
         try {
             const { id } = req.params;
-            const updates = req.body;
+            const updates = { ...req.body };
+
+            // 1. Un admin no se puede quitar el rol a sí mismo
+            if (req.user.id === id && updates.role && updates.role !== req.user.role) {
+                return res.status(400).json({ error: 'No puedes modificar o remover tu propio rol de administrador.' });
+            }
+
+            // 2. Obtener el perfil objetivo para verificar permisos especiales
+            const { data: targetProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('id, role, full_name')
+                .eq('id', id)
+                .maybeSingle();
+
+            // 3. Si se intenta desactivar a un admin
+            if (targetProfile && (targetProfile.role === 'super_admin' || targetProfile.role === 'admin')) {
+                if (updates.is_active === false) {
+                    if (req.user.id === id) {
+                        return res.status(400).json({ error: 'No puedes desactivar tu propia cuenta.' });
+                    }
+                    if (req.user.full_name !== 'Administrador Principal') {
+                        return res.status(403).json({ error: 'Solo el Administrador Principal puede desactivar a otros administradores.' });
+                    }
+                }
+            }
+
+            // 4. Auto-asignar level si es estudiante o se actualiza el grado
+            if (updates.grade && (updates.role === 'student' || (!updates.level && targetProfile?.role === 'student'))) {
+                const gradeNum = parseInt(updates.grade);
+                if (gradeNum >= 2 && gradeNum <= 6) {
+                    updates.level = 'Primaria';
+                } else if (gradeNum >= 7 && gradeNum <= 11) {
+                    updates.level = 'Tercer Ciclo';
+                }
+            }
 
             const { data, error } = await supabaseAdmin
                 .from('profiles')
@@ -166,6 +200,29 @@ const adminController = {
     deleteUser: async (req, res) => {
         try {
             const { id } = req.params;
+
+            // 1. No se puede desactivar a sí mismo
+            if (req.user.id === id) {
+                return res.status(400).json({ error: 'No puedes desactivar tu propia cuenta.' });
+            }
+
+            // 2. Verificar si el usuario objetivo es admin
+            const { data: targetProfile, error: fetchError } = await supabaseAdmin
+                .from('profiles')
+                .select('id, role, full_name')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (fetchError || !targetProfile) {
+                return res.status(404).json({ error: 'Usuario no encontrado.' });
+            }
+
+            if (targetProfile.role === 'super_admin' || targetProfile.role === 'admin') {
+                if (req.user.full_name !== 'Administrador Principal') {
+                    return res.status(403).json({ error: 'Solo el Administrador Principal puede desactivar a otros administradores.' });
+                }
+            }
+
             const { error } = await supabaseAdmin
                 .from('profiles')
                 .update({ is_active: false })

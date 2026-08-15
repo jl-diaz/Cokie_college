@@ -4,35 +4,105 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Título Primario -->
-    <title>Cokie Hall - Institución Academica</title>
+    <!-- Título Primario SEO -->
+    <title>Cokie Hall | Institución Educativa y Comunidad Académica</title>
 
-    <!-- Meta Etiquetas de SEO -->
-    <meta name="title" content="Cokie Hall - Institución Academica" />
-    <meta name="description" content="Una institución académica dedicada a ofrecer una educación de calidad. Todo el control escolar en la palma de tu mano." />
-    <meta name="keywords" content="Cokie Hall, Cokie College, educación, colegio, aplicación escolar, aprendizaje infantil, control escolar, educación de calidad, escuela" />
-    <meta name="author" content="Cokie Hall" />
-    <meta name="robots" content="index, follow" />
+    <!-- Meta Etiquetas de SEO Esenciales -->
+    <meta name="title" content="Cokie Hall | Institución Educativa y Comunidad Académica" />
+    <meta name="description" content="Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College." />
+    <meta name="keywords" content="Cokie Hall, Cokie College, institución educativa, colegio, Primaria, Tercer Ciclo, educación de calidad, aprendizaje integral, control escolar, plataforma educativa, El Salvador" />
+    <meta name="author" content="Cokie Hall - Cokie Dev" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="theme-color" content="#0B1957" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.cokiehall.lat/" />
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Cokie Hall - Institución Academica" />
-    <meta property="og:description" content="Una institución académica dedicada a ofrecer una educación de calidad. Todo el control escolar en la palma de tu mano." />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://www.cokiehall.lat/" />
+    <meta property="og:site_name" content="Cokie Hall" />
+    <meta property="og:title" content="Cokie Hall | Institución Educativa y Comunidad Académica" />
+    <meta property="og:description" content="Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las herramientas para crecer, aprender y alcanzar su máximo potencial. Descarga Cokie College." />
+    <meta property="og:image" content="https://www.cokiehall.lat/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Cokie Hall - Comunidad Educativa" />
     <meta property="og:locale" content="es_ES" />
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Cokie Hall - Institución Academica" />
-    <meta name="twitter:description" content="Una institución académica dedicada a ofrecer una educación de calidad. Todo el control escolar en la palma de tu mano." />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:url" content="https://www.cokiehall.lat/" />
+    <meta name="twitter:title" content="Cokie Hall | Institución Educativa y Comunidad Académica" />
+    <meta name="twitter:description" content="Una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje sobresaliente. Descarga la aplicación Cokie College." />
+    <meta name="twitter:image" content="https://www.cokiehall.lat/og-image.png" />
 
-    <!-- Favicon & Iconos de App -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- Favicon & Iconos Multi-resolución para Google y Dispositivos -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Datos Estructurados JSON-LD (Schema.org) para Google Search -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://www.cokiehall.lat/#organization",
+          "name": "Cokie Hall",
+          "url": "https://www.cokiehall.lat/",
+          "logo": "https://www.cokiehall.lat/favicon.png",
+          "image": "https://www.cokiehall.lat/og-image.png",
+          "description": "Institución educativa comprometida con la formación integral, excelencia académica y valores humanos en Primaria y Tercer Ciclo.",
+          "telephone": "+503 7000-0000",
+          "email": "cokiedev@gmail.com",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "SV"
+          },
+          "sameAs": [
+            "https://instagram.com",
+            "https://facebook.com"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.cokiehall.lat/#website",
+          "url": "https://www.cokiehall.lat/",
+          "name": "Cokie Hall",
+          "description": "Sitio oficial de la institución educativa Cokie Hall y plataforma escolar Cokie College",
+          "publisher": {
+            "@id": "https://www.cokiehall.lat/#organization"
+          },
+          "inLanguage": "es"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://www.cokiehall.lat/#app",
+          "name": "Cokie College",
+          "operatingSystem": "Android, Web",
+          "applicationCategory": "EducationalApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "Aplicación móvil y portal escolar para el seguimiento académico, calificaciones, horarios y encargo de almuerzos en Cokie Hall."
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
+    <noscript>
+      <header>
+        <h1>Cokie Hall - Institución Educativa y Comunidad Académica</h1>
+        <p>Cokie Hall es una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje sobresaliente para cada estudiante en niveles de Primaria y Tercer Ciclo.</p>
+      </header>
+    </noscript>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

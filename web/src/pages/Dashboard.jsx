@@ -38,6 +38,7 @@ import api from '../utils/api';
 // --- SUBMODULE 1: USUARIOS ---
 const AdminUsers = () => {
   const { t } = useTranslation();
+  const { profile: currentProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -59,6 +60,15 @@ const AdminUsers = () => {
     grade: '',
     section: ''
   });
+
+  const computeStudentLevel = (role, grade, explicitLevel) => {
+    if (role === 'student' && grade) {
+      const g = parseInt(grade);
+      if (g >= 2 && g <= 6) return 'Primaria';
+      if (g >= 7 && g <= 11) return 'Tercer Ciclo';
+    }
+    return explicitLevel || '';
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -95,7 +105,11 @@ const AdminUsers = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/admin/users', formData);
+      const computedLevel = computeStudentLevel(formData.role, formData.grade, formData.level);
+      await api.post('/admin/users', {
+        ...formData,
+        level: computedLevel
+      });
       setIsModalOpen(false);
       setFormData({ full_name: '', email: '', password: '', role: 'student', level: '', grade: '', section: '' });
       fetchUsers();
@@ -124,11 +138,12 @@ const AdminUsers = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const computedLevel = computeStudentLevel(formData.role, formData.grade, formData.level);
       await api.put(`/admin/users/${editingUser.id}`, {
         full_name: formData.full_name,
         email: formData.email,
         role: formData.role,
-        level: formData.level,
+        level: computedLevel,
         grade: formData.grade,
         section: formData.section
       });
@@ -148,6 +163,15 @@ const AdminUsers = () => {
     try {
       await api.delete(`/admin/users/${deletingUser.id}`);
       setDeletingUser(null);
+      fetchUsers();
+    } catch (error) {
+      alert(error.response?.data?.error || t('common.error'));
+    }
+  };
+
+  const handleActivateUser = async (user) => {
+    try {
+      await api.put(`/admin/users/${user.id}`, { is_active: true });
       fetchUsers();
     } catch (error) {
       alert(error.response?.data?.error || t('common.error'));
@@ -291,13 +315,27 @@ const AdminUsers = () => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setDeletingUser(user)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+
+                        {user.is_active === false ? (
+                          <button
+                            onClick={() => handleActivateUser(user)}
+                            className="px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 transition-colors flex items-center gap-1 font-bold text-xs"
+                            title="Activar Usuario"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Activar</span>
+                          </button>
+                        ) : (
+                          (user.id !== currentProfile?.id && (!(user.role === 'super_admin' || user.role === 'admin') || currentProfile?.full_name === 'Administrador Principal')) && (
+                            <button
+                              onClick={() => setDeletingUser(user)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              title="Eliminar / Desactivar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -471,8 +509,9 @@ const AdminUsers = () => {
                   <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">{t('users.role', 'Rol')}</label>
                   <select
                     value={formData.role}
+                    disabled={editingUser?.id === currentProfile?.id}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-[#182038] border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white outline-none cursor-pointer"
+                    className={`w-full px-3 py-2 bg-slate-50 dark:bg-[#182038] border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-white outline-none ${editingUser?.id === currentProfile?.id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <option value="student">Estudiante</option>
                     <option value="teacher">Docente</option>
@@ -480,6 +519,9 @@ const AdminUsers = () => {
                     <option value="super_admin">Super Admin</option>
                     <option value="cafetin">Cafetín</option>
                   </select>
+                  {editingUser?.id === currentProfile?.id && (
+                    <p className="text-[10px] text-amber-500 font-semibold mt-1">No puedes modificar tu propio rol.</p>
+                  )}
                 </div>
 
                 <div>

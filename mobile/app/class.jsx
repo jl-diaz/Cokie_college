@@ -68,17 +68,40 @@ export default function ClassScreen() {
   const fetchSchedulesAndCodes = async () => {
     setLoading(true);
     try {
-      const scheduleEndpoint = profile?.role === 'coordinator' ? '/coordinator/teachers' : '/teacher/schedule';
-      const codesEndpoint = profile?.role === 'coordinator' ? '/coordinator/conduct-codes' : '/teacher/conduct-codes';
+      const isCoord = profile?.role === 'coordinator';
+      const codesEndpoint = isCoord ? '/coordinator/conduct-codes' : '/teacher/conduct-codes';
 
       let scheduleList = [];
+      let uniqueClasses = [];
       let codeList = [];
 
-      try {
-        const schedRes = await api.get(scheduleEndpoint);
-        scheduleList = Array.isArray(schedRes.data) ? schedRes.data : [];
-      } catch (sErr) {
-        console.error('Error fetching schedule:', sErr);
+      if (isCoord) {
+        try {
+          const classroomsRes = await api.get('/coordinator/classrooms');
+          const classrooms = Array.isArray(classroomsRes.data) ? classroomsRes.data : [];
+          uniqueClasses = classrooms.map((c, i) => ({
+            id: `coord-cls-${c.grade}-${c.section}`,
+            grade: c.grade,
+            section: c.section,
+            subject_id: `cls-${c.grade}-${c.section}`,
+            subjects: { name: `${c.grade}º '${c.section}'` }
+          }));
+        } catch (clsErr) {
+          console.error('Error fetching coordinator classrooms:', clsErr);
+        }
+      } else {
+        try {
+          const schedRes = await api.get('/teacher/schedule');
+          scheduleList = Array.isArray(schedRes.data) ? schedRes.data : [];
+          
+          scheduleList.forEach(s => {
+            if (!uniqueClasses.find(c => c.subject_id === s.subject_id && c.grade === s.grade && c.section === s.section)) {
+              uniqueClasses.push(s);
+            }
+          });
+        } catch (sErr) {
+          console.error('Error fetching teacher schedule:', sErr);
+        }
       }
 
       try {
@@ -88,33 +111,8 @@ export default function ClassScreen() {
         console.error('Error fetching conduct codes:', cErr);
       }
 
-      // Deduplicate schedules to get unique classes taught
-      const uniqueClasses = [];
-      scheduleList.forEach(s => {
-        if (!uniqueClasses.find(c => c.subject_id === s.subject_id && c.grade === s.grade && c.section === s.section)) {
-          uniqueClasses.push(s);
-        }
-      });
-
       setSchedules(uniqueClasses);
       setConductCodes(codeList);
-
-      // Check active class by current day & time
-      const now = new Date();
-      const currentDay = now.getDay() || 7; // 1=Lunes, 7=Domingo
-      const currentHours = now.getHours();
-      const currentMinutes = now.getMinutes();
-      const currentTime = `${currentHours.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}:00`;
-
-      const active = scheduleList.find(s => {
-        return parseInt(s.day_of_week) === currentDay && 
-               s.start_time <= currentTime && 
-               s.end_time >= currentTime;
-      });
-
-      if (active) {
-        setActiveScheduleInfo(active);
-      }
 
       // Priority 1: Check if navigated from Salones module with params (grade & section)
       if (params?.grade && params?.section) {
@@ -125,21 +123,41 @@ export default function ClassScreen() {
           await handleSelectClass(matchingClass);
           return;
         } else {
-          // If no specific schedule matches subject, create synthetic class object
           const syntheticClass = {
             grade: params.grade,
             section: params.section,
-            subject_id: scheduleList[0]?.subject_id || 1,
-            subjects: { name: scheduleList[0]?.subjects?.name || 'Materia General' }
+            subject_id: `cls-${params.grade}-${params.section}`,
+            subjects: { name: `${params.grade}º '${params.section}'` }
           };
           await handleSelectClass(syntheticClass);
           return;
         }
       }
 
-      // Priority 2: Auto select active class if present
-      if (active) {
-        await handleSelectClass(active);
+      // Check active class by current day & time for teachers
+      if (!isCoord && scheduleList.length > 0) {
+        const now = new Date();
+        const currentDay = now.getDay() || 7;
+        const currentHours = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const currentTime = `${currentHours.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}:00`;
+
+        const active = scheduleList.find(s => {
+          return parseInt(s.day_of_week) === currentDay && 
+                 s.start_time <= currentTime && 
+                 s.end_time >= currentTime;
+        });
+
+        if (active) {
+          setActiveScheduleInfo(active);
+          await handleSelectClass(active);
+          return;
+        }
+      }
+
+      // Si hay salones disponibles y ninguno está seleccionado, seleccionar el primero
+      if (uniqueClasses.length > 0) {
+        await handleSelectClass(uniqueClasses[0]);
       }
     } catch (error) {
       console.error('Error fetching schedules or codes:', error);
@@ -158,7 +176,8 @@ export default function ClassScreen() {
     setLoading(true);
     setSearchQuery('');
     try {
-      const response = await api.get('/teacher/class-students', {
+      const studentEndpoint = profile?.role === 'coordinator' ? '/coordinator/students' : '/teacher/class-students';
+      const response = await api.get(studentEndpoint, {
         params: { grade: cls.grade, section: cls.section }
       });
       const mapped = (response.data || []).map(s => ({ ...s, status: 'present' }));
@@ -177,13 +196,14 @@ export default function ClassScreen() {
   };
 
   const isSelectedClassActive = useMemo(() => {
+    if (profile?.role === 'coordinator') return true;
     if (!selectedClass || !activeScheduleInfo) return false;
     return (
       selectedClass.subject_id === activeScheduleInfo.subject_id &&
       selectedClass.grade.toString() === activeScheduleInfo.grade.toString() &&
       selectedClass.section.toUpperCase() === activeScheduleInfo.section.toUpperCase()
     );
-  }, [selectedClass, activeScheduleInfo]);
+  }, [selectedClass, activeScheduleInfo, profile]);
 
   const toggleStatus = (id) => {
     if (!isSelectedClassActive) {

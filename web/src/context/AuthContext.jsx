@@ -46,9 +46,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (emailOrCode, password) => {
+    let emailToUse = (emailOrCode || '').trim();
+
+    // Si no contiene '@', buscar el correo asociado al carnet/código institucional
+    if (!emailToUse.includes('@')) {
+      const { data: profileData, error: profileErr } = await supabase
+        .from('profiles')
+        .select('email')
+        .ilike('institutional_code', emailToUse)
+        .maybeSingle();
+
+      if (profileErr || !profileData?.email) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      emailToUse = profileData.email;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: emailToUse,
       password,
     });
     if (error) throw error;

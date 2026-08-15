@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
 import { 
   Store, 
@@ -30,7 +31,7 @@ export default function LunchScreen() {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
   const { profile } = useAuth();
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [loading, setLoading] = useState(true);

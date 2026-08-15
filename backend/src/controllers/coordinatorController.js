@@ -799,6 +799,28 @@ const coordinatorController = {
         }
     },
 
+    getClassroomSchedule: async (req, res) => {
+        try {
+            const { grade, section } = req.query;
+            if (!grade || !section) {
+                return res.status(400).json({ error: 'El grado y la sección son obligatorios.' });
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('schedules')
+                .select('*, subjects(name), profiles!schedules_teacher_id_fkey(full_name)')
+                .eq('grade', grade)
+                .eq('section', section)
+                .order('day_of_week', { ascending: true })
+                .order('start_time', { ascending: true });
+
+            if (error) throw error;
+            res.json(data || []);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
     // --- Tickets de Extensión de Notas ---
 
     getGradeTickets: async (req, res) => {

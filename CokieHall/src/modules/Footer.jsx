@@ -46,12 +46,14 @@ function Footer() {
 
           <div className="footer-col">
             <h4 className="footer-col-title">Navegación</h4>
-            <ul className="footer-col-list">
-              <li><a href="#hero" className="footer-col-link">Home</a></li>
-              <li><a href="#nosotros" className="footer-col-link">Nosotros</a></li>
-              <li><a href="#niveles" className="footer-col-link">Niveles Educativos</a></li>
-              <li><a href="#contacto" className="footer-col-link">Contacto</a></li>
-            </ul>
+            <nav aria-label="Navegación secundaria del pie de página">
+              <ul className="footer-col-list">
+                <li><a href="#hero" className="footer-col-link">Home</a></li>
+                <li><a href="#nosotros" className="footer-col-link">Nosotros</a></li>
+                <li><a href="#niveles" className="footer-col-link">Niveles Educativos</a></li>
+                <li><a href="#contacto" className="footer-col-link">Contacto</a></li>
+              </ul>
+            </nav>
           </div>
 
           <div className="footer-col">
