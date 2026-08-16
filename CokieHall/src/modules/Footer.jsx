@@ -34,13 +34,13 @@ function Footer() {
 
         </div>
 
-        <div className="footer-middle-columns">
+        <div className="footer-middle-columns" data-nosnippet="true">
           
           <div className="footer-col">
             <h4 className="footer-col-title">Sobre Nosotros</h4>
             <p className="footer-col-text">
-              Cokie Hall es una institución educativa que esta comprometida con la excelencia académica, 
-              valores y formación integral de cada estudiante.
+              Cokie Hall es una comunidad educativa comprometida con la excelencia académica, 
+              valores y formación integral para Primaria y Tercer Ciclo.
             </p>
           </div>
 
