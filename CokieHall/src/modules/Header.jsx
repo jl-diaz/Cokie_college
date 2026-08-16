@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 import Incrementador from '../modulesReactBits/incrementador.jsx';
 import ScrollReveal from '../modulesReactBits/ScrollReveal.jsx';
 import StrokeText from './StrokeText';
@@ -45,21 +44,7 @@ gsap.registerPlugin(ScrollTrigger);
 function Header() {
   const mainRef = useRef(null);
 
-  // Scroll suave con Lenis, sincronizado con GSAP ScrollTrigger
   useGSAP(() => {
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-
-    lenis.on('scroll', ScrollTrigger.update);
-
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
-    gsap.ticker.lagSmoothing(0);
-
     const reveals = gsap.utils.toArray('.reveal');
     reveals.forEach((el) => {
       gsap.fromTo(
@@ -157,10 +142,6 @@ function Header() {
         { opacity: 1, x: 0, scale: 1, duration: 0.9, stagger: 0.2, ease: 'power3.out' },
         '-=0.4'
       );
-
-    return () => {
-      lenis.destroy();
-    };
   }, { scope: mainRef });
 
   // === FOTOS DE ESTUDIANTES A LOS LADOS DEL SCROLL REVEAL (2 POR LADO) ===

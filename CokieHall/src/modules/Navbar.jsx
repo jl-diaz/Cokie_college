@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import logoBlan from '../assets/logoBlan.png';
 import StaggeredMenu from '../modulesReactBits/StaggeredMenu.jsx';
 import './Navbar.css';
@@ -6,35 +6,44 @@ import './Navbar.css';
 function Navbar() {
   const [visible, setVisible] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const scrollTimer = useRef(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      // SI EL MENÚ MÓVIL ESTÁ DESPLEGADO, LA NAVBAR NUNCA DESAPARECE POR MÁS QUE SE HAGA SCROLL
+    let lastScroll = 0;
+
+    const onLenisScroll = ({ scroll, direction }) => {
+      // Si el menú móvil está desplegado, siempre visible
       if (mobileMenuOpen) {
         setVisible(true);
         return;
       }
 
-      if (window.scrollY > 30) {
+      // Cerca del top → siempre visible
+      if (scroll < 30) {
+        setVisible(true);
+        lastScroll = scroll;
+        return;
+      }
+
+      // direction: 1 = bajando, -1 = subiendo
+      if (direction === -1) {
+        setVisible(true);
+      } else if (direction === 1 && scroll - lastScroll > 5) {
         setVisible(false);
-      } else {
-        setVisible(true);
       }
 
-      if (scrollTimer.current) {
-        clearTimeout(scrollTimer.current);
-      }
-
-      scrollTimer.current = setTimeout(() => {
-        setVisible(true);
-      }, 250); // Aparece 250ms después de detener el scroll
+      lastScroll = scroll;
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Suscribirse al scroll de Lenis en vez del nativo
+    const lenis = window.__lenis;
+    if (lenis) {
+      lenis.on('scroll', onLenisScroll);
+    }
+
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimer.current) clearTimeout(scrollTimer.current);
+      if (lenis) {
+        lenis.off('scroll', onLenisScroll);
+      }
     };
   }, [mobileMenuOpen]);
 
@@ -48,8 +57,7 @@ function Navbar() {
 
   const socialItems = [
     { label: 'Instagram', link: 'https://instagram.com' },
-    { label: 'Facebook', link: 'https://facebook.com' },
-    { label: 'WhatsApp', link: 'https://wa.me/50370000000' }
+    { label: 'Facebook', link: 'https://facebook.com' }
   ];
 
   return (
@@ -68,15 +76,15 @@ function Navbar() {
         <nav className="navbar__nav">
           <ul className="navbar__menu">
             <li className="navbar__item">
-              <a href="#niveles" className="navbar__link">Niveles Educativos</a>
+              <a href="#nosotros" className="navbar__link">Nosotros</a>
             </li>
 
             <li className="navbar__item">
-              <a href="#nosotros" className="navbar__link">Nosotros</a>
+              <a href="#niveles" className="navbar__link">Niveles Educativos</a>
             </li>
             
             <li className="navbar__item">
-              <a href="#contacto" className="navbar__link">Contacto</a>
+              <a href="#app-download" className="navbar__link">Cokie College</a>
             </li>
           </ul>
         </nav>

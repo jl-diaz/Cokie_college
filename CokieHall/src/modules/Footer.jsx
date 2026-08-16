@@ -28,7 +28,7 @@ function Footer() {
                 <rect width="20" height="16" x="2" y="4" rx="2"/>
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
               </svg>
-              <span>cokiedev@gmail.com</span>
+              <span>cokiecollege@gmail.com</span>
             </a>
           </div>
 
@@ -51,7 +51,7 @@ function Footer() {
                 <li><a href="#hero" className="footer-col-link">Home</a></li>
                 <li><a href="#nosotros" className="footer-col-link">Nosotros</a></li>
                 <li><a href="#niveles" className="footer-col-link">Niveles Educativos</a></li>
-                <li><a href="#contacto" className="footer-col-link">Contacto</a></li>
+                <li><a href="#app-download" className="footer-col-link">Cokie College</a></li>
               </ul>
             </nav>
           </div>
