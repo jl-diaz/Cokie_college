@@ -10,9 +10,13 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/drawing_utils": "^0.3.1675466124",
+    "@mediapipe/holistic": "^0.5.1675471629",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.4.4",
     "@supabase/supabase-js": "^2.43.2",
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.2",
     "expo": "~54.0.36",
     "expo-av": "~16.0.8",

@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenNative() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
@@ -48,15 +48,20 @@ export default function InterpreterScreenNative() {
     WebSocketService.disableBackendAudio = true;
 
     // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
-    const handleTranslation = async (text) => {
-      setLastTranslation(text);
-      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+    const handleTranslation = async (key) => {
+      // Traducir el código de seña (ej. "sign.hello") al idioma local
+      const translatedText = t(`signs.${key.replace('sign.', '')}`, { defaultValue: key });
       
-      // Detener cualquier habla en curso y emitir la nueva seña
+      setLastTranslation(translatedText);
+      setSubtitleHistory(prev => [translatedText, ...prev.slice(0, 4)]);
+      
       try {
-        await Speech.stop();
-        Speech.speak(text, {
-          language: 'es-MX',
+        // En lugar de Speech.stop(), simplemente hablamos y se encola por defecto
+        const currentLang = i18n.language || 'es';
+        const langCode = currentLang.startsWith('en') ? 'en-US' : 'es-MX';
+        
+        Speech.speak(translatedText, {
+          language: langCode,
           pitch: 1.0,
           rate: 1.0,
         });
