@@ -9,8 +9,9 @@ export default function EasterEggScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const [highScore, setHighScore] = useState(0);
-  const [globalRecord, setGlobalRecord] = useState(152); // Record global ficticio o por defecto
+  const [globalRecord, setGlobalRecord] = useState(0); 
   const [newRecordType, setNewRecordType] = useState(null);
 
   const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
@@ -96,6 +97,7 @@ export default function EasterEggScreen() {
   const resetGame = () => {
     setIsGameOver(false);
     setIsPlaying(true);
+    scoreRef.current = 0;
     setScore(0);
     setNewRecordType(null);
     birdY.current = screenHeight / 2;
@@ -124,7 +126,8 @@ export default function EasterEggScreen() {
 
         // Score logic
         if (obs.x + OBSTACLE_WIDTH < screenWidth / 2 - BIRD_WIDTH / 2 && !obs.passed) {
-          setScore((s) => s + 1);
+          scoreRef.current += 1;
+          setScore(scoreRef.current);
           obs.passed = true;
         }
       }
@@ -152,24 +155,25 @@ export default function EasterEggScreen() {
     setIsGameOver(true);
     let isNewGlobal = false;
     let isNewPersonal = false;
+    const finalScore = scoreRef.current;
 
-    if (score > globalRecord) {
+    if (finalScore > globalRecord) {
       isNewGlobal = true;
-      setGlobalRecord(score);
+      setGlobalRecord(finalScore);
     }
     
-    if (score > highScore) {
+    if (finalScore > highScore) {
       isNewPersonal = true;
-      setHighScore(score);
+      setHighScore(finalScore);
       try {
-        await AsyncStorage.setItem('flappyHighScore', score.toString());
+        await AsyncStorage.setItem('flappyHighScore', finalScore.toString());
       } catch (e) {}
     }
 
     if (isNewGlobal) {
       setNewRecordType('global');
       try {
-        await supabase.from('flappy_scores').insert([{ score }]);
+        await supabase.from('flappy_scores').insert([{ score: finalScore }]);
       } catch (e) {}
     } else if (isNewPersonal) {
       setNewRecordType('personal');
