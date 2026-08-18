@@ -1,16 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, Image, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../src/utils/supabase';
 
 export default function EasterEggScreen() {
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [globalRecord, setGlobalRecord] = useState(152); // Record global ficticio o por defecto
+  const [newRecordType, setNewRecordType] = useState(null);
 
   const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
   const screenWidth = windowDimensions.width;
   const screenHeight = windowDimensions.height;
+
+  // Load initial records
+  useEffect(() => {
+    const loadRecords = async () => {
+      try {
+        const localScore = await AsyncStorage.getItem('flappyHighScore');
+        if (localScore !== null) {
+          setHighScore(parseInt(localScore, 10));
+        }
+        
+        // Attempt to fetch global record (fails silently if table doesn't exist)
+        const { data, error } = await supabase
+          .from('flappy_scores')
+          .select('score')
+          .order('score', { ascending: false })
+          .limit(1);
+          
+        if (!error && data && data.length > 0) {
+          setGlobalRecord(data[0].score);
+        }
+      } catch (e) {
+        console.warn('Error loading records', e);
+      }
+    };
+    loadRecords();
+  }, []);
 
   // Actualizar dimensiones si cambia la ventana (útil en web)
   useEffect(() => {
@@ -65,6 +96,7 @@ export default function EasterEggScreen() {
     setIsGameOver(false);
     setIsPlaying(true);
     setScore(0);
+    setNewRecordType(null);
     birdY.current = screenHeight / 2;
     birdVelocity.current = 0;
     obstacles.current = [];
@@ -86,7 +118,7 @@ export default function EasterEggScreen() {
         const hitX = obs.x < screenWidth / 2 + BIRD_SIZE / 2 - HITBOX_MARGIN && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_SIZE / 2 + HITBOX_MARGIN;
 
         if (hitX && (hitTop || hitBottom)) {
-          setIsGameOver(true);
+          triggerGameOver();
         }
 
         // Score logic
@@ -97,7 +129,7 @@ export default function EasterEggScreen() {
       }
 
       if (birdY.current > screenHeight || birdY.current < 0) {
-        setIsGameOver(true);
+        triggerGameOver();
       }
 
       if (obstacles.current.length > 0 && obstacles.current[0].x < -OBSTACLE_WIDTH) {
@@ -113,6 +145,34 @@ export default function EasterEggScreen() {
       forceRender({});
     }
     requestRef.current = requestAnimationFrame(gameLoop);
+  };
+
+  const triggerGameOver = async () => {
+    setIsGameOver(true);
+    let isNewGlobal = false;
+    let isNewPersonal = false;
+
+    if (score > globalRecord) {
+      isNewGlobal = true;
+      setGlobalRecord(score);
+    }
+    
+    if (score > highScore) {
+      isNewPersonal = true;
+      setHighScore(score);
+      try {
+        await AsyncStorage.setItem('flappyHighScore', score.toString());
+      } catch (e) {}
+    }
+
+    if (isNewGlobal) {
+      setNewRecordType('global');
+      try {
+        await supabase.from('flappy_scores').insert([{ score }]);
+      } catch (e) {}
+    } else if (isNewPersonal) {
+      setNewRecordType('personal');
+    }
   };
 
   useEffect(() => {
@@ -170,7 +230,24 @@ export default function EasterEggScreen() {
         {isGameOver && (
           <View style={styles.gameOverOverlay}>
             <Text style={styles.gameOverText}>¡Ups!</Text>
-            <Text style={styles.finalScoreText}>Puntaje: {score}</Text>
+            
+            {newRecordType === 'global' && (
+              <View style={[styles.congratsBadge, { backgroundColor: '#10b981' }]}>
+                <Text style={styles.congratsText}>👑 ¡NUEVO RÉCORD GLOBAL! 👑</Text>
+              </View>
+            )}
+            
+            {newRecordType === 'personal' && (
+              <View style={[styles.congratsBadge, { backgroundColor: '#F6BE2F' }]}>
+                <Text style={[styles.congratsText, { color: '#0B1956' }]}>🌟 ¡RÉCORD PERSONAL! 🌟</Text>
+              </View>
+            )}
+
+            <View style={styles.scoreBoard}>
+              <Text style={styles.finalScoreText}>Puntaje: {score}</Text>
+              <Text style={styles.recordText}>Récord Personal: {highScore}</Text>
+              <Text style={styles.recordTextGlobal}>Récord Global Semanal: {Math.max(globalRecord, score, highScore)}</Text>
+            </View>
             <TouchableOpacity style={styles.retryButton} onPress={resetGame}>
               <Text style={styles.retryButtonText}>Jugar de nuevo</Text>
             </TouchableOpacity>
@@ -214,14 +291,14 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     position: 'absolute',
-    top: 80,
+    top: 130, // Bajado para evitar la dynamic island
     alignSelf: 'center',
-    fontSize: 48,
+    fontSize: 56,
     fontWeight: 'bold',
     color: 'white',
     textShadowColor: 'black',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 3, height: 3 },
+    textShadowRadius: 6,
     zIndex: 10,
   },
   startOverlay: {
@@ -253,12 +330,49 @@ const styles = StyleSheet.create({
     fontSize: 50,
     fontWeight: '900',
     color: 'white',
-    marginBottom: 10,
+    marginBottom: 15,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  congratsBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  congratsText: {
+    color: 'white',
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  scoreBoard: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    padding: 25,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   finalScoreText: {
-    fontSize: 24,
+    fontSize: 32,
     color: 'white',
-    marginBottom: 30,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  recordText: {
+    fontSize: 18,
+    color: '#F6BE2F',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  recordTextGlobal: {
+    fontSize: 16,
+    color: '#10b981',
+    fontWeight: 'bold',
   },
   retryButton: {
     backgroundColor: '#F6BE2F',
