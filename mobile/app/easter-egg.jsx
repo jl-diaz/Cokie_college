@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, Image, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 
 export default function EasterEggScreen() {
   const router = useRouter();
@@ -19,12 +19,13 @@ export default function EasterEggScreen() {
     return () => subscription?.remove();
   }, []);
 
-  const GRAVITY = 0.5;
-  const JUMP = -8;
+  const GRAVITY = 0.35;
+  const JUMP = -6.5;
   const OBSTACLE_WIDTH = 70;
-  const OBSTACLE_GAP = 220;
+  const OBSTACLE_GAP = 280;
   const OBSTACLE_SPEED = 3.5;
   const BIRD_SIZE = 45;
+  const HITBOX_MARGIN = 10; // Margen de error para colisiones más justas
 
   const birdY = useRef(screenHeight / 2);
   const birdVelocity = useRef(0);
@@ -79,10 +80,10 @@ export default function EasterEggScreen() {
         let obs = obstacles.current[i];
         obs.x -= OBSTACLE_SPEED;
 
-        // Collision logic
-        const hitTop = birdY.current < obs.topHeight;
-        const hitBottom = birdY.current + BIRD_SIZE > screenHeight - obs.bottomHeight;
-        const hitX = obs.x < screenWidth / 2 + BIRD_SIZE / 2 && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_SIZE / 2;
+        // Collision logic with margin of error
+        const hitTop = birdY.current + HITBOX_MARGIN < obs.topHeight;
+        const hitBottom = birdY.current + BIRD_SIZE - HITBOX_MARGIN > screenHeight - obs.bottomHeight;
+        const hitX = obs.x < screenWidth / 2 + BIRD_SIZE / 2 - HITBOX_MARGIN && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_SIZE / 2 + HITBOX_MARGIN;
 
         if (hitX && (hitTop || hitBottom)) {
           setIsGameOver(true);
@@ -134,15 +135,12 @@ export default function EasterEggScreen() {
 
   return (
     <TouchableOpacity activeOpacity={1} style={styles.container} onPress={jump}>
+      <Stack.Screen options={{ title: '', headerTransparent: true }} />
       <ImageBackground 
         source={require('../src/assets/flappy_bg.jpg')} 
         style={[styles.background, { width: screenWidth, height: screenHeight }]}
         resizeMode="cover"
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Salir</Text>
-        </TouchableOpacity>
-
         {!isPlaying && !isGameOver && (
           <View style={styles.startOverlay}>
             <Text style={styles.startText}>Toca o presiona Espacio para jugar</Text>
@@ -190,20 +188,6 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
     overflow: 'hidden'
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    padding: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 8,
-    zIndex: 10
-  },
-  backButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16
   },
   bird: {
     position: 'absolute',
