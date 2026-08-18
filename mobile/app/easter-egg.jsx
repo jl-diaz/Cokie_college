@@ -55,8 +55,9 @@ export default function EasterEggScreen() {
   const OBSTACLE_WIDTH = 70;
   const OBSTACLE_GAP = 280;
   const OBSTACLE_SPEED = 3.5;
-  const BIRD_SIZE = 45;
-  const HITBOX_MARGIN = 10; // Margen de error para colisiones más justas
+  const BIRD_WIDTH = 55;
+  const BIRD_HEIGHT = 45;
+  const HITBOX_MARGIN = 12; // Margen de error para colisiones más justas
 
   const birdY = useRef(screenHeight / 2);
   const birdVelocity = useRef(0);
@@ -114,15 +115,15 @@ export default function EasterEggScreen() {
 
         // Collision logic with margin of error
         const hitTop = birdY.current + HITBOX_MARGIN < obs.topHeight;
-        const hitBottom = birdY.current + BIRD_SIZE - HITBOX_MARGIN > screenHeight - obs.bottomHeight;
-        const hitX = obs.x < screenWidth / 2 + BIRD_SIZE / 2 - HITBOX_MARGIN && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_SIZE / 2 + HITBOX_MARGIN;
+        const hitBottom = birdY.current + BIRD_HEIGHT - HITBOX_MARGIN > screenHeight - obs.bottomHeight;
+        const hitX = obs.x < screenWidth / 2 + BIRD_WIDTH / 2 - HITBOX_MARGIN && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_WIDTH / 2 + HITBOX_MARGIN;
 
         if (hitX && (hitTop || hitBottom)) {
           triggerGameOver();
         }
 
         // Score logic
-        if (obs.x + OBSTACLE_WIDTH < screenWidth / 2 - BIRD_SIZE / 2 && !obs.passed) {
+        if (obs.x + OBSTACLE_WIDTH < screenWidth / 2 - BIRD_WIDTH / 2 && !obs.passed) {
           setScore((s) => s + 1);
           obs.passed = true;
         }
@@ -217,12 +218,12 @@ export default function EasterEggScreen() {
         ))}
 
         <Image 
-          source={require('../src/assets/dogy.png')} 
+          source={require('../src/assets/CokieMan.png')} 
           style={[styles.bird, { 
             top: birdY.current, 
-            left: screenWidth / 2 - BIRD_SIZE / 2, 
-            width: BIRD_SIZE, 
-            height: BIRD_SIZE,
+            left: screenWidth / 2 - BIRD_WIDTH / 2, 
+            width: BIRD_WIDTH, 
+            height: BIRD_HEIGHT,
             transform: [{ rotate: `${Math.min(Math.max(birdVelocity.current * 3, -30), 90)}deg` }]
           }]} 
         />
