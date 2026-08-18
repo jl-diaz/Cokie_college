@@ -56,7 +56,7 @@ function LayoutInner() {
   useEffect(() => {
     if (!user) return;
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 12000);
+    const interval = setInterval(fetchUnreadCount, 45000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount, notification, user]);
 

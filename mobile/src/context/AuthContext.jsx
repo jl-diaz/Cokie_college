@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
+import api from '../utils/api';
 
 const AuthContext = createContext({});
 
@@ -47,18 +48,29 @@ export const AuthProvider = ({ children }) => {
   const login = async (emailOrCode, password) => {
     let emailToUse = (emailOrCode || '').trim();
 
-    // Si no contiene '@', buscar el correo asociado al carnet/código institucional
+    // Si no contiene '@', buscar el correo asociado al carnet/código institucional mediante el backend
     if (!emailToUse.includes('@')) {
-      const { data: profileData, error: profileErr } = await supabase
-        .from('profiles')
-        .select('email')
-        .ilike('institutional_code', emailToUse)
-        .maybeSingle();
+      try {
+        const res = await api.post('/admin/resolve-code', { code: emailToUse });
+        if (res.data?.email) {
+          emailToUse = res.data.email;
+        } else {
+          throw new Error('INVALID_CREDENTIALS');
+        }
+      } catch (codeErr) {
+        // Fallback a consulta directa si el backend no responde
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('email')
+          .ilike('institutional_code', emailToUse)
+          .maybeSingle();
 
-      if (profileErr || !profileData?.email) {
-        throw new Error('INVALID_CREDENTIALS');
+        if (profileData?.email) {
+          emailToUse = profileData.email;
+        } else {
+          throw new Error('INVALID_CREDENTIALS');
+        }
       }
-      emailToUse = profileData.email;
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({

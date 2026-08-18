@@ -13,6 +13,22 @@ export default function HomeScreen() {
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
+  const clickCount = React.useRef(0);
+  const clickTimeout = React.useRef(null);
+
+  const handleRoleClick = () => {
+    clickCount.current += 1;
+    if (clickCount.current >= 5) {
+      clickCount.current = 0;
+      router.push('/easter-egg');
+    }
+    
+    if (clickTimeout.current) clearTimeout(clickTimeout.current);
+    clickTimeout.current = setTimeout(() => {
+      clickCount.current = 0;
+    }, 1000);
+  };
+
   const getRoleModules = () => {
     const lunchModule = { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils, color: '#10b981', desc: t('home.lunchDesc', 'Encargar tu almuerzo del día') };
 
@@ -79,9 +95,11 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>{t('home.subtitle', 'Bienvenido a Cokie College')}</Text>
 
         <View style={styles.badgeRow}>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>{profile?.role?.replace('_', ' ').toUpperCase()}</Text>
-          </View>
+          <TouchableOpacity activeOpacity={0.8} onPress={handleRoleClick}>
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>{profile?.role?.replace('_', ' ').toUpperCase()}</Text>
+            </View>
+          </TouchableOpacity>
           {profile?.level ? (
             <View style={styles.levelBadge}>
               <Text style={styles.levelBadgeText}>{profile.level}</Text>

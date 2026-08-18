@@ -93,15 +93,19 @@ export default function InterpreterScreenWeb() {
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !Holistic) return;
+    if (typeof window === 'undefined') return;
 
-    // Pedir permisos primero
+    // Pedir permisos primero, independiente de si Holistic cargó o no
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(() => setHasPermission(true))
       .catch((err) => {
         console.error("Error pidiendo cámara en web:", err);
         setHasPermission(false);
       });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !Holistic || hasPermission !== true) return;
 
     // Inicializar estimador de gestos de Fingerpose
     const gestureEstimator = new fp.GestureEstimator(allGestures);

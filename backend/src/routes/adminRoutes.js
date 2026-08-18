@@ -3,7 +3,10 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Las rutas requieren autenticación y rol super_admin o coordinator
+// Endpoint público para resolver código institucional (Carnet) a correo antes del login
+router.post('/resolve-code', adminController.resolveInstitutionalCode);
+
+// Las rutas siguientes requieren autenticación y rol super_admin o coordinator
 router.use(authenticate, authorize(['super_admin', 'coordinator']));
 
 // Usuarios

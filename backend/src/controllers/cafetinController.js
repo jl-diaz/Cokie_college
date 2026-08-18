@@ -4,6 +4,25 @@ const getElSalvadorDate = (dateObj = new Date()) => {
     return new Date(dateObj).toLocaleDateString('sv-SE', { timeZone: 'America/El_Salvador' });
 };
 
+let lastCleanupTime = 0;
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+const cleanupOldOrders = async () => {
+    const now = Date.now();
+    if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) return;
+    lastCleanupTime = now;
+
+    try {
+        const today = getElSalvadorDate();
+        await supabaseAdmin
+            .from('lunch_orders')
+            .delete()
+            .lt('date', today);
+    } catch (e) {
+        console.error('Error al limpiar pedidos antiguos:', e);
+    }
+};
+
 const cafetinController = {
     // 1. Obtener catálogo completo del cafetín
     getCatalog: async (req, res) => {
@@ -154,11 +173,8 @@ const cafetinController = {
             const from = (pageNum - 1) * limitNum;
             const to = from + limitNum - 1;
 
-            // Limpieza de pedidos de días anteriores (solo una vez por día, opcional)
-            await supabaseAdmin
-                .from('lunch_orders')
-                .delete()
-                .lt('date', today);
+            // Limpieza periódica de pedidos de días anteriores
+            cleanupOldOrders();
 
             const { data, count, error } = await supabaseAdmin
                 .from('lunch_orders')

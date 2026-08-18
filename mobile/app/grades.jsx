@@ -68,17 +68,22 @@ export default function GradesScreen() {
   };
 
   const handleDownloadPDF = async () => {
-    if (selectedPeriod > 2) {
+    if (grades.length === 0) {
       showAlert({
         type: 'warning',
-        title: 'Periodo Incompleto',
-        message: 'El boletín de este periodo aún no está disponible para descargar.'
+        title: 'Sin calificaciones',
+        message: 'No hay notas registradas en este periodo para generar el boletín.'
       });
       return;
     }
     try {
       setLoading(true);
-      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails);
+      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails || profile);
+      showAlert({
+        type: 'success',
+        title: 'Boletín Generado',
+        message: 'El boletín se ha generado correctamente.'
+      });
     } catch (error) {
       showAlert({ type: 'error', title: 'Error', message: 'No se pudo generar el boletín PDF.' });
     } finally {

@@ -225,17 +225,60 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
 
 export const generateAndDownloadStudentReport = async (studentId, period, studentDetails) => {
   try {
-    const gradesRes = await api.get(`/coordinator/students/${studentId}/grades`, { params: { period } });
-    const averagesRes = await api.get(`/coordinator/students/${studentId}/averages`, { params: { period } });
-    
+    let gradesData = [];
+    let averagesData = [];
     let allPeriodsData = [];
-    for (let p = 1; p <= period; p++) {
-      const pAvg = await api.get(`/coordinator/students/${studentId}/averages`, { params: { period: p } });
-      allPeriodsData.push({ period: p, averages: pAvg.data });
+
+    // Si no hay studentId explícito (es el estudiante en su propia pantalla) o falla la ruta de coordinador
+    if (!studentId) {
+      const gradesRes = await api.get('/student/grades', { params: { period } });
+      const averagesRes = await api.get('/student/averages', { params: { period } });
+      gradesData = gradesRes.data || [];
+      averagesData = averagesRes.data || [];
+
+      for (let p = 1; p <= period; p++) {
+        try {
+          const pAvg = await api.get('/student/averages', { params: { period: p } });
+          allPeriodsData.push({ period: p, averages: pAvg.data || [] });
+        } catch (e) {
+          allPeriodsData.push({ period: p, averages: [] });
+        }
+      }
+    } else {
+      try {
+        const gradesRes = await api.get(`/coordinator/students/${studentId}/grades`, { params: { period } });
+        const averagesRes = await api.get(`/coordinator/students/${studentId}/averages`, { params: { period } });
+        gradesData = gradesRes.data || [];
+        averagesData = averagesRes.data || [];
+
+        for (let p = 1; p <= period; p++) {
+          try {
+            const pAvg = await api.get(`/coordinator/students/${studentId}/averages`, { params: { period: p } });
+            allPeriodsData.push({ period: p, averages: pAvg.data || [] });
+          } catch (e) {
+            allPeriodsData.push({ period: p, averages: [] });
+          }
+        }
+      } catch (coordErr) {
+        // Si el usuario actual es estudiante accediendo a su propio reporte
+        const gradesRes = await api.get('/student/grades', { params: { period } });
+        const averagesRes = await api.get('/student/averages', { params: { period } });
+        gradesData = gradesRes.data || [];
+        averagesData = averagesRes.data || [];
+
+        for (let p = 1; p <= period; p++) {
+          try {
+            const pAvg = await api.get('/student/averages', { params: { period: p } });
+            allPeriodsData.push({ period: p, averages: pAvg.data || [] });
+          } catch (e) {
+            allPeriodsData.push({ period: p, averages: [] });
+          }
+        }
+      }
     }
 
-    const doc = generatePDFDocument(studentDetails, gradesRes.data, averagesRes.data, period, allPeriodsData);
-    const fileName = `Boletin_${studentDetails.full_name}_P${period}.pdf`;
+    const doc = generatePDFDocument(studentDetails, gradesData, averagesData, period, allPeriodsData);
+    const fileName = `Boletin_${(studentDetails.full_name || 'Estudiante').replace(/\s+/g, '_')}_P${period}.pdf`;
 
     if (Platform.OS === 'web') {
       doc.save(fileName);

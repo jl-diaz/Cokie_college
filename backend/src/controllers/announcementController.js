@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-const { sendNotification } = require('../utils/notificationService');
+const { sendNotification, sendBulkNotification } = require('../utils/notificationService');
 
 // Obtener avisos para el usuario actual
 const getAnnouncements = async (req, res) => {
@@ -86,35 +86,37 @@ const createAnnouncement = async (req, res) => {
             return res.status(500).json({ error: 'Error al guardar el aviso', details: error.message });
         }
 
-        // --- Notificar al instante a los destinatarios ---
-        try {
-            let userQuery = supabaseAdmin.from('profiles').select('id, role');
-            
-            if (target_role === 'teachers') {
-                userQuery = userQuery.eq('role', 'teacher');
-            } else if (target_role === 'students') {
-                userQuery = userQuery.eq('role', 'student');
-            } else {
-                userQuery = userQuery.in('role', ['teacher', 'student']);
-            }
+        // --- Notificar al instante a los destinatarios en segundo plano (Bulk) ---
+        (async () => {
+            try {
+                let userQuery = supabaseAdmin.from('profiles').select('id, push_token, level, role').eq('is_active', true);
+                
+                if (target_role === 'teachers') {
+                    userQuery = userQuery.eq('role', 'teacher');
+                } else if (target_role === 'students') {
+                    userQuery = userQuery.eq('role', 'student');
+                } else {
+                    userQuery = userQuery.in('role', ['teacher', 'student']);
+                }
 
-            const { data: targetUsers, error: userError } = await userQuery;
+                if (assignedLevel && assignedLevel !== 'Todos') {
+                    userQuery = userQuery.eq('level', assignedLevel);
+                }
 
-            if (userError) {
-                console.error('Error fetching target users for announcement notification:', userError);
-            } else if (targetUsers && targetUsers.length > 0) {
-                for (const u of targetUsers) {
-                    await sendNotification(
-                        u.id,
+                const { data: targetUsers, error: userError } = await userQuery;
+
+                if (!userError && targetUsers && targetUsers.length > 0) {
+                    await sendBulkNotification(
+                        targetUsers,
                         `📢 Nuevo Aviso: ${title}`,
                         message,
                         { type: 'announcement', announcementId: newAnnouncement.id }
                     );
                 }
+            } catch (notifErr) {
+                console.error('Error sending instant notifications for announcement:', notifErr);
             }
-        } catch (notifErr) {
-            console.error('Error sending instant notifications for announcement:', notifErr);
-        }
+        })();
 
         res.status(201).json(newAnnouncement);
     } catch (error) {

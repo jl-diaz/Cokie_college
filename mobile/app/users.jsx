@@ -68,9 +68,8 @@ export default function UsersScreen() {
   const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
-    fetchUsers(1, true);
     fetchSubjects();
-  }, [roleFilter]);
+  }, []);
 
   const fetchSubjects = async () => {
     try {

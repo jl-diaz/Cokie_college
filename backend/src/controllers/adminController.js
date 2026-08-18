@@ -3,6 +3,31 @@ const { generateInstitutionalCode, generateRandomPassword } = require('../utils/
 const { sendWelcomeEmail } = require('../utils/emailService');
 
 const adminController = {
+    // --- Resolución pública de Carnet / Código Institucional ---
+    resolveInstitutionalCode: async (req, res) => {
+        try {
+            const { code } = req.body;
+            if (!code || !String(code).trim()) {
+                return res.status(400).json({ error: 'El código institucional es requerido' });
+            }
+
+            const { data: profile, error } = await supabaseAdmin
+                .from('profiles')
+                .select('email')
+                .ilike('institutional_code', String(code).trim())
+                .maybeSingle();
+
+            if (error || !profile?.email) {
+                return res.status(404).json({ error: 'Código institucional no encontrado' });
+            }
+
+            res.json({ email: profile.email });
+        } catch (error) {
+            console.error('Error al resolver código institucional:', error);
+            res.status(500).json({ error: 'Error interno al resolver código' });
+        }
+    },
+
     // --- Gestión de Usuarios ---
     
     getUsers: async (req, res) => {
@@ -60,6 +85,13 @@ const adminController = {
             // Validación de campos requeridos
             if (!full_name || !email || !role) {
                 return res.status(400).json({ error: 'El nombre completo, correo electrónico y rol son obligatorios.' });
+            }
+
+            // Mitigación de Escalada de Privilegios: Los coordinadores solo pueden crear estudiantes o docentes
+            if (req.user.role === 'coordinator') {
+                if (['super_admin', 'coordinator', 'admin'].includes(role)) {
+                    return res.status(403).json({ error: 'Un coordinador solo tiene autorización para registrar docentes y estudiantes.' });
+                }
             }
 
             // Validar formato de correo electrónico
@@ -161,7 +193,17 @@ const adminController = {
                 .eq('id', id)
                 .maybeSingle();
 
-            // 3. Si se intenta desactivar a un admin
+            // 3. Si un coordinador intenta modificar o promover cuentas administrativas
+            if (req.user.role === 'coordinator') {
+                if (targetProfile && ['super_admin', 'coordinator', 'admin'].includes(targetProfile.role)) {
+                    return res.status(403).json({ error: 'Un coordinador no tiene permiso para modificar cuentas de administradores o coordinadores.' });
+                }
+                if (updates.role && ['super_admin', 'coordinator', 'admin'].includes(updates.role)) {
+                    return res.status(403).json({ error: 'Un coordinador no puede otorgar roles de administrador o coordinador.' });
+                }
+            }
+
+            // 4. Si se intenta desactivar a un admin
             if (targetProfile && (targetProfile.role === 'super_admin' || targetProfile.role === 'admin')) {
                 if (updates.is_active === false) {
                     if (req.user.id === id) {
@@ -215,6 +257,12 @@ const adminController = {
 
             if (fetchError || !targetProfile) {
                 return res.status(404).json({ error: 'Usuario no encontrado.' });
+            }
+
+            if (req.user.role === 'coordinator') {
+                if (['super_admin', 'coordinator', 'admin'].includes(targetProfile.role)) {
+                    return res.status(403).json({ error: 'Un coordinador no tiene permiso para desactivar administradores o coordinadores.' });
+                }
             }
 
             if (targetProfile.role === 'super_admin' || targetProfile.role === 'admin') {
