@@ -3,15 +3,18 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, 
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../src/utils/supabase';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function EasterEggScreen() {
   const router = useRouter();
+  const { profile } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   const [highScore, setHighScore] = useState(0);
   const [globalRecord, setGlobalRecord] = useState(0); 
+  const [globalRecordHolder, setGlobalRecordHolder] = useState('Anónimo');
   const [newRecordType, setNewRecordType] = useState(null);
 
   const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
@@ -30,12 +33,13 @@ export default function EasterEggScreen() {
         // Attempt to fetch global record (fails silently if table doesn't exist)
         const { data, error } = await supabase
           .from('flappy_scores')
-          .select('score')
+          .select('score, user_name')
           .order('score', { ascending: false })
           .limit(1);
           
         if (!error && data && data.length > 0) {
           setGlobalRecord(data[0].score);
+          setGlobalRecordHolder(data[0].user_name || 'Anónimo');
         }
       } catch (e) {
         console.warn('Error loading records', e);
@@ -54,16 +58,17 @@ export default function EasterEggScreen() {
   const GRAVITY = 0.35;
   const JUMP = -6.5;
   const OBSTACLE_WIDTH = 70;
-  const OBSTACLE_GAP = 280;
+  const OBSTACLE_GAP = 250;
   const OBSTACLE_SPEED = 3.5;
   const BIRD_WIDTH = 55;
   const BIRD_HEIGHT = 45;
-  const HITBOX_MARGIN = 12; // Margen de error para colisiones más justas
+  const HITBOX_MARGIN = 12;
 
   const birdY = useRef(screenHeight / 2);
   const birdVelocity = useRef(0);
   const obstacles = useRef([]);
   const requestRef = useRef(null);
+  const lastTimeRef = useRef(0);
   
   // Forzamos renderizado para sincronizar UI con game loop
   const [, forceRender] = useState({});
@@ -103,17 +108,27 @@ export default function EasterEggScreen() {
     birdY.current = screenHeight / 2;
     birdVelocity.current = 0;
     obstacles.current = [];
+    lastTimeRef.current = 0;
     spawnObstacle(screenWidth, screenHeight);
   };
 
-  const gameLoop = () => {
+  const gameLoop = (timestamp) => {
+    if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+    const deltaTime = timestamp - lastTimeRef.current;
+    lastTimeRef.current = timestamp;
+
+    let timeScale = deltaTime / 16.666;
+    if (timeScale > 3) timeScale = 3;
+    if (timeScale < 0.1) timeScale = 0.1;
+    if (isNaN(timeScale)) timeScale = 1;
+
     if (isPlaying && !isGameOver) {
-      birdVelocity.current += GRAVITY;
-      birdY.current += birdVelocity.current;
+      birdVelocity.current += GRAVITY * timeScale;
+      birdY.current += birdVelocity.current * timeScale;
 
       for (let i = 0; i < obstacles.current.length; i++) {
         let obs = obstacles.current[i];
-        obs.x -= OBSTACLE_SPEED;
+        obs.x -= OBSTACLE_SPEED * timeScale;
 
         // Collision logic with margin of error
         const hitTop = birdY.current + HITBOX_MARGIN < obs.topHeight;
@@ -141,7 +156,7 @@ export default function EasterEggScreen() {
       }
       
       const lastObs = obstacles.current[obstacles.current.length - 1];
-      if (lastObs && lastObs.x < screenWidth - 280) {
+      if (lastObs && lastObs.x < screenWidth - 250) {
         spawnObstacle(screenWidth, screenHeight);
       }
 
@@ -160,6 +175,7 @@ export default function EasterEggScreen() {
     if (finalScore > globalRecord) {
       isNewGlobal = true;
       setGlobalRecord(finalScore);
+      setGlobalRecordHolder(profile?.full_name?.split(' ')[0] || 'Anónimo');
     }
     
     if (finalScore > highScore) {
@@ -173,7 +189,8 @@ export default function EasterEggScreen() {
     if (isNewGlobal) {
       setNewRecordType('global');
       try {
-        await supabase.from('flappy_scores').insert([{ score: finalScore }]);
+        const userName = profile?.full_name?.split(' ')[0] || 'Anónimo';
+        await supabase.from('flappy_scores').insert([{ score: finalScore, user_name: userName }]);
       } catch (e) {}
     } else if (isNewPersonal) {
       setNewRecordType('personal');
@@ -251,7 +268,11 @@ export default function EasterEggScreen() {
             <View style={styles.scoreBoard}>
               <Text style={styles.finalScoreText}>Puntaje: {score}</Text>
               <Text style={styles.recordText}>Récord Personal: {highScore}</Text>
-              <Text style={styles.recordTextGlobal}>Récord Global Semanal: {Math.max(globalRecord, score, highScore)}</Text>
+              {globalRecord > 0 && (
+                <Text style={styles.recordTextGlobal}>
+                  Récord Global Semanal: {Math.max(globalRecord, score, highScore)} ({globalRecordHolder})
+                </Text>
+              )}
             </View>
             <TouchableOpacity style={styles.retryButton} onPress={resetGame}>
               <Text style={styles.retryButtonText}>Jugar de nuevo</Text>
