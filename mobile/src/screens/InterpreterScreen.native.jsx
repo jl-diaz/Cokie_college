@@ -10,14 +10,13 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import * as fp from 'fingerpose';
 import { allGestures } from '../services/GestureDictionary';
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-react-native';
 
 const HTML_CONTENT = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
@@ -33,6 +32,18 @@ const HTML_CONTENT = `
   <script>
     let facingMode = 'user';
     let isActive = true;
+    
+    // FASE 3: TFJS LSTM Model
+    let tfModel = null;
+    let sequenceBuffer = [];
+    
+    async function loadModel() {
+       try {
+          tfModel = await tf.loadLayersModel('https://cokie-college.vercel.app/models/model.json'); // Reemplazar con URL real
+       } catch(e) { console.log('No LSTM model found, using raw landmarks'); }
+    }
+    loadModel();
+
     const videoElement = document.getElementById('video');
     const canvasElement = document.getElementById('canvas');
     const canvasCtx = canvasElement.getContext('2d');
@@ -75,15 +86,37 @@ const HTML_CONTENT = `
       canvasCtx.restore();
       
       if (isActive && window.ReactNativeWebView) {
+         // LSTM Feature Extraction in WebView (Web Engine)
+         let pose = new Array(33*4).fill(0);
+         let lh = new Array(21*3).fill(0);
+         let rh = new Array(21*3).fill(0);
+         
+         if (results.poseLandmarks) pose = results.poseLandmarks.map(lm => [lm.x, lm.y, lm.z, lm.visibility]).flat();
+         if (results.leftHandLandmarks) lh = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]).flat();
+         if (results.rightHandLandmarks) rh = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]).flat();
+         
+         const features = [...pose, ...lh, ...rh];
+         sequenceBuffer.push(features);
+         if (sequenceBuffer.length > 30) sequenceBuffer.shift();
+
+         let detectedKeyByLSTM = null;
+         if (tfModel && sequenceBuffer.length === 30) {
+             const inputTensor = tf.tensor([sequenceBuffer]);
+             const prediction = tfModel.predict(inputTensor);
+             // detectedKeyByLSTM = mapping logic...
+         }
+
+         // Send back to React Native Bridge
          const data = {};
-         if (results.rightHandLandmarks) {
-             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-         }
-         if (results.leftHandLandmarks) {
-             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-         }
-         if (data.rightHand || data.leftHand) {
-             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'landmarks', ...data }));
+         if (results.rightHandLandmarks) data.rightHand = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         if (results.leftHandLandmarks) data.leftHand = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         
+         if (data.rightHand || data.leftHand || detectedKeyByLSTM) {
+             window.ReactNativeWebView.postMessage(JSON.stringify({ 
+                type: 'landmarks', 
+                ...data, 
+                lstmKey: detectedKeyByLSTM 
+             }));
          }
       }
     });
@@ -140,25 +173,7 @@ export default function InterpreterScreenNative() {
   const lastSpoken = useRef('');
   const noDetectionCount = useRef(0);
 
-  // FASE 3: Buffer Temporal para LSTM (Igual a Web)
-  const sequenceBuffer = useRef([]);
-  const tfModel = useRef(null);
-  const [modelLoaded, setModelLoaded] = useState(false);
-
   useEffect(() => {
-    async function loadModel() {
-      try {
-        await tf.ready();
-        // Carga del modelo LSTM local (Nota: en RN se requiere require() para assets locales o URL)
-        // const model = await tf.loadLayersModel('https://tudominio.com/models/model.json');
-        // tfModel.current = model;
-        setModelLoaded(true);
-      } catch (err) {
-        console.warn("No se pudo cargar el modelo LSTM en Native. Usando Fingerpose.");
-      }
-    }
-    loadModel();
-
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
@@ -202,9 +217,10 @@ export default function InterpreterScreenNative() {
     try {
         const data = JSON.parse(event.nativeEvent.data);
         if (data.type === 'landmarks') {
-            let detectedKey = null;
+            let detectedKey = data.lstmKey || null; // Priorizamos LSTM del WebView si existe
             let highestConfidence = 0;
             
+            // Fallback a Fingerpose si LSTM no predijo
             const evaluateGestures = (landmarks) => {
                 const estimated = gestureEstimator.current.estimate(landmarks, 7.0);
                 if (estimated.gestures.length > 0) {
@@ -233,39 +249,8 @@ export default function InterpreterScreenNative() {
                 }
             };
             
-            if (data.rightHand) evaluateGestures(data.rightHand);
-            if (data.leftHand) evaluateGestures(data.leftHand);
-
-            // ----------------------------------------------------
-            // FASE 3: Lógica para Modelo Dinámico (Temporal LSTM)
-            // ----------------------------------------------------
-            // Reconstruimos un arreglo similar a los landmarks extraídos (Pose 33*4, LH 21*3, RH 21*3)
-            const extractFeaturesNative = () => {
-                let pose = new Array(33*4).fill(0); // Pose no lo manda el webview nativo actual por rendimiento, rellenamos 0
-                let lh = new Array(21*3).fill(0);
-                let rh = new Array(21*3).fill(0);
-                
-                if (data.leftHand) {
-                    lh = data.leftHand.flat(); // data.leftHand ya viene como [x,y,z]
-                }
-                if (data.rightHand) {
-                    rh = data.rightHand.flat();
-                }
-                return [...pose, ...lh, ...rh];
-            };
-
-            const features = extractFeaturesNative();
-            sequenceBuffer.current.push(features);
-            if (sequenceBuffer.current.length > 30) {
-                sequenceBuffer.current.shift();
-            }
-
-            // Si tenemos modelo cargado y suficientes frames, predicimos
-            if (tfModel.current && sequenceBuffer.current.length === 30) {
-                const inputTensor = tf.tensor([sequenceBuffer.current]); // shape [1, 30, 258]
-                const prediction = tfModel.current.predict(inputTensor);
-                // Lógica de mapeo de etiquetas iría aquí...
-            }
+            if (!detectedKey && data.rightHand) evaluateGestures(data.rightHand);
+            if (!detectedKey && data.leftHand) evaluateGestures(data.leftHand);
             
             if (!detectedKey) {
                noDetectionCount.current += 1;
@@ -328,7 +313,8 @@ export default function InterpreterScreenNative() {
       <View style={styles.cameraContainer}>
         <WebView
           ref={webViewRef}
-          source={{ html: HTML_CONTENT }}
+          source={{ html: HTML_CONTENT, baseUrl: 'https://app.cokiehall.lat' }}
+          originWhitelist={['*']}
           style={StyleSheet.absoluteFill}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}

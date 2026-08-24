@@ -342,7 +342,10 @@ export default function InterpreterScreenWeb() {
         {/* El video original debe estar oculto o debajo, usamos Canvas para mostrar el feed procesado */}
         <video 
           ref={videoRef}
-          style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
+          style={{ 
+            position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
+            transform: facing === 'user' ? 'scaleX(-1)' : 'none'
+          }}
           autoPlay
           playsInline
           muted
@@ -352,7 +355,7 @@ export default function InterpreterScreenWeb() {
           ref={canvasRef} 
           width="1280" 
           height="720"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 2 }}
         />
         
         <TouchableOpacity onPress={() => { unlockWebAudio(); toggleCameraType(); }} style={styles.floatingRotateButton}>
