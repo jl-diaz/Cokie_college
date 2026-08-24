@@ -342,7 +342,7 @@ export default function InterpreterScreenWeb() {
         {/* El video original debe estar oculto o debajo, usamos Canvas para mostrar el feed procesado */}
         <video 
           ref={videoRef}
-          style={{ display: 'none' }}
+          style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
           autoPlay
           playsInline
           muted
@@ -369,7 +369,7 @@ export default function InterpreterScreenWeb() {
         <View style={styles.subtitleOverlay}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={20} />
-            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL (LOCAL AI)</Text>
+            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL (LOCAL AI) (BETA)</Text>
           </View>
 
           {lastTranslation ? (

@@ -65,6 +65,24 @@
         {
           "cameraPermission": "Necesitamos acceso a la cámara para traducir el lenguaje de señas."
         }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Necesitamos la cámara para el intérprete ISL.",
+          "enableCodeScanner": false
+        }
+      ],
+      [
+        "react-native-worklets-core"
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "scheme": "cokie-college",

@@ -1,10 +1,18 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { sendNotification, sendBulkNotification } = require('../utils/notificationService');
+const NodeCache = require('node-cache');
+const cache = new NodeCache({ stdTTL: 60 }); // Cache dura 1 minuto para evitar desactualizaciones largas
 
 // Obtener avisos para el usuario actual
 const getAnnouncements = async (req, res) => {
     try {
         const { role, level: userLevel } = req.user;
+        const cacheKey = `announcements_${role}_${userLevel || 'none'}`;
+
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) {
+            return res.json(cachedData);
+        }
 
         let query = supabaseAdmin
             .from('announcements')
@@ -13,21 +21,16 @@ const getAnnouncements = async (req, res) => {
         if (role === 'super_admin') {
             // Super Admin ve todos los avisos
         } else if (role === 'coordinator') {
-            // Coordinador ve los avisos de su nivel o 'Todos'
             if (userLevel) {
                 query = query.or(`level.eq.${userLevel},level.eq.Todos`);
             }
         } else if (role === 'teacher') {
-            // Profesores ven avisos dirigidos a 'teachers' o 'both', de su nivel o 'Todos'
-            query = query
-                .in('target_role', ['teachers', 'both']);
+            query = query.in('target_role', ['teachers', 'both']);
             if (userLevel) {
                 query = query.or(`level.eq.${userLevel},level.eq.Todos`);
             }
         } else if (role === 'student') {
-            // Estudiantes ven avisos dirigidos a 'students' o 'both', de su nivel o 'Todos'
-            query = query
-                .in('target_role', ['students', 'both']);
+            query = query.in('target_role', ['students', 'both']);
             if (userLevel) {
                 query = query.or(`level.eq.${userLevel},level.eq.Todos`);
             }
@@ -40,7 +43,9 @@ const getAnnouncements = async (req, res) => {
             return res.status(500).json({ error: 'Error al obtener avisos', details: error.message });
         }
 
-        res.json(announcements || []);
+        const result = announcements || [];
+        cache.set(cacheKey, result); // Guardar en caché
+        res.json(result);
     } catch (error) {
         console.error('Unexpected error in getAnnouncements:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
@@ -118,6 +123,7 @@ const createAnnouncement = async (req, res) => {
             }
         })();
 
+        cache.flushAll(); // Limpiar caché al crear un nuevo aviso
         res.status(201).json(newAnnouncement);
     } catch (error) {
         console.error('Unexpected error in createAnnouncement:', error);
@@ -159,6 +165,7 @@ const deleteAnnouncement = async (req, res) => {
             return res.status(500).json({ error: 'Error al eliminar el aviso', details: deleteError.message });
         }
 
+        cache.flushAll(); // Limpiar caché al eliminar un aviso
         res.json({ message: 'Aviso eliminado correctamente' });
     } catch (error) {
         console.error('Unexpected error in deleteAnnouncement:', error);

@@ -1,31 +1,164 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CameraView, Camera } from 'expo-camera';
+import { WebView } from 'react-native-webview';
+import { Camera } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import WebSocketService from '../services/WebSocketService';
+import * as fp from 'fingerpose';
+import { allGestures } from '../services/GestureDictionary';
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-react-native';
+
+const HTML_CONTENT = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+  <style>
+    body { margin: 0; background: #0B1956; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    video, canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+    video { opacity: 0; width: 1px; height: 1px; }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <script>
+    let facingMode = 'user';
+    let isActive = true;
+    const videoElement = document.getElementById('video');
+    const canvasElement = document.getElementById('canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    
+    const holistic = new Holistic({locateFile: (file) => {
+      return \`https://cdn.jsdelivr.net/npm/@mediapipe/holistic/\${file}\`;
+    }});
+    
+    holistic.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      smoothSegmentation: true,
+      refineFaceLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    
+    holistic.onResults((results) => {
+      canvasElement.width = window.innerWidth;
+      canvasElement.height = window.innerHeight;
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      
+      if (facingMode === 'user') {
+        canvasCtx.translate(canvasElement.width, 0);
+        canvasCtx.scale(-1, 1);
+      }
+      
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+      
+      if (isActive) {
+          drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+          drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+          drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {color: '#CC0000', lineWidth: 5});
+          drawLandmarks(canvasCtx, results.leftHandLandmarks, {color: '#00FF00', lineWidth: 2});
+          drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {color: '#00CC00', lineWidth: 5});
+          drawLandmarks(canvasCtx, results.rightHandLandmarks, {color: '#FF0000', lineWidth: 2});
+      }
+      canvasCtx.restore();
+      
+      if (isActive && window.ReactNativeWebView) {
+         const data = {};
+         if (results.rightHandLandmarks) {
+             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         }
+         if (results.leftHandLandmarks) {
+             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         }
+         if (data.rightHand || data.leftHand) {
+             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'landmarks', ...data }));
+         }
+      }
+    });
+    
+    let camera = null;
+    
+    function startCamera() {
+       if (camera) camera.stop();
+       camera = new Camera(videoElement, {
+          onFrame: async () => {
+             await holistic.send({image: videoElement});
+          },
+          width: 640,
+          height: 480,
+          facingMode: facingMode
+       });
+       camera.start();
+    }
+    
+    startCamera();
+    
+    window.addEventListener('message', (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'toggle_camera') {
+                facingMode = facingMode === 'user' ? 'environment' : 'user';
+                startCamera();
+            } else if (msg.type === 'set_active') {
+                isActive = msg.isActive;
+            }
+        } catch(e) {}
+    });
+  </script>
+</body>
+</html>
+`;
 
 export default function InterpreterScreenNative() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
-  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
+  const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [hasPermission, setHasPermission] = useState(null);
   const [isActive, setIsActive] = useState(true);
-  const [facingMode, setFacingMode] = useState('front');
-  const [isCameraReady, setIsCameraReady] = useState(false);
   const [lastTranslation, setLastTranslation] = useState('');
   const [subtitleHistory, setSubtitleHistory] = useState([]);
   
-  const cameraRef = useRef(null);
-  const isCapturingRef = useRef(false);
+  const webViewRef = useRef(null);
+  const gestureEstimator = useRef(new fp.GestureEstimator(allGestures));
+  
+  // Variables FASE 3 Estabilización
+  const recentPredictions = useRef([]);
+  const lastSpoken = useRef('');
+  const noDetectionCount = useRef(0);
+
+  // FASE 3: Buffer Temporal para LSTM (Igual a Web)
+  const sequenceBuffer = useRef([]);
+  const tfModel = useRef(null);
+  const [modelLoaded, setModelLoaded] = useState(false);
 
   useEffect(() => {
+    async function loadModel() {
+      try {
+        await tf.ready();
+        // Carga del modelo LSTM local (Nota: en RN se requiere require() para assets locales o URL)
+        // const model = await tf.loadLayersModel('https://tudominio.com/models/model.json');
+        // tfModel.current = model;
+        setModelLoaded(true);
+      } catch (err) {
+        console.warn("No se pudo cargar el modelo LSTM en Native. Usando Fingerpose.");
+      }
+    }
+    loadModel();
+
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
@@ -41,82 +174,139 @@ export default function InterpreterScreenNative() {
         console.warn("No se pudo configurar el audio:", e);
       }
     })();
-
-    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
-    WebSocketService.connect(serverUrl);
-    // Desactivar audio duplicado del servidor porque expo-speech gestiona la locución nativa
-    WebSocketService.disableBackendAudio = true;
-
-    // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
-    const handleTranslation = async (key) => {
-      // Traducir el código de seña (ej. "sign.hello") al idioma local
-      const translatedText = t(`signs.${key.replace('sign.', '')}`, { defaultValue: key });
-      
-      setLastTranslation(translatedText);
-      setSubtitleHistory(prev => [translatedText, ...prev.slice(0, 4)]);
-      
-      try {
-        // En lugar de Speech.stop(), simplemente hablamos y se encola por defecto
-        const currentLang = i18n.language || 'es';
-        const langCode = currentLang.startsWith('en') ? 'en-US' : 'es-MX';
-        
-        Speech.speak(translatedText, {
-          language: langCode,
-          pitch: 1.0,
-          rate: 1.0,
-        });
-      } catch (err) {
-        console.warn('Error en Speech nativo:', err);
-      }
-    };
-
-    WebSocketService.addListener(handleTranslation);
-
-    return () => {
-      WebSocketService.disableBackendAudio = false;
-      WebSocketService.removeListener(handleTranslation);
-      WebSocketService.disconnect();
-    };
   }, []);
 
-  useEffect(() => {
-    let intervalId;
-
-    if (isActive && isCameraReady && hasPermission) {
-      intervalId = setInterval(async () => {
-        if (!cameraRef.current || isCapturingRef.current) return;
-        
-        isCapturingRef.current = true;
-        try {
-          // Captura rápida de fotograma usando takePictureAsync sin sonido de obturador
-          const photo = await cameraRef.current.takePictureAsync({
-            base64: true,
-            quality: 0.25,
-            skipProcessing: true,
-            shutterSound: false,
-            pictureSize: '640x480',
-          });
-
-          if (photo?.base64) {
-            WebSocketService.sendFrame(photo.base64);
-          }
-        } catch (e) {
-          if (!e.message?.includes('unmounted')) {
-            console.log('Error capturando frame nativo:', e);
-          }
-        } finally {
-          isCapturingRef.current = false;
-        }
-      }, 250); // 250ms (~4 FPS) ultra fluido
+  const handleTranslation = (key) => {
+    const translatedText = t(`signs.${key.replace('sign.', '')}`, { defaultValue: key });
+    
+    setLastTranslation(translatedText);
+    setSubtitleHistory(prev => [translatedText, ...prev.slice(0, 4)]);
+    
+    try {
+      const currentLang = i18n.language || 'es';
+      const langCode = currentLang.startsWith('en') ? 'en-US' : 'es-MX';
+      
+      Speech.speak(translatedText, {
+        language: langCode,
+        pitch: 1.0,
+        rate: 1.0,
+      });
+    } catch (err) {
+      console.warn('Error en Speech nativo:', err);
     }
+  };
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [isActive, isCameraReady, hasPermission]);
+  const onMessage = (event) => {
+    if (!isActive) return;
+    
+    try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'landmarks') {
+            let detectedKey = null;
+            let highestConfidence = 0;
+            
+            const evaluateGestures = (landmarks) => {
+                const estimated = gestureEstimator.current.estimate(landmarks, 7.0);
+                if (estimated.gestures.length > 0) {
+                   let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
+                   
+                   // Desempate 4 vs B
+                   if (best.name === 'sign.4' || best.name === 'sign.b') {
+                      const dist = Math.sqrt(Math.pow(landmarks[8][0] - landmarks[20][0], 2) + Math.pow(landmarks[8][1] - landmarks[20][1], 2));
+                      best.name = dist > 0.085 ? 'sign.4' : 'sign.b';
+                   }
+                   
+                   // Desempate U vs V / 2
+                   if (best.name === 'sign.v' || best.name === 'sign.2' || best.name === 'sign.u') {
+                      const dist = Math.sqrt(Math.pow(landmarks[8][0] - landmarks[12][0], 2) + Math.pow(landmarks[8][1] - landmarks[12][1], 2));
+                      if (dist > 0.045) {
+                          best.name = (best.name === 'sign.u') ? 'sign.2' : best.name;
+                      } else {
+                          best.name = 'sign.u';
+                      }
+                   }
+                   
+                   if (best.confidence > highestConfidence) {
+                       highestConfidence = best.confidence;
+                       detectedKey = best.name;
+                   }
+                }
+            };
+            
+            if (data.rightHand) evaluateGestures(data.rightHand);
+            if (data.leftHand) evaluateGestures(data.leftHand);
+
+            // ----------------------------------------------------
+            // FASE 3: Lógica para Modelo Dinámico (Temporal LSTM)
+            // ----------------------------------------------------
+            // Reconstruimos un arreglo similar a los landmarks extraídos (Pose 33*4, LH 21*3, RH 21*3)
+            const extractFeaturesNative = () => {
+                let pose = new Array(33*4).fill(0); // Pose no lo manda el webview nativo actual por rendimiento, rellenamos 0
+                let lh = new Array(21*3).fill(0);
+                let rh = new Array(21*3).fill(0);
+                
+                if (data.leftHand) {
+                    lh = data.leftHand.flat(); // data.leftHand ya viene como [x,y,z]
+                }
+                if (data.rightHand) {
+                    rh = data.rightHand.flat();
+                }
+                return [...pose, ...lh, ...rh];
+            };
+
+            const features = extractFeaturesNative();
+            sequenceBuffer.current.push(features);
+            if (sequenceBuffer.current.length > 30) {
+                sequenceBuffer.current.shift();
+            }
+
+            // Si tenemos modelo cargado y suficientes frames, predicimos
+            if (tfModel.current && sequenceBuffer.current.length === 30) {
+                const inputTensor = tf.tensor([sequenceBuffer.current]); // shape [1, 30, 258]
+                const prediction = tfModel.current.predict(inputTensor);
+                // Lógica de mapeo de etiquetas iría aquí...
+            }
+            
+            if (!detectedKey) {
+               noDetectionCount.current += 1;
+               if (noDetectionCount.current > 15) {
+                   recentPredictions.current = [];
+                   lastSpoken.current = '';
+                   noDetectionCount.current = 0;
+               }
+            } else {
+               noDetectionCount.current = 0;
+               recentPredictions.current.push(detectedKey);
+               if (recentPredictions.current.length > 6) {
+                   recentPredictions.current.shift();
+               }
+               
+               if (recentPredictions.current.length === 6 && recentPredictions.current.every(val => val === detectedKey)) {
+                   if (detectedKey !== lastSpoken.current) {
+                       lastSpoken.current = detectedKey;
+                       handleTranslation(detectedKey);
+                   }
+                   recentPredictions.current = [detectedKey, detectedKey, detectedKey];
+               }
+            }
+        }
+    } catch (e) {
+        // Ignorar JSON malformado
+    }
+  };
 
   function toggleCameraType() {
-    setFacingMode(current => (current === 'front' ? 'back' : 'front'));
+    if (webViewRef.current) {
+       webViewRef.current.postMessage(JSON.stringify({ type: 'toggle_camera' }));
+    }
+  }
+  
+  function toggleActive() {
+    const newState = !isActive;
+    setIsActive(newState);
+    if (webViewRef.current) {
+       webViewRef.current.postMessage(JSON.stringify({ type: 'set_active', isActive: newState }));
+    }
   }
 
   if (hasPermission === null) {
@@ -136,12 +326,17 @@ export default function InterpreterScreenNative() {
       <Stack.Screen options={{ title: '' }} />
 
       <View style={styles.cameraContainer}>
-        <CameraView 
-          ref={cameraRef}
-          style={StyleSheet.absoluteFill} 
-          facing={facingMode}
-          onCameraReady={() => setIsCameraReady(true)}
-          animateShutter={false}
+        <WebView
+          ref={webViewRef}
+          source={{ html: HTML_CONTENT }}
+          style={StyleSheet.absoluteFill}
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          javaScriptEnabled={true}
+          mediaCapturePermissionGrantType="grant"
+          onMessage={onMessage}
+          bounces={false}
+          scrollEnabled={false}
         />
         
         {/* Botón flotante para girar cámara */}
@@ -161,7 +356,7 @@ export default function InterpreterScreenNative() {
         <View style={styles.subtitleOverlay}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={20} />
-            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL</Text>
+            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL LOCAL IA (BETA)</Text>
           </View>
 
           {lastTranslation ? (
@@ -170,7 +365,7 @@ export default function InterpreterScreenNative() {
             </Text>
           ) : (
             <Text style={styles.subtitlePlaceholder}>
-              Interpretando señas de la exposición...
+              Analizando gestos corporales...
             </Text>
           )}
 
@@ -188,13 +383,13 @@ export default function InterpreterScreenNative() {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
-          onPress={() => setIsActive(!isActive)}
+          onPress={toggleActive}
         >
           {isActive ? <Mic color="#fff" size={30} /> : <MicOff color="#fff" size={30} />}
         </TouchableOpacity>
         <Text style={styles.footerText}>
           {isActive 
-            ? t('interpreter.active', 'Traduciendo y hablando en vivo...') 
+            ? t('interpreter.active', 'Procesando IA localmente...') 
             : t('interpreter.paused', 'Intérprete Pausado')}
         </Text>
       </View>

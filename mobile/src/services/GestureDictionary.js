@@ -25,18 +25,33 @@ export const SignF = new fp.GestureDescription('sign.f');
 export const SignG = new fp.GestureDescription('sign.g');
 export const SignH = new fp.GestureDescription('sign.h');
 export const SignI = new fp.GestureDescription('sign.i');
+export const SignJ = new fp.GestureDescription('sign.j');
+export const SignK = new fp.GestureDescription('sign.k');
 export const SignL = new fp.GestureDescription('sign.l');
+export const SignM = new fp.GestureDescription('sign.m');
+export const SignN = new fp.GestureDescription('sign.n');
 export const SignO = new fp.GestureDescription('sign.o');
+export const SignP = new fp.GestureDescription('sign.p');
+export const SignQ = new fp.GestureDescription('sign.q');
+export const SignR = new fp.GestureDescription('sign.r');
+export const SignS = new fp.GestureDescription('sign.s');
+export const SignT = new fp.GestureDescription('sign.t');
 export const SignU = new fp.GestureDescription('sign.u');
 export const SignV = new fp.GestureDescription('sign.v');
 export const SignW = new fp.GestureDescription('sign.w');
+export const SignX = new fp.GestureDescription('sign.x');
 export const SignY = new fp.GestureDescription('sign.y');
+export const SignZ = new fp.GestureDescription('sign.z');
 
 // 3. Palabras
 export const SignOk = new fp.GestureDescription('sign.ok');
 export const SignILoveYou = new fp.GestureDescription('sign.i_love_you');
 export const SignYes = new fp.GestureDescription('sign.yes'); // Puño cerrado vertical
 export const SignNo = new fp.GestureDescription('sign.no');
+export const SignHello = new fp.GestureDescription('sign.hello');
+export const SignThankYou = new fp.GestureDescription('sign.thank_you');
+export const SignPlease = new fp.GestureDescription('sign.please');
+export const SignSorry = new fp.GestureDescription('sign.sorry');
 
 // --------------------------------------------------------------------------
 // Configuración de Dedos y Direcciones
@@ -204,6 +219,24 @@ for(let finger of [fp.Finger.Thumb, fp.Finger.Index, fp.Finger.Middle, fp.Finger
     SignI.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
 }
 
+// Letra J (Igual a la I, pero en movimiento. Para el motor estático es la misma pose inicial)
+SignJ.addCurl(fp.Finger.Pinky, fp.FingerCurl.NoCurl, 1.0);
+SignJ.addDirection(fp.Finger.Pinky, fp.FingerDirection.VerticalUp, 1.0);
+for(let finger of [fp.Finger.Thumb, fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring]) {
+    SignJ.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+
+// Letra K (Índice y Medio hacia arriba y separados, pulgar entre ellos)
+SignK.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
+SignK.addCurl(fp.Finger.Middle, fp.FingerCurl.NoCurl, 1.0);
+SignK.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalUp, 1.0);
+SignK.addDirection(fp.Finger.Middle, fp.FingerDirection.VerticalUp, 1.0);
+SignK.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
+SignK.addDirection(fp.Finger.Thumb, fp.FingerDirection.VerticalUp, 1.0);
+for(let finger of [fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignK.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+
 // Letra L
 SignL.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
 SignL.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalUp, 1.0);
@@ -213,6 +246,61 @@ SignL.addDirection(fp.Finger.Thumb, fp.FingerDirection.HorizontalRight, 1.0);
 for(let finger of [fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
     SignL.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
 }
+
+// Letra M (Índice, Medio y Anular doblados sobre el pulgar)
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring]) {
+    SignM.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignM.addCurl(fp.Finger.Pinky, fp.FingerCurl.FullCurl, 1.0);
+SignM.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
+
+// Letra N (Índice y Medio doblados sobre el pulgar)
+for(let finger of [fp.Finger.Index, fp.Finger.Middle]) {
+    SignN.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignN.addCurl(fp.Finger.Ring, fp.FingerCurl.FullCurl, 1.0);
+SignN.addCurl(fp.Finger.Pinky, fp.FingerCurl.FullCurl, 1.0);
+SignN.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
+
+// Letra P (Índice y Medio extendidos hacia abajo, pulgar tocando el medio)
+SignP.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
+SignP.addCurl(fp.Finger.Middle, fp.FingerCurl.NoCurl, 1.0);
+SignP.addDirection(fp.Finger.Index, fp.FingerDirection.HorizontalLeft, 1.0);
+SignP.addDirection(fp.Finger.Index, fp.FingerDirection.HorizontalRight, 1.0);
+SignP.addDirection(fp.Finger.Middle, fp.FingerDirection.VerticalDown, 1.0);
+for(let finger of [fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignP.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+
+// Letra Q (Índice y Pulgar hacia abajo)
+SignQ.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
+SignQ.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
+SignQ.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalDown, 1.0);
+SignQ.addDirection(fp.Finger.Thumb, fp.FingerDirection.VerticalDown, 1.0);
+for(let finger of [fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignQ.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+
+// Letra R (Índice y Medio cruzados)
+SignR.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
+SignR.addCurl(fp.Finger.Middle, fp.FingerCurl.NoCurl, 1.0);
+SignR.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalUp, 1.0);
+SignR.addDirection(fp.Finger.Middle, fp.FingerDirection.VerticalUp, 1.0);
+for(let finger of [fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignR.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+
+// Letra S (Puño cerrado completo con pulgar sobre los dedos)
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignS.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignS.addCurl(fp.Finger.Thumb, fp.FingerCurl.HalfCurl, 1.0);
+
+// Letra T (Pulgar bajo el índice)
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignT.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignT.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
 
 // Letra U (Indice y Medio juntos)
 SignU.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
@@ -233,6 +321,14 @@ SignW.addDirection(fp.Finger.Ring, fp.FingerDirection.VerticalUp, 1.0);
 SignW.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
 SignW.addCurl(fp.Finger.Pinky, fp.FingerCurl.FullCurl, 1.0);
 
+// Letra X (Índice doblado como gancho)
+SignX.addCurl(fp.Finger.Index, fp.FingerCurl.HalfCurl, 1.0);
+SignX.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalUp, 1.0);
+for(let finger of [fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignX.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignX.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
+
 // Letra Y
 SignY.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
 SignY.addCurl(fp.Finger.Pinky, fp.FingerCurl.NoCurl, 1.0);
@@ -240,6 +336,14 @@ SignY.addDirection(fp.Finger.Pinky, fp.FingerDirection.VerticalUp, 1.0);
 for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring]) {
     SignY.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
 }
+
+// Letra Z (Índice arriba, otros abajo. Igual al 1, pero se dibuja una Z en movimiento)
+SignZ.addCurl(fp.Finger.Index, fp.FingerCurl.NoCurl, 1.0);
+SignZ.addDirection(fp.Finger.Index, fp.FingerDirection.VerticalUp, 1.0);
+for(let finger of [fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignZ.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+}
+SignZ.addCurl(fp.Finger.Thumb, fp.FingerCurl.FullCurl, 1.0);
 
 // I Love You (Rock on)
 SignILoveYou.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
@@ -263,9 +367,38 @@ SignNo.addCurl(fp.Finger.Thumb, fp.FingerCurl.HalfCurl, 1.0);
 SignNo.addCurl(fp.Finger.Ring, fp.FingerCurl.FullCurl, 1.0);
 SignNo.addCurl(fp.Finger.Pinky, fp.FingerCurl.FullCurl, 1.0);
 
+// Hello (Saludo militar simple con la mano)
+SignHello.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignHello.addCurl(finger, fp.FingerCurl.NoCurl, 1.0);
+    SignHello.addDirection(finger, fp.FingerDirection.DiagonalUpRight, 1.0);
+    SignHello.addDirection(finger, fp.FingerDirection.DiagonalUpLeft, 1.0);
+}
+
+// Thank You (Mano plana hacia adelante, usamos los dedos extendidos)
+SignThankYou.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignThankYou.addCurl(finger, fp.FingerCurl.NoCurl, 1.0);
+    SignThankYou.addDirection(finger, fp.FingerDirection.Forward, 1.0);
+}
+
+// Please (Mano frotando el pecho, mano plana, simulamos mano plana)
+for(let finger of [fp.Finger.Thumb, fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignPlease.addCurl(finger, fp.FingerCurl.NoCurl, 1.0);
+    SignPlease.addDirection(finger, fp.FingerDirection.HorizontalLeft, 1.0);
+    SignPlease.addDirection(finger, fp.FingerDirection.HorizontalRight, 1.0);
+}
+
+// Sorry (Puño cerrado en el pecho, usamos puño cerrado A pero con dirección)
+for(let finger of [fp.Finger.Index, fp.Finger.Middle, fp.Finger.Ring, fp.Finger.Pinky]) {
+    SignSorry.addCurl(finger, fp.FingerCurl.FullCurl, 1.0);
+    SignSorry.addDirection(finger, fp.FingerDirection.HorizontalLeft, 1.0);
+    SignSorry.addDirection(finger, fp.FingerDirection.HorizontalRight, 1.0);
+}
+SignSorry.addCurl(fp.Finger.Thumb, fp.FingerCurl.NoCurl, 1.0);
 
 export const allGestures = [
     Sign0, Sign1, Sign2, Sign3, Sign4, Sign5, Sign6, Sign7, Sign8, Sign9, Sign10,
-    SignA, SignB, SignC, SignD, SignE, SignF, SignG, SignH, SignI, SignL, SignO, SignU, SignV, SignW, SignY,
-    SignOk, SignILoveYou, SignYes, SignNo
+    SignA, SignB, SignC, SignD, SignE, SignF, SignG, SignH, SignI, SignL, SignM, SignN, SignO, SignP, SignQ, SignR, SignS, SignT, SignU, SignV, SignW, SignX, SignY,
+    SignOk, SignILoveYou, SignYes, SignNo, SignHello, SignThankYou, SignPlease, SignSorry
 ];

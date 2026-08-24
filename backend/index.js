@@ -16,7 +16,7 @@ app.set('trust proxy', true);
 // Rate limiting por capas para alto estrés y prevención de abuso
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 1500, // Alto rendimiento para consultas lectivas
+    max: 5000, // Aumentado para soportar alto estrés en la red del colegio (muchos usuarios compartiendo IP)
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo en 15 minutos.' }
@@ -24,7 +24,7 @@ const generalLimiter = rateLimit({
 
 const strictWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200, // Máximo 200 escrituras por IP por 15 minutos
+    max: 1000, // Máximo 1000 escrituras por IP por 15 minutos (aumentado para redes escolares NAT)
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Límite de registros alcanzado temporalmente. Por favor intente más tarde.' }
