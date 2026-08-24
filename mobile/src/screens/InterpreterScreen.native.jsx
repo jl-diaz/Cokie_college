@@ -22,12 +22,14 @@ const HTML_CONTENT = `
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
   <style>
     body { margin: 0; background: #0B1956; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    video, canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; }
-    video { opacity: 0; width: 1px; height: 1px; }
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+    /* We make video visible, and canvas will just draw landmarks on top. */
+    video { opacity: 1; z-index: 1; transform: scaleX(-1); }
+    canvas { z-index: 2; pointer-events: none; }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
+  <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
   <script>
     let facingMode = 'user';
@@ -63,17 +65,20 @@ const HTML_CONTENT = `
     });
     
     holistic.onResults((results) => {
-      canvasElement.width = window.innerWidth;
-      canvasElement.height = window.innerHeight;
+      if (videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+      }
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       
       if (facingMode === 'user') {
+        videoElement.style.transform = 'scaleX(-1)';
         canvasCtx.translate(canvasElement.width, 0);
         canvasCtx.scale(-1, 1);
+      } else {
+        videoElement.style.transform = 'none';
       }
-      
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
       if (isActive) {
           drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
@@ -127,7 +132,9 @@ const HTML_CONTENT = `
        if (camera) camera.stop();
        camera = new Camera(videoElement, {
           onFrame: async () => {
-             await holistic.send({image: videoElement});
+             if (videoElement.videoWidth > 0) {
+                 await holistic.send({image: videoElement});
+             }
           },
           width: 640,
           height: 480,

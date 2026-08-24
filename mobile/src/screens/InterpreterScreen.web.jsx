@@ -131,16 +131,21 @@ export default function InterpreterScreenWeb() {
       // 1. Dibujar el esqueleto en el canvas (Feedback Visual)
       if (canvasRef.current && videoRef.current) {
         const canvasCtx = canvasRef.current.getContext('2d');
+        
+        if (videoRef.current && videoRef.current.videoWidth > 0) {
+          canvasRef.current.width = videoRef.current.videoWidth;
+          canvasRef.current.height = videoRef.current.videoHeight;
+        }
+        
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         
-        // Espejar si estamos usando cámara frontal
         if (facing === 'user') {
           canvasCtx.translate(canvasRef.current.width, 0);
           canvasCtx.scale(-1, 1);
         }
 
-        canvasCtx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
+        // Ya no dibujamos la imagen en el canvas, dejamos que el video se muestre debajo
         
         if (isActive) {
             // Dibujar Pose
@@ -298,7 +303,7 @@ export default function InterpreterScreenWeb() {
       
       const camera = new Camera(videoRef.current, {
         onFrame: async () => {
-          if (holisticRef.current && videoRef.current) {
+          if (holisticRef.current && videoRef.current && videoRef.current.videoWidth > 0) {
              await holisticRef.current.send({ image: videoRef.current });
           }
         },
@@ -339,12 +344,12 @@ export default function InterpreterScreenWeb() {
       <Stack.Screen options={{ title: '' }} />
 
       <View style={styles.cameraContainer}>
-        {/* El video original debe estar oculto o debajo, usamos Canvas para mostrar el feed procesado */}
+        {/* El video original ahora es visible para mejorar el rendimiento y asegurar que se vea aunque mediapipe falle */}
         <video 
           ref={videoRef}
           style={{ 
-            position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
-            transform: facing === 'user' ? 'scaleX(-1)' : 'none'
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
+            transform: facing === 'user' ? 'scaleX(-1)' : 'none', opacity: 1
           }}
           autoPlay
           playsInline
@@ -355,7 +360,7 @@ export default function InterpreterScreenWeb() {
           ref={canvasRef} 
           width="1280" 
           height="720"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 2 }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 2, pointerEvents: 'none' }}
         />
         
         <TouchableOpacity onPress={() => { unlockWebAudio(); toggleCameraType(); }} style={styles.floatingRotateButton}>
