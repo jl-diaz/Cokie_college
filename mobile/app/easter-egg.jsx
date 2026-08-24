@@ -58,7 +58,6 @@ export default function EasterEggScreen() {
   const GRAVITY = 0.35;
   const JUMP = -6.5;
   const OBSTACLE_WIDTH = 70;
-  const OBSTACLE_GAP = 250;
   const OBSTACLE_SPEED = 3.5;
   const BIRD_WIDTH = 55;
   const BIRD_HEIGHT = 45;
@@ -74,14 +73,15 @@ export default function EasterEggScreen() {
   const [, forceRender] = useState({});
 
   const spawnObstacle = (currentWidth, currentHeight) => {
-    const minHeight = 80;
-    const maxHeight = currentHeight - OBSTACLE_GAP - minHeight;
+    const currentGap = Math.min(250, currentHeight * 0.35);
+    const minHeight = Math.min(80, currentHeight * 0.15);
+    const maxHeight = currentHeight - currentGap - minHeight;
     const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
     
     obstacles.current.push({
       x: currentWidth,
       topHeight: topHeight,
-      bottomHeight: currentHeight - OBSTACLE_GAP - topHeight,
+      gap: currentGap,
       passed: false
     });
   };
@@ -132,7 +132,7 @@ export default function EasterEggScreen() {
 
         // Collision logic with margin of error
         const hitTop = birdY.current + HITBOX_MARGIN < obs.topHeight;
-        const hitBottom = birdY.current + BIRD_HEIGHT - HITBOX_MARGIN > screenHeight - obs.bottomHeight;
+        const hitBottom = birdY.current + BIRD_HEIGHT - HITBOX_MARGIN > obs.topHeight + obs.gap;
         const hitX = obs.x < screenWidth / 2 + BIRD_WIDTH / 2 - HITBOX_MARGIN && obs.x + OBSTACLE_WIDTH > screenWidth / 2 - BIRD_WIDTH / 2 + HITBOX_MARGIN;
 
         if (hitX && (hitTop || hitBottom)) {
@@ -231,12 +231,15 @@ export default function EasterEggScreen() {
 
         <Text style={styles.scoreText}>{score}</Text>
 
-        {obstacles.current.map((obs, i) => (
-          <React.Fragment key={i}>
-            <View style={[styles.pipe, styles.pipeTop, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.topHeight }]} />
-            <View style={[styles.pipe, styles.pipeBottom, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.bottomHeight, bottom: 0 }]} />
-          </React.Fragment>
-        ))}
+        {obstacles.current.map((obs, i) => {
+          const bottomHeight = Math.max(0, screenHeight - obs.topHeight - obs.gap);
+          return (
+            <React.Fragment key={i}>
+              <View style={[styles.pipe, styles.pipeTop, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.topHeight }]} />
+              <View style={[styles.pipe, styles.pipeBottom, { left: obs.x, width: OBSTACLE_WIDTH, height: bottomHeight, bottom: 0 }]} />
+            </React.Fragment>
+          );
+        })}
 
         <Image 
           source={require('../src/assets/CokieMan.png')} 

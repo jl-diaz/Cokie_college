@@ -67,16 +67,6 @@
         }
       ],
       [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "Necesitamos la cámara para el intérprete ISL.",
-          "enableCodeScanner": false
-        }
-      ],
-      [
-        "react-native-worklets-core"
-      ],
-      [
         "expo-build-properties",
         {
           "android": {
