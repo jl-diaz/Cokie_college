@@ -229,7 +229,7 @@ export default function InterpreterScreenNative() {
             
             // Fallback a Fingerpose si LSTM no predijo
             const evaluateGestures = (landmarks) => {
-                const estimated = gestureEstimator.current.estimate(landmarks, 7.0);
+                const estimated = gestureEstimator.current.estimate(landmarks, 6.0); // Bajar confianza a 6.0
                 if (estimated.gestures.length > 0) {
                    let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
                    
@@ -273,12 +273,23 @@ export default function InterpreterScreenNative() {
                    recentPredictions.current.shift();
                }
                
-               if (recentPredictions.current.length === 6 && recentPredictions.current.every(val => val === detectedKey)) {
-                   if (detectedKey !== lastSpoken.current) {
-                       lastSpoken.current = detectedKey;
-                       handleTranslation(detectedKey);
+               if (recentPredictions.current.length >= 4) {
+                   const counts = {};
+                   let maxCount = 0;
+                   let mostFrequent = null;
+                   for (const k of recentPredictions.current) {
+                       counts[k] = (counts[k] || 0) + 1;
+                       if (counts[k] > maxCount) {
+                           maxCount = counts[k];
+                           mostFrequent = k;
+                       }
                    }
-                   recentPredictions.current = [detectedKey, detectedKey, detectedKey];
+                   
+                   if (maxCount >= 4 && mostFrequent !== lastSpoken.current) {
+                       lastSpoken.current = mostFrequent;
+                       handleTranslation(mostFrequent);
+                       recentPredictions.current = [mostFrequent, mostFrequent];
+                   }
                }
             }
         }

@@ -166,7 +166,6 @@ export default function InterpreterScreenWeb() {
         let detectedKey = null;
         let highestConfidence = 0;
 
-        // Función auxiliar para evaluar y desempatar
         const evaluateGestures = (landmarks, estimated) => {
            if (estimated.gestures.length > 0) {
                // Tomar la predicción con mayor confianza
@@ -204,14 +203,14 @@ export default function InterpreterScreenWeb() {
         // Analizar mano derecha
         if (results.rightHandLandmarks) {
            const landmarksArray = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-           const estimated = gestureEstimator.estimate(landmarksArray, 7.0); // 7.0 confianza mínima
+           const estimated = gestureEstimator.estimate(landmarksArray, 6.0); // Bajar confianza a 6.0
            evaluateGestures(results.rightHandLandmarks, estimated);
         }
         
         // Analizar mano izquierda
         if (results.leftHandLandmarks) {
            const landmarksArray = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-           const estimated = gestureEstimator.estimate(landmarksArray, 7.0);
+           const estimated = gestureEstimator.estimate(landmarksArray, 6.0);
            evaluateGestures(results.leftHandLandmarks, estimated);
         }
 
@@ -268,19 +267,30 @@ export default function InterpreterScreenWeb() {
                 recentPredictions.current.shift();
             }
 
-            // Si las últimas 6 son idénticas, es una predicción estable
-            if (recentPredictions.current.length === 6 && recentPredictions.current.every(val => val === detectedKey)) {
-                if (detectedKey !== lastSpoken.current) {
-                    lastSpoken.current = detectedKey;
+            if (recentPredictions.current.length >= 4) {
+                const counts = {};
+                let maxCount = 0;
+                let mostFrequent = null;
+                for (const k of recentPredictions.current) {
+                    counts[k] = (counts[k] || 0) + 1;
+                    if (counts[k] > maxCount) {
+                        maxCount = counts[k];
+                        mostFrequent = k;
+                    }
+                }
+                
+                if (maxCount >= 4 && mostFrequent !== lastSpoken.current) {
+                    lastSpoken.current = mostFrequent;
                     
                     // Traducir y hablar
-                    const translatedText = t(`signs.${detectedKey.replace('sign.', '')}`, { defaultValue: detectedKey });
+                    const translatedText = t(`signs.${mostFrequent.replace('sign.', '')}`, { defaultValue: mostFrequent });
                     setLastTranslation(translatedText);
                     setSubtitleHistory(prev => [translatedText, ...prev.slice(0, 4)]);
                     speakTranslation(translatedText);
+                    
+                    // Limpiamos un poco la cola pero dejamos algunos para fluidez
+                    recentPredictions.current = [mostFrequent, mostFrequent]; 
                 }
-                // Limpiamos un poco la cola pero dejamos algunos para fluidez
-                recentPredictions.current = [detectedKey, detectedKey, detectedKey]; 
             }
         }
       }
@@ -296,29 +306,59 @@ export default function InterpreterScreenWeb() {
   }, []);
 
   useEffect(() => {
-    if (hasPermission && videoRef.current && Camera) {
-      if (cameraInstanceRef.current) {
-         cameraInstanceRef.current.stop();
-      }
-      
-      const camera = new Camera(videoRef.current, {
-        onFrame: async () => {
-          if (holisticRef.current && videoRef.current && videoRef.current.videoWidth > 0) {
+    let animationFrameId;
+    let stream;
+    let isComponentMounted = true;
+
+    async function startCamera() {
+      if (!hasPermission || !videoRef.current || !Holistic) return;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: facing
+          },
+          audio: false
+        });
+
+        if (!isComponentMounted) {
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+        
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+
+        const processFrame = async () => {
+          if (!isComponentMounted) return;
+          if (holisticRef.current && videoRef.current && videoRef.current.readyState >= 2) {
              await holisticRef.current.send({ image: videoRef.current });
           }
-        },
-        width: 1280,
-        height: 720,
-        facingMode: facing
-      });
-      
-      camera.start();
-      cameraInstanceRef.current = camera;
+          animationFrameId = requestAnimationFrame(processFrame);
+        };
+        
+        // Start processing after a small delay to ensure video is ready
+        setTimeout(processFrame, 500);
+
+      } catch (err) {
+        console.error("Error al iniciar la cámara:", err);
+      }
     }
-    
+
+    startCamera();
+
     return () => {
-      if (cameraInstanceRef.current) {
-        cameraInstanceRef.current.stop();
+      isComponentMounted = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
     };
   }, [hasPermission, facing]);
