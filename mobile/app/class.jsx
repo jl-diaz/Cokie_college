@@ -14,9 +14,9 @@ import {
   TouchableWithoutFeedback, 
   Keyboard 
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import api from '../src/utils/api';
-import { 
+import {  
   BookOpen, 
   Check, 
   X, 
@@ -28,7 +28,7 @@ import {
   CheckCheck, 
   UserX, 
   ChevronRight
-} from 'lucide-react-native';
+, ArrowLeft } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +37,7 @@ import { useAuth } from '../src/context/AuthContext';
 import PageHeader from '../src/components/PageHeader';
 
 export default function ClassScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
@@ -565,16 +566,7 @@ export default function ClassScreen() {
       )}
 
       {/* Conduct Modal */}
-      <Modal visible={conductModalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setConductModalVisible(false)}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={conductModalVisible} onClose={() => setConductModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -656,8 +648,7 @@ export default function ClassScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

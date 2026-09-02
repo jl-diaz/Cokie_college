@@ -1,3 +1,4 @@
+import { Stack, useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
@@ -13,7 +14,7 @@ import {
   Modal 
 } from 'react-native';
 import api from '../src/utils/api';
-import { Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck } from 'lucide-react-native';
+import {  Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck , ArrowLeft } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 
 export default function TeacherGradesScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
   const { showAlert, showConfirm } = useAlert();
@@ -441,11 +443,31 @@ export default function TeacherGradesScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
       style={styles.container}
     >
+      <Stack.Screen 
+        options={{
+          headerLeft: () => {
+            const canGoBackInternally = selectedClass !== null || selectedActivity !== null;
+            return (
+              <TouchableOpacity
+                onPress={() => {
+                  if (canGoBackInternally) {
+                    handleBackPress();
+                  } else {
+                    if (router.canGoBack()) router.back();
+                    else router.replace('/home');
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 8, marginLeft: 4 }}
+              >
+                <ArrowLeft size={24} color={Colors.text.headerTxtC || '#FFF'} />
+              </TouchableOpacity>
+            );
+          }
+        }}
+      />
       <PageHeader 
         title={headerInfo.title} 
         subtitle={headerInfo.subtitle}
-        showBack={selectedClass !== null || selectedActivity !== null}
-        onBackPress={handleBackPress}
       />
 
       {/* Period Selection & Countdown Banner */}
@@ -541,21 +563,7 @@ export default function TeacherGradesScreen() {
       {renderContent()}
 
       {/* Modal para Crear Ticket de Extensión */}
-      <Modal
-        visible={ticketModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setTicketModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={() => setTicketModalVisible(false)} 
-          />
+      <BottomModal visible={ticketModalVisible} onClose={() => setTicketModalVisible(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>{t('teacherGrades.requestExtraTime', 'Solicitar Tiempo Extra')}</Text>
             <Text style={styles.modalSubtitle}>{t('dashboard.period', 'Periodo')} {selectedPeriod}</Text>
@@ -607,8 +615,7 @@ export default function TeacherGradesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </KeyboardAvoidingView>
   );
 }

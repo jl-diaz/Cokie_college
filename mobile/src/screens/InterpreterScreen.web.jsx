@@ -202,14 +202,18 @@ export default function InterpreterScreenWeb() {
 
         // Analizar mano derecha
         if (results.rightHandLandmarks) {
-           const landmarksArray = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+           const width = canvasRef.current ? canvasRef.current.width : 640;
+           const height = canvasRef.current ? canvasRef.current.height : 480;
+           const landmarksArray = results.rightHandLandmarks.map(lm => [lm.x * width, lm.y * height, lm.z * width]);
            const estimated = gestureEstimator.estimate(landmarksArray, 6.0); // Bajar confianza a 6.0
            evaluateGestures(results.rightHandLandmarks, estimated);
         }
         
         // Analizar mano izquierda
         if (results.leftHandLandmarks) {
-           const landmarksArray = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+           const width = canvasRef.current ? canvasRef.current.width : 640;
+           const height = canvasRef.current ? canvasRef.current.height : 480;
+           const landmarksArray = results.leftHandLandmarks.map(lm => [lm.x * width, lm.y * height, lm.z * width]);
            const estimated = gestureEstimator.estimate(landmarksArray, 6.0);
            evaluateGestures(results.leftHandLandmarks, estimated);
         }
@@ -243,12 +247,22 @@ export default function InterpreterScreenWeb() {
 
         // Si tenemos modelo cargado y suficientes frames, predicimos
         if (tfModel.current && sequenceBuffer.current.length === 30) {
-            // Nota: las etiquetas deben mapearse según como se entrenó el modelo. 
-            // Aquí se deja preparada la predicción.
+            // Nota: las etiquetas dinámicas deben coincidir con las clases de tu modelo LSTM
+            const dynamicLabels = ['sign.j', 'sign.z', 'sign.hello', 'sign.thank_you', 'sign.please', 'sign.sorry', 'sign.yes', 'sign.no'];
+            
             const inputTensor = tf.tensor([sequenceBuffer.current]); // shape [1, 30, 258]
             const prediction = tfModel.current.predict(inputTensor);
-            // const predictedIndex = prediction.argMax(1).dataSync()[0];
-            // detectedKey = dynamicLabels[predictedIndex]; 
+            
+            const predictedScores = prediction.dataSync();
+            const maxScore = Math.max(...predictedScores);
+            const predictedIndex = predictedScores.indexOf(maxScore);
+            
+            // Solo aceptamos si la confianza es alta (> 0.75) para evitar falsos positivos constantes
+            if (maxScore > 0.75 && predictedIndex < dynamicLabels.length) {
+                detectedKey = dynamicLabels[predictedIndex]; 
+            }
+            
+            tf.dispose([inputTensor, prediction]); // Liberar memoria
         }
 
         // Lógica de estabilización y habla
@@ -311,7 +325,7 @@ export default function InterpreterScreenWeb() {
     let isComponentMounted = true;
 
     async function startCamera() {
-      if (!hasPermission || !videoRef.current || !Holistic) return;
+      if (!hasPermission || !videoRef.current) return;
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({

@@ -52,8 +52,18 @@ function App() {
       ScrollTrigger.refresh();
     }, 300);
 
+    const onWindowLoad = () => {
+      ScrollTrigger.refresh();
+    };
+    if (document.readyState === 'complete') {
+      onWindowLoad();
+    } else {
+      window.addEventListener('load', onWindowLoad);
+    }
+
     return () => {
       clearTimeout(refreshTimer);
+      window.removeEventListener('load', onWindowLoad);
       document.removeEventListener('click', handleAnchorClick);
       gsap.ticker.remove(rafCallback);
       lenis.destroy();

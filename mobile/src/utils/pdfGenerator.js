@@ -5,7 +5,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { logoBase64, poppinsNormal } from './pdfResources';
 import api from './api';
 
-const generatePDFDocument = (student, gradesData, averagesData, period, allPeriodsData = null) => {
+const generatePDFDocument = (student, gradesData, averagesData, period, allPeriodsData = null, diaryData = { conduct: [], attendance: [] }) => {
   const { jsPDF } = require('jspdf');
   const autoTableModule = require('jspdf-autotable');
   const autoTable = autoTableModule.default || autoTableModule;
@@ -190,14 +190,84 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
     head: [headRow],
     body: bodyRows,
     theme: 'grid',
-    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [0, 0, 0] },
+    headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
+      alternateRowStyles: { fillColor: [252, 252, 255] },
     bodyStyles: { textColor: 0, halign: 'center', font: 'Poppins', fontSize: 9, lineWidth: 0.1, lineColor: [0, 0, 0] },
     columnStyles: { 0: { halign: 'left', fontStyle: 'normal' } },
-    styles: { font: 'Poppins', fontSize: 9, cellPadding: 3, lineColor: [0, 0, 0], lineWidth: 0.1 }
+    styles: { font: 'Poppins', fontSize: 9, cellPadding: 4, lineColor: [210, 210, 210], lineWidth: 0.1 }
   });
 
-  // --- Footer ---
-  const finalY = doc.lastAutoTable.finalY || 150;
+  
+
+    // --- Conduct & Absences ---
+    let currentY = doc.lastAutoTable.finalY + 10;
+    
+    // Calculate totals
+    const conductList = diaryData?.conduct || [];
+    const attendanceList = diaryData?.attendance || [];
+    
+    const justifiedAbs = attendanceList.filter(a => a.status === 'justified').length;
+    const unjustifiedAbs = attendanceList.filter(a => a.status === 'absent').length;
+    
+    let leves = 0, graves = 0, muyGraves = 0;
+    conductList.forEach(c => {
+      const type = c.conduct_codes?.type;
+      if (type === 'Leve') leves++;
+      else if (type === 'Grave') graves++;
+      else if (type === 'Muy Grave') muyGraves++;
+    });
+
+    // Subheader for Conduct
+    doc.setFont("Poppins", "bold");
+    doc.setFillColor(11, 25, 86);
+    doc.rect(15, currentY, 180, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.text("RESUMEN DE CONDUCTA Y ASISTENCIA", 105, currentY + 5.5, { align: "center" });
+    
+    currentY += 8;
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Ausencias Justificadas', 'Ausencias Injustificadas', 'Faltas Leves', 'Faltas Graves', 'Faltas Muy Graves']],
+      body: [[
+        justifiedAbs.toString(),
+        unjustifiedAbs.toString(),
+        leves.toString(),
+        graves.toString(),
+        muyGraves.toString()
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
+      bodyStyles: { halign: 'center', font: 'Poppins', fontSize: 10, textColor: [50, 50, 50] },
+      styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 3 }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 5;
+
+    if (conductList.length > 0) {
+      const conductBody = conductList.map(c => [
+        new Date(c.date).toLocaleDateString(),
+        c.conduct_codes?.type || 'Leve',
+        c.conduct_codes?.description || 'Sin descripción',
+        c.observation || 'N/A'
+      ]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Fecha', 'Gravedad', 'Código Aplicado', 'Observación']],
+        body: conductBody,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'left', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
+        bodyStyles: { halign: 'left', font: 'Poppins', fontSize: 8, textColor: [50, 50, 50] },
+        columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 25 }, 2: { cellWidth: 65 } },
+        styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 3 }
+      });
+    }
+
+    // --- Footer ---
+    const finalY = doc.lastAutoTable.finalY;
+
   doc.setFont("Poppins", "normal");
   doc.setFontSize(8);
   doc.setTextColor(50, 50, 50);
@@ -228,11 +298,16 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
     let gradesData = [];
     let averagesData = [];
     let allPeriodsData = [];
+    let diaryData = { conduct: [], attendance: [] };
 
     // Si no hay studentId explícito (es el estudiante en su propia pantalla) o falla la ruta de coordinador
     if (!studentId) {
       const gradesRes = await api.get('/student/grades', { params: { period } });
-      const averagesRes = await api.get('/student/averages', { params: { period } });
+        const averagesRes = await api.get('/student/averages', { params: { period } });
+        try {
+          const diaryRes = await api.get('/student/diary', { params: { period } });
+          diaryData = diaryRes.data || { conduct: [], attendance: [] };
+        } catch(e) {}
       gradesData = gradesRes.data || [];
       averagesData = averagesRes.data || [];
 
@@ -248,6 +323,10 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
       try {
         const gradesRes = await api.get(`/coordinator/students/${studentId}/grades`, { params: { period } });
         const averagesRes = await api.get(`/coordinator/students/${studentId}/averages`, { params: { period } });
+        try {
+          const diaryRes = await api.get(`/coordinator/students/${studentId}/diary`, { params: { period } });
+          diaryData = diaryRes.data || { conduct: [], attendance: [] };
+        } catch(e) {}
         gradesData = gradesRes.data || [];
         averagesData = averagesRes.data || [];
 
@@ -263,6 +342,10 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
         // Si el usuario actual es estudiante accediendo a su propio reporte
         const gradesRes = await api.get('/student/grades', { params: { period } });
         const averagesRes = await api.get('/student/averages', { params: { period } });
+        try {
+          const diaryRes = await api.get('/student/diary', { params: { period } });
+          diaryData = diaryRes.data || { conduct: [], attendance: [] };
+        } catch(e) {}
         gradesData = gradesRes.data || [];
         averagesData = averagesRes.data || [];
 
@@ -277,7 +360,7 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
       }
     }
 
-    const doc = generatePDFDocument(studentDetails, gradesData, averagesData, period, allPeriodsData);
+    const doc = generatePDFDocument(studentDetails, gradesData, averagesData, period, allPeriodsData, diaryData);
     const fileName = `Boletin_${(studentDetails.full_name || 'Estudiante').replace(/\s+/g, '_')}_P${period}.pdf`;
 
     if (Platform.OS === 'web') {
@@ -306,6 +389,11 @@ export const generateClassroomReportsZip = async (classroomId, period, studentsL
       for (const student of studentsList) {
         const gradesRes = await api.get(`/coordinator/students/${student.id}/grades`, { params: { period } });
         const averagesRes = await api.get(`/coordinator/students/${student.id}/averages`, { params: { period } });
+        let diaryData = { conduct: [], attendance: [] };
+        try {
+          const diaryRes = await api.get(`/coordinator/students/${student.id}/diary`, { params: { period } });
+          diaryData = diaryRes.data || { conduct: [], attendance: [] };
+        } catch(e) {}
         
         let allPeriodsData = [];
         for (let p = 1; p <= period; p++) {
@@ -313,7 +401,7 @@ export const generateClassroomReportsZip = async (classroomId, period, studentsL
           allPeriodsData.push({ period: p, averages: pAvg.data });
         }
         
-        const doc = generatePDFDocument(student, gradesRes.data, averagesRes.data, period, allPeriodsData);
+        const doc = generatePDFDocument(student, gradesRes.data, averagesRes.data, period, allPeriodsData, diaryData);
         const arrayBuffer = doc.output('arraybuffer');
         zip.file(`Boletin_${student.full_name}_P${period}.pdf`, arrayBuffer);
       }

@@ -224,16 +224,7 @@ export default function AnnouncementsScreen() {
       )}
 
       {/* Modal para Crear Aviso */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{t('announcements.createTitle', 'Crear Nuevo Aviso')}</Text>
@@ -306,8 +297,7 @@ export default function AnnouncementsScreen() {
                     </TouchableOpacity>
                   </ScrollView>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

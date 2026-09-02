@@ -551,9 +551,8 @@ export default function LunchScreen() {
           )}
 
           {/* MODAL DE CONFIRMACIÓN */}
-          <Modal visible={confirmModalVisible} transparent animationType="slide" onRequestClose={() => setConfirmModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
+          <BottomModal visible={confirmModalVisible} onClose={() => setConfirmModalVisible(false)}>
+          <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar Pedido de Almuerzo')}</Text>
                 
                 <View style={styles.confirmBox}>
@@ -587,8 +586,7 @@ export default function LunchScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          </Modal>
+            </BottomModal>
         </ScrollView>
       )}
     </View>

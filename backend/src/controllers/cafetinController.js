@@ -232,6 +232,17 @@ const cafetinController = {
                 .single();
 
             if (error) throw error;
+            
+            // Enviar notificación al estudiante
+            const { sendNotification } = require('../utils/notificationService');
+            let statusText = status === 'preparado' ? 'Preparado 🍲' : (status === 'entregado' ? 'Entregado 🍽️' : 'Recibido');
+            await sendNotification(
+                data.user_id,
+                `Tu pedido está ${statusText}`,
+                `El estado de tu pedido de almuerzo ha cambiado a: ${status}.`,
+                { type: 'lunch_order', status }
+            );
+
             res.json(data);
         } catch (error) {
             console.error('Error al actualizar estado del pedido:', error);
@@ -291,6 +302,16 @@ const cafetinController = {
                 .single();
 
             if (error) throw error;
+
+            // Enviar notificación al estudiante
+            const { sendNotification } = require('../utils/notificationService');
+            await sendNotification(
+                data.user_id,
+                `Pedido Entregado 🍽️`,
+                `Tu pedido de almuerzo ha sido entregado. ¡Buen provecho!`,
+                { type: 'lunch_order', status: 'entregado' }
+            );
+
             res.json({ message: 'Pedido entregado exitosamente', order: data });
         } catch (error) {
             console.error('Error al confirmar despacho:', error);

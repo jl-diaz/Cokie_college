@@ -8,6 +8,7 @@ import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import PageHeader from '../components/PageHeader';
 import * as fp from 'fingerpose';
 import { allGestures } from '../services/GestureDictionary';
 
@@ -327,6 +328,7 @@ export default function InterpreterScreenNative() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
+      <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       <View style={styles.cameraContainer}>
         <WebView

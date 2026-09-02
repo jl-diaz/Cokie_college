@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
 import { X, Bell, CheckCheck, Trash2, Info, AlertTriangle, CheckCircle } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const { t } = useTranslation();
@@ -11,10 +13,43 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
 
   const [notificationsList, setNotificationsList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   useEffect(() => {
     if (visible) {
+      setShowModal(true);
       fetchNotifications();
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 65,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowModal(false);
+      });
     }
   }, [visible]);
 
@@ -83,17 +118,20 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
     return <Info size={18} color={colors.primary} />;
   };
 
-  if (!visible) return null;
+  if (!showModal) return null;
 
   return (
     <Modal
       transparent
-      animationType="slide"
-      visible={visible}
+      animationType="none"
+      visible={showModal}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={[styles.panel, { backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
+      <View style={styles.overlayContainer}>
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
+        </Animated.View>
+        <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }], backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Bell size={22} color={colors.primary} style={{ marginRight: 8 }} />
@@ -165,21 +203,24 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
               ))
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  overlayContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
   panel: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
     maxHeight: '85%',
     shadowColor: '#000',

@@ -280,16 +280,7 @@ export default function ConductCatalogScreen() {
         <Plus size={28} color="#FFF" />
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
@@ -343,8 +334,7 @@ export default function ConductCatalogScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

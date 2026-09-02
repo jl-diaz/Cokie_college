@@ -225,22 +225,7 @@ export default function JustificationsScreen() {
       />
 
       {/* Modal para Crear Solicitud de Justificación */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        statusBarTranslucent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <ScrollView 
               keyboardShouldPersistTaps="handled" 
@@ -317,8 +302,7 @@ export default function JustificationsScreen() {
                   </TouchableOpacity>
                 </ScrollView>
               </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

@@ -210,18 +210,7 @@ export default function ClassroomsScreen() {
       )}
 
       {/* Bottom Action Sheet Modal */}
-      <Modal
-        visible={isActionSheetVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setActionSheetVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
-            activeOpacity={1} 
-            onPress={() => setActionSheetVisible(false)} 
-          />
+      <BottomModal visible={isActionSheetVisible} onClose={() => setIsActionSheetVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
@@ -306,8 +295,7 @@ export default function ClassroomsScreen() {
               </>
             )}
           </View>
-        </View>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

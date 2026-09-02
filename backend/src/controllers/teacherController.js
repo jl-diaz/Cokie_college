@@ -393,6 +393,23 @@ const teacherController = {
                 })), { onConflict: 'student_id, subject_id, activity_id, period' });
 
             if (error) throw error;
+            
+            // Notificar a los estudiantes en segundo plano
+            (async () => {
+                try {
+                    for (const g of grades) {
+                        await sendNotification(
+                            g.student_id,
+                            '📚 Nueva Calificación',
+                            `Se ha registrado/actualizado una nota en tu periodo ${period}.`,
+                            { type: 'grade_update' }
+                        );
+                    }
+                } catch (notifErr) {
+                    console.error('Error enviando notificaciones de notas:', notifErr);
+                }
+            })();
+
             res.json({ message: 'Notas actualizadas correctamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });

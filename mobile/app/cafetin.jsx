@@ -730,16 +730,7 @@ export default function CafetinScreen() {
       )}
 
       {/* --- MODAL PARA AGREGAR ALIMENTO AL CATÁLOGO --- */}
-      <Modal visible={modalAddItem} transparent animationType="slide" onRequestClose={() => setModalAddItem(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalAddItem} onClose={() => setModalAddItem(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
 
@@ -794,8 +785,7 @@ export default function CafetinScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
 
       {/* --- MODAL CÁMARA QR --- */}
       <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)}>

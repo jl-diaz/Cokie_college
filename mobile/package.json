@@ -10,6 +10,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@babel/parser": "^8.0.4",
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/holistic": "^0.5.1675471629",
@@ -37,6 +38,7 @@
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.19",
     "fingerpose": "^0.1.0",
+    "glob": "^13.0.6",
     "i18next": "^26.3.6",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

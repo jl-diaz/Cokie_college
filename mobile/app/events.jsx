@@ -268,16 +268,7 @@ export default function EventsScreen() {
       )}
 
       {/* Modal para Crear / Editar Evento */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{editingEvent ? t('events.editTitle', 'Editar Evento') : t('events.createTitle', 'Nuevo Evento')}</Text>
@@ -389,8 +380,7 @@ export default function EventsScreen() {
                     </TouchableOpacity>
                   </ScrollView>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }

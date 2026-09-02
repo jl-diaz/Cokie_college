@@ -549,6 +549,15 @@ const coordinatorController = {
                 await ensureJustifiedAttendanceRecord(justification.student_id, justification.absence_date);
             }
 
+            // Enviar notificación al estudiante
+            const { sendNotification } = require('../utils/notificationService');
+            await sendNotification(
+                justification.student_id,
+                `Justificación ${status === 'approved' ? 'Aprobada ✅' : 'Rechazada ❌'}`,
+                `Tu justificación para el ${justification.absence_date} ha sido revisada por coordinación.`,
+                { type: 'justification', status }
+            );
+
             res.json({ message: `Solicitud ${status}`, justification });
         } catch (error) {
             res.status(500).json({ error: error.message });
