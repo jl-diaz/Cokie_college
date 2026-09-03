@@ -35,6 +35,7 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import { useAuth } from '../src/context/AuthContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 export default function ClassScreen() {
   const router = useRouter();

@@ -14,7 +14,7 @@ export default function DarkColorModal() {
     darkPresets,
     colors,
     theme,
-    setTheme
+    changeTheme
   } = useTheme();
 
   if (!isColorModalOpen) return null;
@@ -86,7 +86,7 @@ export default function DarkColorModal() {
           <TouchableOpacity 
             style={[styles.doneBtn, { backgroundColor: colors.primary }]} 
             onPress={() => {
-              if (theme !== 'dark') setTheme('dark');
+              if (theme !== 'dark') changeTheme('dark');
               closeColorModal();
             }}
             activeOpacity={0.8}

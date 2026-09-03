@@ -38,6 +38,7 @@ import api from '../src/utils/api';
 import QRCodeDisplay from '../src/components/QRCodeDisplay';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Camera } from 'lucide-react-native';
 

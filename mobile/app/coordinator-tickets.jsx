@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import api from '../src/utils/api';
 import { Check, X, Clock, Calendar, User, FileText, Filter, AlertCircle } from 'lucide-react-native';
+import BottomModal from '../src/components/BottomModal';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -275,18 +276,12 @@ export default function CoordinatorTicketsScreen() {
       )}
 
       {/* Modal de Acción (Aprobar / Rechazar) */}
-      <Modal
+      <BottomModal
         visible={!!selectedTicket}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedTicket(null)}
+        onClose={() => setSelectedTicket(null)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>
               {actionType === 'approve' ? t('teacherGrades.approveTicketTitle', 'Aprobar Extensión de Notas') : t('teacherGrades.rejectTicketTitle', 'Denegar Solicitud de Extensión')}
             </Text>
             <Text style={styles.modalSubtitle}>
@@ -333,8 +328,7 @@ export default function CoordinatorTicketsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      </BottomModal>
     </View>
   );
 }
@@ -595,3 +589,4 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.sm,
   }
 });
+

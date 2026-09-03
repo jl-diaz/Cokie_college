@@ -22,6 +22,7 @@ import { useAuth } from '../src/context/AuthContext';
 import api from '../src/utils/api';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 const LEVELS = ['Todos', 'Primaria', 'Tercer Ciclo'];
 

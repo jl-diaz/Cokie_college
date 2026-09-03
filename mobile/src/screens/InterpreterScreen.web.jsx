@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
+import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import * as fp from 'fingerpose';
@@ -396,6 +397,7 @@ export default function InterpreterScreenWeb() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
+      <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       <View style={styles.cameraContainer}>
         {/* El video original ahora es visible para mejorar el rendimiento y asegurar que se vea aunque mediapipe falle */}
@@ -532,6 +534,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 10,
+    zIndex: 20,
   },
   subtitleHeader: {
     flexDirection: 'row',
@@ -602,3 +605,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: '700' 
   }
 });
+

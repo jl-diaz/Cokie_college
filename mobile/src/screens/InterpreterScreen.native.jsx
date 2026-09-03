@@ -114,8 +114,14 @@ const HTML_CONTENT = `
 
          // Send back to React Native Bridge
          const data = {};
-         if (results.rightHandLandmarks) data.rightHand = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-         if (results.leftHandLandmarks) data.leftHand = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         if (results.rightHandLandmarks) {
+             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x * 640, lm.y * 480, lm.z * 640]);
+             data.rightHandRaw = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         }
+         if (results.leftHandLandmarks) {
+             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x * 640, lm.y * 480, lm.z * 640]);
+             data.leftHandRaw = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
+         }
          
          if (data.rightHand || data.leftHand || detectedKeyByLSTM) {
              window.ReactNativeWebView.postMessage(JSON.stringify({ 
@@ -229,20 +235,20 @@ export default function InterpreterScreenNative() {
             let highestConfidence = 0;
             
             // Fallback a Fingerpose si LSTM no predijo
-            const evaluateGestures = (landmarks) => {
+            const evaluateGestures = (landmarks, rawLandmarks) => {
                 const estimated = gestureEstimator.current.estimate(landmarks, 6.0); // Bajar confianza a 6.0
                 if (estimated.gestures.length > 0) {
                    let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
                    
                    // Desempate 4 vs B
                    if (best.name === 'sign.4' || best.name === 'sign.b') {
-                      const dist = Math.sqrt(Math.pow(landmarks[8][0] - landmarks[20][0], 2) + Math.pow(landmarks[8][1] - landmarks[20][1], 2));
+                      const dist = Math.sqrt(Math.pow(rawLandmarks[8][0] - rawLandmarks[20][0], 2) + Math.pow(rawLandmarks[8][1] - rawLandmarks[20][1], 2));
                       best.name = dist > 0.085 ? 'sign.4' : 'sign.b';
                    }
                    
                    // Desempate U vs V / 2
                    if (best.name === 'sign.v' || best.name === 'sign.2' || best.name === 'sign.u') {
-                      const dist = Math.sqrt(Math.pow(landmarks[8][0] - landmarks[12][0], 2) + Math.pow(landmarks[8][1] - landmarks[12][1], 2));
+                      const dist = Math.sqrt(Math.pow(rawLandmarks[8][0] - rawLandmarks[12][0], 2) + Math.pow(rawLandmarks[8][1] - rawLandmarks[12][1], 2));
                       if (dist > 0.045) {
                           best.name = (best.name === 'sign.u') ? 'sign.2' : best.name;
                       } else {
@@ -257,8 +263,8 @@ export default function InterpreterScreenNative() {
                 }
             };
             
-            if (!detectedKey && data.rightHand) evaluateGestures(data.rightHand);
-            if (!detectedKey && data.leftHand) evaluateGestures(data.leftHand);
+            if (!detectedKey && data.rightHand) evaluateGestures(data.rightHand, data.rightHandRaw);
+            if (!detectedKey && data.leftHand) evaluateGestures(data.leftHand, data.leftHandRaw);
             
             if (!detectedKey) {
                noDetectionCount.current += 1;

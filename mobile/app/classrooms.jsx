@@ -19,6 +19,7 @@ import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/the
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 import { generateClassroomReportsZip } from '../src/utils/pdfGenerator';
 
 export default function ClassroomsScreen() {
