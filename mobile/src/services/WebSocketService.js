@@ -1,5 +1,5 @@
 import io from 'socket.io-client';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync, createAudioPlayer } from 'expo-audio';
 
 class WebSocketService {
   constructor() {
@@ -8,6 +8,7 @@ class WebSocketService {
     this.isPlaying = false;
     this.lastSpokenText = '';
     this.lastSpokenTime = 0;
+    this.player = null;
   }
 
   // Se llamará con process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL
@@ -99,23 +100,24 @@ class WebSocketService {
           this._lastAudioTime = now;
           
           // Forzar audio por altavoz principal en iOS y Android
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: true,
-            playThroughEarpieceAndroid: false,
+          await setAudioModeAsync({
+            allowsRecording: false,
+            playsInSilentMode: true,
+            shouldPlayInBackground: true,
           });
           
           const soundUri = `data:audio/mp3;base64,${data.audioBase64}`;
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: soundUri },
-            { shouldPlay: true }
-          );
           
-          sound.setOnPlaybackStatusUpdate((status) => {
+          if (this.player) {
+            this.player.release();
+          }
+          
+          this.player = createAudioPlayer(soundUri);
+          this.player.play();
+          
+          this.player.addListener('playbackStatusUpdate', (status) => {
             if (status.didJustFinish) {
               this.isPlaying = false;
-              sound.unloadAsync();
             }
           });
         } catch (e) {

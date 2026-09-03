@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CameraView, Camera, useCameraPermissions } from 'expo-camera';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
@@ -35,11 +35,10 @@ export default function InterpreterScreenNative() {
       }
       
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          playThroughEarpieceAndroid: false,
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
+          shouldPlayInBackground: true,
         });
       } catch (e) {
         console.warn("No se pudo configurar el audio:", e);
