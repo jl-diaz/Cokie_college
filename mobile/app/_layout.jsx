@@ -80,8 +80,7 @@ function LayoutInner() {
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 
-                  paddingTop: 'env(safe-area-inset-top)',
-                  height: 'calc(60px + env(safe-area-inset-top))' 
+                  height: 60,
               })
             },
             headerTintColor: colors.text.headerTxtC,
@@ -91,17 +90,14 @@ function LayoutInner() {
               fontSize: 16,
             },
             headerRightContainerStyle: {
-              paddingRight: 15,
+              paddingRight: 12,
               justifyContent: 'center',
               alignItems: 'center',
-              flexGrow: 0,
-              height: '100%',
             },
             headerLeftContainerStyle: {
-              paddingLeft: 10,
+              paddingLeft: 8,
               justifyContent: 'center',
-              alignItems: 'flex-start',
-              height: '100%',
+              alignItems: 'center',
             },
             headerLeft: () => {
               if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;
@@ -115,12 +111,12 @@ function LayoutInner() {
                     }
                   }}
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    width: 36,
+                    height: 36,
                     justifyContent: 'center',
-                    padding: 8,
-                    marginLeft: 4,
+                    alignItems: 'center',
                   }}
+                  activeOpacity={0.7}
                 >
                   <ArrowLeft size={24} color={colors.text.headerTxtC} />
                 </TouchableOpacity>
@@ -130,15 +126,14 @@ function LayoutInner() {
                if (route.name === 'index' || route.name === '(auth)/login') return null;
                return (
                  <View style={{
+                   width: 145,
                    height: 32,
-                   minWidth: 150,
                    flexDirection: 'row',
                    alignItems: 'center',
-                   justifyContent: 'flex-end',
-                   gap: 6,
+                   justifyContent: 'space-between',
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
-                   paddingHorizontal: 10,
+                   paddingHorizontal: 8,
                    borderWidth: 1,
                    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                  }}>
@@ -246,8 +241,11 @@ function LayoutInner() {
     </>
   );
 
-  // En Web permitimos que use todo el espacio (comportamiento nativo PWA)
-  return content;
+  return (
+    <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
+      {content}
+    </View>
+  );
 }
 
 export default function Layout() {
