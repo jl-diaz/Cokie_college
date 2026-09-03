@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenWeb() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
@@ -22,6 +22,7 @@ export default function InterpreterScreenWeb() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const isCapturingRef = useRef(false);
+  const lastSpokenRef = useRef('');
 
   // Función para desbloquear el audio en navegadores web al primer clic del usuario
   const unlockWebAudio = () => {
@@ -39,16 +40,30 @@ export default function InterpreterScreenWeb() {
     WebSocketService.connect(serverUrl);
 
     const handleTranslation = (text) => {
-      setLastTranslation(text);
-      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+      // Map 'sign.x' to 'signs.x' for i18n
+      const translationKey = text.startsWith('sign.') ? text.replace('sign.', 'signs.') : text;
+      // Get translation, fallback to original text if not found
+      const translatedText = t(translationKey, { defaultValue: text });
+
+      setLastTranslation(translatedText);
+      setSubtitleHistory(prev => {
+        if (prev.length > 0 && prev[0] === translatedText) return prev;
+        return [translatedText, ...prev].slice(0, 5);
+      });
+
+      // Avoid speaking the exact same word twice consecutively
+      if (lastSpokenRef.current === translatedText) {
+        return;
+      }
+      lastSpokenRef.current = translatedText;
 
       // Web Speech API instantánea con reactivación de motor
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel(); // Limpiar cola anterior
           window.speechSynthesis.resume(); // Forzar estado activo
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'es-MX';
+          const utterance = new SpeechSynthesisUtterance(translatedText);
+          utterance.lang = i18n.language === 'en' ? 'en-US' : 'es-MX';
           utterance.rate = 1.0;
           utterance.volume = 1.0;
           window.speechSynthesis.speak(utterance);

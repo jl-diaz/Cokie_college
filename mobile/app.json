@@ -73,7 +73,10 @@
             "enableProguardInReleaseBuilds": true
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "scheme": "cokie-college",
     "extra": {

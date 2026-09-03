@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenNative() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
@@ -25,6 +25,7 @@ export default function InterpreterScreenNative() {
   
   const cameraRef = useRef(null);
   const isCapturingRef = useRef(false);
+  const lastSpokenRef = useRef('');
 
   useEffect(() => {
     (async () => {
@@ -50,14 +51,28 @@ export default function InterpreterScreenNative() {
 
     // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
     const handleTranslation = async (text) => {
-      setLastTranslation(text);
-      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+      // Map 'sign.x' to 'signs.x' for i18n
+      const translationKey = text.startsWith('sign.') ? text.replace('sign.', 'signs.') : text;
+      // Get translation, fallback to original text if not found
+      const translatedText = t(translationKey, { defaultValue: text });
       
+      setLastTranslation(translatedText);
+      setSubtitleHistory(prev => {
+        if (prev.length > 0 && prev[0] === translatedText) return prev;
+        return [translatedText, ...prev].slice(0, 5);
+      });
+      
+      // Avoid speaking the exact same word twice consecutively
+      if (lastSpokenRef.current === translatedText) {
+        return;
+      }
+      lastSpokenRef.current = translatedText;
+
       // Detener cualquier habla en curso y emitir la nueva seña
       try {
         await Speech.stop();
-        Speech.speak(text, {
-          language: 'es-MX',
+        Speech.speak(translatedText, {
+          language: i18n.language === 'en' ? 'en-US' : 'es-MX',
           pitch: 1.0,
           rate: 1.0,
         });
