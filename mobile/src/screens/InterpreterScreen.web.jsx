@@ -206,7 +206,7 @@ export default function InterpreterScreenWeb() {
            const width = canvasRef.current ? canvasRef.current.width : 640;
            const height = canvasRef.current ? canvasRef.current.height : 480;
            const landmarksArray = results.rightHandLandmarks.map(lm => [lm.x * width, lm.y * height, lm.z * width]);
-           const estimated = gestureEstimator.estimate(landmarksArray, 6.0); // Bajar confianza a 6.0
+           const estimated = gestureEstimator.estimate(landmarksArray, 5.0); // Bajar confianza a 5.0
            evaluateGestures(results.rightHandLandmarks, estimated);
         }
         
@@ -215,7 +215,7 @@ export default function InterpreterScreenWeb() {
            const width = canvasRef.current ? canvasRef.current.width : 640;
            const height = canvasRef.current ? canvasRef.current.height : 480;
            const landmarksArray = results.leftHandLandmarks.map(lm => [lm.x * width, lm.y * height, lm.z * width]);
-           const estimated = gestureEstimator.estimate(landmarksArray, 6.0);
+           const estimated = gestureEstimator.estimate(landmarksArray, 5.0);
            evaluateGestures(results.leftHandLandmarks, estimated);
         }
 
@@ -277,12 +277,12 @@ export default function InterpreterScreenWeb() {
         } else {
             noDetectionCount.current = 0;
             recentPredictions.current.push(detectedKey);
-            // Mantener solo las últimas 6 predicciones
-            if (recentPredictions.current.length > 6) {
+            // Mantener solo las últimas 4 predicciones
+            if (recentPredictions.current.length > 4) {
                 recentPredictions.current.shift();
             }
 
-            if (recentPredictions.current.length >= 4) {
+            if (recentPredictions.current.length >= 2) {
                 const counts = {};
                 let maxCount = 0;
                 let mostFrequent = null;
@@ -294,7 +294,7 @@ export default function InterpreterScreenWeb() {
                     }
                 }
                 
-                if (maxCount >= 4 && mostFrequent !== lastSpoken.current) {
+                if (maxCount >= 2 && mostFrequent !== lastSpoken.current) {
                     lastSpoken.current = mostFrequent;
                     
                     // Traducir y hablar
@@ -442,7 +442,7 @@ export default function InterpreterScreenWeb() {
             </Text>
           ) : (
             <Text style={styles.subtitlePlaceholder}>
-              Analizando gestos corporales...
+              {t('interpreter.analyzing', 'Analizando gestos corporales...')}
             </Text>
           )}
 
@@ -605,4 +605,5 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: '700' 
   }
 });
+
 

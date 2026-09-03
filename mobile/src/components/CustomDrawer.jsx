@@ -135,6 +135,8 @@ export default function CustomDrawer({ visible, onClose }) {
       visible={visible}
       onRequestClose={onClose}
       animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>

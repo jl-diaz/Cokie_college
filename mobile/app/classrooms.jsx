@@ -233,8 +233,8 @@ export default function ClassroomsScreen() {
                 <Users color="#FFF" size={20} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.actionText}>Lista de Estudiantes y Asistencia</Text>
-                <Text style={styles.actionSubtext}>Toma de asistencia en vivo y reportes conductuales</Text>
+                <Text style={styles.actionText}>{t('classrooms.studentList', 'Lista de Estudiantes y Asistencia')}</Text>
+                <Text style={styles.actionSubtext}>{t('classrooms.attendanceDesc', 'Toma de asistencia en vivo y reportes conductuales')}</Text>
               </View>
               <ChevronRight color={Colors.text.muted} size={18} />
             </TouchableOpacity>
@@ -244,8 +244,8 @@ export default function ClassroomsScreen() {
                 <Calendar color="#FFF" size={20} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.actionText}>Ver Horario de Clases</Text>
-                <Text style={styles.actionSubtext}>Materias, asignaciones y horas lectivas del grupo</Text>
+                <Text style={styles.actionText}>{t('classrooms.viewSchedule', 'Ver Horario de Clases')}</Text>
+                <Text style={styles.actionSubtext}>{t('classrooms.scheduleDesc', 'Materias, asignaciones y horas lectivas del grupo')}</Text>
               </View>
               <ChevronRight color={Colors.text.muted} size={18} />
             </TouchableOpacity>
@@ -258,14 +258,14 @@ export default function ClassroomsScreen() {
                       <BookOpen color="#FFF" size={20} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.actionText}>Descargar Boletines (ZIP)</Text>
+                      <Text style={styles.actionText}>{t('classrooms.downloadZip', 'Descargar Boletines (ZIP)')}</Text>
                       <Text style={styles.actionSubtext}>Genera un archivo ZIP con todos los PDFs del salón</Text>
                     </View>
                     <ChevronRight color={Colors.text.muted} size={18} />
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.actionItem, { flexDirection: 'column', alignItems: 'stretch' }]}>
-                    <Text style={[styles.actionText, { marginBottom: 10, textAlign: 'center' }]}>Selecciona el Periodo a Descargar</Text>
+                    <Text style={[styles.actionText, { marginBottom: 10, textAlign: 'center' }]}>{t('classrooms.selectPeriod', 'Selecciona el Periodo a Descargar')}</Text>
                     {downloadingZip ? (
                       <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 10 }} />
                     ) : (
@@ -273,18 +273,8 @@ export default function ClassroomsScreen() {
                         {[1, 2, 3, 4].map(p => (
                           <TouchableOpacity 
                             key={p} 
-                            style={{ padding: 10, backgroundColor: Colors.primaryLight, borderRadius: 8, minWidth: 40, alignItems: 'center', opacity: p > 2 ? 0.6 : 1 }}
-                            onPress={() => {
-                              if (p > 2) {
-                                showAlert({
-                                  type: 'warning',
-                                  title: 'Periodo Incompleto',
-                                  message: 'El boletín de este periodo aún no está disponible para descargar.'
-                                });
-                                return;
-                              }
-                              handleDownloadZip(p);
-                            }}
+                            style={{ padding: 10, backgroundColor: Colors.primaryLight, borderRadius: 8, minWidth: 40, alignItems: 'center' }}
+                            onPress={() => handleDownloadZip(p)}
                           >
                             <Text style={{ color: '#FFF', fontWeight: 'bold' }}>P{p}</Text>
                           </TouchableOpacity>
@@ -414,3 +404,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   actionText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: Colors.primary },
   actionSubtext: { fontSize: 11, color: Colors.text.muted, marginTop: 2 }
 });
+

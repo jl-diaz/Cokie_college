@@ -96,11 +96,6 @@ export default function ScheduleScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        {(teacher_id || student_id || (grade && section)) && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ArrowLeft color="#FFF" size={24} />
-          </TouchableOpacity>
-        )}
         <Text style={styles.headerTitle}>
           {grade && section
             ? `Horario • ${grade}º Grado '${section}'`

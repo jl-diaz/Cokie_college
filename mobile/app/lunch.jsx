@@ -309,7 +309,7 @@ export default function LunchScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Platillo Fuerte:</Text>
+              <Text style={styles.detailLabel}>{t('lunch.platillo', 'Platillo Fuerte:')}</Text>
               <Text style={styles.detailVal}>{existingOrder.fuerte?.name}</Text>
             </View>
 
@@ -978,3 +978,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontSize: 14,
   }
 });
+

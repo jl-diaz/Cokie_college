@@ -31,7 +31,8 @@
     "events": "Institutional Events",
     "eventsSubtitle": "School calendar and activities",
     "announcements": "Institutional Announcements",
-    "announcementsSubtitle": "Official announcements for the community"
+    "announcementsSubtitle": "Official announcements for the community",
+    "interpreter": "ISL Interpreter"
   },
   "home": {
     "welcome": "Hello, {{name}}!",
@@ -138,7 +139,12 @@
     "coordinatorResponse": "Coordinator Response",
     "pleaseCompleteFields": "Please complete all required fields",
     "requestSent": "Request submitted successfully",
-    "couldNotSend": "Could not submit request"
+    "couldNotSend": "Could not submit request",
+    "reject": "Reject",
+    "approve": "Approve",
+    "detailsPlaceholder": "Enter details here...",
+    "confirmApprove": "Confirm Approval",
+    "confirmReject": "Confirm Rejection"
   },
   "assign": {
     "teacher": "Teacher",
@@ -196,7 +202,14 @@
     "selectAcomp2Alert": "You must select Side Dish 2",
     "loadingError": "Could not load lunch data",
     "menuError": "Could not load published menu for this cafeteria",
-    "orderError": "Could not process your order"
+    "orderError": "Could not process your order",
+    "platillo": "Main Dish:",
+    "acomp1": "Side Dish 1:",
+    "acomp2": "Side Dish 2:",
+    "bebida": "Beverage / Drink:",
+    "cancelOrder": "Cancel Order",
+    "dailyMenuOf": "Daily Menu - ",
+    "confirmBtn": "Confirm Lunch"
   },
   "events": {
     "title": "Institutional Events",
@@ -221,7 +234,8 @@
     "updateSuccess": "Event updated successfully.",
     "deleteTitle": "Delete Event",
     "deleteConfirm": "Are you sure you want to delete event \"{{title}}\"?",
-    "deleteSuccess": "Event deleted successfully."
+    "deleteSuccess": "Event deleted successfully.",
+    "emptyDesc": "Published events will appear here."
   },
   "announcements": {
     "title": "Institutional Announcements",
@@ -288,7 +302,12 @@
     "viewStudents": "Student List & Attendance",
     "viewStudentsDesc": "Live attendance marking and behavior reports",
     "viewSchedule": "View Class Schedule",
-    "viewScheduleDesc": "Subjects, assignments, and group class hours"
+    "viewScheduleDesc": "Subjects, assignments, and group class hours",
+    "studentList": "Student List & Attendance",
+    "attendanceDesc": "Live attendance tracking and behavioral reports",
+    "scheduleDesc": "Subjects, assignments, and class hours",
+    "downloadZip": "Download Report Cards (ZIP)",
+    "selectPeriod": "Select Period to Download"
   },
   "teacherGrades": {
     "title": "Grade Entry",
@@ -313,7 +332,13 @@
     "ticketReasonPlaceholder": "Explain why you need extra days to submit grades...",
     "ticketDaysLabel": "Extra days requested (From approval date):",
     "sendTicketBtn": "Send Ticket",
-    "ticketSent": "Your request for extra days has been sent to the coordinator."
+    "ticketSent": "Your request for extra days has been sent to the coordinator.",
+    "approveTicketTitle": "Approve Ticket",
+    "rejectTicketTitle": "Reject Ticket",
+    "optionalObsLabel": "Optional Observation",
+    "rejectReasonLabel": "Rejection Reason",
+    "approveMsgPlaceholder": "Optional comment for teacher...",
+    "rejectMsgPlaceholder": "Specify reason for rejection..."
   },
   "users": {
     "searchPlaceholder": "Search by name or code...",
@@ -343,7 +368,8 @@
     "userDeleted": "User deleted successfully.",
     "userUpdated": "User updated successfully.",
     "userCreated": "User created successfully.",
-    "invalidEmail": "Please enter a valid email address."
+    "invalidEmail": "Please enter a valid email address.",
+    "subtitle": "Institutional User Management"
   },
   "cafetin": {
     "menuTab": "1. Menu",
@@ -378,7 +404,11 @@
     "amountToChargeCaja": "AMOUNT TO CHARGE AT REGISTER:",
     "scanQrTitle": "Scan QR Code",
     "pointCamera": "Point camera at the order's QR code",
-    "emptyCatText": "No items added to this category."
+    "emptyCatText": "No items added to this category.",
+    "addFoodTitle": "Add Food to Catalog",
+    "foodName": "Food Name *",
+    "category": "Category *",
+    "descOptional": "Description (Optional)"
   },
   "coordinatorJustifications": {
     "title": "Absence Justifications",
@@ -442,14 +472,17 @@
     "thursday": "Thu",
     "friday": "Fri",
     "saturday": "Sat",
-    "sunday": "Sun"
+    "sunday": "Sun",
+    "daysCount": "requested day(s)"
   },
   "interpreter": {
     "title": "Sign Language Interpreter (ISL)",
     "noPermission": "Camera permission missing or webcam not found",
     "instructions": "Exhibition Mode: Position hands and face in front of camera",
     "active": "Translating and speaking live...",
-    "paused": "Interpreter Paused"
+    "paused": "Interpreter Paused",
+    "realTime": "REAL-TIME LOCAL AI TRANSLATION (BETA)",
+    "analyzing": "Analyzing body gestures..."
   },
   "signs": {
     "0": "0 (Zero)",
@@ -504,5 +537,21 @@
     "please": "Please",
     "sorry": "Sorry",
     "yes": "Yes"
+  },
+  "conduct": {
+    "loadError": "Could not load conduct codes",
+    "deleteConfirm": "Are you sure you want to delete this conduct code?",
+    "deleteError": "Could not delete conduct code"
+  },
+  "justifications": {
+    "coordinatorSubtitle": "Student justification request management",
+    "dateLabel": "Justification Date *",
+    "selectDate": "Select Date",
+    "reasonPlaceholder": "Explain the reason for absence...",
+    "evidenceLabel": "Attach Evidence (Optional)",
+    "attachFile": "Upload document or image"
+  },
+  "tickets": {
+    "noRequests": "No registered requests."
   }
 }

@@ -236,7 +236,7 @@ export default function InterpreterScreenNative() {
             
             // Fallback a Fingerpose si LSTM no predijo
             const evaluateGestures = (landmarks, rawLandmarks) => {
-                const estimated = gestureEstimator.current.estimate(landmarks, 6.0); // Bajar confianza a 6.0
+                const estimated = gestureEstimator.current.estimate(landmarks, 5.0); // Bajar confianza a 5.0
                 if (estimated.gestures.length > 0) {
                    let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
                    
@@ -276,11 +276,11 @@ export default function InterpreterScreenNative() {
             } else {
                noDetectionCount.current = 0;
                recentPredictions.current.push(detectedKey);
-               if (recentPredictions.current.length > 6) {
+               if (recentPredictions.current.length > 4) {
                    recentPredictions.current.shift();
                }
                
-               if (recentPredictions.current.length >= 4) {
+               if (recentPredictions.current.length >= 2) {
                    const counts = {};
                    let maxCount = 0;
                    let mostFrequent = null;
@@ -292,7 +292,7 @@ export default function InterpreterScreenNative() {
                        }
                    }
                    
-                   if (maxCount >= 4 && mostFrequent !== lastSpoken.current) {
+                   if (maxCount >= 2 && mostFrequent !== lastSpoken.current) {
                        lastSpoken.current = mostFrequent;
                        handleTranslation(mostFrequent);
                        recentPredictions.current = [mostFrequent, mostFrequent];
@@ -377,7 +377,7 @@ export default function InterpreterScreenNative() {
             </Text>
           ) : (
             <Text style={styles.subtitlePlaceholder}>
-              Analizando gestos corporales...
+              {t('interpreter.analyzing', 'Analizando gestos corporales...')}
             </Text>
           )}
 
@@ -540,3 +540,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: '700' 
   }
 });
+

@@ -231,7 +231,6 @@ export default function CoordinatorTicketsScreen() {
       <PageHeader 
         title={t('menu.grade_tickets', 'Tickets de Extensión')} 
         subtitle={t('home.gradeTicketsDesc', 'Solicitudes de tiempo extra para ingreso de notas')} 
-        showBack={true}
       />
 
       <View style={styles.filterBar}>
@@ -266,7 +265,7 @@ export default function CoordinatorTicketsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <AlertCircle size={40} color={Colors.text.muted} />
-              <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes registradas.')}</Text>
+              <Text style={styles.emptyText}>{t('tickets.noRequests', 'No hay solicitudes registradas.')}</Text>
             </View>
           }
           onEndReached={handleLoadMore}
@@ -589,4 +588,5 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.sm,
   }
 });
+
 

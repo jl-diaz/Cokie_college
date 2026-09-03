@@ -123,6 +123,8 @@ export const AlertProvider = ({ children }) => {
         transparent
         animationType="fade"
         onRequestClose={hideAlert}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <TouchableWithoutFeedback onPress={hideAlert}>
           <View style={styles.overlay}>

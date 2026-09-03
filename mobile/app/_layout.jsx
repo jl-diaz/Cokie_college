@@ -90,6 +90,7 @@ function LayoutInner() {
               paddingRight: 10,
               justifyContent: 'center',
               alignItems: 'flex-end',
+              flexGrow: 0,
             },
             headerLeftContainerStyle: {
               paddingLeft: 10,
@@ -125,7 +126,7 @@ function LayoutInner() {
                  <View style={{
                    flexDirection: 'row',
                    alignItems: 'center',
-                   alignSelf: 'center',
+                   alignSelf: 'flex-end', maxWidth: 150,
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
                    paddingHorizontal: 4,

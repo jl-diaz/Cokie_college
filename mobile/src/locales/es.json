@@ -31,7 +31,8 @@
     "events": "Eventos Institucionales",
     "eventsSubtitle": "Actividades y calendario escolar",
     "announcements": "Avisos Institucionales",
-    "announcementsSubtitle": "Comunicados oficiales para la comunidad"
+    "announcementsSubtitle": "Comunicados oficiales para la comunidad",
+    "interpreter": "Intérprete ISL"
   },
   "home": {
     "welcome": "¡Hola, {{name}}!",
@@ -138,7 +139,12 @@
     "coordinatorResponse": "Respuesta de Coordinación",
     "pleaseCompleteFields": "Por favor completa los campos requeridos",
     "requestSent": "Solicitud enviada correctamente",
-    "couldNotSend": "No se pudo enviar la solicitud"
+    "couldNotSend": "No se pudo enviar la solicitud",
+    "reject": "Rechazar",
+    "approve": "Aprobar",
+    "detailsPlaceholder": "Ingresa detalles aquí...",
+    "confirmApprove": "Confirmar Aprobación",
+    "confirmReject": "Confirmar Rechazo"
   },
   "assign": {
     "teacher": "Docente",
@@ -196,7 +202,14 @@
     "selectAcomp2Alert": "Debes seleccionar el Acompañamiento 2",
     "loadingError": "No se pudieron cargar los datos de almuerzos",
     "menuError": "No se pudo cargar el menú publicado para este cafetín",
-    "orderError": "No se pudo procesar tu pedido"
+    "orderError": "No se pudo procesar tu pedido",
+    "platillo": "Platillo Fuerte:",
+    "acomp1": "Acompañamiento 1:",
+    "acomp2": "Acompañamiento 2:",
+    "bebida": "Refresco / Bebida:",
+    "cancelOrder": "Cancelar Pedido",
+    "dailyMenuOf": "Menú del Día - ",
+    "confirmBtn": "Confirmar Almuerzo"
   },
   "events": {
     "title": "Eventos Institucionales",
@@ -221,7 +234,8 @@
     "updateSuccess": "Evento actualizado correctamente.",
     "deleteTitle": "Eliminar Evento",
     "deleteConfirm": "¿Estás seguro de que deseas eliminar el evento \"{{title}}\"?",
-    "deleteSuccess": "Evento eliminado correctamente."
+    "deleteSuccess": "Evento eliminado correctamente.",
+    "emptyDesc": "Los eventos que se publiquen aparecerán aquí."
   },
   "announcements": {
     "title": "Avisos Institucionales",
@@ -288,7 +302,12 @@
     "viewStudents": "Lista de Estudiantes y Asistencia",
     "viewStudentsDesc": "Toma de asistencia en vivo y reportes conductuales",
     "viewSchedule": "Ver Horario de Clases",
-    "viewScheduleDesc": "Materias, asignaciones y horas lectivas del grupo"
+    "viewScheduleDesc": "Materias, asignaciones y horas lectivas del grupo",
+    "studentList": "Lista de Estudiantes y Asistencia",
+    "attendanceDesc": "Toma de asistencia en vivo y reportes conductuales",
+    "scheduleDesc": "Materias, asignaciones y horas lectivas del grupo",
+    "downloadZip": "Descargar Boletines (ZIP)",
+    "selectPeriod": "Selecciona el Periodo a Descargar"
   },
   "teacherGrades": {
     "title": "Registro de Notas",
@@ -313,7 +332,13 @@
     "ticketReasonPlaceholder": "Explica el motivo por el cual requieres días adicionales para ingresar las notas...",
     "ticketDaysLabel": "Días extra requeridos (A partir de aprobación):",
     "sendTicketBtn": "Enviar Ticket",
-    "ticketSent": "Tu solicitud de días extra ha sido enviada al coordinador."
+    "ticketSent": "Tu solicitud de días extra ha sido enviada al coordinador.",
+    "approveTicketTitle": "Aprobar Ticket",
+    "rejectTicketTitle": "Rechazar Ticket",
+    "optionalObsLabel": "Observación Opcional",
+    "rejectReasonLabel": "Motivo de Rechazo",
+    "approveMsgPlaceholder": "Comentario opcional para el docente...",
+    "rejectMsgPlaceholder": "Especifica el motivo de rechazo..."
   },
   "users": {
     "searchPlaceholder": "Buscar por nombre o código...",
@@ -343,7 +368,8 @@
     "userDeleted": "Usuario eliminado correctamente.",
     "userUpdated": "Usuario actualizado correctamente.",
     "userCreated": "Usuario creado exitosamente.",
-    "invalidEmail": "Por favor ingresa un correo electrónico válido."
+    "invalidEmail": "Por favor ingresa un correo electrónico válido.",
+    "subtitle": "Gestión de Usuarios Institucionales"
   },
   "cafetin": {
     "menuTab": "1. Menú",
@@ -378,7 +404,11 @@
     "amountToChargeCaja": "MONTO A COBRAR EN CAJA:",
     "scanQrTitle": "Escanea el Código QR",
     "pointCamera": "Apunta la cámara al QR del pedido",
-    "emptyCatText": "No hay alimentos agregados a esta categoría."
+    "emptyCatText": "No hay alimentos agregados a esta categoría.",
+    "addFoodTitle": "Agregar Alimento al Catálogo",
+    "foodName": "Nombre del Alimento *",
+    "category": "Categoría *",
+    "descOptional": "Descripción (Opcional)"
   },
   "coordinatorJustifications": {
     "title": "Justificaciones de Ausencia",
@@ -442,14 +472,17 @@
     "thursday": "Jue",
     "friday": "Vie",
     "saturday": "Sáb",
-    "sunday": "Dom"
+    "sunday": "Dom",
+    "daysCount": "día(s) solicitados"
   },
   "interpreter": {
     "title": "Intérprete de Lenguaje de Señas (ISL)",
     "noPermission": "No hay permisos de cámara o no se encontró webcam",
     "instructions": "Modo Exposición: Coloca las manos y rostro frente a la cámara",
     "active": "Traduciendo y hablando en vivo...",
-    "paused": "Intérprete Pausado"
+    "paused": "Intérprete Pausado",
+    "realTime": "TRADUCCIÓN EN TIEMPO REAL LOCAL IA (BETA)",
+    "analyzing": "Analizando gestos corporales..."
   },
   "signs": {
     "0": "0 (Cero)",
@@ -504,5 +537,21 @@
     "please": "Por favor",
     "sorry": "Lo siento",
     "yes": "Sí"
+  },
+  "conduct": {
+    "loadError": "No se pudieron cargar los códigos de conducta",
+    "deleteConfirm": "¿Estás seguro de eliminar este código de conducta?",
+    "deleteError": "No se pudo eliminar el código de conducta"
+  },
+  "justifications": {
+    "coordinatorSubtitle": "Gestión de solicitudes de justificación estudiantil",
+    "dateLabel": "Fecha de Justificación *",
+    "selectDate": "Seleccionar Fecha",
+    "reasonPlaceholder": "Explica el motivo de la falta...",
+    "evidenceLabel": "Evidencia Adjunta (Opcional)",
+    "attachFile": "Subir documento o comprobante"
+  },
+  "tickets": {
+    "noRequests": "No hay solicitudes registradas."
   }
 }

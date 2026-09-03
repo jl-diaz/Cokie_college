@@ -52,6 +52,7 @@ export default function BottomModal({ visible, onClose, children }) {
       visible={showModal}
       onRequestClose={onClose}
       statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>

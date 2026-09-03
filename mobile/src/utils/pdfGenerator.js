@@ -209,12 +209,13 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
     const justifiedAbs = attendanceList.filter(a => a.status === 'justified').length;
     const unjustifiedAbs = attendanceList.filter(a => a.status === 'absent').length;
     
-    let leves = 0, graves = 0, muyGraves = 0;
+    let positivos = 0, leves = 0, graves = 0, muyGraves = 0;
     conductList.forEach(c => {
-      const type = c.conduct_codes?.type;
-      if (type === 'Leve') leves++;
-      else if (type === 'Grave') graves++;
-      else if (type === 'Muy Grave') muyGraves++;
+      const cat = (c.conduct_codes?.category || c.conduct_codes?.type || '').toLowerCase();
+      if (cat.includes('muy grave') || cat.includes('muy_grave')) muyGraves++;
+      else if (cat.includes('grave')) graves++;
+      else if (cat.includes('leve')) leves++;
+      else if (cat.includes('positivo') || cat.includes('merito') || cat.includes('mérito')) positivos++;
     });
 
     // Subheader for Conduct
@@ -229,16 +230,17 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
 
     autoTable(doc, {
       startY: currentY,
-      head: [['Ausencias Justificadas', 'Ausencias Injustificadas', 'Faltas Leves', 'Faltas Graves', 'Faltas Muy Graves']],
+      head: [['Ausencias Justificadas', 'Ausencias Injustificadas', 'Códigos Positivos', 'Faltas Leves', 'Faltas Graves', 'Faltas Muy Graves']],
       body: [[
         justifiedAbs.toString(),
         unjustifiedAbs.toString(),
+        positivos.toString(),
         leves.toString(),
         graves.toString(),
         muyGraves.toString()
       ]],
       theme: 'grid',
-      headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
+      headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200], fontSize: 8.5 },
       bodyStyles: { halign: 'center', font: 'Poppins', fontSize: 10, textColor: [50, 50, 50] },
       styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 3 }
     });
@@ -246,12 +248,29 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
     currentY = doc.lastAutoTable.finalY + 5;
 
     if (conductList.length > 0) {
-      const conductBody = conductList.map(c => [
-        new Date(c.date).toLocaleDateString(),
-        c.conduct_codes?.type || 'Leve',
-        c.conduct_codes?.description || 'Sin descripción',
-        c.observation || 'N/A'
-      ]);
+      const conductBody = conductList.map(c => {
+        const rawDate = c.created_at || c.date;
+        let formattedDate = 'N/A';
+        if (rawDate) {
+          try {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) {
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year = d.getFullYear();
+              formattedDate = `${day}/${month}/${year}`;
+            }
+          } catch (e) {
+            formattedDate = 'N/A';
+          }
+        }
+        return [
+          formattedDate,
+          c.conduct_codes?.category || c.conduct_codes?.type || 'Leve',
+          c.conduct_codes?.description || c.conduct_codes?.name || 'Sin descripción',
+          c.observation || 'N/A'
+        ];
+      });
 
       autoTable(doc, {
         startY: currentY,

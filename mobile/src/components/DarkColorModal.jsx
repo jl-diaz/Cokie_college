@@ -25,6 +25,8 @@ export default function DarkColorModal() {
       animationType="fade"
       visible={isColorModalOpen}
       onRequestClose={closeColorModal}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlay}>
         <View style={[styles.modalCard, { backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>

@@ -789,7 +789,7 @@ export default function CafetinScreen() {
         </BottomModal>
 
       {/* --- MODAL CÁMARA QR --- */}
-      <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)}>
+      <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)} statusBarTranslucent navigationBarTranslucent>
         <View style={{ flex: 1, backgroundColor: '#000' }}>
           <CameraView
             style={{ flex: 1 }}

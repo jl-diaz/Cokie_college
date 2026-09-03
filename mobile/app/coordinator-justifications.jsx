@@ -494,7 +494,7 @@ export default function CoordinatorJustificationsScreen() {
         </BottomModal>
 
       {/* Evidence Viewer Modal */}
-      <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent>
+      <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '85%', width: '90%' }]}>
             <View style={styles.modalHeader}>

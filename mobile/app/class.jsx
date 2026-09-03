@@ -157,10 +157,7 @@ export default function ClassScreen() {
         }
       }
 
-      // Si hay salones disponibles y ninguno está seleccionado, seleccionar el primero
-      if (uniqueClasses.length > 0) {
-        await handleSelectClass(uniqueClasses[0]);
-      }
+      
     } catch (error) {
       console.error('Error fetching schedules or codes:', error);
       showAlert({
@@ -198,7 +195,7 @@ export default function ClassScreen() {
   };
 
   const isSelectedClassActive = useMemo(() => {
-    if (profile?.role === 'coordinator') return true;
+    if (profile?.role === 'coordinator') return false;
     if (!selectedClass || !activeScheduleInfo) return false;
     return (
       selectedClass.subject_id === activeScheduleInfo.subject_id &&
@@ -346,11 +343,28 @@ export default function ClassScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen 
+        options={{
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                if (selectedClass && profile?.role !== 'coordinator') {
+                  setSelectedClass(null);
+                } else {
+                  if (router.canGoBack()) router.back();
+                  else router.replace('/home');
+                }
+              }}
+              style={{ padding: 8, marginLeft: 4 }}
+            >
+              <ArrowLeft size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+            </TouchableOpacity>
+          )
+        }}
+      />
       <PageHeader 
         title={selectedClass ? `${selectedClass.grade}º '${selectedClass.section}' — ${selectedClass.subjects?.name || 'Clase'}` : 'Clase Activa'}
         subtitle={selectedClass ? 'Control de asistencia y conducta del aula' : 'Selección de aula y toma de asistencia en tiempo real'}
-        showBack={selectedClass !== null}
-        onBackPress={() => setSelectedClass(null)}
       />
 
       {!selectedClass ? (
@@ -974,3 +988,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   submitBtnText: { color: '#FFF', fontSize: Typography.size.md, fontWeight: Typography.weight.bold }
 });
+

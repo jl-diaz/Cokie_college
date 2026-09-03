@@ -605,3 +605,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: 'bold',
   }
 });
+
