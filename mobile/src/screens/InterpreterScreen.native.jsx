@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CameraView, Camera } from 'expo-camera';
+import { CameraView, Camera, useCameraPermissions } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
@@ -16,7 +16,8 @@ export default function InterpreterScreenNative() {
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const hasPermission = permission?.granted ?? null;
   const [isActive, setIsActive] = useState(true);
   const [facingMode, setFacingMode] = useState('front');
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -29,8 +30,9 @@ export default function InterpreterScreenNative() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      if (!permission) {
+        await requestPermission();
+      }
       
       try {
         await Audio.setAudioModeAsync({
