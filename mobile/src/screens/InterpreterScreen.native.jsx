@@ -1,194 +1,30 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { WebView } from 'react-native-webview';
-import { Camera } from 'expo-camera';
+import { CameraView, Camera } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from 'react-i18next';
 import PageHeader from '../components/PageHeader';
-import * as fp from 'fingerpose';
-import { allGestures } from '../services/GestureDictionary';
-
-const HTML_CONTENT = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
-  <style>
-    body { margin: 0; background: #0B1956; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-    /* We make video visible, and canvas will just draw landmarks on top. */
-    video { opacity: 1; z-index: 1; transform: scaleX(-1); }
-    canvas { z-index: 2; pointer-events: none; }
-  </style>
-</head>
-<body>
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
-  <script>
-    let facingMode = 'user';
-    let isActive = true;
-    
-    // FASE 3: TFJS LSTM Model
-    let tfModel = null;
-    let sequenceBuffer = [];
-    
-    async function loadModel() {
-       try {
-          tfModel = await tf.loadLayersModel('https://cokie-college.vercel.app/models/model.json'); // Reemplazar con URL real
-       } catch(e) { console.log('No LSTM model found, using raw landmarks'); }
-    }
-    loadModel();
-
-    const videoElement = document.getElementById('video');
-    const canvasElement = document.getElementById('canvas');
-    const canvasCtx = canvasElement.getContext('2d');
-    
-    const holistic = new Holistic({locateFile: (file) => {
-      return \`https://cdn.jsdelivr.net/npm/@mediapipe/holistic/\${file}\`;
-    }});
-    
-    holistic.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: true,
-      refineFaceLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    
-    holistic.onResults((results) => {
-      if (videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-      }
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      
-      if (facingMode === 'user') {
-        videoElement.style.transform = 'scaleX(-1)';
-        canvasCtx.translate(canvasElement.width, 0);
-        canvasCtx.scale(-1, 1);
-      } else {
-        videoElement.style.transform = 'none';
-      }
-      
-      if (isActive) {
-          drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
-          drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
-          drawConnectors(canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS, {color: '#CC0000', lineWidth: 5});
-          drawLandmarks(canvasCtx, results.leftHandLandmarks, {color: '#00FF00', lineWidth: 2});
-          drawConnectors(canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS, {color: '#00CC00', lineWidth: 5});
-          drawLandmarks(canvasCtx, results.rightHandLandmarks, {color: '#FF0000', lineWidth: 2});
-      }
-      canvasCtx.restore();
-      
-      if (isActive && window.ReactNativeWebView) {
-         // LSTM Feature Extraction in WebView (Web Engine)
-         let pose = new Array(33*4).fill(0);
-         let lh = new Array(21*3).fill(0);
-         let rh = new Array(21*3).fill(0);
-         
-         if (results.poseLandmarks) pose = results.poseLandmarks.map(lm => [lm.x, lm.y, lm.z, lm.visibility]).flat();
-         if (results.leftHandLandmarks) lh = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]).flat();
-         if (results.rightHandLandmarks) rh = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]).flat();
-         
-         const features = [...pose, ...lh, ...rh];
-         sequenceBuffer.push(features);
-         if (sequenceBuffer.length > 30) sequenceBuffer.shift();
-
-         let detectedKeyByLSTM = null;
-         if (tfModel && sequenceBuffer.length === 30) {
-             const inputTensor = tf.tensor([sequenceBuffer]);
-             const prediction = tfModel.predict(inputTensor);
-             // detectedKeyByLSTM = mapping logic...
-         }
-
-         // Send back to React Native Bridge
-         const data = {};
-         const vw = videoElement.videoWidth || 640;
-         const vh = videoElement.videoHeight || 480;
-
-         if (results.rightHandLandmarks) {
-             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x * vw, lm.y * vh, lm.z * vw]);
-             data.rightHandRaw = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-         }
-         if (results.leftHandLandmarks) {
-             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x * vw, lm.y * vh, lm.z * vw]);
-             data.leftHandRaw = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
-         }
-         
-         if (data.rightHand || data.leftHand || detectedKeyByLSTM) {
-             window.ReactNativeWebView.postMessage(JSON.stringify({ 
-                type: 'landmarks', 
-                ...data, 
-                lstmKey: detectedKeyByLSTM 
-             }));
-         }
-      }
-    });
-    
-    let camera = null;
-    
-    function startCamera() {
-       if (camera) camera.stop();
-       camera = new Camera(videoElement, {
-          onFrame: async () => {
-             if (videoElement.videoWidth > 0) {
-                 await holistic.send({image: videoElement});
-             }
-          },
-          width: 640,
-          height: 480,
-          facingMode: facingMode
-       });
-       camera.start();
-    }
-    
-    startCamera();
-    
-    window.addEventListener('message', (event) => {
-        try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'toggle_camera') {
-                facingMode = facingMode === 'user' ? 'environment' : 'user';
-                startCamera();
-            } else if (msg.type === 'set_active') {
-                isActive = msg.isActive;
-            }
-        } catch(e) {}
-    });
-  </script>
-</body>
-</html>
-`;
+import { useTranslation } from 'react-i18next';
+import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenNative() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
-  const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [hasPermission, setHasPermission] = useState(null);
   const [isActive, setIsActive] = useState(true);
+  const [facingMode, setFacingMode] = useState('front');
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [lastTranslation, setLastTranslation] = useState('');
   const [subtitleHistory, setSubtitleHistory] = useState([]);
   
-  const webViewRef = useRef(null);
-  const gestureEstimator = useRef(new fp.GestureEstimator(allGestures));
-  
-  // Variables FASE 3 Estabilización
-  const recentPredictions = useRef([]);
-  const lastSpoken = useRef('');
-  const noDetectionCount = useRef(0);
+  const cameraRef = useRef(null);
+  const isCapturingRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -206,120 +42,77 @@ export default function InterpreterScreenNative() {
         console.warn("No se pudo configurar el audio:", e);
       }
     })();
+
+    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+    WebSocketService.connect(serverUrl);
+    // Desactivar audio duplicado del servidor porque expo-speech gestiona la locución nativa
+    WebSocketService.disableBackendAudio = true;
+
+    // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
+    const handleTranslation = async (text) => {
+      setLastTranslation(text);
+      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+      
+      // Detener cualquier habla en curso y emitir la nueva seña
+      try {
+        await Speech.stop();
+        Speech.speak(text, {
+          language: 'es-MX',
+          pitch: 1.0,
+          rate: 1.0,
+        });
+      } catch (err) {
+        console.warn('Error en Speech nativo:', err);
+      }
+    };
+
+    WebSocketService.addListener(handleTranslation);
+
+    return () => {
+      WebSocketService.disableBackendAudio = false;
+      WebSocketService.removeListener(handleTranslation);
+      WebSocketService.disconnect();
+    };
   }, []);
 
-  const handleTranslation = (key) => {
-    const translatedText = t(`signs.${key.replace('sign.', '')}`, { defaultValue: key });
-    
-    setLastTranslation(translatedText);
-    setSubtitleHistory(prev => [translatedText, ...prev.slice(0, 4)]);
-    
-    try {
-      const currentLang = i18n.language || 'es';
-      const langCode = currentLang.startsWith('en') ? 'en-US' : 'es-MX';
-      
-      Speech.speak(translatedText, {
-        language: langCode,
-        pitch: 1.0,
-        rate: 1.0,
-      });
-    } catch (err) {
-      console.warn('Error en Speech nativo:', err);
-    }
-  };
+  useEffect(() => {
+    let intervalId;
 
-  const onMessage = (event) => {
-    if (!isActive) return;
-    
-    try {
-        const data = JSON.parse(event.nativeEvent.data);
-        if (data.type === 'landmarks') {
-            let detectedKey = data.lstmKey || null; // Priorizamos LSTM del WebView si existe
-            let highestConfidence = 0;
-            
-            // Fallback a Fingerpose si LSTM no predijo
-            const evaluateGestures = (landmarks, rawLandmarks) => {
-                const estimated = gestureEstimator.current.estimate(landmarks, 3.0); // Bajar confianza a 3.0
-                if (estimated.gestures.length > 0) {
-                   let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
-                   
-                   // Desempate 4 vs B
-                   if (best.name === 'sign.4' || best.name === 'sign.b') {
-                      const dist = Math.sqrt(Math.pow(rawLandmarks[8][0] - rawLandmarks[20][0], 2) + Math.pow(rawLandmarks[8][1] - rawLandmarks[20][1], 2));
-                      best.name = dist > 0.085 ? 'sign.4' : 'sign.b';
-                   }
-                   
-                   // Desempate U vs V / 2
-                   if (best.name === 'sign.v' || best.name === 'sign.2' || best.name === 'sign.u') {
-                      const dist = Math.sqrt(Math.pow(rawLandmarks[8][0] - rawLandmarks[12][0], 2) + Math.pow(rawLandmarks[8][1] - rawLandmarks[12][1], 2));
-                      if (dist > 0.045) {
-                          best.name = (best.name === 'sign.u') ? 'sign.2' : best.name;
-                      } else {
-                          best.name = 'sign.u';
-                      }
-                   }
-                   
-                   if (best.confidence > highestConfidence) {
-                       highestConfidence = best.confidence;
-                       detectedKey = best.name;
-                   }
-                }
-            };
-            
-            if (!detectedKey && data.rightHand) evaluateGestures(data.rightHand, data.rightHandRaw);
-            if (!detectedKey && data.leftHand) evaluateGestures(data.leftHand, data.leftHandRaw);
-            
-            if (!detectedKey) {
-               noDetectionCount.current += 1;
-               if (noDetectionCount.current > 15) {
-                   recentPredictions.current = [];
-                   lastSpoken.current = '';
-                   noDetectionCount.current = 0;
-               }
-            } else {
-               noDetectionCount.current = 0;
-               recentPredictions.current.push(detectedKey);
-               if (recentPredictions.current.length > 4) {
-                   recentPredictions.current.shift();
-               }
-               
-               if (recentPredictions.current.length >= 2) {
-                   const counts = {};
-                   let maxCount = 0;
-                   let mostFrequent = null;
-                   for (const k of recentPredictions.current) {
-                       counts[k] = (counts[k] || 0) + 1;
-                       if (counts[k] > maxCount) {
-                           maxCount = counts[k];
-                           mostFrequent = k;
-                       }
-                   }
-                   
-                   if (maxCount >= 2 && mostFrequent !== lastSpoken.current) {
-                       lastSpoken.current = mostFrequent;
-                       handleTranslation(mostFrequent);
-                       recentPredictions.current = [mostFrequent, mostFrequent];
-                   }
-               }
-            }
+    if (isActive && isCameraReady && hasPermission) {
+      intervalId = setInterval(async () => {
+        if (!cameraRef.current || isCapturingRef.current) return;
+        
+        isCapturingRef.current = true;
+        try {
+          // Captura rápida de fotograma usando takePictureAsync sin sonido de obturador
+          const photo = await cameraRef.current.takePictureAsync({
+            base64: true,
+            quality: 0.25,
+            skipProcessing: true,
+            shutterSound: false,
+            pictureSize: '640x480',
+          });
+
+          if (photo?.base64) {
+            WebSocketService.sendFrame(photo.base64);
+          }
+        } catch (e) {
+          if (!e.message?.includes('unmounted')) {
+            console.log('Error capturando frame nativo:', e);
+          }
+        } finally {
+          isCapturingRef.current = false;
         }
-    } catch (e) {
-        // Ignorar JSON malformado
+      }, 250); // 250ms (~4 FPS) ultra fluido
     }
-  };
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isActive, isCameraReady, hasPermission]);
 
   function toggleCameraType() {
-    if (webViewRef.current) {
-       webViewRef.current.postMessage(JSON.stringify({ type: 'toggle_camera' }));
-    }
-  }
-  
-  function toggleActive() {
-    const newState = !isActive;
-    setIsActive(newState);
-    if (webViewRef.current) {
-       webViewRef.current.postMessage(JSON.stringify({ type: 'set_active', isActive: newState }));
-    }
+    setFacingMode(current => (current === 'front' ? 'back' : 'front'));
   }
 
   if (hasPermission === null) {
@@ -340,18 +133,12 @@ export default function InterpreterScreenNative() {
       <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       <View style={styles.cameraContainer}>
-        <WebView
-          ref={webViewRef}
-          source={{ html: HTML_CONTENT, baseUrl: 'https://app.cokiehall.lat' }}
-          originWhitelist={['*']}
-          style={StyleSheet.absoluteFill}
-          allowsInlineMediaPlayback={true}
-          mediaPlaybackRequiresUserAction={false}
-          javaScriptEnabled={true}
-          mediaCapturePermissionGrantType="grant"
-          onMessage={onMessage}
-          bounces={false}
-          scrollEnabled={false}
+        <CameraView 
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill} 
+          facing={facingMode}
+          onCameraReady={() => setIsCameraReady(true)}
+          animateShutter={false}
         />
         
         {/* Botón flotante para girar cámara */}
@@ -371,7 +158,7 @@ export default function InterpreterScreenNative() {
         <View style={styles.subtitleOverlay}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={20} />
-            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL LOCAL IA (BETA)</Text>
+            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL</Text>
           </View>
 
           {lastTranslation ? (
@@ -380,7 +167,7 @@ export default function InterpreterScreenNative() {
             </Text>
           ) : (
             <Text style={styles.subtitlePlaceholder}>
-              {t('interpreter.analyzing', 'Analizando gestos corporales...')}
+              Interpretando señas de la exposición...
             </Text>
           )}
 
@@ -398,13 +185,13 @@ export default function InterpreterScreenNative() {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
-          onPress={toggleActive}
+          onPress={() => setIsActive(!isActive)}
         >
           {isActive ? <Mic color="#fff" size={30} /> : <MicOff color="#fff" size={30} />}
         </TouchableOpacity>
         <Text style={styles.footerText}>
           {isActive 
-            ? t('interpreter.active', 'Procesando IA localmente...') 
+            ? t('interpreter.active', 'Traduciendo y hablando en vivo...') 
             : t('interpreter.paused', 'Intérprete Pausado')}
         </Text>
       </View>
@@ -543,4 +330,3 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: '700' 
   }
 });
-

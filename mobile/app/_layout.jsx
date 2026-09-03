@@ -128,14 +128,14 @@ function LayoutInner() {
                if (route.name === 'index' || route.name === '(auth)/login') return null;
                return (
                  <View style={{
-                   width: 136,
                    height: 32,
                    flexDirection: 'row',
                    alignItems: 'center',
-                   justifyContent: 'space-between',
+                   justifyContent: 'flex-end',
+                   gap: 6,
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
-                   paddingHorizontal: 6,
+                   paddingHorizontal: 8,
                    borderWidth: 1,
                    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                  }}>
