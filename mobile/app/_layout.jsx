@@ -79,6 +79,10 @@ function LayoutInner() {
           screenOptions={({ route }) => ({
             headerStyle: {
               backgroundColor: colors.headerC,
+              ...(Platform.OS === 'web' && { 
+                  paddingTop: 'env(safe-area-inset-top)',
+                  height: 'calc(60px + env(safe-area-inset-top))' 
+              })
             },
             headerTintColor: colors.text.headerTxtC,
             headerTitleAlign: 'center',
@@ -124,13 +128,14 @@ function LayoutInner() {
                if (route.name === 'index' || route.name === '(auth)/login') return null;
                return (
                  <View style={{
+                   width: 136,
+                   height: 32,
                    flexDirection: 'row',
                    alignItems: 'center',
-                   alignSelf: 'flex-end', maxWidth: 150,
+                   justifyContent: 'space-between',
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
-                   paddingHorizontal: 4,
-                   paddingVertical: 2,
+                   paddingHorizontal: 6,
                    borderWidth: 1,
                    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                  }}>
@@ -199,14 +204,8 @@ function LayoutInner() {
           <Stack.Screen 
             name="home" 
             options={{ 
-              title: t('titles.home', 'Inicio'), 
-              headerLeft: () => null,
-              headerTitleAlign: 'center',
-              headerTitle: () => (
-                <Text style={{ color: colors.text.headerTxtC, fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
-                  {t('titles.home', 'Inicio')}
-                </Text>
-              )
+              title: (''),
+              headerLeft: () => null
             }} 
           />
           <Stack.Screen name="diary" options={{ title: ('') }} />

@@ -54,20 +54,18 @@ export default function BottomModal({ visible, onClose, children }) {
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <View style={styles.overlayContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.overlayContainer}
+        pointerEvents="box-none"
+      >
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
           <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
         </Animated.View>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.keyboardView}
-          pointerEvents="box-none"
-        >
-          <Animated.View style={[styles.panelWrapper, { transform: [{ translateY: slideAnim }] }]} pointerEvents="box-none">
-            {children}
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+        <Animated.View style={[styles.panelWrapper, { transform: [{ translateY: slideAnim }] }]} pointerEvents="box-none">
+          {children}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -81,11 +79,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  keyboardView: {
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
   panelWrapper: {
     width: '100%',
+    justifyContent: 'flex-end',
   }
 });

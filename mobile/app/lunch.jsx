@@ -294,7 +294,7 @@ export default function LunchScreen() {
             <View style={styles.noticePickup}>
               <Info size={16} color={Colors.primary} style={{ marginRight: 6 }} />
               <Text style={styles.noticePickupText}>
-                Se pagará al ir a recoger (${Number(existingOrder.total_price).toFixed(2)})
+                {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: Number(existingOrder.total_price).toFixed(2) })}
               </Text>
             </View>
           </View>
@@ -314,23 +314,23 @@ export default function LunchScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Acompañamiento 1:</Text>
+              <Text style={styles.detailLabel}>{t('lunch.acomp1', 'Acompañamiento 1:')}</Text>
               <Text style={styles.detailVal}>{existingOrder.acompanamiento1?.name}</Text>
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Acompañamiento 2:</Text>
+              <Text style={styles.detailLabel}>{t('lunch.acomp2', 'Acompañamiento 2:')}</Text>
               <Text style={styles.detailVal}>{existingOrder.acompanamiento2?.name}</Text>
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Tortillas:</Text>
+              <Text style={styles.detailLabel}>{t('lunch.tortillas', 'Tortillas:')}</Text>
               <Text style={styles.detailVal}>{existingOrder.tortillas_qty}</Text>
             </View>
 
             {existingOrder.refresco?.name ? (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Refresco (+ $0.25):</Text>
+                <Text style={styles.detailLabel}>{t('lunch.bebida', 'Refresco (+ $0.25):')}</Text>
                 <Text style={styles.detailVal}>{existingOrder.refresco?.name}</Text>
               </View>
             ) : null}
@@ -343,7 +343,7 @@ export default function LunchScreen() {
             </View>
           </View>
 
-          <Text style={styles.footerLimitNote}>Límite alcanzado: 1 pedido por día por usuario.</Text>
+          <Text style={styles.footerLimitNote}>{t('lunch.dailyLimitReached', 'Límite alcanzado: 1 pedido por día por usuario.')}</Text>
 
           {existingOrder.status !== 'entregado' && (
             <TouchableOpacity 
@@ -363,7 +363,7 @@ export default function LunchScreen() {
             >
               <Trash2 size={16} color="#dc2626" style={{ marginRight: 6 }} />
               <Text style={{ color: '#dc2626', fontWeight: 'bold', fontSize: 13 }}>
-                Cancelar mi pedido del día
+                {t('lunch.cancelTodayOrder', 'Cancelar mi pedido del día')}
               </Text>
             </TouchableOpacity>
           )}
@@ -403,7 +403,7 @@ export default function LunchScreen() {
           {/* PASO 2: ELEGIR COMIDA DE HOY */}
           {selectedCafetin && (
             <View style={styles.menuSection}>
-              <Text style={styles.stepTitle}>2. Arma tu Almuerzo</Text>
+              <Text style={styles.stepTitle}>{t('lunch.step2BuildLunch', '2. Arma tu Almuerzo')}</Text>
 
               {loadingMenu ? (
                 <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: 20 }} />
@@ -411,15 +411,15 @@ export default function LunchScreen() {
                 <View style={styles.emptyCafetinesCard}>
                   <Info size={36} color={Colors.primary} style={{ marginBottom: 8 }} />
                   <Text style={[styles.emptyCafetinesText, { textAlign: 'center', fontSize: 14, fontWeight: '700', color: Colors.text.primary }]}>
-                    Menú no publicado
+                    {t('lunch.menuNotPublishedTitle', 'Menú no publicado')}
                   </Text>
                   <Text style={[styles.emptyCafetinesText, { textAlign: 'center', marginTop: 6, lineHeight: 18 }]}>
-                    El cafetín ({selectedCafetin.full_name}) aún no ha publicado las opciones del menú para hoy. Los encargos estarán disponibles cuando el cafetín publique.
+                    {t('lunch.menuNotPublishedDesc', 'El cafetín ({{cafetin}}) aún no ha publicado las opciones del menú para hoy. Los encargos estarán disponibles cuando el cafetín publique.', { cafetin: selectedCafetin.full_name })}
                   </Text>
                 </View>
               ) : (
                 <>
-                  <Text style={styles.stepSub}>Combo Base por $2.50 (Fuerte + 2 Acompañamientos + Tortillas)</Text>
+                  <Text style={styles.stepSub}>{t('lunch.comboSub', 'Combo Base por $2.50 (Fuerte + 2 Acompañamientos + Tortillas)')}</Text>
 
                   {/* PLATILLO FUERTE (OBLIGATORIO) */}
                   <View style={styles.selectBlock}>
@@ -443,7 +443,7 @@ export default function LunchScreen() {
                   <View style={styles.selectBlock}>
                     <Text style={styles.blockTitle}>• {t('lunch.chooseAcomp1', 'Acompañamiento 1')} <Text style={styles.requiredMark}>*</Text></Text>
                     {dailyMenu.acompanamientos.length === 0 ? (
-                      <Text style={styles.noItemsText}>No hay acompañamientos disponibles hoy.</Text>
+                      <Text style={styles.noItemsText}>{t('lunch.noAcompsToday', 'No hay acompañamientos disponibles hoy.')}</Text>
                     ) : (
                       dailyMenu.acompanamientos.map(item => (
                         <TouchableOpacity
@@ -465,7 +465,7 @@ export default function LunchScreen() {
                   <View style={styles.selectBlock}>
                     <Text style={styles.blockTitle}>• {t('lunch.chooseAcomp2', 'Acompañamiento 2')} <Text style={styles.requiredMark}>*</Text></Text>
                     {dailyMenu.acompanamientos.length === 0 ? (
-                      <Text style={styles.noItemsText}>No hay acompañamientos disponibles hoy.</Text>
+                      <Text style={styles.noItemsText}>{t('lunch.noAcompsToday', 'No hay acompañamientos disponibles hoy.')}</Text>
                     ) : (
                       dailyMenu.acompanamientos.map(item => (
                         <TouchableOpacity
@@ -495,7 +495,7 @@ export default function LunchScreen() {
                           activeOpacity={0.8}
                         >
                           <Text style={[styles.tortillaChipText, tortillasQty === qty && styles.tortillaChipTextSelected]}>
-                            {qty} {qty === 1 ? 'Tortilla' : 'Tortillas'}
+                            {qty} {qty === 1 ? t('lunch.tortillaSingle', 'Tortilla') : t('lunch.tortillasPlural', 'Tortillas')}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -534,7 +534,7 @@ export default function LunchScreen() {
                   {/* MONTO RESUMEN & BOTÓN CONTINUAR */}
                   <View style={styles.pricingBar}>
                     <View>
-                      <Text style={styles.pricingLabel}>{t('lunch.totalToPay', 'Monto Final')}:</Text>
+                      <Text style={styles.pricingLabel}>{t('lunch.finalAmount', 'Monto Final')}:</Text>
                       <Text style={styles.pricingValue}>${calculatedTotal.toFixed(2)}</Text>
                     </View>
                     <TouchableOpacity
@@ -542,7 +542,7 @@ export default function LunchScreen() {
                       onPress={handleOpenConfirmModal}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.orderActionBtnText}>{t('lunch.placeOrderBtn', 'Finalizar Pedido')}</Text>
+                      <Text style={styles.orderActionBtnText}>{t('lunch.finalizeOrder', 'Finalizar Pedido')}</Text>
                       <ChevronRight size={18} color="#FFF" />
                     </TouchableOpacity>
                   </View>
@@ -558,19 +558,19 @@ export default function LunchScreen() {
                 
                 <View style={styles.confirmBox}>
                   <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.cafetinLabel', 'Cafetín:')}</Text> {selectedCafetin?.full_name}</Text>
-                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>Fuerte:</Text> {selectedFuerte?.name}</Text>
-                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>Acompañamiento 1:</Text> {selectedAcomp1?.name}</Text>
-                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>Acompañamiento 2:</Text> {selectedAcomp2?.name}</Text>
-                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>Tortillas:</Text> {tortillasQty}</Text>
+                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.platillo', 'Platillo Fuerte:')}</Text> {selectedFuerte?.name}</Text>
+                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.acomp1', 'Acompañamiento 1:')}</Text> {selectedAcomp1?.name}</Text>
+                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.acomp2', 'Acompañamiento 2:')}</Text> {selectedAcomp2?.name}</Text>
+                  <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.tortillas', 'Tortillas:')}</Text> {tortillasQty}</Text>
                   {selectedRefresco ? (
-                    <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>Refresco:</Text> {selectedRefresco.name}</Text>
+                    <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.bebida', 'Refresco:')}</Text> {selectedRefresco.name}</Text>
                   ) : null}
                 </View>
 
                 <View style={styles.paymentNotice}>
                   <Info size={18} color="#d97706" style={{ marginRight: 8 }} />
                   <Text style={styles.paymentNoticeText}>
-                    Se pagará al ir a recoger en el cafetín. Total: <Text style={{ fontWeight: '900' }}>${calculatedTotal.toFixed(2)}</Text>
+                    {t('lunch.paymentAtPickup', 'Se pagará al ir a recoger en el cafetín. Total: ')}<Text style={{ fontWeight: '900' }}>${calculatedTotal.toFixed(2)}</Text>
                   </Text>
                 </View>
 

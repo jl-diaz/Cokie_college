@@ -114,12 +114,15 @@ const HTML_CONTENT = `
 
          // Send back to React Native Bridge
          const data = {};
+         const vw = videoElement.videoWidth || 640;
+         const vh = videoElement.videoHeight || 480;
+
          if (results.rightHandLandmarks) {
-             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x * 640, lm.y * 480, lm.z * 640]);
+             data.rightHand = results.rightHandLandmarks.map(lm => [lm.x * vw, lm.y * vh, lm.z * vw]);
              data.rightHandRaw = results.rightHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
          }
          if (results.leftHandLandmarks) {
-             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x * 640, lm.y * 480, lm.z * 640]);
+             data.leftHand = results.leftHandLandmarks.map(lm => [lm.x * vw, lm.y * vh, lm.z * vw]);
              data.leftHandRaw = results.leftHandLandmarks.map(lm => [lm.x, lm.y, lm.z]);
          }
          
@@ -236,7 +239,7 @@ export default function InterpreterScreenNative() {
             
             // Fallback a Fingerpose si LSTM no predijo
             const evaluateGestures = (landmarks, rawLandmarks) => {
-                const estimated = gestureEstimator.current.estimate(landmarks, 5.0); // Bajar confianza a 5.0
+                const estimated = gestureEstimator.current.estimate(landmarks, 3.0); // Bajar confianza a 3.0
                 if (estimated.gestures.length > 0) {
                    let best = estimated.gestures.sort((a,b) => b.confidence - a.confidence)[0];
                    
