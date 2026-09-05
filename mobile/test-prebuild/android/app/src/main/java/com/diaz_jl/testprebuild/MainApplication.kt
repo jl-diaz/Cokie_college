@@ -1,4 +1,4 @@
-package com.cokiecollege.app
+package com.diaz_jl.testprebuild
 
 import android.app.Application
 import android.content.res.Configuration
