@@ -908,7 +908,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderBottomRightRadius: 0,
     maxHeight: '85%',
     padding: Spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.xl,
+    paddingBottom: Spacing.xl,
     borderTopWidth: theme === 'dark' ? 1 : 0,
     borderColor: Colors.gray[200],
     ...Shadows.elevated,

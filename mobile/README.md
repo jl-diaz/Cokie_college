@@ -88,6 +88,7 @@ eas project:init
 ```bash
 # Perfil de prueba / Preview (Descarga directa .apk)
 npx eas-cli build -p android --profile preview
+eas build --platform android --clear-cache #En caso de necesitar borrado de cache
 
 # Perfil de Producción
 npx eas-cli build -p android --profile production

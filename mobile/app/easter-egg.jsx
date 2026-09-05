@@ -17,9 +17,9 @@ export default function EasterEggScreen() {
   const [globalRecordHolder, setGlobalRecordHolder] = useState('Anónimo');
   const [newRecordType, setNewRecordType] = useState(null);
 
-  const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
-  const screenWidth = windowDimensions.width;
-  const screenHeight = windowDimensions.height;
+  const [gameDimensions, setGameDimensions] = useState({ width: Dimensions.get('window').width, height: Dimensions.get('window').height });
+  const screenWidth = gameDimensions.width;
+  const screenHeight = gameDimensions.height;
 
   // Load initial records
   useEffect(() => {
@@ -48,13 +48,6 @@ export default function EasterEggScreen() {
     loadRecords();
   }, []);
 
-  // Actualizar dimensiones si cambia la ventana (útil en web)
-  useEffect(() => {
-    const onChange = ({ window }) => setWindowDimensions(window);
-    const subscription = Dimensions.addEventListener('change', onChange);
-    return () => subscription?.remove();
-  }, []);
-
   const GRAVITY = 0.35;
   const JUMP = -6.5;
   const OBSTACLE_WIDTH = 70;
@@ -73,7 +66,7 @@ export default function EasterEggScreen() {
   const [, forceRender] = useState({});
 
   const spawnObstacle = (currentWidth, currentHeight) => {
-    const currentGap = Math.min(250, currentHeight * 0.35);
+    const currentGap = 180; // Fixed gap to prevent phantom collision zones
     const minHeight = Math.min(80, currentHeight * 0.15);
     const maxHeight = currentHeight - currentGap - minHeight;
     const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
@@ -216,11 +209,16 @@ export default function EasterEggScreen() {
   }, [isPlaying, isGameOver, screenWidth, screenHeight]);
 
   return (
-    <TouchableOpacity activeOpacity={1} style={styles.container} onPress={jump}>
+    <TouchableOpacity activeOpacity={1} style={styles.container} onPress={jump} onLayout={(e) => {
+      setGameDimensions(e.nativeEvent.layout);
+      if (!isPlaying) {
+        birdY.current = e.nativeEvent.layout.height / 2;
+      }
+    }}>
       <Stack.Screen options={{ title: '', headerTransparent: true }} />
       <ImageBackground 
         source={require('../src/assets/flappy_bg.jpg')} 
-        style={[styles.background, { width: screenWidth, height: screenHeight }]}
+        style={styles.background}
         resizeMode="cover"
       >
         {!isPlaying && !isGameOver && (

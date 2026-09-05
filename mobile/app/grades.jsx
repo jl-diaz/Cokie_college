@@ -133,14 +133,12 @@ export default function GradesScreen() {
   };
 
   const getOverallAverage = () => {
-    if (averages.length > 0) {
-      const validAverages = averages
-        .map(a => parseFloat(a.final_average || 0));
-      
-      if (validAverages.length > 0) {
-        const sum = validAverages.reduce((acc, val) => acc + val, 0);
-        return (sum / validAverages.length).toFixed(2);
-      }
+    const subjects = Object.keys(groupedGrades);
+    if (subjects.length > 0) {
+      const sum = subjects.reduce((acc, subject) => {
+        return acc + parseFloat(getSubjectAverage(subject).average);
+      }, 0);
+      return (sum / subjects.length).toFixed(2);
     }
     return "0.00";
   };

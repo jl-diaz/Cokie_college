@@ -494,57 +494,90 @@ export default function CoordinatorJustificationsScreen() {
         </BottomModal>
 
       {/* Evidence Viewer Modal */}
-      <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '85%', width: '90%' }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <FileText size={20} color={Colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>Evidencia Adjunta</Text>
-              </View>
-              <TouchableOpacity onPress={() => setEvidenceModalVisible(false)}>
-                <X size={24} color={Colors.primary} />
+      <Modal visible={evidenceModalVisible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.9)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, flexDirection: 'row', gap: 16 }}>
+            {(evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) && (
+              <TouchableOpacity onPress={() => Linking.openURL(evidenceUrlToView)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
+                <ExternalLink size={24} color="#FFF" />
               </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={{ paddingVertical: 16, alignItems: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
-              {evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
-                <Image
-                  source={{ uri: evidenceUrlToView }}
-                  style={{ width: '100%', height: 350, borderRadius: 12, resizeMode: 'contain' }}
-                />
-              ) : evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://') ? (
-                <View style={{ alignItems: 'center', padding: 20 }}>
-                  <ExternalLink size={48} color={Colors.primary} style={{ marginBottom: 12 }} />
-                  <Text style={{ fontSize: 14, color: Colors.text.primary, textAlign: 'center', marginBottom: 16 }}>
-                    El archivo está disponible como enlace web externo.
-                  </Text>
-                  <TouchableOpacity
-                    style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
-                    onPress={() => Linking.openURL(evidenceUrlToView)}
-                  >
-                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Abrir Enlace Web</Text>
-                  </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setEvidenceModalVisible(false)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
+              <X size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+            {evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
+              Platform.OS === 'web' ? (
+                <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                  <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} maximumZoomScale={3} minimumZoomScale={1}>
+                    <img 
+                      src={evidenceUrlToView} 
+                      style={{ maxWidth: '90%', maxHeight: '80vh', objectFit: 'contain', transition: 'transform 0.2s ease-out' }} 
+                      alt="Evidencia" 
+                      onClick={(e) => {
+                         const img = e.target;
+                         const currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
+                         img.style.transform = `scale(${currentScale === 1 ? 2 : 1})`;
+                         img.style.cursor = currentScale === 1 ? 'zoom-out' : 'zoom-in';
+                      }}
+                      onWheel={(e) => {
+                        if (e.ctrlKey) {
+                          e.preventDefault();
+                          const img = e.target;
+                          let currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
+                          currentScale += e.deltaY * -0.01;
+                          currentScale = Math.min(Math.max(1, currentScale), 4);
+                          img.style.transform = `scale(${currentScale})`;
+                        }
+                      }}
+                    />
+                    <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 20 }}>
+                      Haz clic para hacer zoom. Usa Ctrl + Rueda para ajustar.
+                    </Text>
+                  </ScrollView>
                 </View>
               ) : (
-                <View style={{ alignItems: 'center', padding: 24, backgroundColor: Colors.gray[100] || '#f8fafc', borderRadius: 16, width: '100%' }}>
-                  <FileText size={56} color={Colors.primary} style={{ marginBottom: 12 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 6 }}>
-                    {evidenceUrlToView}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: Colors.text.muted, textAlign: 'center' }}>
-                    Documento comprobante registrado en la solicitud de justificación.
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: Colors.gray[500] || '#64748b', marginTop: 12 }]}
-              onPress={() => setEvidenceModalVisible(false)}
-            >
-              <Text style={styles.submitBtnText}>Cerrar Previsualización</Text>
-            </TouchableOpacity>
+                <ScrollView 
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} 
+                  maximumZoomScale={4} 
+                  minimumZoomScale={1}
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                  bouncesZoom={true}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <Image
+                    source={{ uri: evidenceUrlToView }}
+                    style={{ width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8, resizeMode: 'contain' }}
+                  />
+                </ScrollView>
+              )
+            ) : evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://') ? (
+              <View style={{ alignItems: 'center', padding: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16 }}>
+                <ExternalLink size={64} color="#FFF" style={{ marginBottom: 16 }} />
+                <Text style={{ fontSize: 16, color: '#FFF', textAlign: 'center', marginBottom: 20, maxWidth: 300 }}>
+                  El archivo está disponible como enlace web externo o no es una imagen previsualizable.
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 }}
+                  onPress={() => Linking.openURL(evidenceUrlToView)}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Abrir Archivo Externo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', padding: 30, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, maxWidth: '80%' }}>
+                <FileText size={64} color="#FFF" style={{ marginBottom: 16 }} />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
+                  {evidenceUrlToView}
+                </Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+                  Documento comprobante registrado en la solicitud de justificación.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -715,7 +748,7 @@ const createStyles = (Colors) => StyleSheet.create({
   
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', maxHeight: '90%', backgroundColor: Colors.card || '#FFF', borderTopLeftRadius: BorderRadius['2xl'] || 24, borderTopRightRadius: BorderRadius['2xl'] || 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24 },
+  modalContent: { width: '100%', maxHeight: '90%', backgroundColor: Colors.card || '#FFF', borderTopLeftRadius: BorderRadius['2xl'] || 24, borderTopRightRadius: BorderRadius['2xl'] || 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
   modalSubtitle: { fontSize: Typography.size.sm, color: Colors.text.secondary, marginBottom: 20 },

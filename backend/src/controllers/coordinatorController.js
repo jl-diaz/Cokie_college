@@ -171,19 +171,79 @@ const coordinatorController = {
         try {
             const { studentId } = req.params;
             const { period } = req.query;
-            
-            let query = supabaseAdmin
+
+            // Obtener el perfil del estudiante para saber su grado y sección
+            const { data: profile, error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .select('grade, section')
+                .eq('id', studentId)
+                .single();
+
+            if (profileError || !profile?.grade || !profile?.section) {
+                // Fallback: solo notas existentes
+                let query = supabaseAdmin
+                    .from('grades')
+                    .select('*, subjects(name), evaluation_activities(name, percentage)')
+                    .eq('student_id', studentId);
+                if (period) query = query.eq('period', period);
+                const { data, error } = await query;
+                if (error) throw error;
+                return res.json(data);
+            }
+
+            // 1. Obtener materias asignadas al estudiante
+            const { data: scheduleData, error: scheduleError } = await supabaseAdmin
+                .from('schedules')
+                .select('subject_id, subjects(name)')
+                .eq('grade', profile.grade)
+                .eq('section', profile.section);
+
+            if (scheduleError) throw scheduleError;
+
+            const uniqueSubjects = [];
+            const subjectMap = new Map();
+            if (scheduleData) {
+                scheduleData.forEach(s => {
+                    if (s.subject_id && !subjectMap.has(s.subject_id)) {
+                        subjectMap.set(s.subject_id, true);
+                        uniqueSubjects.push({ id: s.subject_id, name: s.subjects?.name || 'Materia' });
+                    }
+                });
+            }
+
+            // 2. Obtener notas existentes
+            let gradesQuery = supabaseAdmin
                 .from('grades')
                 .select('*, subjects(name), evaluation_activities(name, percentage)')
                 .eq('student_id', studentId);
 
             if (period) {
-                query = query.eq('period', period);
+                gradesQuery = gradesQuery.eq('period', period);
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            res.json(data);
+            const { data: gradesData, error: gradesError } = await gradesQuery;
+            if (gradesError) throw gradesError;
+
+            // 3. Combinar
+            const result = uniqueSubjects.map(subject => {
+                const subjectGrades = (gradesData || []).filter(g => g.subject_id === subject.id);
+                if (subjectGrades.length > 0) return subjectGrades;
+                
+                return [{
+                    id: `temp-${subject.id}`,
+                    student_id: studentId,
+                    subject_id: subject.id,
+                    subjects: { name: subject.name },
+                    grade: "No asignada",
+                    period: parseInt(period) || 1,
+                    evaluation_activities: { name: "Pendiente", percentage: 0 }
+                }];
+            }).flat();
+
+            const subjectIdsInSchedule = new Set(uniqueSubjects.map(s => s.id));
+            const extraGrades = (gradesData || []).filter(g => !subjectIdsInSchedule.has(g.subject_id));
+
+            res.json([...result, ...extraGrades]);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

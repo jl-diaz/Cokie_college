@@ -1221,7 +1221,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
+    paddingBottom: 20,
     maxHeight: '90%',
   },
   modalTitle: {

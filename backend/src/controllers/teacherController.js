@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-const { sendNotification } = require('../utils/notificationService');
+const { sendNotification, sendBulkNotification } = require('../utils/notificationService');
 const { getPeriodForDate } = require('../utils/periodHelper');
 
 const fixMisassignedConductPeriods = async () => {
@@ -397,11 +397,24 @@ const teacherController = {
             // Notificar a los estudiantes en segundo plano
             (async () => {
                 try {
+                    const subjectIds = [...new Set(grades.map(g => g.subject_id))];
+                    const { data: subjectsData } = await supabaseAdmin
+                        .from('subjects')
+                        .select('id, name')
+                        .in('id', subjectIds);
+                    
+                    const subjectMap = {};
+                    if (subjectsData) {
+                        subjectsData.forEach(s => {
+                            subjectMap[s.id] = s.name;
+                        });
+                    }
+
                     for (const g of grades) {
                         await sendNotification(
                             g.student_id,
                             '📚 Nueva Calificación',
-                            `Se ha registrado/actualizado una nota en tu periodo ${period}.`,
+                            `Se ha registrado/actualizado tu nota de ${subjectMap[g.subject_id] || 'una materia'} en el periodo ${period}.`,
                             { type: 'grade_update' }
                         );
                     }
@@ -570,6 +583,31 @@ const teacherController = {
                 .single();
 
             if (error) throw error;
+
+            // Notify coordinators
+            try {
+                const { data: coordinators } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id')
+                    .eq('role', 'coordinator')
+                    .eq('level', level);
+
+                if (coordinators && coordinators.length > 0) {
+                    const teacherName = req.user.full_name || 'Un profesor';
+                    const title = 'Nuevo ticket de notas';
+                    const body = `${teacherName} ha solicitado una extensión para ingresar notas del periodo ${period}.`;
+                    
+                    const coordIds = coordinators.map(c => c.id);
+                    await sendBulkNotification(
+                        coordIds,
+                        title,
+                        body,
+                        { type: 'ticket', ticketId: data.id }
+                    );
+                }
+            } catch (notifErr) {
+                console.error('Error sending notification for new ticket:', notifErr);
+            }
 
             res.status(201).json(data);
         } catch (error) {

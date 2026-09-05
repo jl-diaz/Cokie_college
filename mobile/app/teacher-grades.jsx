@@ -817,7 +817,7 @@ const createStyles = (Colors) => StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: Spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.xl,
+    paddingBottom: Spacing.xl,
     ...Shadows.elevated,
   },
   modalTitle: {

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform, KeyboardAvoidingView } from 'react-native';
-
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BottomModal({ visible, onClose, children }) {
   const [showModal, setShowModal] = useState(false);
+  const insets = useSafeAreaInsets();
+  
+  // Use a ref to get the height, but don't hardcode it outside the component
+  const screenHeight = Dimensions.get('window').height;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
 
   useEffect(() => {
     if (visible) {
@@ -18,10 +21,9 @@ export default function BottomModal({ visible, onClose, children }) {
           duration: 300,
           useNativeDriver: true,
         }),
-        Animated.spring(slideAnim, {
+        Animated.timing(slideAnim, {
           toValue: 0,
-          friction: 8,
-          tension: 65,
+          duration: 350,
           useNativeDriver: true,
         }),
       ]).start();
@@ -33,7 +35,7 @@ export default function BottomModal({ visible, onClose, children }) {
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: SCREEN_HEIGHT,
+          toValue: screenHeight,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -54,18 +56,30 @@ export default function BottomModal({ visible, onClose, children }) {
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlayContainer}
-        pointerEvents="box-none"
-      >
+      <View style={styles.overlayContainer}>
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
           <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
         </Animated.View>
-        <Animated.View style={[styles.panelWrapper, { transform: [{ translateY: slideAnim }] }]} pointerEvents="box-none">
-          {children}
-        </Animated.View>
-      </KeyboardAvoidingView>
+        
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'padding' : undefined}
+          style={styles.keyboardAvoiding}
+          pointerEvents="box-none"
+        >
+          <Animated.View 
+            style={[
+              styles.panelWrapper, 
+              { 
+                transform: [{ translateY: slideAnim }],
+                paddingBottom: Platform.OS === 'web' ? `env(safe-area-inset-bottom, ${insets.bottom}px)` : insets.bottom,
+              }
+            ]} 
+            pointerEvents="box-none"
+          >
+            {children}
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -73,11 +87,14 @@ export default function BottomModal({ visible, onClose, children }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  keyboardAvoiding: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   panelWrapper: {
     width: '100%',

@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { getPeriodForDate } = require('../utils/periodHelper');
+const { sendBulkNotification } = require('../utils/notificationService');
 
 const studentController = {
     getGrades: async (req, res) => {
@@ -187,6 +188,7 @@ const studentController = {
     requestJustification: async (req, res) => {
         try {
             const student_id = req.user.id;
+            const student_level = req.user.level || 'Primaria';
             const { absence_date, reason, evidence_url } = req.body;
 
             if (!absence_date || !reason || !reason.trim()) {
@@ -214,6 +216,32 @@ const studentController = {
                 .single();
 
             if (error) throw error;
+
+            // Notify coordinators of the same level
+            try {
+                const { data: coordinators } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id')
+                    .eq('role', 'coordinator')
+                    .eq('level', student_level);
+
+                if (coordinators && coordinators.length > 0) {
+                    const studentName = req.user.full_name || 'Un estudiante';
+                    const title = 'Nueva justificación de inasistencia';
+                    const body = `${studentName} ha enviado una justificación para revisión.`;
+                    
+                    const coordIds = coordinators.map(c => c.id);
+                    await sendBulkNotification(
+                        coordIds,
+                        title,
+                        body,
+                        { type: 'justification', justificationId: data.id }
+                    );
+                }
+            } catch (notifErr) {
+                console.error('Error sending notification for new justification:', notifErr);
+            }
+
             res.status(201).json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });

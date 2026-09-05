@@ -41,6 +41,8 @@ function LayoutInner() {
     }
   }, [user, authLoading, rootNavigationState?.key, segments]);
 
+
+
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
     try {
@@ -77,6 +79,7 @@ function LayoutInner() {
       <StatusBar style={theme === 'dark' ? "light" : "auto"} />
       <Stack
           screenOptions={({ route }) => ({
+            headerMode: 'screen',
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 

@@ -830,7 +830,7 @@ const createStyles = (Colors) => StyleSheet.create({
     borderBottomRightRadius: 0,
     maxHeight: '90%',
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingBottom: 24,
     ...Shadows.elevated,
   },
   modalHeader: {

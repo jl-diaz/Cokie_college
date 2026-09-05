@@ -370,7 +370,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'], 
     borderTopRightRadius: BorderRadius['2xl'], 
     padding: Spacing.xl, 
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: 24,
     ...Shadows.elevated,
   },
   modalHeader: {
