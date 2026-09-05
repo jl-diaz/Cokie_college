@@ -211,7 +211,7 @@ export default function ClassroomsScreen() {
       )}
 
       {/* Bottom Action Sheet Modal */}
-      <BottomModal visible={isActionSheetVisible} onClose={() => setIsActionSheetVisible(false)}>
+      <BottomModal visible={isActionSheetVisible} onClose={() => setActionSheetVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>

@@ -123,16 +123,14 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   return (
     <Modal
       transparent
-      animationType="none"
+      animationType="fade"
       visible={showModal}
       onRequestClose={onClose}
       statusBarTranslucent
       navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
-        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
-        </Animated.View>
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
         <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }], backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   panel: {
     borderTopLeftRadius: 24,

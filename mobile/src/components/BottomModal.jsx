@@ -1,45 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 
 export default function BottomModal({ visible, onClose, children }) {
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(visible);
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   
-  // Use a ref to get the height, but don't hardcode it outside the component
   const screenHeight = Dimensions.get('window').height;
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
 
   useEffect(() => {
     if (visible) {
       setShowModal(true);
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      slideAnim.setValue(screenHeight);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 65,
+        useNativeDriver: true,
+      }).start();
     } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: screenHeight,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
+      Animated.timing(slideAnim, {
+        toValue: screenHeight,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => {
         setShowModal(false);
       });
     }
@@ -47,22 +34,26 @@ export default function BottomModal({ visible, onClose, children }) {
 
   if (!showModal) return null;
 
+  const bottomInset = Platform.OS === 'web' ? 0 : Math.max(insets.bottom, 0);
+
   return (
     <Modal
       transparent
-      animationType="none"
+      animationType="fade"
       visible={showModal}
       onRequestClose={onClose}
       statusBarTranslucent
       navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
-        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
-        </Animated.View>
+        <TouchableOpacity 
+          style={styles.backdrop} 
+          onPress={onClose} 
+          activeOpacity={1} 
+        />
         
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.keyboardAvoiding}
           pointerEvents="box-none"
         >
@@ -71,7 +62,8 @@ export default function BottomModal({ visible, onClose, children }) {
               styles.panelWrapper, 
               { 
                 transform: [{ translateY: slideAnim }],
-                paddingBottom: Platform.OS === 'web' ? `env(safe-area-inset-bottom, ${insets.bottom}px)` : insets.bottom,
+                backgroundColor: colors.card,
+                paddingBottom: bottomInset,
               }
             ]} 
             pointerEvents="box-none"
@@ -87,10 +79,11 @@ export default function BottomModal({ visible, onClose, children }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   keyboardAvoiding: {
     flex: 1,
@@ -99,5 +92,11 @@ const styles = StyleSheet.create({
   panelWrapper: {
     width: '100%',
     justifyContent: 'flex-end',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: 'hidden',
   }
 });
+

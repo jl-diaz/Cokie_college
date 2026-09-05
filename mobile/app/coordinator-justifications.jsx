@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions } from 'react-native';
 import api from '../src/utils/api';
 import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -497,7 +497,7 @@ export default function CoordinatorJustificationsScreen() {
       <Modal visible={evidenceModalVisible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.9)', justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, flexDirection: 'row', gap: 16 }}>
-            {(evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) && (
+            {typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) && (
               <TouchableOpacity onPress={() => Linking.openURL(evidenceUrlToView)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
                 <ExternalLink size={24} color="#FFF" />
               </TouchableOpacity>
@@ -508,7 +508,7 @@ export default function CoordinatorJustificationsScreen() {
           </View>
           
           <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            {evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
+            {typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || !!evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
               Platform.OS === 'web' ? (
                 <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
                   <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} maximumZoomScale={3} minimumZoomScale={1}>
@@ -550,11 +550,12 @@ export default function CoordinatorJustificationsScreen() {
                 >
                   <Image
                     source={{ uri: evidenceUrlToView }}
-                    style={{ width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.8, resizeMode: 'contain' }}
+                    style={{ width: Dimensions.get('window').width * 0.95, height: Dimensions.get('window').height * 0.8, resizeMode: 'contain' }}
+                    onError={(e) => console.warn('Error cargando imagen de evidencia:', e.nativeEvent?.error)}
                   />
                 </ScrollView>
               )
-            ) : evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://') ? (
+            ) : typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) ? (
               <View style={{ alignItems: 'center', padding: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16 }}>
                 <ExternalLink size={64} color="#FFF" style={{ marginBottom: 16 }} />
                 <Text style={{ fontSize: 16, color: '#FFF', textAlign: 'center', marginBottom: 20, maxWidth: 300 }}>
@@ -571,7 +572,7 @@ export default function CoordinatorJustificationsScreen() {
               <View style={{ alignItems: 'center', padding: 30, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, maxWidth: '80%' }}>
                 <FileText size={64} color="#FFF" style={{ marginBottom: 16 }} />
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
-                  {evidenceUrlToView}
+                  {evidenceUrlToView || 'Sin información de archivo'}
                 </Text>
                 <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
                   Documento comprobante registrado en la solicitud de justificación.

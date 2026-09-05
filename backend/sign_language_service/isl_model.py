@@ -255,10 +255,9 @@ class ISLModel:
         self.gesture_recognizer = _global_gesture_recognizer
         self.hand_landmarker = _global_hand_landmarker
         
-        # Aumentamos el threshold para evitar parpadeo y falsos positivos
         self.recent_predictions = []
         self.last_stable_prediction = None
-        self.stability_threshold = 4  # 4 frames seguidos para confirmar = ~1 seg a 4fps
+        self.stability_threshold = 2  # 2 frames seguidos para confirmación rápida (~300-500ms)
         self.no_detection_count = 0
 
     def process_frame_base64(self, base64_img):
@@ -272,6 +271,12 @@ class ISLModel:
             
             if image is None: return None
 
+            # Redimensionar si la imagen es grande para acelerar drásticamente MediaPipe
+            h, w = image.shape[:2]
+            if w > 480:
+                scale = 480.0 / w
+                image = cv2.resize(image, (480, int(h * scale)), interpolation=cv2.INTER_AREA)
+
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
             
@@ -283,7 +288,7 @@ class ISLModel:
                     for hand_gestures in result.gestures:
                         if hand_gestures:
                             gesture = hand_gestures[0]
-                            if gesture.score > 0.75 and gesture.category_name != "None":
+                            if gesture.score > 0.70 and gesture.category_name != "None":
                                 current_prediction = GESTURE_TO_ISL.get(gesture.category_name, gesture.category_name)
                                 break
             
@@ -296,10 +301,10 @@ class ISLModel:
                             current_prediction = sign
                             break
             
-            # Estabilización
+            # Estabilización rápida
             if current_prediction is None:
                 self.no_detection_count += 1
-                if self.no_detection_count >= 5: # Resetear rápido si no hay manos
+                if self.no_detection_count >= 2: # Resetear de inmediato si no hay manos
                     self.last_stable_prediction = None
                     self.recent_predictions = []
                     self.no_detection_count = 0
@@ -309,8 +314,8 @@ class ISLModel:
             self.recent_predictions.append(current_prediction)
             self.recent_predictions = self.recent_predictions[-self.stability_threshold:]
             
-            # Verificamos si todos los elementos del threshold son iguales
-            if len(self.recent_predictions) == self.stability_threshold:
+            # Verificamos si los frames requeridos coinciden
+            if len(self.recent_predictions) >= self.stability_threshold:
                 if all(p == self.recent_predictions[0] for p in self.recent_predictions):
                     stable = self.recent_predictions[0]
                     if stable != self.last_stable_prediction:

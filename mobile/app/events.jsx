@@ -540,7 +540,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
     maxHeight: '90%',
   },
   modalHeader: {
@@ -597,7 +597,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   submitBtnText: {
     color: '#FFF',

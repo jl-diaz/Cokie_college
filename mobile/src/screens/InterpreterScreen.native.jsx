@@ -103,7 +103,7 @@ export default function InterpreterScreenNative() {
           // Captura rápida de fotograma usando takePictureAsync sin sonido de obturador
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.25,
+            quality: 0.18,
             skipProcessing: true,
             shutterSound: false,
             pictureSize: '640x480',
@@ -119,7 +119,7 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 250); // 250ms (~4 FPS) ultra fluido
+      }, 200); // 200ms (~5 FPS) ultra rápido
     }
 
     return () => {

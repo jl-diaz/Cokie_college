@@ -29,7 +29,8 @@ import {
   CheckSquare, 
   Square,
   Search,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/context/ThemeContext';
@@ -733,7 +734,12 @@ export default function CafetinScreen() {
       {/* --- MODAL PARA AGREGAR ALIMENTO AL CATÁLOGO --- */}
       <BottomModal visible={modalAddItem} onClose={() => setModalAddItem(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+              <TouchableOpacity onPress={() => setModalAddItem(false)} style={{ padding: 4 }}>
+                <X size={22} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
 
                   <Text style={styles.inputLabel}>Nombre del Alimento *</Text>
                   <TextInput
@@ -1224,11 +1230,16 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     paddingBottom: 20,
     maxHeight: '90%',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: Colors.text.primary,
-    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 12,

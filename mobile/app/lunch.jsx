@@ -17,7 +17,8 @@ import {
   Sparkles, 
   ChevronRight,
   Info,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/context/ThemeContext';
@@ -553,8 +554,13 @@ export default function LunchScreen() {
 
           {/* MODAL DE CONFIRMACIÓN */}
           <BottomModal visible={confirmModalVisible} onClose={() => setConfirmModalVisible(false)}>
-          <View style={styles.modalContent}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar Pedido de Almuerzo')}</Text>
+                <TouchableOpacity onPress={() => setConfirmModalVisible(false)} style={{ padding: 4 }}>
+                  <X size={22} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
                 
                 <View style={styles.confirmBox}>
                   <Text style={styles.confirmItem}>• <Text style={{ fontWeight: '700' }}>{t('lunch.cafetinLabel', 'Cafetín:')}</Text> {selectedCafetin?.full_name}</Text>
@@ -916,11 +922,16 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     paddingBottom: 24,
     maxHeight: '90%',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.primary,
-    marginBottom: 16,
   },
   confirmBox: {
     backgroundColor: Colors.background,

@@ -280,12 +280,19 @@ export default function CoordinatorTicketsScreen() {
         onClose={() => setSelectedTicket(null)}
       >
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>
-              {actionType === 'approve' ? t('teacherGrades.approveTicketTitle', 'Aprobar Extensión de Notas') : t('teacherGrades.rejectTicketTitle', 'Denegar Solicitud de Extensión')}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {selectedTicket?.teacher?.full_name} — {t('dashboard.period', 'Periodo')} {selectedTicket?.period} (+{selectedTicket?.days_requested} {t('days.daysCount', 'días')})
-            </Text>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.modalTitle}>
+                {actionType === 'approve' ? t('teacherGrades.approveTicketTitle', 'Aprobar Extensión de Notas') : t('teacherGrades.rejectTicketTitle', 'Denegar Solicitud de Extensión')}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedTicket?.teacher?.full_name} — {t('dashboard.period', 'Periodo')} {selectedTicket?.period} (+{selectedTicket?.days_requested} {t('days.daysCount', 'días')})
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedTicket(null)} style={{ padding: 4 }}>
+              <X size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
 
             <Text style={styles.inputLabel}>
               {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
@@ -523,12 +530,13 @@ const createStyles = (Colors) => StyleSheet.create({
     backgroundColor: Colors.card,
     borderTopLeftRadius: BorderRadius['2xl'] || 24,
     borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    maxHeight: '90%',
-    ...Shadows.elevated,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
   modalTitle: {
     fontSize: Typography.size.lg,
