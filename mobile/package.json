@@ -7,7 +7,8 @@
     "dev": "expo start --web",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "node -e \"try{require('fs').chmodSync('node_modules/hermes-compiler/hermesc/linux64-bin/hermesc', '755')}catch(e){}\""
   },
   "dependencies": {
     "@babel/parser": "^8.0.4",
