@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 
 import Navbar from './Navbar.jsx';
 import Footer from './Footer.jsx';
@@ -30,23 +29,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 function AboutUs() {
   const containerRef = useRef(null);
-  const lenisRef = useRef(null);
 
   useGSAP(() => {
-    // Inicializar scroll suave con Lenis
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-    lenisRef.current = lenis;
-
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
-    gsap.ticker.lagSmoothing(0);
-
     // Animación de aparición de las 3 imágenes del collage vertical
     const collageCards = gsap.utils.toArray('.history-collage-item');
     collageCards.forEach((card, index) => {
@@ -93,16 +77,13 @@ function AboutUs() {
       }
     );
 
-    return () => {
-      lenis.destroy();
-    };
   }, { scope: containerRef });
 
   // Desplazamiento fluido hacia "Nuestra historia"
   const handleScrollToHistory = () => {
     const target = document.getElementById('nuestra-historia');
-    if (lenisRef.current && target) {
-      lenisRef.current.scrollTo(target, { offset: 0, duration: 1.4 });
+    if (window.__lenis && target) {
+      window.__lenis.scrollTo(target, { offset: -40, duration: 1.4 });
     } else if (target) {
       target.scrollIntoView({ behavior: 'smooth' });
     }

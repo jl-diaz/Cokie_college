@@ -13,6 +13,7 @@
   -webkit-backdrop-filter: none !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   will-change: transform, opacity;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* NAVBAR OCULTA MIENTRAS SE HACE SCROLL */
@@ -78,7 +79,7 @@
   border-radius: 8px;
   transition: all 0.25s ease;
   background: transparent;
-  font-family: inherit;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .navbar__link:hover {

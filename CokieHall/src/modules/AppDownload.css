@@ -159,7 +159,7 @@
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .app-download-section {
-    padding: 3.5rem 1.5rem 0;
+    padding: 3.5rem 1.2rem 0;
   }
 
   /* En telefonos y tablets: Título arriba y CokiePhone hasta abajo cortando con el footer */
@@ -187,14 +187,42 @@
     margin-bottom: -60px; /* Corta directamente con el footer */
   }
 
+  /* Mantiene la esencia dinámica del collage en móviles sin aplanarse */
   .collage-blocks-wrapper {
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.5rem 0;
   }
 
   .collage-block {
-    width: 100%;
-    transform: rotate(0deg) !important;
+    width: auto;
+    max-width: 94%;
+    padding: 0.9rem 1.6rem;
+    border-radius: 16px;
+  }
+
+  .block--blue {
+    transform: rotate(-3.5deg);
+    align-self: center;
+  }
+
+  .block--pink {
+    transform: rotate(3.5deg);
+    align-self: center;
+    margin-top: -0.3rem;
+  }
+
+  .block--orange {
+    transform: rotate(-2deg);
+    align-self: center;
+    margin-top: -0.3rem;
+  }
+
+  .block-text {
+    font-size: clamp(1.05rem, 4.4vw, 1.35rem);
+    white-space: normal;
   }
 }
 

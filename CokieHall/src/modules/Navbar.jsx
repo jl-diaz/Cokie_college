@@ -49,9 +49,9 @@ function Navbar() {
 
   const menuItems = [
     { label: 'Inicio', link: '/', ariaLabel: 'Ir al inicio' },
-    { label: 'Niveles', link: '/#niveles', ariaLabel: 'Ver niveles educativos' },
-    { label: 'Clubes', link: '/#clubes', ariaLabel: 'Ver clubes deportivos' },
     { label: 'Sobre Nosotros', link: '/nosotros', ariaLabel: 'Conoce más de Cokie Hall' },
+    { label: 'Niveles', link: '/#niveles', ariaLabel: 'Ver niveles educativos' },
+    { label: 'Cokie College', link: '/#app-download', ariaLabel: 'Descargar Cokie College' },
     { label: 'Contacto', link: '/#contacto', ariaLabel: 'Contactar y admisiones' },
   ];
 
@@ -64,27 +64,31 @@ function Navbar() {
     <header className={`navbar ${!visible && !mobileMenuOpen ? 'navbar--hidden' : ''}`}>
       <div className="navbar__container">
         
-        <Link to="/" className="navbar__logo">
+        <a href="/" className="navbar__logo">
           <img 
             src={logoBlan} 
             alt="Logo Cokie Hall" 
             className="navbar__logo-img" 
           />
-        </Link>
+        </a>
 
         {/* NAVEGACIÓN DESKTOP */}
         <nav className="navbar__nav">
           <ul className="navbar__menu">
             <li className="navbar__item">
-              <a href="#nosotros" className="navbar__link">Nosotros</a>
+              <a href="/nosotros" className="navbar__link">Sobre Nosotros</a>
             </li>
 
             <li className="navbar__item">
-              <a href="#niveles" className="navbar__link">Niveles Educativos</a>
+              <a href="/#niveles" className="navbar__link">Niveles Educativos</a>
             </li>
 
             <li className="navbar__item">
-              <a href="#app-download" className="navbar__link">Cokie College</a>
+              <a href="/#app-download" className="navbar__link">Cokie College</a>
+            </li>
+
+            <li className="navbar__item">
+              <a href="/#contacto" className="navbar__link">Contacto</a>
             </li>
           </ul>
         </nav>
