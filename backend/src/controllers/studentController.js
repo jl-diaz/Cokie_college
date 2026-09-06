@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { getPeriodForDate } = require('../utils/periodHelper');
 const { sendBulkNotification } = require('../utils/notificationService');
+const { resolveJustificationSubjects } = require('../utils/justificationHelper');
 
 const studentController = {
     getGrades: async (req, res) => {
@@ -101,7 +102,7 @@ const studentController = {
 
             let { data: conduct, error: conductError } = await supabaseAdmin
                 .from('conduct_records')
-                .select('*, conduct_codes(*)')
+                .select('*, conduct_codes(*), teacher:profiles!conduct_records_teacher_id_fkey(id, full_name, role)')
                 .eq('student_id', student_id)
                 .eq('period', period);
 
@@ -117,9 +118,20 @@ const studentController = {
                     .from('conduct_codes')
                     .select('*');
 
+                const teacherIds = [...new Set((rawConduct || []).map(r => r.teacher_id).filter(Boolean))];
+                let teachers = [];
+                if (teacherIds.length > 0) {
+                    const { data: teacherProfiles } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id, full_name, role')
+                        .in('id', teacherIds);
+                    teachers = teacherProfiles || [];
+                }
+
                 conduct = (rawConduct || []).map(r => ({
                     ...r,
-                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null
+                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null,
+                    teacher: teachers.find(t => t.id === r.teacher_id) || null
                 }));
             }
 
@@ -154,15 +166,37 @@ const studentController = {
                 .eq('student_id', student_id)
                 .eq('status', 'approved');
 
-            const attendanceList = [...(attendance || [])];
+            let attendanceList = [...(attendance || [])];
             if (justifications) {
                 for (const just of justifications) {
                     const justPeriod = await getPeriodForDate(just.absence_date);
                     if (justPeriod === period) {
-                        const existingIndex = attendanceList.findIndex(a => a.date === just.absence_date);
-                        if (existingIndex >= 0) {
-                            attendanceList[existingIndex].status = 'justified';
-                            attendanceList[existingIndex].coordinator_message = just.coordinator_message || just.reason;
+                        const rawReason = just.coordinator_message || just.reason || '';
+                        const resolved = await resolveJustificationSubjects(student_id, just.absence_date, rawReason);
+
+                        const existingIndices = [];
+                        attendanceList.forEach((a, idx) => {
+                            if (a.date === just.absence_date) existingIndices.push(idx);
+                        });
+
+                        if (existingIndices.length > 0) {
+                            if (resolved.isFullDay) {
+                                // Para día completo, consolidamos en un solo registro que diga 'Día completo'
+                                const firstIdx = existingIndices[0];
+                                attendanceList[firstIdx].status = 'justified';
+                                attendanceList[firstIdx].coordinator_message = rawReason;
+                                attendanceList[firstIdx].subjects = { name: 'Día completo' };
+                                // Remover otros registros duplicados del mismo día
+                                for (let i = existingIndices.length - 1; i > 0; i--) {
+                                    attendanceList.splice(existingIndices[i], 1);
+                                }
+                            } else {
+                                existingIndices.forEach(idx => {
+                                    attendanceList[idx].status = 'justified';
+                                    attendanceList[idx].coordinator_message = rawReason;
+                                    attendanceList[idx].subjects = { name: resolved.title };
+                                });
+                            }
                         } else {
                             attendanceList.push({
                                 id: just.id,
@@ -171,8 +205,8 @@ const studentController = {
                                 period: period,
                                 date: just.absence_date,
                                 created_at: just.created_at,
-                                coordinator_message: just.coordinator_message || just.reason,
-                                subjects: { name: 'Inasistencia Justificada' }
+                                coordinator_message: rawReason,
+                                subjects: { name: resolved.title || 'Inasistencia Justificada' }
                             });
                         }
                     }

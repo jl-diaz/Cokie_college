@@ -212,6 +212,7 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   backdrop: {

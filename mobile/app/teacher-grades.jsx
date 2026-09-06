@@ -577,7 +577,13 @@ export default function TeacherGradesScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" bounces={false}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled" 
+            bounces={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
             <Text style={styles.fieldLabel}>{t('teacherGrades.ticketReasonLabel', 'Motivo de la solicitud (Requerido):')}</Text>
             <TextInput
               style={styles.textArea}
@@ -821,15 +827,10 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: '90%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    ...Shadows.elevated,
+    maxHeight: '100%',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   modalHeader: {
     flexDirection: 'row',

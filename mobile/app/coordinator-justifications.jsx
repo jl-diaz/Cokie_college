@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions } from 'react-native';
 import api from '../src/utils/api';
-import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar } from 'lucide-react-native';
+import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
@@ -11,6 +11,28 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+
+const SCHOOL_HOURS = [
+  '07:00 AM',
+  '07:30 AM',
+  '08:00 AM',
+  '08:30 AM',
+  '09:00 AM',
+  '09:30 AM',
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '12:00 PM',
+  '12:30 PM',
+  '01:00 PM',
+  '01:30 PM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM'
+];
 
 export default function CoordinatorJustificationsScreen() {
   const { t } = useTranslation();
@@ -36,6 +58,11 @@ export default function CoordinatorJustificationsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [absenceDate, setAbsenceDate] = useState('');
+  const [absenceScope, setAbsenceScope] = useState('full_day'); // 'full_day' | 'hourly'
+  const [startTime, setStartTime] = useState('07:00 AM');
+  const [endTime, setEndTime] = useState('09:30 AM');
+  const [timePickerTarget, setTimePickerTarget] = useState(null); // 'start' | 'end' | null
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [reason, setReason] = useState('');
   const [creating, setCreating] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -158,10 +185,14 @@ export default function CoordinatorJustificationsScreen() {
     }
     setCreating(true);
     try {
+      const finalReason = absenceScope === 'hourly'
+        ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
+        : `[JORNADA COMPLETA] ${reason.trim()}`;
+
       await api.post('/coordinator/justifications/student', {
         student_id: selectedStudent.id,
         absence_date: absenceDate,
-        reason
+        reason: finalReason
       });
       showAlert({
         type: 'success',
@@ -170,6 +201,9 @@ export default function CoordinatorJustificationsScreen() {
       });
       setSelectedStudent(null);
       setAbsenceDate('');
+      setAbsenceScope('full_day');
+      setStartTime('07:00 AM');
+      setEndTime('09:30 AM');
       setReason('');
       setView('requests');
     } catch (error) {
@@ -211,6 +245,36 @@ export default function CoordinatorJustificationsScreen() {
     s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.institutional_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const renderReasonContent = (rawReason) => {
+    if (!rawReason) return null;
+    const timeMatch = rawReason.match(/\[HORARIO:\s*([^\]]+)\]/i);
+    const isFullDay = rawReason.includes('[JORNADA COMPLETA]');
+    const cleanReason = rawReason
+      .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+      .replace(/\[JORNADA COMPLETA\]/gi, '')
+      .trim();
+
+    return (
+      <View style={{ marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          {timeMatch && (
+            <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Clock size={12} color="#0284c7" />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#0284c7' }}>{timeMatch[1]}</Text>
+            </View>
+          )}
+          {isFullDay && (
+            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color="#475569" />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>Día Completo</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {cleanReason || rawReason}</Text>
+      </View>
+    );
+  };
 
   if (loading && requests.length === 0 && view === 'requests') {
     return (
@@ -294,7 +358,7 @@ export default function CoordinatorJustificationsScreen() {
                 </View>
                 
                 <View style={styles.cardBody}>
-                  <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {req.reason}</Text>
+                  {renderReasonContent(req.reason)}
                   <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
                   
                   {req.evidence_url ? (
@@ -347,7 +411,7 @@ export default function CoordinatorJustificationsScreen() {
                   </View>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {req.reason}</Text>
+                  {renderReasonContent(req.reason)}
                   <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
                   {req.coordinator_message ? (
                     <Text style={styles.obsText}><Text style={styles.boldText}>Observación:</Text> {req.coordinator_message}</Text>
@@ -374,81 +438,160 @@ export default function CoordinatorJustificationsScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       ) : (
-        <ScrollView style={styles.content}>
-          <Text style={styles.sectionTitle}>Registrar Justificación Manual</Text>
-          
-          <View style={styles.formContainer}>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Buscar Estudiante</Text>
-              <View style={styles.searchBox}>
-                <Search size={18} color={Colors.text.muted} />
-                <TextInput 
-                  style={styles.searchInput}
-                  placeholder="Nombre o código..."
-                  value={searchTerm}
-                  onChangeText={setSearchTerm}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={{ paddingBottom: 160 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.sectionTitle}>Registrar Justificación Manual</Text>
+            
+            <View style={styles.formContainer}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Buscar Estudiante</Text>
+                <View style={styles.searchBox}>
+                  <Search size={18} color={Colors.text.muted} />
+                  <TextInput 
+                    style={styles.searchInput}
+                    placeholder="Nombre o código..."
+                    value={searchTerm}
+                    onChangeText={setSearchTerm}
+                  />
+                </View>
+                
+                <ScrollView style={styles.studentList} nestedScrollEnabled>
+                  {filteredStudents.slice(0, 5).map(s => (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
+                      onPress={() => setSelectedStudent(s)}
+                    >
+                      <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
+                        {s.full_name}
+                      </Text>
+                      <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              
+              {/* Modalidad de Inasistencia */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Tipo de Inasistencia</Text>
+                <View style={styles.scopeSelector}>
+                  <TouchableOpacity
+                    style={[styles.scopeBtn, absenceScope === 'full_day' && styles.scopeBtnActive]}
+                    onPress={() => setAbsenceScope('full_day')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.scopeBtnText, absenceScope === 'full_day' && styles.scopeBtnTextActive]}>
+                      Día Completo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.scopeBtn, absenceScope === 'hourly' && styles.scopeBtnActive]}
+                    onPress={() => setAbsenceScope('hourly')}
+                    activeOpacity={0.8}
+                  >
+                    <Clock size={16} color={absenceScope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
+                    <Text style={[styles.scopeBtnText, absenceScope === 'hourly' && styles.scopeBtnTextActive]}>
+                      Por Horario
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Fecha de Ausencia</Text>
+                <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+                  <Calendar size={18} color={Colors.primary} />
+                  <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
+                    {absenceDate || 'Seleccionar fecha'}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={absenceDate ? new Date(absenceDate + 'T12:00:00') : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </View>
+
+              {/* Rango de Horario (Selector Táctil) */}
+              {absenceScope === 'hourly' && (
+                <View style={styles.timeRangeContainer}>
+                  <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={styles.formLabel}>Desde (Hora Inicio)</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelectorBtn}
+                      onPress={() => {
+                        setTimePickerTarget('start');
+                        setTimePickerVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.timeSelectorText}>{startTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={Colors.text.muted} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                    <Text style={styles.formLabel}>Hasta (Hora Fin)</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelectorBtn}
+                      onPress={() => {
+                        setTimePickerTarget('end');
+                        setTimePickerVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.timeSelectorText}>{endTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={Colors.text.muted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Motivo de Ausencia</Text>
+                <TextInput
+                  style={[styles.formInput, styles.reasonInput]}
+                  placeholder="Escribe detalladamente el motivo de la ausencia..."
+                  placeholderTextColor={Colors.text.muted}
+                  value={reason}
+                  onChangeText={setReason}
+                  multiline
+                  numberOfLines={4}
                 />
               </View>
               
-              <ScrollView style={styles.studentList} nestedScrollEnabled>
-                {filteredStudents.slice(0, 5).map(s => (
-                  <TouchableOpacity
-                    key={s.id}
-                    style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
-                    onPress={() => setSelectedStudent(s)}
-                  >
-                    <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
-                      {s.full_name}
-                    </Text>
-                    <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Fecha de Ausencia</Text>
-              <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
-                <Calendar size={18} color={Colors.primary} />
-                <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
-                  {absenceDate || 'Seleccionar fecha'}
-                </Text>
+              <TouchableOpacity 
+                style={[styles.submitBtn, styles.submitApprove]}
+                onPress={createJustification}
+                disabled={creating}
+              >
+                {creating ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Guardar y Aprobar</Text>
+                )}
               </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={absenceDate ? new Date(absenceDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                />
-              )}
             </View>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Motivo</Text>
-              <TextInput
-                style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Descripción del motivo..."
-                value={reason}
-                onChangeText={setReason}
-                multiline
-              />
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.submitBtn, styles.submitApprove]}
-              onPress={createJustification}
-              disabled={creating}
-            >
-              {creating ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Guardar y Aprobar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* Process Modal */}
@@ -492,6 +635,52 @@ export default function CoordinatorJustificationsScreen() {
             </TouchableOpacity>
           </View>
         </BottomModal>
+
+      {/* Time Picker Modal */}
+      <BottomModal visible={timePickerVisible} onClose={() => setTimePickerVisible(false)}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>
+                {timePickerTarget === 'start' ? 'Hora de Inicio' : 'Hora de Fin'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                Selecciona la hora lectiva correspondiente
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
+              <X size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
+              {SCHOOL_HOURS.map(hour => {
+                const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;
+                return (
+                  <TouchableOpacity
+                    key={hour}
+                    style={[styles.hourChip, isSelected && styles.hourChipActive]}
+                    onPress={() => {
+                      if (timePickerTarget === 'start') {
+                        setStartTime(hour);
+                      } else {
+                        setEndTime(hour);
+                      }
+                      setTimePickerVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Clock size={14} color={isSelected ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.hourChipText, isSelected && styles.hourChipTextActive]}>
+                      {hour}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      </BottomModal>
 
       {/* Evidence Viewer Modal */}
       <Modal visible={evidenceModalVisible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent>
@@ -724,6 +913,57 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.md,
     color: Colors.text.primary,
   },
+  timeSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card || '#FFF',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.gray[300] || '#D1D5DB',
+  },
+  timeSelectorText: {
+    fontSize: Typography.size.sm,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  hourChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background || '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: Colors.gray[200] || '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    width: '48%',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  hourChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  hourChipText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  hourChipTextActive: {
+    color: '#FFF',
+  },
+  reasonInput: {
+    height: 100,
+    textAlignVertical: 'top',
+    backgroundColor: Colors.card || '#FFF',
+    borderWidth: 1.5,
+    borderColor: Colors.gray[300] || '#D1D5DB',
+    padding: 12,
+    fontSize: Typography.size.sm,
+    color: Colors.text.primary,
+  },
   submitBtn: { padding: 16, borderRadius: BorderRadius.lg, alignItems: 'center' },
   submitApprove: { backgroundColor: Colors.primary },
   submitReject: { backgroundColor: Colors.status.rejected },
@@ -763,5 +1003,43 @@ const createStyles = (Colors) => StyleSheet.create({
     color: Colors.text.primary,
     textAlignVertical: 'top',
     height: 100
-  }
+  },
+  scopeSelector: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray[100],
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    marginBottom: 4,
+  },
+  scopeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.sm || 8,
+  },
+  scopeBtnActive: {
+    backgroundColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scopeBtnText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text.muted,
+  },
+  scopeBtnTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
 });

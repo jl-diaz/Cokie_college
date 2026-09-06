@@ -93,8 +93,17 @@ export default function ScheduleScreen() {
     );
   }
 
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || '#0B1956');
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
+      <View style={[styles.topBleed, { backgroundColor: headerBgColor }]} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
           {grade && section
@@ -232,17 +241,27 @@ export default function ScheduleScreen() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
-    paddingTop: 20,
-    padding: 24,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
+const createStyles = (Colors, theme) => {
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || '#0B1956');
+  return StyleSheet.create({
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: Colors.background },
+    topBleed: {
+      position: 'absolute',
+      top: -1000,
+      left: 0,
+      right: 0,
+      height: 1000,
+    },
+    header: {
+      backgroundColor: headerBgColor,
+      paddingTop: 20,
+      padding: 24,
+      paddingBottom: 24,
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+      marginTop: -1,
+    },
   backButton: {
     position: 'absolute',
     left: 20,
@@ -441,4 +460,5 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     color: theme === 'dark' ? Colors.text.secondary : '#166534',
     lineHeight: 18,
   }
-});
+  });
+};

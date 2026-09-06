@@ -153,8 +153,17 @@ export default function GradesScreen() {
 
   const overall = getOverallAverage();
 
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || Colors.primary || '#0B1956');
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
+      <View style={{ position: 'absolute', top: -1000, left: 0, right: 0, height: 1000, backgroundColor: headerBgColor }} />
       <PageHeader 
         title={t('titles.grades', 'Calificaciones y Notas')} 
         subtitle={isCoordinatorView ? t('titles.gradesSubtitleCoordinator', 'Consulta de notas del estudiante') : t('titles.gradesSubtitle', 'Resumen de rendimiento académico')} 

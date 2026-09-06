@@ -234,7 +234,12 @@ export default function AnnouncementsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    style={{ flexGrow: 0 }}
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                  >
                     <Text style={styles.inputLabel}>{t('announcements.announcementTitleLabel', 'Título del Aviso *')}</Text>
                     <TextInput
                       style={styles.textInput}
@@ -356,7 +361,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowRadius: 8,
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: 16, maxHeight: '90%' },
+  modalContent: { width: '100%', padding: 24, paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
   inputLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.secondary, marginBottom: 6, textTransform: 'uppercase' },

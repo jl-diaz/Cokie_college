@@ -913,14 +913,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 24,
-    paddingBottom: 24,
-    maxHeight: '90%',
+    paddingBottom: 28,
   },
   modalHeader: {
     flexDirection: 'row',

@@ -66,7 +66,7 @@ export default function EasterEggScreen() {
   const [, forceRender] = useState({});
 
   const spawnObstacle = (currentWidth, currentHeight) => {
-    const currentGap = 180; // Fixed gap to prevent phantom collision zones
+    const currentGap = 220; // Fixed gap to prevent phantom collision zones
     const minHeight = Math.min(80, currentHeight * 0.15);
     const maxHeight = currentHeight - currentGap - minHeight;
     const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);

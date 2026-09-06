@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
-import { FileText, Calendar, Plus, X, Upload, CheckCircle, Clock, XCircle } from 'lucide-react-native';
+import { FileText, Calendar, Plus, X, Upload, CheckCircle, Clock, XCircle, ChevronDown } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../src/context/ThemeContext';
@@ -10,6 +10,28 @@ import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 
 import { useAlert } from '../src/context/AlertContext';
+
+const SCHOOL_HOURS = [
+  '07:00 AM',
+  '07:30 AM',
+  '08:00 AM',
+  '08:30 AM',
+  '09:00 AM',
+  '09:30 AM',
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '12:00 PM',
+  '12:30 PM',
+  '01:00 PM',
+  '01:30 PM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM'
+];
 
 export default function JustificationsScreen() {
   const { t } = useTranslation();
@@ -22,12 +44,30 @@ export default function JustificationsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const formatLocalDate = (dateStr) => {
+    if (!dateStr) return '';
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const clean = dateStr.split('T')[0];
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        const [y, m, d] = parts;
+        return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+      }
+    }
+    return new Date(dateStr).toLocaleDateString();
+  };
+
   const [formData, setFormData] = useState({
     date: '',
     reason: '',
-    evidence: null
+    evidence: null,
+    scope: 'full_day', // 'full_day' | 'hourly'
+    start_time: '07:00 AM',
+    end_time: '09:30 AM'
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [timePickerTarget, setTimePickerTarget] = useState(null); // 'start' | 'end'
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
 
   useEffect(() => {
     fetchJustifications();
@@ -122,9 +162,13 @@ export default function JustificationsScreen() {
         }
       }
 
+      const finalReason = formData.scope === 'hourly'
+        ? `[HORARIO: ${formData.start_time} - ${formData.end_time}] ${formData.reason.trim()}`
+        : `[JORNADA COMPLETA] ${formData.reason.trim()}`;
+
       await api.post('/student/justifications', {
         absence_date: formData.date,
-        reason: formData.reason,
+        reason: finalReason,
         evidence_url: finalEvidenceUrl
       });
       
@@ -134,7 +178,14 @@ export default function JustificationsScreen() {
         message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
       });
       setModalVisible(false);
-      setFormData({ date: '', reason: '', evidence: null });
+      setFormData({ 
+        date: '', 
+        reason: '', 
+        evidence: null, 
+        scope: 'full_day', 
+        start_time: '07:00', 
+        end_time: '09:00' 
+      });
       fetchJustifications();
     } catch (error) {
       console.error(error);
@@ -159,21 +210,42 @@ export default function JustificationsScreen() {
   const renderItem = ({ item }) => {
     const status = getStatusStyle(item.status);
     const StatusIcon = status.icon;
+    const timeMatch = (item.reason || '').match(/\[HORARIO:\s*([^\]]+)\]/i);
+    const isFullDay = (item.reason || '').includes('[JORNADA COMPLETA]');
+    const cleanReason = (item.reason || '')
+      .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+      .replace(/\[JORNADA COMPLETA\]/gi, '')
+      .trim();
+
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.dateInfo}>
             <Calendar size={16} color={Colors.text.muted} />
-            <Text style={styles.dateText}>{new Date(item.absence_date).toLocaleDateString()}</Text>
+            <Text style={styles.dateText}>{formatLocalDate(item.absence_date)}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <StatusIcon size={14} color={status.color} />
-            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {timeMatch && (
+              <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Clock size={12} color="#0284c7" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#0284c7' }}>{timeMatch[1]}</Text>
+              </View>
+            )}
+            {isFullDay && (
+              <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Calendar size={12} color="#475569" />
+                <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>Día completo</Text>
+              </View>
+            )}
+            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+              <StatusIcon size={14} color={status.color} />
+              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+            </View>
           </View>
         </View>
         
         <Text style={styles.reasonLabel}>{t('dashboard.reason', 'Motivo')}:</Text>
-        <Text style={styles.reasonText}>{item.reason}</Text>
+        <Text style={styles.reasonText}>{cleanReason || item.reason}</Text>
         
         {item.coordinator_message && (
           <View style={styles.obsContainer}>
@@ -231,12 +303,40 @@ export default function JustificationsScreen() {
             <ScrollView 
               keyboardShouldPersistTaps="handled" 
               showsVerticalScrollIndicator={false}
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={{ paddingBottom: 8 }}
             >
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
                     <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
                       <X size={24} color={Colors.primary} />
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Modalidad de Inasistencia */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>{t('justifications.scopeLabel', 'Tipo de Inasistencia')}</Text>
+                    <View style={styles.scopeSelector}>
+                      <TouchableOpacity
+                        style={[styles.scopeBtn, formData.scope === 'full_day' && styles.scopeBtnActive]}
+                        onPress={() => setFormData(prev => ({ ...prev, scope: 'full_day' }))}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.scopeBtnText, formData.scope === 'full_day' && styles.scopeBtnTextActive]}>
+                          Día Completo
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.scopeBtn, formData.scope === 'hourly' && styles.scopeBtnActive]}
+                        onPress={() => setFormData(prev => ({ ...prev, scope: 'hourly' }))}
+                        activeOpacity={0.8}
+                      >
+                        <Clock size={16} color={formData.scope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
+                        <Text style={[styles.scopeBtnText, formData.scope === 'hourly' && styles.scopeBtnTextActive]}>
+                          Por Horario
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Fecha de Inasistencia */}
@@ -257,6 +357,46 @@ export default function JustificationsScreen() {
                       />
                     )}
                   </View>
+
+                  {/* Rango de Horario (Selector Táctil) */}
+                  {formData.scope === 'hourly' && (
+                    <View style={styles.timeRangeContainer}>
+                      <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                        <Text style={styles.label}>Desde (Hora Inicio)</Text>
+                        <TouchableOpacity
+                          style={styles.timeSelectorBtn}
+                          onPress={() => {
+                            setTimePickerTarget('start');
+                            setTimePickerVisible(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                            <Text style={styles.timeSelectorText}>{formData.start_time}</Text>
+                          </View>
+                          <ChevronDown size={16} color={Colors.text.muted} />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                        <Text style={styles.label}>Hasta (Hora Fin)</Text>
+                        <TouchableOpacity
+                          style={styles.timeSelectorBtn}
+                          onPress={() => {
+                            setTimePickerTarget('end');
+                            setTimePickerVisible(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                            <Text style={styles.timeSelectorText}>{formData.end_time}</Text>
+                          </View>
+                          <ChevronDown size={16} color={Colors.text.muted} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
 
                   {/* Motivo */}
                   <View style={styles.formGroup}>
@@ -302,7 +442,52 @@ export default function JustificationsScreen() {
                     )}
                   </TouchableOpacity>
                 </ScrollView>
+        </BottomModal>
+
+        {/* Time Picker Modal */}
+        <BottomModal visible={timePickerVisible} onClose={() => setTimePickerVisible(false)}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>
+                  {timePickerTarget === 'start' ? 'Hora de Inicio' : 'Hora de Fin'}
+                </Text>
+                <Text style={{ fontSize: 13, color: Colors.text.secondary, marginTop: 2 }}>
+                  Selecciona la hora correspondiente
+                </Text>
               </View>
+              <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
+                <X size={24} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
+                {SCHOOL_HOURS.map(hour => {
+                  const isSelected = (timePickerTarget === 'start' ? formData.start_time : formData.end_time) === hour;
+                  return (
+                    <TouchableOpacity
+                      key={hour}
+                      style={[styles.hourChip, isSelected && styles.hourChipActive]}
+                      onPress={() => {
+                        if (timePickerTarget === 'start') {
+                          setFormData(prev => ({ ...prev, start_time: hour }));
+                        } else {
+                          setFormData(prev => ({ ...prev, end_time: hour }));
+                        }
+                        setTimePickerVisible(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Clock size={14} color={isSelected ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
+                      <Text style={[styles.hourChipText, isSelected && styles.hourChipTextActive]}>
+                        {hour}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
         </BottomModal>
     </View>
   );
@@ -404,14 +589,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 24,
     paddingBottom: 24,
-    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -428,6 +607,47 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: Colors.text.primary,
+  },
+  timeSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card || '#FFF',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.gray[300] || '#D1D5DB',
+  },
+  timeSelectorText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  hourChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background || '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: Colors.gray[200] || '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    width: '48%',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  hourChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  hourChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  hourChipTextActive: {
+    color: '#FFF',
   },
   textArea: { height: 100, textAlignVertical: 'top' },
   uploadBtn: {
@@ -468,5 +688,42 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
     color: Colors.text.muted,
+  },
+  scopeSelector: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray[100],
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 4,
+  },
+  scopeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  scopeBtnActive: {
+    backgroundColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scopeBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.muted,
+  },
+  scopeBtnTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 });

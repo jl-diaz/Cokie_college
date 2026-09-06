@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { logoBase64, poppinsNormal } from './pdfResources';
 import api from './api';
+import { supabase } from './supabase';
 
 const generatePDFDocument = (student, gradesData, averagesData, period, allPeriodsData = null, diaryData = { conduct: [], attendance: [] }) => {
   const { jsPDF } = require('jspdf');
@@ -197,10 +198,37 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
     styles: { font: 'Poppins', fontSize: 9, cellPadding: 4, lineColor: [210, 210, 210], lineWidth: 0.1 }
   });
 
-  
+  // --- Period Average & Acronyms Legend (Positioned immediately below grades table) ---
+  let afterGradesY = doc.lastAutoTable.finalY + 6;
 
-    // --- Conduct & Absences ---
-    let currentY = doc.lastAutoTable.finalY + 10;
+  // Promedio del Periodo destacado
+  doc.setFont("Poppins", "bold");
+  doc.setFontSize(10.5);
+  doc.setTextColor(11, 25, 86);
+  const label = isPeriod4 ? 'Promedio del Año: ' : 'Promedio del periodo: ';
+  doc.text(label, 15, afterGradesY);
+  
+  const labelWidth = doc.getTextWidth(label);
+  doc.setFont("Poppins", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${finalOverall}`, 15 + labelWidth, afterGradesY);
+
+  // Explicación de Siglas
+  doc.setFont("Poppins", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(90, 90, 90);
+
+  if (!isPeriod4) {
+    doc.text("AU=ACTIVIDAD AULA   PO=PRUEBA OBJETIVA   AI= ACTIVIDAD INTEGRADORA", 105, afterGradesY + 5, { align: "center" });
+    doc.text("EF=EVALUACION FORMATIVA   EX=EXAMEN FINAL   PROM=PROMEDIO   ACC=ACUMULADO", 105, afterGradesY + 9, { align: "center" });
+    afterGradesY += 13;
+  } else {
+    doc.text("PI=PROMEDIO INDIVIDUAL   NF= NOTA FINAL", 105, afterGradesY + 5, { align: "center" });
+    afterGradesY += 9;
+  }
+
+  // --- Conduct & Absences ---
+  let currentY = afterGradesY + 3;
     
     // Calculate totals
     const conductList = diaryData?.conduct || [];
@@ -218,35 +246,135 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
       else if (cat.includes('positivo') || cat.includes('merito') || cat.includes('mérito')) positivos++;
     });
 
+    // Determine Traffic Light Status
+    const totalConductPoints = (graves * 6) + leves;
+    let statusKey = 'verde';
+    if (muyGraves >= 1 || totalConductPoints >= 12) {
+      statusKey = 'rojo';
+    } else if (graves >= 1 || leves >= 6 || totalConductPoints >= 6) {
+      statusKey = 'amarillo';
+    } else if (positivos >= 6 && leves <= 1 && unjustifiedAbs <= 2) {
+      statusKey = 'azul';
+    } else {
+      statusKey = 'verde';
+    }
+
+    const trafficConfig = {
+      azul: {
+        title: 'SOBRESALIENTE',
+        message: '¡Felicitaciones! Conducta ejemplar y cumplimiento distinguido. ¡Sigue así!',
+        rgb: [37, 99, 235],
+        bgRgb: [239, 246, 255],
+        borderRgb: [147, 197, 253]
+      },
+      verde: {
+        title: 'NORMAL / EJEMPLAR',
+        message: 'Estado conductual adecuado dentro de la normativa institucional. ¡Sigue así!',
+        rgb: [16, 185, 129],
+        bgRgb: [236, 253, 245],
+        borderRgb: [167, 243, 208]
+      },
+      amarillo: {
+        title: 'PRECAUCIÓN',
+        message: 'Atención requerida por faltas acumuladas. Se exhorta a mejorar su conducta y puntualidad.',
+        rgb: [217, 119, 6],
+        bgRgb: [255, 251, 235],
+        borderRgb: [253, 230, 138]
+      },
+      rojo: {
+        title: 'ALERTA CRÍTICA',
+        message: 'Se ha superado el umbral reglamentario de faltas. Se requiere citación inmediata a Coordinación.',
+        rgb: [220, 38, 38],
+        bgRgb: [254, 242, 242],
+        borderRgb: [254, 202, 202]
+      }
+    };
+
+    const currentTraffic = trafficConfig[statusKey];
+
     // Subheader for Conduct
     doc.setFont("Poppins", "bold");
     doc.setFillColor(11, 25, 86);
-    doc.rect(15, currentY, 180, 8, 'F');
+    doc.rect(15, currentY, 180, 7, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
-    doc.text("RESUMEN DE CONDUCTA Y ASISTENCIA", 105, currentY + 5.5, { align: "center" });
+    doc.text("EVALUACIÓN CONDUCTUAL Y ASISTENCIA", 105, currentY + 5, { align: "center" });
     
-    currentY += 8;
+    currentY += 10;
 
-    autoTable(doc, {
-      startY: currentY,
-      head: [['Ausencias Justificadas', 'Ausencias Injustificadas', 'Códigos Positivos', 'Faltas Leves', 'Faltas Graves', 'Faltas Muy Graves']],
-      body: [[
-        justifiedAbs.toString(),
-        unjustifiedAbs.toString(),
-        positivos.toString(),
-        leves.toString(),
-        graves.toString(),
-        muyGraves.toString()
-      ]],
-      theme: 'grid',
-      headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200], fontSize: 8.5 },
-      bodyStyles: { halign: 'center', font: 'Poppins', fontSize: 10, textColor: [50, 50, 50] },
-      styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 3 }
+    // --- Draw Traffic Light Visual Component ---
+    // 1. Physical Traffic Light Box (Dark casing with 4 lenses)
+    const tlX = 15;
+    const tlY = currentY;
+    const tlW = 16;
+    const tlH = 26;
+
+    // Outer dark housing
+    doc.setFillColor(24, 30, 48);
+    doc.setDrawColor(11, 25, 86);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(tlX, tlY, tlW, tlH, 3, 3, 'FD');
+
+    // Mini visor top accent
+    doc.setFillColor(15, 20, 35);
+    doc.roundedRect(tlX + 2, tlY - 1.5, tlW - 4, 2, 0.8, 0.8, 'F');
+
+    // Bulbs positions (Azul, Verde, Amarillo, Rojo)
+    const bulbRadius = 2.1;
+    const bulbCenters = [
+      { key: 'azul', cx: tlX + tlW / 2, cy: tlY + 4.2, onRgb: [59, 130, 246], offRgb: [22, 40, 79] },
+      { key: 'verde', cx: tlX + tlW / 2, cy: tlY + 9.8, onRgb: [16, 185, 129], offRgb: [15, 51, 35] },
+      { key: 'amarillo', cx: tlX + tlW / 2, cy: tlY + 15.4, onRgb: [245, 158, 11], offRgb: [62, 43, 8] },
+      { key: 'rojo', cx: tlX + tlW / 2, cy: tlY + 21.0, onRgb: [239, 68, 68], offRgb: [62, 21, 21] }
+    ];
+
+    bulbCenters.forEach(b => {
+      const isActive = b.key === statusKey;
+      if (isActive) {
+        // Bright active glow ring
+        doc.setFillColor(255, 255, 255);
+        doc.circle(b.cx, b.cy, bulbRadius + 0.5, 'F');
+        doc.setFillColor(b.onRgb[0], b.onRgb[1], b.onRgb[2]);
+        doc.circle(b.cx, b.cy, bulbRadius, 'F');
+      } else {
+        // Muted inactive bulb
+        doc.setFillColor(b.offRgb[0], b.offRgb[1], b.offRgb[2]);
+        doc.circle(b.cx, b.cy, bulbRadius, 'F');
+      }
     });
 
-    currentY = doc.lastAutoTable.finalY + 5;
+    // 2. Info / Status Card next to traffic light
+    const cardX = tlX + tlW + 3;
+    const cardW = 180 - tlW - 3;
+    const cardH = tlH;
 
+    doc.setFillColor(currentTraffic.bgRgb[0], currentTraffic.bgRgb[1], currentTraffic.bgRgb[2]);
+    doc.setDrawColor(currentTraffic.borderRgb[0], currentTraffic.borderRgb[1], currentTraffic.borderRgb[2]);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(cardX, tlY, cardW, cardH, 3, 3, 'FD');
+
+    // Status Title and Badge
+    doc.setFont("Poppins", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(currentTraffic.rgb[0], currentTraffic.rgb[1], currentTraffic.rgb[2]);
+    doc.text(`SEMÁFORO DISCIPLINARIO: ${currentTraffic.title}`, cardX + 5, tlY + 6);
+
+    // Status Message
+    doc.setFont("Poppins", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(40, 40, 40);
+    doc.text(currentTraffic.message, cardX + 5, tlY + 12);
+
+    // Quick Stats chips inside card
+    doc.setFont("Poppins", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(70, 70, 70);
+    const statsSummaryText = `Ausencias Just.: ${justifiedAbs}   |   Injust.: ${unjustifiedAbs}   |   Positivos: ${positivos}   |   Leves: ${leves}   |   Graves: ${graves}   |   Muy Graves: ${muyGraves}`;
+    doc.text(statsSummaryText, cardX + 5, tlY + 20);
+
+    currentY += tlH + 5;
+
+    // Detailed conduct codes table
     if (conductList.length > 0) {
       const conductBody = conductList.map(c => {
         const rawDate = c.created_at || c.date;
@@ -264,52 +392,173 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
             formattedDate = 'N/A';
           }
         }
+
+        const teacherRole = c.teacher?.role === 'coordinator' ? ' (Coord.)' : (c.teacher?.role === 'teacher' ? ' (Docente)' : '');
+        const appliedBy = c.teacher?.full_name ? `${c.teacher.full_name}${teacherRole}` : 'Docente / Coord.';
+
         return [
           formattedDate,
           c.conduct_codes?.category || c.conduct_codes?.type || 'Leve',
-          c.conduct_codes?.description || c.conduct_codes?.name || 'Sin descripción',
-          c.observation || 'N/A'
+          c.conduct_codes?.name || c.conduct_codes?.description || 'Sin descripción',
+          appliedBy,
+          c.observation || 'Sin observaciones'
         ];
       });
 
       autoTable(doc, {
         startY: currentY,
-        head: [['Fecha', 'Gravedad', 'Código Aplicado', 'Observación']],
+        head: [['Fecha', 'Gravedad', 'Código Aplicado', 'Aplicado por', 'Observación']],
         body: conductBody,
         theme: 'grid',
-        headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'left', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
-        bodyStyles: { halign: 'left', font: 'Poppins', fontSize: 8, textColor: [50, 50, 50] },
-        columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 25 }, 2: { cellWidth: 65 } },
-        styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 3 }
+        margin: { left: 15, right: 15 },
+        headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'left', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200], fontSize: 8 },
+        bodyStyles: { halign: 'left', font: 'Poppins', fontSize: 7.5, textColor: [50, 50, 50] },
+        columnStyles: { 
+          0: { cellWidth: 20 }, 
+          1: { cellWidth: 22 }, 
+          2: { cellWidth: 46 },
+          3: { cellWidth: 42 },
+          4: { cellWidth: 50 }
+        },
+        styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 2.5 }
+      });
+    } else {
+      doc.setFont("Poppins", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text("No se registran faltas disciplinarias en el expediente de este periodo.", 105, currentY + 4, { align: "center" });
+      currentY += 8;
+    }
+
+    // --- Detailed Absences Table (Ausencias del Periodo) ---
+    const absencesList = attendanceList.filter(a => a.status === 'absent' || a.status === 'justified');
+    let absencesStartY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : currentY) + 6;
+
+    if (absencesList.length > 0) {
+      if (absencesStartY + 35 > 280) {
+        doc.addPage();
+        absencesStartY = 20;
+      }
+
+      // Title header for Absences
+      doc.setFont("Poppins", "bold");
+      doc.setFillColor(11, 25, 86);
+      doc.rect(15, absencesStartY, 180, 6, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8.5);
+      doc.text("REGISTRO DETALLADO DE INASISTENCIAS DEL PERIODO", 105, absencesStartY + 4.2, { align: "center" });
+
+      // Agrupar registros de inasistencias por fecha única
+      const groupedByDate = {};
+      absencesList.forEach(a => {
+        const rawDate = a.date || a.created_at;
+        if (!rawDate) return;
+        const dStr = rawDate.split('T')[0];
+        if (!groupedByDate[dStr]) {
+          groupedByDate[dStr] = [];
+        }
+        groupedByDate[dStr].push(a);
+      });
+
+      // Ordenar fechas cronológicamente
+      const sortedDates = Object.keys(groupedByDate).sort();
+
+      const absencesBody = sortedDates.map(dateKey => {
+        const dayItems = groupedByDate[dateKey];
+        
+        let formattedDate = dateKey;
+        try {
+          const [yr, mo, da] = dateKey.split('-');
+          if (yr && mo && da) {
+            formattedDate = `${da.padStart(2, '0')}/${mo.padStart(2, '0')}/${yr}`;
+          }
+        } catch (e) {
+          formattedDate = dateKey;
+        }
+
+        // Si al menos una es justificada en esa fecha
+        const hasJustified = dayItems.some(i => i.status === 'justified');
+        const isFullyJustified = dayItems.every(i => i.status === 'justified');
+        const tipoEstado = isFullyJustified ? 'Justificada' : (hasJustified ? 'Parcial / Justificada' : 'Injustificada');
+
+        // Extraer materias únicas
+        const uniqueSubjects = [...new Set(dayItems.map(i => i.subjects?.name).filter(Boolean))];
+        
+        // Detectar si es día completo o si hay especificación de horario en los motivos
+        let detectedTimeScope = null;
+        let isFullDayAbsence = false;
+        for (const item of dayItems) {
+          const text = item.coordinator_message || item.reason || '';
+          if (text.includes('[JORNADA COMPLETA]') || item.subjects?.name === 'Día completo') {
+            isFullDayAbsence = true;
+          }
+          const match = text.match(/\[HORARIO:\s*([^\]]+)\]/i);
+          if (match) {
+            detectedTimeScope = match[1].trim();
+          }
+        }
+
+        let materiaContexto = 'Día completo';
+        if (isFullDayAbsence) {
+          materiaContexto = 'Día completo';
+        } else if (detectedTimeScope) {
+          materiaContexto = `${detectedTimeScope}`;
+          const cleanSubs = uniqueSubjects.filter(s => s !== 'Inasistencia Justificada' && s !== 'Día completo');
+          if (cleanSubs.length > 0) {
+            materiaContexto += ` (${cleanSubs.join(', ')})`;
+          }
+        } else if (uniqueSubjects.length > 0 && !uniqueSubjects.includes('Inasistencia Justificada')) {
+          if (uniqueSubjects.includes('Día completo') || uniqueSubjects.length >= 4) {
+            materiaContexto = 'Día completo';
+          } else {
+            materiaContexto = uniqueSubjects.join(', ');
+          }
+        } else {
+          materiaContexto = 'Día completo';
+        }
+
+        // Detalle u Observación consolidada
+        const details = dayItems
+          .map(i => {
+            let msg = i.coordinator_message || i.reason || '';
+            msg = msg.replace(/\[HORARIO:\s*[^\]]+\]\s*/i, '').replace(/\[JORNADA COMPLETA\]\s*/i, '').trim();
+            return msg;
+          })
+          .filter(Boolean);
+
+        const uniqueDetails = [...new Set(details)];
+        let finalDetalle = uniqueDetails.join(' | ');
+        if (!finalDetalle) {
+          finalDetalle = hasJustified ? 'Permiso / Justificación aprobada' : 'Falta sin justificación médica o familiar';
+        }
+
+        return [
+          formattedDate,
+          tipoEstado,
+          materiaContexto,
+          finalDetalle
+        ];
+      });
+
+      autoTable(doc, {
+        startY: absencesStartY + 8,
+        head: [['Fecha', 'Estado', 'Modalidad / Materias', 'Detalle u Observación']],
+        body: absencesBody,
+        theme: 'grid',
+        margin: { left: 15, right: 15 },
+        headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'left', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200], fontSize: 8 },
+        bodyStyles: { halign: 'left', font: 'Poppins', fontSize: 7.5, textColor: [50, 50, 50] },
+        columnStyles: { 
+          0: { cellWidth: 22 }, 
+          1: { cellWidth: 26 }, 
+          2: { cellWidth: 54 },
+          3: { cellWidth: 78 }
+        },
+        styles: { font: 'Poppins', lineWidth: 0.1, lineColor: [210, 210, 210], cellPadding: 2.5 }
       });
     }
 
-    // --- Footer ---
-    const finalY = doc.lastAutoTable.finalY;
-
-  doc.setFont("Poppins", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(50, 50, 50);
-
-  if (!isPeriod4) {
-    doc.text("AU=ACTIVIDAD AULA   PO=PRUEBA OBJETIVA   AI= ACTIVIDAD INTEGRADORA", 105, finalY + 6, { align: "center" });
-    doc.text("EF=EVALUACION FORMATIVA   EX=EXAMEN FINAL   PROM=PROMEDIO   ACC=ACUMULADO", 105, finalY + 11, { align: "center" });
-  } else {
-    doc.text("PI=PROMEDIO INDIVIDUAL   NF= NOTA FINAL", 105, finalY + 6, { align: "center" });
-  }
-
-  doc.setFont("Poppins", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  
-  const label = isPeriod4 ? 'Promedio del Año: ' : 'Promedio del periodo: ';
-  doc.text(label, 15, finalY + 25);
-  
-  const labelWidth = doc.getTextWidth(label);
-  doc.setFont("Poppins", "normal");
-  doc.text(`${finalOverall}`, 15 + labelWidth, finalY + 25);
-
-  return doc;
+    return doc;
 };
 
 export const generateAndDownloadStudentReport = async (studentId, period, studentDetails) => {
@@ -376,6 +625,23 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
             allPeriodsData.push({ period: p, averages: [] });
           }
         }
+    }
+
+    if (diaryData.conduct && diaryData.conduct.length > 0) {
+      const missingTeacherIds = [...new Set(diaryData.conduct.filter(c => !c.teacher && c.teacher_id).map(c => c.teacher_id))];
+      if (missingTeacherIds.length > 0) {
+        try {
+          const { data: profs } = await supabase.from('profiles').select('id, full_name, role').in('id', missingTeacherIds);
+          if (profs && profs.length > 0) {
+            diaryData.conduct = diaryData.conduct.map(c => {
+              if (!c.teacher && c.teacher_id) {
+                const found = profs.find(p => p.id === c.teacher_id);
+                if (found) return { ...c, teacher: found };
+              }
+              return c;
+            });
+          }
+        } catch (e) {}
       }
     }
 
@@ -418,6 +684,24 @@ export const generateClassroomReportsZip = async (classroomId, period, studentsL
         for (let p = 1; p <= period; p++) {
           const pAvg = await api.get(`/coordinator/students/${student.id}/averages`, { params: { period: p } });
           allPeriodsData.push({ period: p, averages: pAvg.data });
+        }
+
+        if (diaryData.conduct && diaryData.conduct.length > 0) {
+          const missingTeacherIds = [...new Set(diaryData.conduct.filter(c => !c.teacher && c.teacher_id).map(c => c.teacher_id))];
+          if (missingTeacherIds.length > 0) {
+            try {
+              const { data: profs } = await supabase.from('profiles').select('id, full_name, role').in('id', missingTeacherIds);
+              if (profs && profs.length > 0) {
+                diaryData.conduct = diaryData.conduct.map(c => {
+                  if (!c.teacher && c.teacher_id) {
+                    const found = profs.find(p => p.id === c.teacher_id);
+                    if (found) return { ...c, teacher: found };
+                  }
+                  return c;
+                });
+              }
+            } catch (e) {}
+          }
         }
         
         const doc = generatePDFDocument(student, gradesRes.data, averagesRes.data, period, allPeriodsData, diaryData);

@@ -233,10 +233,10 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   actionSheetContent: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['3xl'],
-    borderTopRightRadius: BorderRadius['3xl'],
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 40
+    paddingBottom: 28,
   },
   modalHeader: {
     flexDirection: 'row',

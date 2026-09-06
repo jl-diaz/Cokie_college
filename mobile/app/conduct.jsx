@@ -290,7 +290,7 @@ export default function ConductCatalogScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled">
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 8 }}>
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Código</Text>
                 <TextInput
@@ -439,15 +439,8 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    maxHeight: '90%',
     padding: 24,
     paddingBottom: 24,
-    ...Shadows.elevated,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },

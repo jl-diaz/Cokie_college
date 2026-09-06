@@ -823,15 +823,8 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    maxHeight: '90%',
     padding: 24,
     paddingBottom: 24,
-    ...Shadows.elevated,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -841,7 +834,7 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
   closeBtn: { padding: 4 },
-  modalForm: { flexGrow: 1 },
+  modalForm: { flexGrow: 0 },
   formGroup: { marginBottom: Spacing.lg },
   label: { fontSize: Typography.size.xs, fontWeight: '700', color: Colors.text.muted, marginBottom: 8, textTransform: 'uppercase' },
   inputWrapper: {

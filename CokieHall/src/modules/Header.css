@@ -44,13 +44,75 @@
 .botonCont {
     display: flex;
     justify-content: center;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.85rem;
     padding-top: 1rem;
-    cursor: pointer;
 }
 
 a .botonCont {
     cursor: pointer;
+}
+
+.button-globe {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: transparent;
+  color: #1d1d1f;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  padding: 0;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.button-globe .button-bg {
+  border-radius: 9999px;
+  border-color: rgba(255, 208, 116);
+  background-color: rgba(255, 208, 116);
+}
+
+.button-globe-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: #0b1957;
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), color 0.3s ease;
+}
+
+.button-globe:hover .button-globe-inner {
+  transform: rotate(25deg) scale(1.1);
+  color: #fafaf6;
+}
+
+.button-globe:hover .button-bg-layer {
+  transition:
+    transform 1.3s cubic-bezier(0.19, 1, 0.22, 1),
+    opacity 0.3s linear;
+}
+
+.button-globe:hover .button-bg-layer-1 {
+  transform: scale(1);
+}
+
+.button-globe:hover .button-bg-layer-2 {
+  transition-delay: 0.1s;
+  transform: scale(1);
+}
+
+.button-globe:hover .button-bg-layer-3 {
+  transition-delay: 0.2s;
+  transform: scale(1);
 }
 
 .button {
@@ -452,6 +514,11 @@ a .botonCont {
     height: 3.2rem;
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+  }
+
+  .button-globe {
+    width: 3.2rem;
+    height: 3.2rem;
   }
 
   .seccion-bienvenida__centro .fold-text {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import api from '../src/utils/api';
+import { supabase } from '../src/utils/supabase';
 import { AlertCircle, Calendar, CheckCircle } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,19 @@ export default function DiaryScreen() {
     fetchDiary();
   }, [selectedPeriod, studentId]);
 
+  const formatLocalDate = (dateStr) => {
+    if (!dateStr) return '';
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const clean = dateStr.split('T')[0];
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        const [y, m, d] = parts;
+        return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
+      }
+    }
+    return new Date(dateStr).toLocaleDateString();
+  };
+
   const fetchDiary = async () => {
     setLoading(true);
     try {
@@ -29,7 +43,50 @@ export default function DiaryScreen() {
         endpoint = `/coordinator/students/${studentId}/diary`;
       }
       const response = await api.get(endpoint, { params: { period: selectedPeriod } });
-      setDiaryData(response.data);
+      const rawData = response.data || { conduct: [], attendance: [] };
+      let conductList = rawData.conduct || [];
+      let attendanceList = rawData.attendance || [];
+
+      // Fallback para resolver docentes/coordinadores en conductList si aún no vienen
+      const missingTeacherIds = [...new Set(conductList.filter(c => !c.teacher && c.teacher_id).map(c => c.teacher_id))];
+      if (missingTeacherIds.length > 0) {
+        try {
+          const { data: teacherProfiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, role')
+            .in('id', missingTeacherIds);
+          if (teacherProfiles && teacherProfiles.length > 0) {
+            conductList = conductList.map(c => {
+              if (!c.teacher && c.teacher_id) {
+                const found = teacherProfiles.find(p => p.id === c.teacher_id);
+                if (found) return { ...c, teacher: found };
+              }
+              return c;
+            });
+          }
+        } catch (tErr) {
+          console.error('Error fetching teacher profiles fallback:', tErr);
+        }
+      }
+
+      // Si hay registros de día completo en la misma fecha, unificarlos para mostrar solo 1 card
+      const seenFullDayDates = new Set();
+      const filteredAttendance = [];
+      attendanceList.forEach(att => {
+        const rawMsg = att.coordinator_message || '';
+        const isFullDay = rawMsg.includes('[JORNADA COMPLETA]') || att.subjects?.name === 'Día completo';
+        const dateStr = att.date ? att.date.split('T')[0] : '';
+        if (isFullDay && dateStr) {
+          if (!seenFullDayDates.has(dateStr)) {
+            seenFullDayDates.add(dateStr);
+            filteredAttendance.push({ ...att, subjects: { name: 'Día completo' }, isFullDay: true });
+          }
+        } else {
+          filteredAttendance.push(att);
+        }
+      });
+
+      setDiaryData({ conduct: conductList, attendance: filteredAttendance });
     } catch (error) {
       console.error(error);
     } finally {
@@ -57,8 +114,17 @@ export default function DiaryScreen() {
     );
   }
 
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || Colors.primary || '#0B1956');
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
+      <View style={{ position: 'absolute', top: -1000, left: 0, right: 0, height: 1000, backgroundColor: headerBgColor }} />
       <PageHeader 
         title={t('titles.diary', 'Diario Pedagógico')} 
         subtitle={t('titles.diarySubtitle', 'Seguimiento de conducta y asistencia')} 
@@ -109,7 +175,15 @@ export default function DiaryScreen() {
                     </View>
                   </View>
                   {record.observation && <Text style={styles.recordObs}>{record.observation}</Text>}
-                  <Text style={styles.recordDate}>{new Date(record.created_at).toLocaleDateString()}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 6 }}>
+                    <Text style={styles.recordDate}>{formatLocalDate(record.created_at)}</Text>
+                    {record.teacher?.full_name ? (
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
+                        {record.teacher.role === 'coordinator' ? '🏛️ Coord: ' : '👨‍🏫 Docente: '}
+                        {record.teacher.full_name}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
               );
             })
@@ -133,6 +207,14 @@ export default function DiaryScreen() {
           ) : (
             absences.map(att => {
               const isJustified = att.status === 'justified';
+              const rawMsg = att.coordinator_message || '';
+              const timeMatch = rawMsg.match(/\[HORARIO:\s*([^\]]+)\]/i);
+              const isFullDay = rawMsg.includes('[JORNADA COMPLETA]') || att.subjects?.name === 'Día completo';
+              const cleanMsg = rawMsg
+                .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+                .replace(/\[JORNADA COMPLETA\]/gi, '')
+                .trim();
+
               return (
                 <View key={att.id} style={[styles.absenceCard, isJustified && { backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4', borderColor: '#bbf7d0', borderWidth: 1 }]}>
                   <View style={[styles.absenceIcon, isJustified && { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
@@ -142,29 +224,74 @@ export default function DiaryScreen() {
                       <Calendar color="#e74c3c" size={18} />
                     )}
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={styles.absenceDate}>{new Date(att.date).toLocaleDateString()}</Text>
-                      <Text style={{ 
-                        fontSize: 11, 
-                        fontWeight: 'bold', 
-                        color: isJustified ? '#166534' : '#991b1b',
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    {/* Header Row: Fecha a la izquierda y Pill a la derecha */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <Text style={styles.absenceDate}>{formatLocalDate(att.date)}</Text>
+                      <View style={{ 
                         backgroundColor: isJustified ? '#dcfce7' : '#fee2e2',
                         paddingHorizontal: 8,
-                        paddingVertical: 2,
+                        paddingVertical: 3,
                         borderRadius: 12
                       }}>
-                        {isJustified ? 'Justificada' : 'Inasistencia'}
-                      </Text>
+                        <Text style={{ 
+                          fontSize: 10.5, 
+                          fontWeight: 'bold', 
+                          color: isJustified ? '#166534' : '#991b1b'
+                        }}>
+                          {isJustified ? 'Justificada' : 'Inasistencia'}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={styles.absenceLabel}>
-                      {att.subjects?.name || (isJustified ? 'Inasistencia Justificada' : 'Clase')}
-                    </Text>
-                    {isJustified && att.coordinator_message && (
-                      <Text style={{ fontSize: 11, color: Colors.text.muted, marginTop: 2, italic: 'italic' }}>
-                        Nota: {att.coordinator_message}
-                      </Text>
+
+                    {/* Scope tags row: Horario o Día completo */}
+                    {(timeMatch || isFullDay) && (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                        {timeMatch && (
+                          <View style={{
+                            backgroundColor: '#e0f2fe',
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 8
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: '#0284c7'
+                            }}>
+                              🕒 {timeMatch[1]}
+                            </Text>
+                          </View>
+                        )}
+                        {isFullDay && (
+                          <View style={{
+                            backgroundColor: '#f1f5f9',
+                            paddingHorizontal: 7,
+                            paddingVertical: 2,
+                            borderRadius: 8
+                          }}>
+                            <Text style={{
+                              fontSize: 10,
+                              fontWeight: '600',
+                              color: '#475569'
+                            }}>
+                              📅 Día completo
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     )}
+
+                    {/* Materias o Día Completo */}
+                    <Text style={styles.absenceLabel}>
+                      {isFullDay ? 'Día completo' : (att.subjects?.name || (isJustified ? 'Inasistencia Justificada' : 'Clase'))}
+                    </Text>
+
+                    {isJustified && cleanMsg ? (
+                      <Text style={{ fontSize: 11, color: Colors.text.muted, marginTop: 3, fontStyle: 'italic' }}>
+                        Nota: {cleanMsg}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               );

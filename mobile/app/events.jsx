@@ -278,7 +278,12 @@ export default function EventsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    style={{ flexGrow: 0 }}
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                  >
                     <Text style={styles.inputLabel}>{t('events.eventTitleLabel', 'Título del Evento *')}</Text>
                     <TextInput
                       style={styles.textInput}
@@ -534,14 +539,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 24,
-    paddingBottom: 16,
-    maxHeight: '90%',
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: 'row',

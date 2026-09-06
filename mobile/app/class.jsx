@@ -901,17 +901,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    maxHeight: '85%',
     padding: Spacing.xl,
     paddingBottom: Spacing.xl,
-    borderTopWidth: theme === 'dark' ? 1 : 0,
-    borderColor: Colors.gray[200],
-    ...Shadows.elevated,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -921,7 +912,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: Colors.primary },
   closeHeaderBtn: { padding: 4 },
-  modalForm: { flexGrow: 1 },
+  modalForm: { flexGrow: 0 },
   studentBannerCard: {
     backgroundColor: Colors.background,
     padding: Spacing.md,

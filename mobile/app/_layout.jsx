@@ -79,13 +79,13 @@ function LayoutInner() {
       <StatusBar style={theme === 'dark' ? "light" : "auto"} />
       <Stack
           screenOptions={({ route }) => ({
-            headerMode: 'screen',
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 
                   height: 60,
               })
             },
+            headerShadowVisible: false,
             headerTintColor: colors.text.headerTxtC,
             headerTitleAlign: 'center',
             headerTitleStyle: {
@@ -95,12 +95,19 @@ function LayoutInner() {
             headerRightContainerStyle: {
               paddingRight: 12,
               justifyContent: 'center',
-              alignItems: 'center',
+              alignItems: 'flex-end',
+              flexGrow: 0,
+              flexShrink: 0,
+              width: 157,
+              minWidth: 157,
+              maxWidth: 157,
             },
             headerLeftContainerStyle: {
               paddingLeft: 8,
               justifyContent: 'center',
-              alignItems: 'center',
+              alignItems: 'flex-start',
+              flexGrow: 0,
+              flexShrink: 0,
             },
             headerLeft: () => {
               if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;
@@ -130,7 +137,11 @@ function LayoutInner() {
                return (
                  <View style={{
                    width: 145,
+                   minWidth: 145,
+                   maxWidth: 145,
                    height: 32,
+                   flexShrink: 0,
+                   flexGrow: 0,
                    flexDirection: 'row',
                    alignItems: 'center',
                    justifyContent: 'space-between',
