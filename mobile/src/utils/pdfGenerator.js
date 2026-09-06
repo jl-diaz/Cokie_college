@@ -625,6 +625,7 @@ export const generateAndDownloadStudentReport = async (studentId, period, studen
             allPeriodsData.push({ period: p, averages: [] });
           }
         }
+      }
     }
 
     if (diaryData.conduct && diaryData.conduct.length > 0) {

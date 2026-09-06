@@ -442,6 +442,7 @@ export default function JustificationsScreen() {
                     )}
                   </TouchableOpacity>
                 </ScrollView>
+          </View>
         </BottomModal>
 
         {/* Time Picker Modal */}
