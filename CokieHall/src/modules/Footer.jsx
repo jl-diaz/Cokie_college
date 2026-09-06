@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './Footer.css';
 import CokieKids from '../assets/CokieKids.png';
 function Footer() {
@@ -48,10 +49,10 @@ function Footer() {
             <h4 className="footer-col-title">Navegación</h4>
             <nav aria-label="Navegación secundaria del pie de página">
               <ul className="footer-col-list">
-                <li><a href="#hero" className="footer-col-link">Home</a></li>
-                <li><a href="#nosotros" className="footer-col-link">Nosotros</a></li>
-                <li><a href="#niveles" className="footer-col-link">Niveles Educativos</a></li>
-                <li><a href="#app-download" className="footer-col-link">Cokie College</a></li>
+                <li><Link to="/#hero" className="footer-col-link">Home</Link></li>
+                <li><Link to="/nosotros" className="footer-col-link">Nosotros</Link></li>
+                <li><Link to="/#niveles" className="footer-col-link">Niveles Educativos</Link></li>
+                <li><Link to="/#app-download" className="footer-col-link">Cokie College</Link></li>
               </ul>
             </nav>
           </div>
@@ -59,9 +60,9 @@ function Footer() {
           <div className="footer-col">
             <h4 className="footer-col-title">Legales & Privacidad</h4>
             <ul className="footer-col-list">
-              <li><a href="/legal?tab=terminos" className="footer-col-link">Términos y Condiciones</a></li>
-              <li><a href="/legal?tab=privacidad" className="footer-col-link">Política de Privacidad</a></li>
-              <li><a href="/legal?tab=copyright" className="footer-col-link">Derechos de Autor & PI</a></li>
+              <li><Link to="/legal?tab=terminos" className="footer-col-link">Términos y Condiciones</Link></li>
+              <li><Link to="/legal?tab=privacidad" className="footer-col-link">Política de Privacidad</Link></li>
+              <li><Link to="/legal?tab=copyright" className="footer-col-link">Derechos de Autor & PI</Link></li>
               <li><span className="footer-col-copy">© 2026 Cokie Dev</span></li>
             </ul>
           </div>

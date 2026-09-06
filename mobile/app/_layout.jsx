@@ -93,21 +93,16 @@ function LayoutInner() {
               fontSize: 16,
             },
             headerRightContainerStyle: {
-              paddingRight: 12,
-              justifyContent: 'center',
+              paddingRight: 16,
+              justifyContent: 'flex-end',
               alignItems: 'center',
-              flexGrow: 0,
-              flexShrink: 0,
-              width: 157,
-              minWidth: 157,
-              maxWidth: 157,
+              flexGrow: 1,
             },
             headerLeftContainerStyle: {
-              paddingLeft: 12,
-              justifyContent: 'center',
+              paddingLeft: 16,
+              justifyContent: 'flex-start',
               alignItems: 'center',
-              flexGrow: 0,
-              flexShrink: 0,
+              flexGrow: 1,
             },
             headerLeft: () => {
               if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;

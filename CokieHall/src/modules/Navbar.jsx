@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import logoBlan from '../assets/logoBlan.png';
 import StaggeredMenu from '../modulesReactBits/StaggeredMenu.jsx';
 import './Navbar.css';
@@ -64,31 +65,31 @@ function Navbar() {
     <header className={`navbar ${!visible && !mobileMenuOpen ? 'navbar--hidden' : ''}`}>
       <div className="navbar__container">
         
-        <a href="/" className="navbar__logo">
+        <Link to="/" className="navbar__logo">
           <img 
             src={logoBlan} 
             alt="Logo Cokie Hall" 
             className="navbar__logo-img" 
           />
-        </a>
+        </Link>
 
         {/* NAVEGACIÓN DESKTOP */}
         <nav className="navbar__nav">
           <ul className="navbar__menu">
             <li className="navbar__item">
-              <a href="/nosotros" className="navbar__link">Sobre Nosotros</a>
+              <Link to="/nosotros" className="navbar__link">Sobre Nosotros</Link>
             </li>
 
             <li className="navbar__item">
-              <a href="/#niveles" className="navbar__link">Niveles Educativos</a>
+              <Link to="/#niveles" className="navbar__link">Niveles Educativos</Link>
             </li>
 
             <li className="navbar__item">
-              <a href="/#app-download" className="navbar__link">Cokie College</a>
+              <Link to="/#app-download" className="navbar__link">Cokie College</Link>
             </li>
 
             <li className="navbar__item">
-              <a href="/#contacto" className="navbar__link">Contacto</a>
+              <Link to="/#contacto" className="navbar__link">Contacto</Link>
             </li>
           </ul>
         </nav>

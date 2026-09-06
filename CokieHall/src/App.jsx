@@ -63,13 +63,18 @@ function ScrollHandler() {
     document.addEventListener('click', handleAnchorClick);
 
     // Manejar scroll inicial si se entra con hash (ej: /#niveles o /#contacto)
+    let hashTimer1 = null;
+    let hashTimer2 = null;
+
     if (location.hash) {
-      setTimeout(() => {
+      const scrollToHash = (duration = 1.2) => {
         const target = document.querySelector(location.hash);
         if (target && lenis) {
-          lenis.scrollTo(target, { offset: -76, duration: 1.2 });
+          lenis.scrollTo(target, { offset: -76, duration });
         }
-      }, 350);
+      };
+      hashTimer1 = setTimeout(() => scrollToHash(1.2), 350);
+      hashTimer2 = setTimeout(() => scrollToHash(0.8), 700);
     } else {
       window.scrollTo(0, 0);
     }
@@ -79,6 +84,8 @@ function ScrollHandler() {
     }, 300);
 
     return () => {
+      if (hashTimer1) clearTimeout(hashTimer1);
+      if (hashTimer2) clearTimeout(hashTimer2);
       clearTimeout(refreshTimer);
       document.removeEventListener('click', handleAnchorClick);
       gsap.ticker.remove(rafCallback);

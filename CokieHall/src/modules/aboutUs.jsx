@@ -274,7 +274,7 @@ function AboutUs() {
           {/* Fila Inferior */}
           <div className="clint-grid-row clint-grid-row-bottom">
             <div className="clint-grid-box clint-box-img">
-              <img src={graduacion} alt="Acompañamiento y valores" className="clint-grid-img" />
+              <img src={graduacion} alt="Acompañamiento y valores" className="clint-grid-img clint-grid-img--graduacion" />
             </div>
 
             {/* Derecha: Visión y Otros (Dos bloques apilados) */}

@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import api from '../src/utils/api';
-import { Calendar, Clock, MapPin, BookOpen, Coffee } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, BookOpen, Coffee, LogOut } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
