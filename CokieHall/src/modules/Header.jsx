@@ -163,8 +163,7 @@ function Header() {
     };
   }, { scope: mainRef });
 
-  // === FOTOS DE ESTUDIANTES A LOS LADOS DEL SCROLL REVEAL (2 POR LADO) ===
-  // Puedes reemplazar los archivos 'src' con tus propias imágenes de estudiantes
+  
   const imagenesIzquierda = [
     { id: 'izq-1', src: futb, alt: 'Estudiante 1 (Izquierda Superior)' },
     { id: 'izq-2', src: kids1, alt: 'Estudiante 2 (Izquierda Inferior)' },

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import logoBlan from '../assets/logoBlan.png';
 import StaggeredMenu from '../modulesReactBits/StaggeredMenu.jsx';
 import './Navbar.css';
@@ -39,11 +40,11 @@ function Navbar() {
   }, [mobileMenuOpen]);
 
   const menuItems = [
-    { label: 'Inicio', link: '#hero', ariaLabel: 'Ir al inicio' },
-    { label: 'Niveles', link: '#niveles', ariaLabel: 'Ver niveles educativos' },
-    { label: 'Clubes', link: '#clubes', ariaLabel: 'Ver clubes deportivos' },
-    { label: 'Nosotros', link: '#nosotros', ariaLabel: 'Sobre Cokie Hall' },
-    { label: 'Contacto', link: '#contacto', ariaLabel: 'Contactar y admisiones' },
+    { label: 'Inicio', link: '/', ariaLabel: 'Ir al inicio' },
+    { label: 'Niveles', link: '/#niveles', ariaLabel: 'Ver niveles educativos' },
+    { label: 'Clubes', link: '/#clubes', ariaLabel: 'Ver clubes deportivos' },
+    { label: 'Sobre Nosotros', link: '/nosotros', ariaLabel: 'Conoce más de Cokie Hall' },
+    { label: 'Contacto', link: '/#contacto', ariaLabel: 'Contactar y admisiones' },
   ];
 
   const socialItems = [
@@ -56,27 +57,27 @@ function Navbar() {
     <header className={`navbar ${!visible && !mobileMenuOpen ? 'navbar--hidden' : ''}`}>
       <div className="navbar__container">
         
-        <a href="#hero" className="navbar__logo">
+        <Link to="/" className="navbar__logo">
           <img 
             src={logoBlan} 
             alt="Logo Cokie Hall" 
             className="navbar__logo-img" 
           />
-        </a>
+        </Link>
 
         {/* NAVEGACIÓN DESKTOP */}
         <nav className="navbar__nav">
           <ul className="navbar__menu">
             <li className="navbar__item">
-              <a href="#niveles" className="navbar__link">Niveles Educativos</a>
+              <a href="/#niveles" className="navbar__link">Niveles Educativos</a>
             </li>
 
             <li className="navbar__item">
-              <a href="#nosotros" className="navbar__link">Nosotros</a>
+              <Link to="/nosotros" className="navbar__link">Sobre Nosotros</Link>
             </li>
-            
+
             <li className="navbar__item">
-              <a href="#contacto" className="navbar__link">Contacto</a>
+              <a href="/#contacto" className="navbar__link">Contacto</a>
             </li>
           </ul>
         </nav>
@@ -108,3 +109,4 @@ function Navbar() {
 }
 
 export default Navbar;
+

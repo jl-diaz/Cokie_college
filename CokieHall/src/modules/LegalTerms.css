@@ -1,0 +1,218 @@
+/* =========================================================
+   PÁGINA LEGAL: ESTILO MINIMALISTA SPOTIFY
+   Títulos limpios, tipografía sobria, enlaces directos
+   ========================================================= */
+
+.spotify-legal-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #121212;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+.spotify-legal-main {
+  width: 100%;
+  padding: 8.5rem 2rem 6rem;
+  background-color: #ffffff;
+}
+
+.spotify-legal-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ===== BARRA DE NAVEGACIÓN SUPERIOR ESTILO SPOTIFY ===== */
+.spotify-legal-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.85rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid #eaeaea;
+  margin-bottom: 3.5rem;
+}
+
+.spotify-legal-nav__label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #6a6a6a;
+  margin-right: 0.35rem;
+}
+
+.spotify-legal-nav__link {
+  background: transparent;
+  border: none;
+  color: #2b2b2b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.spotify-legal-nav__link:hover {
+  color: #000000;
+  text-decoration: underline;
+}
+
+/* Pestaña activa estilo cápsula oscura de Spotify */
+.spotify-legal-nav__link--active {
+  background-color: #222222 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* ===== DOCUMENTO LEGAL ===== */
+.spotify-doc {
+  animation: spotifyFadeIn 0.25s ease-in-out;
+}
+
+@keyframes spotifyFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spotify-doc__title {
+  font-size: clamp(2.1rem, 4.2vw, 2.9rem);
+  font-weight: 850;
+  color: #121212;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 0 0 0.75rem 0;
+}
+
+.spotify-doc__date {
+  font-size: 0.95rem;
+  color: #6a6a6a;
+  font-weight: 500;
+  margin: 0 0 2.5rem 0;
+}
+
+/* ===== ÍNDICE NUMERADO DE ENLACES VERDES ESTILO SPOTIFY ===== */
+.spotify-toc {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 3.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spotify-toc li a {
+  color: #157347; /* Verde enlace característico de Spotify */
+  font-size: 1.06rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: text-decoration 0.15s ease, opacity 0.15s ease;
+  display: inline-block;
+}
+
+.spotify-toc li a:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* ===== SECCIONES DEL CONTENIDO ===== */
+.spotify-doc__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.spotify-section {
+  scroll-margin-top: 100px;
+  margin-bottom: 2.75rem;
+}
+
+.spotify-section h2 {
+  font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+  font-weight: 850;
+  color: #121212;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  margin: 0 0 1.25rem 0;
+}
+
+.spotify-section p {
+  font-size: 1.04rem;
+  line-height: 1.72;
+  color: #222222;
+  margin: 0 0 1.2rem 0;
+  font-weight: 400;
+}
+
+.spotify-section ul {
+  padding-left: 1.4rem;
+  margin: 0 0 1.4rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.spotify-section li {
+  font-size: 1.02rem;
+  line-height: 1.68;
+  color: #222222;
+}
+
+.spotify-section strong {
+  font-weight: 700;
+  color: #111111;
+}
+
+/* Enlaces de texto dentro del cuerpo */
+.inline-text-link {
+  background: none;
+  border: none;
+  color: #157347;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.inline-text-link:hover {
+  opacity: 0.85;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .spotify-legal-main {
+    padding: 7rem 1.25rem 4rem;
+  }
+
+  .spotify-legal-nav {
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.25rem;
+    gap: 0.5rem;
+  }
+
+  .spotify-legal-nav__link {
+    font-size: 0.88rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .spotify-doc__title {
+    line-height: 1.25;
+  }
+
+  .spotify-toc li a {
+    font-size: 0.98rem;
+  }
+
+  .spotify-section {
+    scroll-margin-top: 80px;
+    margin-bottom: 2.25rem;
+  }
+}
