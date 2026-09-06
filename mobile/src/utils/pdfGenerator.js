@@ -191,6 +191,7 @@ const generatePDFDocument = (student, gradesData, averagesData, period, allPerio
     head: [headRow],
     body: bodyRows,
     theme: 'grid',
+    margin: { left: 15, right: 15 },
     headStyles: { fillColor: [240, 245, 250], textColor: [11, 25, 86], halign: 'center', fontStyle: 'bold', lineWidth: 0.1, lineColor: [200, 200, 200] },
       alternateRowStyles: { fillColor: [252, 252, 255] },
     bodyStyles: { textColor: 0, halign: 'center', font: 'Poppins', fontSize: 9, lineWidth: 0.1, lineColor: [0, 0, 0] },
