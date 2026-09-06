@@ -1,21 +1,23 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { CameraView, Camera } from 'expo-camera';
-import { Audio } from 'expo-av';
+import { CameraView, Camera, useCameraPermissions } from 'expo-camera';
+import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack } from 'expo-router';
 import { Mic, MicOff, SwitchCamera, Volume2, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenNative() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const hasPermission = permission?.granted ?? null;
   const [isActive, setIsActive] = useState(true);
   const [facingMode, setFacingMode] = useState('front');
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -24,18 +26,19 @@ export default function InterpreterScreenNative() {
   
   const cameraRef = useRef(null);
   const isCapturingRef = useRef(false);
+  const lastSpokenRef = useRef('');
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      if (!permission) {
+        await requestPermission();
+      }
       
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          playThroughEarpieceAndroid: false,
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
+          shouldPlayInBackground: true,
         });
       } catch (e) {
         console.warn("No se pudo configurar el audio:", e);
@@ -49,14 +52,28 @@ export default function InterpreterScreenNative() {
 
     // Escuchar traducciones en tiempo real para voz única e instantánea y subtítulos
     const handleTranslation = async (text) => {
-      setLastTranslation(text);
-      setSubtitleHistory(prev => [text, ...prev.slice(0, 4)]);
+      // Map 'sign.x' to 'signs.x' for i18n
+      const translationKey = text.startsWith('sign.') ? text.replace('sign.', 'signs.') : text;
+      // Get translation, fallback to original text if not found
+      const translatedText = t(translationKey, { defaultValue: text });
       
+      setLastTranslation(translatedText);
+      setSubtitleHistory(prev => {
+        if (prev.length > 0 && prev[0] === translatedText) return prev;
+        return [translatedText, ...prev].slice(0, 5);
+      });
+      
+      // Avoid speaking the exact same word twice consecutively
+      if (lastSpokenRef.current === translatedText) {
+        return;
+      }
+      lastSpokenRef.current = translatedText;
+
       // Detener cualquier habla en curso y emitir la nueva seña
       try {
         await Speech.stop();
-        Speech.speak(text, {
-          language: 'es-MX',
+        Speech.speak(translatedText, {
+          language: i18n.language === 'en' ? 'en-US' : 'es-MX',
           pitch: 1.0,
           rate: 1.0,
         });
@@ -86,7 +103,7 @@ export default function InterpreterScreenNative() {
           // Captura rápida de fotograma usando takePictureAsync sin sonido de obturador
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.25,
+            quality: 0.18,
             skipProcessing: true,
             shutterSound: false,
             pictureSize: '640x480',
@@ -102,7 +119,7 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 250); // 250ms (~4 FPS) ultra fluido
+      }, 200); // 200ms (~5 FPS) ultra rápido
     }
 
     return () => {
@@ -129,6 +146,7 @@ export default function InterpreterScreenNative() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
+      <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       <View style={styles.cameraContainer}>
         <CameraView 

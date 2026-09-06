@@ -123,17 +123,14 @@ export default function LoginScreen() {
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('login.emailLabel', 'Correo Electrónico')}</Text>
+                <Text style={styles.label}>{t('login.emailLabel', 'Correo o Carnet Institucional')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={t('login.emailPlaceholder', 'usuario@gmail.com')}
+                  placeholder={t('login.emailPlaceholder', 'usuario@gmail.com o DA26001')}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  autoComplete="email"
-                  textContentType="emailAddress"
-                  keyboardType="email-address"
                   placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
                 />
               </View>

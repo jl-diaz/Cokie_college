@@ -5,23 +5,34 @@ function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.scrollY > 350) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+    const toggleVisibility = ({ scroll }) => {
+      setIsVisible(scroll > 350);
     };
 
-    window.addEventListener('scroll', toggleVisibility, { passive: true });
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    const lenis = window.__lenis;
+    if (lenis) {
+      lenis.on('scroll', toggleVisibility);
+    }
+
+    return () => {
+      if (lenis) {
+        lenis.off('scroll', toggleVisibility);
+      }
+    };
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+    if (window.__lenis) {
+      window.__lenis.scrollTo(0, {
+        duration: 1.4,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      });
+    } else {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
   };
 
   return (

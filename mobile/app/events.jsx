@@ -22,6 +22,7 @@ import { useAuth } from '../src/context/AuthContext';
 import api from '../src/utils/api';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 const LEVELS = ['Todos', 'Primaria', 'Tercer Ciclo'];
 
@@ -268,16 +269,7 @@ export default function EventsScreen() {
       )}
 
       {/* Modal para Crear / Editar Evento */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{editingEvent ? t('events.editTitle', 'Editar Evento') : t('events.createTitle', 'Nuevo Evento')}</Text>
@@ -286,7 +278,12 @@ export default function EventsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    style={{ flexGrow: 0 }}
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                  >
                     <Text style={styles.inputLabel}>{t('events.eventTitleLabel', 'Título del Evento *')}</Text>
                     <TextInput
                       style={styles.textInput}
@@ -389,8 +386,7 @@ export default function EventsScreen() {
                     </TouchableOpacity>
                   </ScrollView>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }
@@ -543,14 +539,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    maxHeight: '90%',
+    paddingBottom: 24,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -606,7 +596,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   submitBtnText: {
     color: '#FFF',
@@ -614,3 +604,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: 'bold',
   }
 });
+

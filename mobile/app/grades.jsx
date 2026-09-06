@@ -68,17 +68,22 @@ export default function GradesScreen() {
   };
 
   const handleDownloadPDF = async () => {
-    if (selectedPeriod > 2) {
+    if (grades.length === 0) {
       showAlert({
         type: 'warning',
-        title: 'Periodo Incompleto',
-        message: 'El boletín de este periodo aún no está disponible para descargar.'
+        title: 'Sin calificaciones',
+        message: 'No hay notas registradas en este periodo para generar el boletín.'
       });
       return;
     }
     try {
       setLoading(true);
-      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails);
+      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails || profile);
+      showAlert({
+        type: 'success',
+        title: 'Boletín Generado',
+        message: 'El boletín se ha generado correctamente.'
+      });
     } catch (error) {
       showAlert({ type: 'error', title: 'Error', message: 'No se pudo generar el boletín PDF.' });
     } finally {
@@ -128,14 +133,12 @@ export default function GradesScreen() {
   };
 
   const getOverallAverage = () => {
-    if (averages.length > 0) {
-      const validAverages = averages
-        .map(a => parseFloat(a.final_average || 0));
-      
-      if (validAverages.length > 0) {
-        const sum = validAverages.reduce((acc, val) => acc + val, 0);
-        return (sum / validAverages.length).toFixed(2);
-      }
+    const subjects = Object.keys(groupedGrades);
+    if (subjects.length > 0) {
+      const sum = subjects.reduce((acc, subject) => {
+        return acc + parseFloat(getSubjectAverage(subject).average);
+      }, 0);
+      return (sum / subjects.length).toFixed(2);
     }
     return "0.00";
   };
@@ -150,8 +153,17 @@ export default function GradesScreen() {
 
   const overall = getOverallAverage();
 
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || Colors.primary || '#0B1956');
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
+      <View style={{ position: 'absolute', top: -1000, left: 0, right: 0, height: 1000, backgroundColor: headerBgColor }} />
       <PageHeader 
         title={t('titles.grades', 'Calificaciones y Notas')} 
         subtitle={isCoordinatorView ? t('titles.gradesSubtitleCoordinator', 'Consulta de notas del estudiante') : t('titles.gradesSubtitle', 'Resumen de rendimiento académico')} 

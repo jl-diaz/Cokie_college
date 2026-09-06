@@ -107,7 +107,66 @@ const checkPushReceipts = async (receiptIds) => {
     }
 };
 
+/**
+ * Envío masivo optimizado de notificaciones (Batch Insert + Chunks de Expo)
+ * @param {Array<{id: string, push_token?: string}>} users - Lista de usuarios con id y push_token
+ * @param {string} title - Título
+ * @param {string} body - Mensaje
+ * @param {object} data - Metadata
+ */
+const sendBulkNotification = async (users = [], title, body, data = {}) => {
+    if (!users || users.length === 0) return;
+
+    try {
+        // 1. Inserción masiva en tabla notifications (Lotes de 100)
+        const inAppRecords = users.map(u => ({
+            user_id: u.id,
+            title,
+            body
+        }));
+
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < inAppRecords.length; i += BATCH_SIZE) {
+            const batch = inAppRecords.slice(i, i + BATCH_SIZE);
+            await supabaseAdmin.from('notifications').insert(batch);
+        }
+
+        // 2. Filtrar tokens push válidos
+        const { Expo, expo } = await getExpoClient();
+        const validMessages = [];
+
+        for (const u of users) {
+            if (u.push_token && Expo.isExpoPushToken(u.push_token)) {
+                validMessages.push({
+                    to: u.push_token,
+                    sound: 'default',
+                    title,
+                    body,
+                    data,
+                    channelId: 'default',
+                    priority: 'high'
+                });
+            }
+        }
+
+        if (validMessages.length > 0) {
+            const chunks = expo.chunkPushNotifications(validMessages);
+            for (let chunk of chunks) {
+                try {
+                    await expo.sendPushNotificationsAsync(chunk);
+                } catch (pushErr) {
+                    console.error('Error enviando chunk de push masivo:', pushErr);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error en sendBulkNotification:', err);
+    }
+};
+
 module.exports = {
     sendNotification,
+    sendBulkNotification,
     checkPushReceipts
 };
+

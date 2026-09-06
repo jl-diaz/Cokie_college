@@ -2,6 +2,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { generateSchedule } = require('../utils/scheduleGenerator');
 const { sendNotification } = require('../utils/notificationService');
 const { getPeriodForDate } = require('../utils/periodHelper');
+const { resolveJustificationSubjects } = require('../utils/justificationHelper');
 
 const ensureJustifiedAttendanceRecord = async (student_id, absence_date) => {
     try {
@@ -83,7 +84,7 @@ const coordinatorController = {
 
             let { data: conduct, error: conductError } = await supabaseAdmin
                 .from('conduct_records')
-                .select('*, conduct_codes(*)')
+                .select('*, conduct_codes(*), teacher:profiles!conduct_records_teacher_id_fkey(id, full_name, role)')
                 .eq('student_id', studentId)
                 .eq('period', period);
 
@@ -99,9 +100,20 @@ const coordinatorController = {
                     .from('conduct_codes')
                     .select('*');
 
+                const teacherIds = [...new Set((rawConduct || []).map(r => r.teacher_id).filter(Boolean))];
+                let teachers = [];
+                if (teacherIds.length > 0) {
+                    const { data: teacherProfiles } = await supabaseAdmin
+                        .from('profiles')
+                        .select('id, full_name, role')
+                        .in('id', teacherIds);
+                    teachers = teacherProfiles || [];
+                }
+
                 conduct = (rawConduct || []).map(r => ({
                     ...r,
-                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null
+                    conduct_codes: (codes || []).find(c => c.id === r.code_id) || null,
+                    teacher: teachers.find(t => t.id === r.teacher_id) || null
                 }));
             }
 
@@ -136,15 +148,37 @@ const coordinatorController = {
                 .eq('student_id', studentId)
                 .eq('status', 'approved');
 
-            const attendanceList = [...(attendance || [])];
+            let attendanceList = [...(attendance || [])];
             if (justifications) {
                 for (const just of justifications) {
                     const justPeriod = await getPeriodForDate(just.absence_date);
                     if (justPeriod === period) {
-                        const existingIndex = attendanceList.findIndex(a => a.date === just.absence_date);
-                        if (existingIndex >= 0) {
-                            attendanceList[existingIndex].status = 'justified';
-                            attendanceList[existingIndex].coordinator_message = just.coordinator_message || just.reason;
+                        const rawReason = just.coordinator_message || just.reason || '';
+                        const resolved = await resolveJustificationSubjects(studentId, just.absence_date, rawReason);
+
+                        const existingIndices = [];
+                        attendanceList.forEach((a, idx) => {
+                            if (a.date === just.absence_date) existingIndices.push(idx);
+                        });
+
+                        if (existingIndices.length > 0) {
+                            if (resolved.isFullDay) {
+                                // Para día completo, consolidamos en un solo registro que diga 'Día completo'
+                                const firstIdx = existingIndices[0];
+                                attendanceList[firstIdx].status = 'justified';
+                                attendanceList[firstIdx].coordinator_message = rawReason;
+                                attendanceList[firstIdx].subjects = { name: 'Día completo' };
+                                // Remover otros registros duplicados del mismo día
+                                for (let i = existingIndices.length - 1; i > 0; i--) {
+                                    attendanceList.splice(existingIndices[i], 1);
+                                }
+                            } else {
+                                existingIndices.forEach(idx => {
+                                    attendanceList[idx].status = 'justified';
+                                    attendanceList[idx].coordinator_message = rawReason;
+                                    attendanceList[idx].subjects = { name: resolved.title };
+                                });
+                            }
                         } else {
                             attendanceList.push({
                                 id: just.id,
@@ -153,8 +187,8 @@ const coordinatorController = {
                                 period: period,
                                 date: just.absence_date,
                                 created_at: just.created_at,
-                                coordinator_message: just.coordinator_message || just.reason,
-                                subjects: { name: 'Inasistencia Justificada' }
+                                coordinator_message: rawReason,
+                                subjects: { name: resolved.title || 'Inasistencia Justificada' }
                             });
                         }
                     }
@@ -171,19 +205,79 @@ const coordinatorController = {
         try {
             const { studentId } = req.params;
             const { period } = req.query;
-            
-            let query = supabaseAdmin
+
+            // Obtener el perfil del estudiante para saber su grado y sección
+            const { data: profile, error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .select('grade, section')
+                .eq('id', studentId)
+                .single();
+
+            if (profileError || !profile?.grade || !profile?.section) {
+                // Fallback: solo notas existentes
+                let query = supabaseAdmin
+                    .from('grades')
+                    .select('*, subjects(name), evaluation_activities(name, percentage)')
+                    .eq('student_id', studentId);
+                if (period) query = query.eq('period', period);
+                const { data, error } = await query;
+                if (error) throw error;
+                return res.json(data);
+            }
+
+            // 1. Obtener materias asignadas al estudiante
+            const { data: scheduleData, error: scheduleError } = await supabaseAdmin
+                .from('schedules')
+                .select('subject_id, subjects(name)')
+                .eq('grade', profile.grade)
+                .eq('section', profile.section);
+
+            if (scheduleError) throw scheduleError;
+
+            const uniqueSubjects = [];
+            const subjectMap = new Map();
+            if (scheduleData) {
+                scheduleData.forEach(s => {
+                    if (s.subject_id && !subjectMap.has(s.subject_id)) {
+                        subjectMap.set(s.subject_id, true);
+                        uniqueSubjects.push({ id: s.subject_id, name: s.subjects?.name || 'Materia' });
+                    }
+                });
+            }
+
+            // 2. Obtener notas existentes
+            let gradesQuery = supabaseAdmin
                 .from('grades')
                 .select('*, subjects(name), evaluation_activities(name, percentage)')
                 .eq('student_id', studentId);
 
             if (period) {
-                query = query.eq('period', period);
+                gradesQuery = gradesQuery.eq('period', period);
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            res.json(data);
+            const { data: gradesData, error: gradesError } = await gradesQuery;
+            if (gradesError) throw gradesError;
+
+            // 3. Combinar
+            const result = uniqueSubjects.map(subject => {
+                const subjectGrades = (gradesData || []).filter(g => g.subject_id === subject.id);
+                if (subjectGrades.length > 0) return subjectGrades;
+                
+                return [{
+                    id: `temp-${subject.id}`,
+                    student_id: studentId,
+                    subject_id: subject.id,
+                    subjects: { name: subject.name },
+                    grade: "No asignada",
+                    period: parseInt(period) || 1,
+                    evaluation_activities: { name: "Pendiente", percentage: 0 }
+                }];
+            }).flat();
+
+            const subjectIdsInSchedule = new Set(uniqueSubjects.map(s => s.id));
+            const extraGrades = (gradesData || []).filter(g => !subjectIdsInSchedule.has(g.subject_id));
+
+            res.json([...result, ...extraGrades]);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -549,6 +643,15 @@ const coordinatorController = {
                 await ensureJustifiedAttendanceRecord(justification.student_id, justification.absence_date);
             }
 
+            // Enviar notificación al estudiante
+            const { sendNotification } = require('../utils/notificationService');
+            await sendNotification(
+                justification.student_id,
+                `Justificación ${status === 'approved' ? 'Aprobada ✅' : 'Rechazada ❌'}`,
+                `Tu justificación para el ${justification.absence_date} ha sido revisada por coordinación.`,
+                { type: 'justification', status }
+            );
+
             res.json({ message: `Solicitud ${status}`, justification });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -794,6 +897,28 @@ const coordinatorController = {
 
             if (error) throw error;
             res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getClassroomSchedule: async (req, res) => {
+        try {
+            const { grade, section } = req.query;
+            if (!grade || !section) {
+                return res.status(400).json({ error: 'El grado y la sección son obligatorios.' });
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('schedules')
+                .select('*, subjects(name), profiles!schedules_teacher_id_fkey(full_name)')
+                .eq('grade', grade)
+                .eq('section', section)
+                .order('day_of_week', { ascending: true })
+                .order('start_time', { ascending: true });
+
+            if (error) throw error;
+            res.json(data || []);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

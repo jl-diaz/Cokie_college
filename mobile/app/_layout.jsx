@@ -41,6 +41,8 @@ function LayoutInner() {
     }
   }, [user, authLoading, rootNavigationState?.key, segments]);
 
+
+
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
     try {
@@ -56,7 +58,7 @@ function LayoutInner() {
   useEffect(() => {
     if (!user) return;
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 12000);
+    const interval = setInterval(fetchUnreadCount, 45000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount, notification, user]);
 
@@ -79,7 +81,11 @@ function LayoutInner() {
           screenOptions={({ route }) => ({
             headerStyle: {
               backgroundColor: colors.headerC,
+              ...(Platform.OS === 'web' && { 
+                  height: 60,
+              })
             },
+            headerShadowVisible: false,
             headerTintColor: colors.text.headerTxtC,
             headerTitleAlign: 'center',
             headerTitleStyle: {
@@ -87,14 +93,21 @@ function LayoutInner() {
               fontSize: 16,
             },
             headerRightContainerStyle: {
-              paddingRight: 10,
+              paddingRight: 12,
               justifyContent: 'center',
               alignItems: 'flex-end',
+              flexGrow: 0,
+              flexShrink: 0,
+              width: 157,
+              minWidth: 157,
+              maxWidth: 157,
             },
             headerLeftContainerStyle: {
-              paddingLeft: 10,
+              paddingLeft: 8,
               justifyContent: 'center',
               alignItems: 'flex-start',
+              flexGrow: 0,
+              flexShrink: 0,
             },
             headerLeft: () => {
               if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;
@@ -108,12 +121,12 @@ function LayoutInner() {
                     }
                   }}
                   style={{
-                    flexDirection: 'row',
+                    width: 36,
+                    height: 36,
+                    justifyContent: 'center',
                     alignItems: 'center',
-                    alignSelf: 'center',
-                    padding: 8,
-                    marginLeft: 4,
                   }}
+                  activeOpacity={0.7}
                 >
                   <ArrowLeft size={24} color={colors.text.headerTxtC} />
                 </TouchableOpacity>
@@ -123,13 +136,18 @@ function LayoutInner() {
                if (route.name === 'index' || route.name === '(auth)/login') return null;
                return (
                  <View style={{
+                   width: 145,
+                   minWidth: 145,
+                   maxWidth: 145,
+                   height: 32,
+                   flexShrink: 0,
+                   flexGrow: 0,
                    flexDirection: 'row',
                    alignItems: 'center',
-                   alignSelf: 'center',
+                   justifyContent: 'space-between',
                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                    borderRadius: 20,
-                   paddingHorizontal: 4,
-                   paddingVertical: 2,
+                   paddingHorizontal: 8,
                    borderWidth: 1,
                    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                  }}>
@@ -198,14 +216,8 @@ function LayoutInner() {
           <Stack.Screen 
             name="home" 
             options={{ 
-              title: t('titles.home', 'Inicio'), 
-              headerLeft: () => null,
-              headerTitleAlign: 'center',
-              headerTitle: () => (
-                <Text style={{ color: colors.text.headerTxtC, fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
-                  {t('titles.home', 'Inicio')}
-                </Text>
-              )
+              title: (''),
+              headerLeft: () => null
             }} 
           />
           <Stack.Screen name="diary" options={{ title: ('') }} />
@@ -243,8 +255,11 @@ function LayoutInner() {
     </>
   );
 
-  // En Web permitimos que use todo el espacio (comportamiento nativo PWA)
-  return content;
+  return (
+    <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
+      {content}
+    </View>
+  );
 }
 
 export default function Layout() {

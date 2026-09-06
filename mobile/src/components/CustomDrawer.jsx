@@ -135,6 +135,8 @@ export default function CustomDrawer({ visible, onClose }) {
       visible={visible}
       onRequestClose={onClose}
       animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   drawer: {
     width: DRAWER_WIDTH,

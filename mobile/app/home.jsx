@@ -13,11 +13,27 @@ export default function HomeScreen() {
   const { colors: Colors, theme } = useTheme();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
+  const clickCount = React.useRef(0);
+  const clickTimeout = React.useRef(null);
+
+  const handleRoleClick = () => {
+    clickCount.current += 1;
+    if (clickCount.current >= 5) {
+      clickCount.current = 0;
+      router.push('/easter-egg');
+    }
+    
+    if (clickTimeout.current) clearTimeout(clickTimeout.current);
+    clickTimeout.current = setTimeout(() => {
+      clickCount.current = 0;
+    }, 1000);
+  };
+
   const getRoleModules = () => {
     const lunchModule = { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils, color: '#10b981', desc: t('home.lunchDesc', 'Encargar tu almuerzo del día') };
 
     const commonModules = [
-      { name: t('menu.interpreter', 'Intérprete (ISL)'), path: '/interpreter', icon: Camera, color: '#06b6d4', desc: t('home.interpreterDesc', 'Traductor de señas en tiempo real') },
+      { name: t('menu.interpreter', 'Intérprete ISL (BETA)'), path: '/interpreter', icon: Camera, color: '#06b6d4', desc: t('home.interpreterDesc', 'Traductor de señas en tiempo real') },
       { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar, color: '#ec4899', desc: t('home.eventsDesc', 'Fechas y actividades institucionales') },
       { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell, color: '#f59e0b', desc: t('home.announcementsDesc', 'Comunicados oficiales') }
     ];
@@ -68,64 +84,99 @@ export default function HomeScreen() {
 
   const modules = getRoleModules();
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <View style={styles.greetingRow}>
-          <Text style={styles.welcomeText}>
-            {t('home.welcome', '¡Hola, {{name}}!', { name: profile?.full_name?.split(' ')[0] || t('dashboard.student', 'Estudiante') })}
-          </Text>
-        </View>
-        <Text style={styles.subtitle}>{t('home.subtitle', 'Bienvenido a Cokie College')}</Text>
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || '#0B1956');
 
-        <View style={styles.badgeRow}>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>{profile?.role?.replace('_', ' ').toUpperCase()}</Text>
+  return (
+    <View style={styles.root}>
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+      >
+        {/* Bleed background behind status bar / overscroll */}
+        <View style={[styles.topBleed, { backgroundColor: headerBgColor }]} />
+        <View style={styles.header}>
+          <View style={styles.greetingRow}>
+            <Text style={styles.welcomeText}>
+              {t('home.welcome', '¡Hola, {{name}}!', { name: profile?.full_name?.split(' ')[0] || t('dashboard.student', 'Estudiante') })}
+            </Text>
           </View>
-          {profile?.level ? (
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>{profile.level}</Text>
-            </View>
-          ) : null}
+          <Text style={styles.subtitle}>{t('home.subtitle', 'Bienvenido a Cokie College')}</Text>
+
+          <View style={styles.badgeRow}>
+            <TouchableOpacity activeOpacity={0.8} onPress={handleRoleClick}>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>{profile?.role?.replace('_', ' ').toUpperCase()}</Text>
+              </View>
+            </TouchableOpacity>
+            {profile?.level ? (
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>{profile.level}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
-      
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>{t('home.availableModules', 'Módulos Disponibles')}</Text>
         
-        <View style={styles.grid}>
-          {modules.map((mod, i) => {
-            const Icon = mod.icon;
-            return (
-              <TouchableOpacity 
-                key={i} 
-                style={styles.card} 
-                onPress={() => router.push(mod.path)}
-                activeOpacity={0.75}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: mod.color + '18' }]}>
-                  <Icon size={26} color={mod.color} />
-                </View>
-                <Text style={styles.cardTitle}>{mod.name}</Text>
-                <Text style={styles.cardDesc} numberOfLines={2}>{mod.desc}</Text>
-              </TouchableOpacity>
-            )
-          })}
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>{t('home.availableModules', 'Módulos Disponibles')}</Text>
+          
+          <View style={styles.grid}>
+            {modules.map((mod, i) => {
+              const Icon = mod.icon;
+              return (
+                <TouchableOpacity 
+                  key={i} 
+                  style={styles.card} 
+                  onPress={() => router.push(mod.path)}
+                  activeOpacity={0.75}
+                >
+                  <View style={[styles.iconContainer, { backgroundColor: mod.color + '18' }]}>
+                    <Icon size={26} color={mod.color} />
+                  </View>
+                  <Text style={styles.cardTitle}>{mod.name}</Text>
+                  <Text style={styles.cardDesc} numberOfLines={2}>{mod.desc}</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
+const createStyles = (Colors, theme) => {
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || '#0B1956');
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: headerBgColor,
+    position: 'relative',
+  },
+  topBleed: {
+    position: 'absolute',
+    top: -1000,
+    left: 0,
+    right: 0,
+    height: 1000,
+  },
   container: {
     flex: 1,
+    backgroundColor: headerBgColor,
+  },
+  scrollContent: {
+    flexGrow: 1,
     backgroundColor: Colors.background,
+    paddingBottom: 40,
   },
   header: {
     padding: 24,
-    paddingTop: 28,
-    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
+    paddingTop: 24,
+    marginTop: -1, // overlap 1px to guarantee no hairline gap with navbar
+    backgroundColor: headerBgColor,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     paddingBottom: 32,
@@ -243,4 +294,5 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     textAlign: 'center',
     lineHeight: 15,
   }
-});
+  });
+};

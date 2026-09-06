@@ -29,7 +29,8 @@ import {
   CheckSquare, 
   Square,
   Search,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../src/context/ThemeContext';
@@ -38,6 +39,7 @@ import api from '../src/utils/api';
 import QRCodeDisplay from '../src/components/QRCodeDisplay';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Camera } from 'lucide-react-native';
 
@@ -730,18 +732,14 @@ export default function CafetinScreen() {
       )}
 
       {/* --- MODAL PARA AGREGAR ALIMENTO AL CATÁLOGO --- */}
-      <Modal visible={modalAddItem} transparent animationType="slide" onRequestClose={() => setModalAddItem(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalAddItem} onClose={() => setModalAddItem(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+              <TouchableOpacity onPress={() => setModalAddItem(false)} style={{ padding: 4 }}>
+                <X size={22} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
 
                   <Text style={styles.inputLabel}>Nombre del Alimento *</Text>
                   <TextInput
@@ -794,11 +792,10 @@ export default function CafetinScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
 
       {/* --- MODAL CÁMARA QR --- */}
-      <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)}>
+      <Modal visible={cameraOpen} animationType="slide" onRequestClose={() => setCameraOpen(false)} statusBarTranslucent navigationBarTranslucent>
         <View style={{ flex: 1, backgroundColor: '#000' }}>
           <CameraView
             style={{ flex: 1 }}
@@ -1224,20 +1221,19 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 20,
-    maxHeight: '90%',
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: Colors.text.primary,
-    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 12,

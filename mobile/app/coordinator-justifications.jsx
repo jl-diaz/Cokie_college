@@ -1,8 +1,8 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions } from 'react-native';
 import api from '../src/utils/api';
-import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar } from 'lucide-react-native';
+import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
@@ -10,6 +10,29 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
+
+const SCHOOL_HOURS = [
+  '07:00 AM',
+  '07:30 AM',
+  '08:00 AM',
+  '08:30 AM',
+  '09:00 AM',
+  '09:30 AM',
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '12:00 PM',
+  '12:30 PM',
+  '01:00 PM',
+  '01:30 PM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM'
+];
 
 export default function CoordinatorJustificationsScreen() {
   const { t } = useTranslation();
@@ -35,6 +58,11 @@ export default function CoordinatorJustificationsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [absenceDate, setAbsenceDate] = useState('');
+  const [absenceScope, setAbsenceScope] = useState('full_day'); // 'full_day' | 'hourly'
+  const [startTime, setStartTime] = useState('07:00 AM');
+  const [endTime, setEndTime] = useState('09:30 AM');
+  const [timePickerTarget, setTimePickerTarget] = useState(null); // 'start' | 'end' | null
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [reason, setReason] = useState('');
   const [creating, setCreating] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -157,10 +185,14 @@ export default function CoordinatorJustificationsScreen() {
     }
     setCreating(true);
     try {
+      const finalReason = absenceScope === 'hourly'
+        ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
+        : `[JORNADA COMPLETA] ${reason.trim()}`;
+
       await api.post('/coordinator/justifications/student', {
         student_id: selectedStudent.id,
         absence_date: absenceDate,
-        reason
+        reason: finalReason
       });
       showAlert({
         type: 'success',
@@ -169,6 +201,9 @@ export default function CoordinatorJustificationsScreen() {
       });
       setSelectedStudent(null);
       setAbsenceDate('');
+      setAbsenceScope('full_day');
+      setStartTime('07:00 AM');
+      setEndTime('09:30 AM');
       setReason('');
       setView('requests');
     } catch (error) {
@@ -210,6 +245,36 @@ export default function CoordinatorJustificationsScreen() {
     s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.institutional_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const renderReasonContent = (rawReason) => {
+    if (!rawReason) return null;
+    const timeMatch = rawReason.match(/\[HORARIO:\s*([^\]]+)\]/i);
+    const isFullDay = rawReason.includes('[JORNADA COMPLETA]');
+    const cleanReason = rawReason
+      .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+      .replace(/\[JORNADA COMPLETA\]/gi, '')
+      .trim();
+
+    return (
+      <View style={{ marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          {timeMatch && (
+            <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Clock size={12} color="#0284c7" />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#0284c7' }}>{timeMatch[1]}</Text>
+            </View>
+          )}
+          {isFullDay && (
+            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color="#475569" />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>Día Completo</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {cleanReason || rawReason}</Text>
+      </View>
+    );
+  };
 
   if (loading && requests.length === 0 && view === 'requests') {
     return (
@@ -293,7 +358,7 @@ export default function CoordinatorJustificationsScreen() {
                 </View>
                 
                 <View style={styles.cardBody}>
-                  <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {req.reason}</Text>
+                  {renderReasonContent(req.reason)}
                   <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
                   
                   {req.evidence_url ? (
@@ -346,7 +411,7 @@ export default function CoordinatorJustificationsScreen() {
                   </View>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {req.reason}</Text>
+                  {renderReasonContent(req.reason)}
                   <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
                   {req.coordinator_message ? (
                     <Text style={styles.obsText}><Text style={styles.boldText}>Observación:</Text> {req.coordinator_message}</Text>
@@ -373,94 +438,164 @@ export default function CoordinatorJustificationsScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       ) : (
-        <ScrollView style={styles.content}>
-          <Text style={styles.sectionTitle}>Registrar Justificación Manual</Text>
-          
-          <View style={styles.formContainer}>
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Buscar Estudiante</Text>
-              <View style={styles.searchBox}>
-                <Search size={18} color={Colors.text.muted} />
-                <TextInput 
-                  style={styles.searchInput}
-                  placeholder="Nombre o código..."
-                  value={searchTerm}
-                  onChangeText={setSearchTerm}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={{ paddingBottom: 160 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.sectionTitle}>Registrar Justificación Manual</Text>
+            
+            <View style={styles.formContainer}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Buscar Estudiante</Text>
+                <View style={styles.searchBox}>
+                  <Search size={18} color={Colors.text.muted} />
+                  <TextInput 
+                    style={styles.searchInput}
+                    placeholder="Nombre o código..."
+                    value={searchTerm}
+                    onChangeText={setSearchTerm}
+                  />
+                </View>
+                
+                <ScrollView style={styles.studentList} nestedScrollEnabled>
+                  {filteredStudents.slice(0, 5).map(s => (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
+                      onPress={() => setSelectedStudent(s)}
+                    >
+                      <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
+                        {s.full_name}
+                      </Text>
+                      <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              
+              {/* Modalidad de Inasistencia */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Tipo de Inasistencia</Text>
+                <View style={styles.scopeSelector}>
+                  <TouchableOpacity
+                    style={[styles.scopeBtn, absenceScope === 'full_day' && styles.scopeBtnActive]}
+                    onPress={() => setAbsenceScope('full_day')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.scopeBtnText, absenceScope === 'full_day' && styles.scopeBtnTextActive]}>
+                      Día Completo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.scopeBtn, absenceScope === 'hourly' && styles.scopeBtnActive]}
+                    onPress={() => setAbsenceScope('hourly')}
+                    activeOpacity={0.8}
+                  >
+                    <Clock size={16} color={absenceScope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
+                    <Text style={[styles.scopeBtnText, absenceScope === 'hourly' && styles.scopeBtnTextActive]}>
+                      Por Horario
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Fecha de Ausencia</Text>
+                <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+                  <Calendar size={18} color={Colors.primary} />
+                  <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
+                    {absenceDate || 'Seleccionar fecha'}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={absenceDate ? new Date(absenceDate + 'T12:00:00') : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </View>
+
+              {/* Rango de Horario (Selector Táctil) */}
+              {absenceScope === 'hourly' && (
+                <View style={styles.timeRangeContainer}>
+                  <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={styles.formLabel}>Desde (Hora Inicio)</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelectorBtn}
+                      onPress={() => {
+                        setTimePickerTarget('start');
+                        setTimePickerVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.timeSelectorText}>{startTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={Colors.text.muted} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                    <Text style={styles.formLabel}>Hasta (Hora Fin)</Text>
+                    <TouchableOpacity
+                      style={styles.timeSelectorBtn}
+                      onPress={() => {
+                        setTimePickerTarget('end');
+                        setTimePickerVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                        <Text style={styles.timeSelectorText}>{endTime}</Text>
+                      </View>
+                      <ChevronDown size={16} color={Colors.text.muted} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Motivo de Ausencia</Text>
+                <TextInput
+                  style={[styles.formInput, styles.reasonInput]}
+                  placeholder="Escribe detalladamente el motivo de la ausencia..."
+                  placeholderTextColor={Colors.text.muted}
+                  value={reason}
+                  onChangeText={setReason}
+                  multiline
+                  numberOfLines={4}
                 />
               </View>
               
-              <ScrollView style={styles.studentList} nestedScrollEnabled>
-                {filteredStudents.slice(0, 5).map(s => (
-                  <TouchableOpacity
-                    key={s.id}
-                    style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
-                    onPress={() => setSelectedStudent(s)}
-                  >
-                    <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
-                      {s.full_name}
-                    </Text>
-                    <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Fecha de Ausencia</Text>
-              <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
-                <Calendar size={18} color={Colors.primary} />
-                <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
-                  {absenceDate || 'Seleccionar fecha'}
-                </Text>
+              <TouchableOpacity 
+                style={[styles.submitBtn, styles.submitApprove]}
+                onPress={createJustification}
+                disabled={creating}
+              >
+                {creating ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Guardar y Aprobar</Text>
+                )}
               </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={absenceDate ? new Date(absenceDate) : new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                />
-              )}
             </View>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Motivo</Text>
-              <TextInput
-                style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
-                placeholder="Descripción del motivo..."
-                value={reason}
-                onChangeText={setReason}
-                multiline
-              />
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.submitBtn, styles.submitApprove]}
-              onPress={createJustification}
-              disabled={creating}
-            >
-              {creating ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Guardar y Aprobar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* Process Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -499,61 +634,140 @@ export default function CoordinatorJustificationsScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
+
+      {/* Time Picker Modal */}
+      <BottomModal visible={timePickerVisible} onClose={() => setTimePickerVisible(false)}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>
+                {timePickerTarget === 'start' ? 'Hora de Inicio' : 'Hora de Fin'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                Selecciona la hora lectiva correspondiente
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
+              <X size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
+              {SCHOOL_HOURS.map(hour => {
+                const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;
+                return (
+                  <TouchableOpacity
+                    key={hour}
+                    style={[styles.hourChip, isSelected && styles.hourChipActive]}
+                    onPress={() => {
+                      if (timePickerTarget === 'start') {
+                        setStartTime(hour);
+                      } else {
+                        setEndTime(hour);
+                      }
+                      setTimePickerVisible(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Clock size={14} color={isSelected ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.hourChipText, isSelected && styles.hourChipTextActive]}>
+                      {hour}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
+      </BottomModal>
 
       {/* Evidence Viewer Modal */}
-      <Modal visible={evidenceModalVisible} animationType="slide" transparent statusBarTranslucent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '85%', width: '90%' }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <FileText size={20} color={Colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>Evidencia Adjunta</Text>
-              </View>
-              <TouchableOpacity onPress={() => setEvidenceModalVisible(false)}>
-                <X size={24} color={Colors.primary} />
+      <Modal visible={evidenceModalVisible} animationType="fade" transparent statusBarTranslucent navigationBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.9)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, flexDirection: 'row', gap: 16 }}>
+            {typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) && (
+              <TouchableOpacity onPress={() => Linking.openURL(evidenceUrlToView)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
+                <ExternalLink size={24} color="#FFF" />
               </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={{ paddingVertical: 16, alignItems: 'center', width: '100%' }} showsVerticalScrollIndicator={false}>
-              {evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
-                <Image
-                  source={{ uri: evidenceUrlToView }}
-                  style={{ width: '100%', height: 350, borderRadius: 12, resizeMode: 'contain' }}
-                />
-              ) : evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://') ? (
-                <View style={{ alignItems: 'center', padding: 20 }}>
-                  <ExternalLink size={48} color={Colors.primary} style={{ marginBottom: 12 }} />
-                  <Text style={{ fontSize: 14, color: Colors.text.primary, textAlign: 'center', marginBottom: 16 }}>
-                    El archivo está disponible como enlace web externo.
-                  </Text>
-                  <TouchableOpacity
-                    style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 }}
-                    onPress={() => Linking.openURL(evidenceUrlToView)}
-                  >
-                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Abrir Enlace Web</Text>
-                  </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setEvidenceModalVisible(false)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
+              <X size={24} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+            {typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('data:image') || evidenceUrlToView.startsWith('file://') || !!evidenceUrlToView.match(/\.(jpeg|jpg|gif|png|webp)/i)) ? (
+              Platform.OS === 'web' ? (
+                <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                  <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} maximumZoomScale={3} minimumZoomScale={1}>
+                    <img 
+                      src={evidenceUrlToView} 
+                      style={{ maxWidth: '90%', maxHeight: '80vh', objectFit: 'contain', transition: 'transform 0.2s ease-out' }} 
+                      alt="Evidencia" 
+                      onClick={(e) => {
+                         const img = e.target;
+                         const currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
+                         img.style.transform = `scale(${currentScale === 1 ? 2 : 1})`;
+                         img.style.cursor = currentScale === 1 ? 'zoom-out' : 'zoom-in';
+                      }}
+                      onWheel={(e) => {
+                        if (e.ctrlKey) {
+                          e.preventDefault();
+                          const img = e.target;
+                          let currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
+                          currentScale += e.deltaY * -0.01;
+                          currentScale = Math.min(Math.max(1, currentScale), 4);
+                          img.style.transform = `scale(${currentScale})`;
+                        }
+                      }}
+                    />
+                    <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 20 }}>
+                      Haz clic para hacer zoom. Usa Ctrl + Rueda para ajustar.
+                    </Text>
+                  </ScrollView>
                 </View>
               ) : (
-                <View style={{ alignItems: 'center', padding: 24, backgroundColor: Colors.gray[100] || '#f8fafc', borderRadius: 16, width: '100%' }}>
-                  <FileText size={56} color={Colors.primary} style={{ marginBottom: 12 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 6 }}>
-                    {evidenceUrlToView}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: Colors.text.muted, textAlign: 'center' }}>
-                    Documento comprobante registrado en la solicitud de justificación.
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: Colors.gray[500] || '#64748b', marginTop: 12 }]}
-              onPress={() => setEvidenceModalVisible(false)}
-            >
-              <Text style={styles.submitBtnText}>Cerrar Previsualización</Text>
-            </TouchableOpacity>
+                <ScrollView 
+                  contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} 
+                  maximumZoomScale={4} 
+                  minimumZoomScale={1}
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                  bouncesZoom={true}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <Image
+                    source={{ uri: evidenceUrlToView }}
+                    style={{ width: Dimensions.get('window').width * 0.95, height: Dimensions.get('window').height * 0.8, resizeMode: 'contain' }}
+                    onError={(e) => console.warn('Error cargando imagen de evidencia:', e.nativeEvent?.error)}
+                  />
+                </ScrollView>
+              )
+            ) : typeof evidenceUrlToView === 'string' && (evidenceUrlToView.startsWith('http://') || evidenceUrlToView.startsWith('https://')) ? (
+              <View style={{ alignItems: 'center', padding: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16 }}>
+                <ExternalLink size={64} color="#FFF" style={{ marginBottom: 16 }} />
+                <Text style={{ fontSize: 16, color: '#FFF', textAlign: 'center', marginBottom: 20, maxWidth: 300 }}>
+                  El archivo está disponible como enlace web externo o no es una imagen previsualizable.
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 }}
+                  onPress={() => Linking.openURL(evidenceUrlToView)}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Abrir Archivo Externo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', padding: 30, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, maxWidth: '80%' }}>
+                <FileText size={64} color="#FFF" style={{ marginBottom: 16 }} />
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
+                  {evidenceUrlToView || 'Sin información de archivo'}
+                </Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+                  Documento comprobante registrado en la solicitud de justificación.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -699,6 +913,57 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.md,
     color: Colors.text.primary,
   },
+  timeSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card || '#FFF',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.gray[300] || '#D1D5DB',
+  },
+  timeSelectorText: {
+    fontSize: Typography.size.sm,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  hourChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background || '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: Colors.gray[200] || '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    width: '48%',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  hourChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  hourChipText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  hourChipTextActive: {
+    color: '#FFF',
+  },
+  reasonInput: {
+    height: 100,
+    textAlignVertical: 'top',
+    backgroundColor: Colors.card || '#FFF',
+    borderWidth: 1.5,
+    borderColor: Colors.gray[300] || '#D1D5DB',
+    padding: 12,
+    fontSize: Typography.size.sm,
+    color: Colors.text.primary,
+  },
   submitBtn: { padding: 16, borderRadius: BorderRadius.lg, alignItems: 'center' },
   submitApprove: { backgroundColor: Colors.primary },
   submitReject: { backgroundColor: Colors.status.rejected },
@@ -724,7 +989,7 @@ const createStyles = (Colors) => StyleSheet.create({
   
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', maxHeight: '90%', backgroundColor: Colors.card || '#FFF', borderTopLeftRadius: BorderRadius['2xl'] || 24, borderTopRightRadius: BorderRadius['2xl'] || 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24 },
+  modalContent: { width: '100%', maxHeight: '90%', backgroundColor: Colors.card || '#FFF', borderTopLeftRadius: BorderRadius['2xl'] || 24, borderTopRightRadius: BorderRadius['2xl'] || 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
   modalSubtitle: { fontSize: Typography.size.sm, color: Colors.text.secondary, marginBottom: 20 },
@@ -738,5 +1003,43 @@ const createStyles = (Colors) => StyleSheet.create({
     color: Colors.text.primary,
     textAlignVertical: 'top',
     height: 100
-  }
+  },
+  scopeSelector: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray[100],
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    marginBottom: 4,
+  },
+  scopeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.sm || 8,
+  },
+  scopeBtnActive: {
+    backgroundColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scopeBtnText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text.muted,
+  },
+  scopeBtnTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
 });

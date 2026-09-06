@@ -45,7 +45,16 @@ function HorizontalScroll() {
           start: 'top top',
           end: () => `+=${track.scrollWidth - window.innerWidth}`,
           invalidateOnRefresh: true,
+          anticipatePin: 1,
         },
+      });
+
+      // Recalculate ScrollTrigger on image load for the track
+      const images = track.querySelectorAll('img');
+      images.forEach((img) => {
+        if (!img.complete) {
+          img.addEventListener('load', () => ScrollTrigger.refresh());
+        }
       });
 
       return () => {

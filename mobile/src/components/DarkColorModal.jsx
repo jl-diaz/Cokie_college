@@ -13,7 +13,8 @@ export default function DarkColorModal() {
     setDarkPrimaryPreset, 
     darkPresets,
     colors,
-    theme
+    theme,
+    changeTheme
   } = useTheme();
 
   if (!isColorModalOpen) return null;
@@ -24,6 +25,8 @@ export default function DarkColorModal() {
       animationType="fade"
       visible={isColorModalOpen}
       onRequestClose={closeColorModal}
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <View style={styles.overlay}>
         <View style={[styles.modalCard, { backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
@@ -84,7 +87,10 @@ export default function DarkColorModal() {
 
           <TouchableOpacity 
             style={[styles.doneBtn, { backgroundColor: colors.primary }]} 
-            onPress={closeColorModal}
+            onPress={() => {
+              if (theme !== 'dark') changeTheme('dark');
+              closeColorModal();
+            }}
             activeOpacity={0.8}
           >
             <Text style={styles.doneBtnText}>

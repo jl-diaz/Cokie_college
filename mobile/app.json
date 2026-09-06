@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -65,7 +65,19 @@
         {
           "cameraPermission": "Necesitamos acceso a la cámara para traducir el lenguaje de señas."
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-audio"
     ],
     "scheme": "cokie-college",
     "extra": {

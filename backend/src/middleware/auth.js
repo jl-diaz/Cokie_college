@@ -1,5 +1,35 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 
+// Caché en memoria para perfiles autenticados (TTL: 60 segundos)
+const profileCache = new Map();
+const PROFILE_CACHE_TTL_MS = 60 * 1000;
+
+const getCachedProfile = async (userId) => {
+    const cached = profileCache.get(userId);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp < PROFILE_CACHE_TTL_MS)) {
+        return cached.profile;
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+    if (!profileError && profile) {
+        profileCache.set(userId, { profile, timestamp: now });
+        return profile;
+    }
+
+    return null;
+};
+
+const invalidateUserProfileCache = (userId) => {
+    if (userId) profileCache.delete(userId);
+    else profileCache.clear();
+};
+
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -12,19 +42,12 @@ const authenticate = async (req, res, next) => {
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            console.error('Error de autenticación:', authError);
             return res.status(401).json({ error: 'Token inválido o expirado' });
         }
 
-        // Usamos supabaseAdmin para saltar RLS y asegurar que encontramos el perfil
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+        const profile = await getCachedProfile(user.id);
 
-        if (profileError || !profile) {
-            console.error(`Perfil no encontrado para el usuario ID: ${user.id}. Error:`, profileError);
+        if (!profile) {
             return res.status(403).json({ 
                 error: 'Perfil de usuario no encontrado. Por favor contacte al administrador.'
             });

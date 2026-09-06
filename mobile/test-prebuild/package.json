@@ -1,0 +1,16 @@
+{
+  "name": "test-prebuild",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "expo": "^57.0.20",
+    "react-native": "^0.87.1",
+    "react": "19.2.3"
+  }
+}

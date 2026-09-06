@@ -1,3 +1,4 @@
+import { Stack, useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
@@ -10,17 +11,20 @@ import {
   TextInput, 
   KeyboardAvoidingView, 
   Platform,
-  Modal 
+  Modal,
+  ScrollView 
 } from 'react-native';
 import api from '../src/utils/api';
-import { Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck } from 'lucide-react-native';
+import {  Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck , ArrowLeft, X } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 export default function TeacherGradesScreen() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
   const { showAlert, showConfirm } = useAlert();
@@ -441,11 +445,31 @@ export default function TeacherGradesScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
       style={styles.container}
     >
+      <Stack.Screen 
+        options={{
+          headerLeft: () => {
+            const canGoBackInternally = selectedClass !== null || selectedActivity !== null;
+            return (
+              <TouchableOpacity
+                onPress={() => {
+                  if (canGoBackInternally) {
+                    handleBackPress();
+                  } else {
+                    if (router.canGoBack()) router.back();
+                    else router.replace('/home');
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 8, marginLeft: 4 }}
+              >
+                <ArrowLeft size={24} color={Colors.text.headerTxtC || '#FFF'} />
+              </TouchableOpacity>
+            );
+          }
+        }}
+      />
       <PageHeader 
         title={headerInfo.title} 
         subtitle={headerInfo.subtitle}
-        showBack={selectedClass !== null || selectedActivity !== null}
-        onBackPress={handleBackPress}
       />
 
       {/* Period Selection & Countdown Banner */}
@@ -541,31 +565,32 @@ export default function TeacherGradesScreen() {
       {renderContent()}
 
       {/* Modal para Crear Ticket de Extensión */}
-      <Modal
-        visible={ticketModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setTicketModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={() => setTicketModalVisible(false)} 
-          />
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('teacherGrades.requestExtraTime', 'Solicitar Tiempo Extra')}</Text>
-            <Text style={styles.modalSubtitle}>{t('dashboard.period', 'Periodo')} {selectedPeriod}</Text>
+      <BottomModal visible={ticketModalVisible} onClose={() => setTicketModalVisible(false)}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>{t('teacherGrades.requestExtraTime', 'Solicitar Tiempo Extra')}</Text>
+              <Text style={styles.modalSubtitle}>{t('dashboard.period', 'Periodo')} {selectedPeriod}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setTicketModalVisible(false)} style={{ padding: 4 }}>
+              <X size={22} color={Colors.text.primary} />
+            </TouchableOpacity>
+          </View>
 
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled" 
+            bounces={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
             <Text style={styles.fieldLabel}>{t('teacherGrades.ticketReasonLabel', 'Motivo de la solicitud (Requerido):')}</Text>
             <TextInput
               style={styles.textArea}
               multiline
               numberOfLines={4}
               placeholder={t('teacherGrades.ticketReasonPlaceholder', 'Explica el motivo por el cual requieres días adicionales para ingresar las notas...')}
+              placeholderTextColor={Colors.text.muted}
               value={ticketReason}
               onChangeText={setTicketReason}
             />
@@ -606,9 +631,9 @@ export default function TeacherGradesScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          </ScrollView>
+        </View>
+      </BottomModal>
     </KeyboardAvoidingView>
   );
 }
@@ -802,15 +827,16 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: '90%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: Spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.xl,
-    ...Shadows.elevated,
+    maxHeight: '100%',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: Typography.size.lg,
@@ -820,7 +846,7 @@ const createStyles = (Colors) => StyleSheet.create({
   modalSubtitle: {
     fontSize: Typography.size.xs,
     color: Colors.text.muted,
-    marginBottom: Spacing.lg,
+    marginTop: 2,
   },
   fieldLabel: {
     fontSize: Typography.size.xs,
@@ -869,12 +895,17 @@ const createStyles = (Colors) => StyleSheet.create({
   modalActionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     gap: 12,
+    marginTop: 8,
+    marginBottom: 8,
   },
   cancelModalBtn: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelModalBtnText: {
     color: Colors.text.muted,
@@ -882,8 +913,8 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   submitModalBtn: {
     backgroundColor: Colors.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
     borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',

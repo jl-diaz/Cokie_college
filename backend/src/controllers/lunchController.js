@@ -4,7 +4,14 @@ const getElSalvadorDate = (dateObj = new Date()) => {
     return new Date(dateObj).toLocaleDateString('sv-SE', { timeZone: 'America/El_Salvador' });
 };
 
+let lastCleanupTime = 0;
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // Máximo 1 vez cada 6 horas
+
 const cleanupOldOrders = async () => {
+    const now = Date.now();
+    if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) return;
+    lastCleanupTime = now;
+
     try {
         const today = getElSalvadorDate();
         await supabaseAdmin

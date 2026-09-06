@@ -20,6 +20,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 export default function ConductCatalogScreen() {
   const { t } = useTranslation();
@@ -280,16 +281,7 @@ export default function ConductCatalogScreen() {
         <Plus size={28} color="#FFF" />
       </TouchableOpacity>
 
-      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingCode ? 'Editar Código' : 'Nuevo Código'}</Text>
@@ -298,7 +290,7 @@ export default function ConductCatalogScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled">
+            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 8 }}>
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Código</Text>
                 <TextInput
@@ -343,8 +335,7 @@ export default function ConductCatalogScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }
@@ -448,15 +439,8 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    maxHeight: '90%',
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    ...Shadows.elevated,
+    paddingBottom: 24,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },

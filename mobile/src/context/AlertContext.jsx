@@ -123,6 +123,8 @@ export const AlertProvider = ({ children }) => {
         transparent
         animationType="fade"
         onRequestClose={hideAlert}
+        statusBarTranslucent
+        navigationBarTranslucent
       >
         <TouchableWithoutFeedback onPress={hideAlert}>
           <View style={styles.overlay}>
@@ -171,7 +173,7 @@ export const useAlert = () => useContext(AlertContext);
 const createStyles = (Colors, theme) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,

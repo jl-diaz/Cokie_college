@@ -29,30 +29,32 @@ function Footer() {
                 <rect width="20" height="16" x="2" y="4" rx="2"/>
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
               </svg>
-              <span>cokiedev@gmail.com</span>
+              <span>cokiecollege@gmail.com</span>
             </a>
           </div>
 
         </div>
 
-        <div className="footer-middle-columns">
+        <div className="footer-middle-columns" data-nosnippet="true">
           
           <div className="footer-col">
             <h4 className="footer-col-title">Sobre Nosotros</h4>
             <p className="footer-col-text">
-              Cokie Hall es una institución educativa que esta comprometida con la excelencia académica, 
-              valores y formación integral de cada estudiante.
+              Cokie Hall es una comunidad educativa comprometida con la excelencia académica, 
+              valores y formación integral para Primaria y Tercer Ciclo.
             </p>
           </div>
 
           <div className="footer-col">
             <h4 className="footer-col-title">Navegación</h4>
-            <ul className="footer-col-list">
-              <li><Link to="/" className="footer-col-link">Home</Link></li>
-              <li><Link to="/nosotros" className="footer-col-link">Nosotros</Link></li>
-              <li><a href="/#niveles" className="footer-col-link">Niveles Educativos</a></li>
-              <li><a href="/#contacto" className="footer-col-link">Contacto</a></li>
-            </ul>
+            <nav aria-label="Navegación secundaria del pie de página">
+              <ul className="footer-col-list">
+                <li><a href="#hero" className="footer-col-link">Home</a></li>
+                <li><a href="#nosotros" className="footer-col-link">Nosotros</a></li>
+                <li><a href="#niveles" className="footer-col-link">Niveles Educativos</a></li>
+                <li><a href="#app-download" className="footer-col-link">Cokie College</a></li>
+              </ul>
+            </nav>
           </div>
 
           <div className="footer-col">

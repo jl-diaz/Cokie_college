@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
     elevation: 6,
     position: 'relative',
     width: '100%',
+    marginTop: -1,
   },
   backButton: {
     position: 'absolute',

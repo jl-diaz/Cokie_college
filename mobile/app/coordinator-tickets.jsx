@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import api from '../src/utils/api';
 import { Check, X, Clock, Calendar, User, FileText, Filter, AlertCircle } from 'lucide-react-native';
+import BottomModal from '../src/components/BottomModal';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -230,7 +231,6 @@ export default function CoordinatorTicketsScreen() {
       <PageHeader 
         title={t('menu.grade_tickets', 'Tickets de Extensión')} 
         subtitle={t('home.gradeTicketsDesc', 'Solicitudes de tiempo extra para ingreso de notas')} 
-        showBack={true}
       />
 
       <View style={styles.filterBar}>
@@ -265,7 +265,7 @@ export default function CoordinatorTicketsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <AlertCircle size={40} color={Colors.text.muted} />
-              <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes registradas.')}</Text>
+              <Text style={styles.emptyText}>{t('tickets.noRequests', 'No hay solicitudes registradas.')}</Text>
             </View>
           }
           onEndReached={handleLoadMore}
@@ -275,23 +275,24 @@ export default function CoordinatorTicketsScreen() {
       )}
 
       {/* Modal de Acción (Aprobar / Rechazar) */}
-      <Modal
+      <BottomModal
         visible={!!selectedTicket}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedTicket(null)}
+        onClose={() => setSelectedTicket(null)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>
-              {actionType === 'approve' ? t('teacherGrades.approveTicketTitle', 'Aprobar Extensión de Notas') : t('teacherGrades.rejectTicketTitle', 'Denegar Solicitud de Extensión')}
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              {selectedTicket?.teacher?.full_name} — {t('dashboard.period', 'Periodo')} {selectedTicket?.period} (+{selectedTicket?.days_requested} {t('days.daysCount', 'días')})
-            </Text>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.modalTitle}>
+                {actionType === 'approve' ? t('teacherGrades.approveTicketTitle', 'Aprobar Extensión de Notas') : t('teacherGrades.rejectTicketTitle', 'Denegar Solicitud de Extensión')}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {selectedTicket?.teacher?.full_name} — {t('dashboard.period', 'Periodo')} {selectedTicket?.period} (+{selectedTicket?.days_requested} {t('days.daysCount', 'días')})
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedTicket(null)} style={{ padding: 4 }}>
+              <X size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
 
             <Text style={styles.inputLabel}>
               {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
@@ -333,8 +334,7 @@ export default function CoordinatorTicketsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      </BottomModal>
     </View>
   );
 }
@@ -530,12 +530,13 @@ const createStyles = (Colors) => StyleSheet.create({
     backgroundColor: Colors.card,
     borderTopLeftRadius: BorderRadius['2xl'] || 24,
     borderTopRightRadius: BorderRadius['2xl'] || 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     padding: Spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? 36 : Spacing.xl,
-    maxHeight: '90%',
-    ...Shadows.elevated,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
   modalTitle: {
     fontSize: Typography.size.lg,
@@ -595,3 +596,5 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.sm,
   }
 });
+
+

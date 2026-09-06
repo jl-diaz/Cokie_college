@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-const { sendNotification } = require('./notificationService');
+const { sendNotification, sendBulkNotification } = require('./notificationService');
 
 /**
  * Tarea periódica para revisar eventos próximos (24h antes) y notificar a alumnos y profesores
@@ -36,7 +36,8 @@ const checkUpcomingEventReminders = async () => {
 
                 let userQuery = supabaseAdmin
                     .from('profiles')
-                    .select('id')
+                    .select('id, push_token')
+                    .eq('is_active', true)
                     .in('role', ['teacher', 'student']);
 
                 if (event.level && event.level !== 'Todos') {
@@ -46,14 +47,12 @@ const checkUpcomingEventReminders = async () => {
                 const { data: recipients } = await userQuery;
 
                 if (recipients && recipients.length > 0) {
-                    for (const recipient of recipients) {
-                        await sendNotification(
-                            recipient.id,
-                            `📅 Recordatorio de Evento: ${event.title}`,
-                            `El evento "${event.title}" comenzará mañana a las ${event.start_time.substring(0, 5)}. ${event.description || ''}`,
-                            { type: 'event_reminder', eventId: event.id }
-                        );
-                    }
+                    await sendBulkNotification(
+                        recipients,
+                        `📅 Recordatorio de Evento: ${event.title}`,
+                        `El evento "${event.title}" comenzará mañana a las ${event.start_time.substring(0, 5)}. ${event.description || ''}`,
+                        { type: 'event_reminder', eventId: event.id }
+                    );
                 }
 
                 // Marcar reminder_sent como true

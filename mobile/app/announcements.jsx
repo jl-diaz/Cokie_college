@@ -21,6 +21,7 @@ import { useAuth } from '../src/context/AuthContext';
 import api from '../src/utils/api';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
+import BottomModal from '../src/components/BottomModal';
 
 export default function AnnouncementsScreen() {
   const { t } = useTranslation();
@@ -224,16 +225,7 @@ export default function AnnouncementsScreen() {
       )}
 
       {/* Modal para Crear Aviso */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFill} 
-            activeOpacity={1} 
-            onPress={Keyboard.dismiss} 
-          />
+      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>{t('announcements.createTitle', 'Crear Nuevo Aviso')}</Text>
@@ -242,7 +234,12 @@ export default function AnnouncementsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    style={{ flexGrow: 0 }}
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                  >
                     <Text style={styles.inputLabel}>{t('announcements.announcementTitleLabel', 'Título del Aviso *')}</Text>
                     <TextInput
                       style={styles.textInput}
@@ -306,8 +303,7 @@ export default function AnnouncementsScreen() {
                     </TouchableOpacity>
                   </ScrollView>
                 </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        </BottomModal>
     </View>
   );
 }
@@ -365,7 +361,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowRadius: 8,
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 0, borderBottomRightRadius: 0, padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24, maxHeight: '90%' },
+  modalContent: { width: '100%', padding: 24, paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
   inputLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.secondary, marginBottom: 6, textTransform: 'uppercase' },
@@ -411,7 +407,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   submitBtnText: { color: '#FFF', fontSize: 15, fontWeight: 'bold' }
 });

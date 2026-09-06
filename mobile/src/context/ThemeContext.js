@@ -126,6 +126,15 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const changeTheme = async (newTheme) => {
+    setTheme(newTheme);
+    try {
+      await AsyncStorage.setItem('theme', newTheme);
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+    }
+  };
+
   const setDarkPrimaryPreset = async (presetId) => {
     setDarkPrimaryPresetId(presetId);
     try {
@@ -161,6 +170,7 @@ export const ThemeProvider = ({ children }) => {
     <ThemeContext.Provider value={{
       theme,
       toggleTheme,
+      changeTheme,
       colors,
       darkPrimaryPresetId,
       setDarkPrimaryPreset,
