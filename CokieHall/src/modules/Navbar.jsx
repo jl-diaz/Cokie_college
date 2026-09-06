@@ -48,11 +48,11 @@ function Navbar() {
   }, [mobileMenuOpen]);
 
   const menuItems = [
-    { label: 'Inicio', link: '#hero', ariaLabel: 'Ir al inicio' },
-    { label: 'Niveles', link: '#niveles', ariaLabel: 'Ver niveles educativos' },
-    { label: 'Clubes', link: '#clubes', ariaLabel: 'Ver clubes deportivos' },
-    { label: 'Nosotros', link: '#nosotros', ariaLabel: 'Sobre Cokie Hall' },
-    { label: 'Contacto', link: '#contacto', ariaLabel: 'Contactar y admisiones' },
+    { label: 'Inicio', link: '/', ariaLabel: 'Ir al inicio' },
+    { label: 'Niveles', link: '/#niveles', ariaLabel: 'Ver niveles educativos' },
+    { label: 'Clubes', link: '/#clubes', ariaLabel: 'Ver clubes deportivos' },
+    { label: 'Sobre Nosotros', link: '/nosotros', ariaLabel: 'Conoce más de Cokie Hall' },
+    { label: 'Contacto', link: '/#contacto', ariaLabel: 'Contactar y admisiones' },
   ];
 
   const socialItems = [
@@ -64,13 +64,13 @@ function Navbar() {
     <header className={`navbar ${!visible && !mobileMenuOpen ? 'navbar--hidden' : ''}`}>
       <div className="navbar__container">
         
-        <a href="#hero" className="navbar__logo">
+        <Link to="/" className="navbar__logo">
           <img 
             src={logoBlan} 
             alt="Logo Cokie Hall" 
             className="navbar__logo-img" 
           />
-        </a>
+        </Link>
 
         {/* NAVEGACIÓN DESKTOP */}
         <nav className="navbar__nav">
@@ -82,7 +82,7 @@ function Navbar() {
             <li className="navbar__item">
               <a href="#niveles" className="navbar__link">Niveles Educativos</a>
             </li>
-            
+
             <li className="navbar__item">
               <a href="#app-download" className="navbar__link">Cokie College</a>
             </li>
@@ -116,3 +116,4 @@ function Navbar() {
 }
 
 export default Navbar;
+

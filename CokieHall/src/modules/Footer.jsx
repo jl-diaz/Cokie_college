@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import './Footer.css';
 import CokieKids from '../assets/CokieKids.png';
 function Footer() {
@@ -59,8 +60,9 @@ function Footer() {
           <div className="footer-col">
             <h4 className="footer-col-title">Legales & Privacidad</h4>
             <ul className="footer-col-list">
-              <li><a href="#privacidad" className="footer-col-link">Contrato de Privacidad</a></li>
-              <li><a href="#terminos" className="footer-col-link">Términos y Condiciones</a></li>
+              <li><Link to="/legal?tab=terminos" className="footer-col-link">Términos y Condiciones</Link></li>
+              <li><Link to="/legal?tab=privacidad" className="footer-col-link">Política de Privacidad</Link></li>
+              <li><Link to="/legal?tab=copyright" className="footer-col-link">Derechos de Autor & PI</Link></li>
               <li><span className="footer-col-copy">© 2026 Cokie Dev</span></li>
             </ul>
           </div>
