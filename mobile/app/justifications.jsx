@@ -224,7 +224,7 @@ export default function JustificationsScreen() {
             <Calendar size={16} color={Colors.text.muted} />
             <Text style={styles.dateText}>{formatLocalDate(item.absence_date)}</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={styles.badgesWrapper}>
             {timeMatch && (
               <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Clock size={12} color="#0284c7" />
@@ -265,14 +265,16 @@ export default function JustificationsScreen() {
     );
   }
 
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || Colors.primary || '#0B1956');
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.background }]}>
       <PageHeader 
         title={t('titles.justifications', 'Justificaciones')} 
         subtitle={t('titles.justificationsSubtitle', 'Gestión de ausencias e inasistencias')} 
       />
       <FlatList
-        style={styles.container}
+        style={{ flex: 1, backgroundColor: Colors.background }}
         data={justifications}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
@@ -562,17 +564,29 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 8,
     marginBottom: 16,
   },
-  dateInfo: { flexDirection: 'row', alignItems: 'center' },
+  dateInfo: { flexDirection: 'row', alignItems: 'center', flexShrink: 0, marginTop: 4 },
   dateText: { marginLeft: 8, fontWeight: 'bold', color: Colors.text.primary, fontSize: 16 },
+  badgesWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 6,
+    flex: 1,
+    flexShrink: 1,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    flexShrink: 0,
+    maxWidth: '100%',
   },
   statusText: { fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
   reasonLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.muted, textTransform: 'uppercase', marginBottom: 4 },

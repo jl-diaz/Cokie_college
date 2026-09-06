@@ -355,9 +355,10 @@ export default function ClassScreen() {
                   else router.replace('/home');
                 }
               }}
-              style={{ padding: 8, marginLeft: 4 }}
+              style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+              activeOpacity={0.7}
             >
-              <ArrowLeft size={24} color={theme === 'dark' ? '#FFF' : '#000'} />
+              <ArrowLeft size={24} color={colors.text.headerTxtC || (theme === 'dark' ? '#FFF' : '#FFF')} />
             </TouchableOpacity>
           )
         }}

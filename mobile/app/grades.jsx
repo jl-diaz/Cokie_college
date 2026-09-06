@@ -158,6 +158,7 @@ export default function GradesScreen() {
   return (
     <ScrollView 
       style={styles.container}
+      contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       bounces={false}
       alwaysBounceVertical={false}
@@ -276,9 +277,12 @@ export default function GradesScreen() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
+const createStyles = (Colors, theme) => {
+  const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || Colors.primary || '#0B1956');
+  return StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background},
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: headerBgColor },
+  scrollContent: { flexGrow: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
     padding: 24,
@@ -506,4 +510,5 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     color: Colors.text.muted,
     textAlign: 'right',
   }
-});
+  });
+};

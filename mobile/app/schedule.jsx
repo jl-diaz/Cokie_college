@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import api from '../src/utils/api';
-import { Calendar, Clock, MapPin, BookOpen, ArrowLeft, Coffee, LogOut } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, BookOpen, Coffee } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
@@ -98,6 +98,7 @@ export default function ScheduleScreen() {
   return (
     <ScrollView 
       style={styles.container}
+      contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       bounces={false}
       alwaysBounceVertical={false}
@@ -245,7 +246,8 @@ const createStyles = (Colors, theme) => {
   const headerBgColor = theme === 'dark' ? Colors.card : (Colors.headerC || '#0B1956');
   return StyleSheet.create({
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1, backgroundColor: headerBgColor },
+    scrollContent: { flexGrow: 1, backgroundColor: Colors.background },
     topBleed: {
       position: 'absolute',
       top: -1000,
@@ -262,12 +264,6 @@ const createStyles = (Colors, theme) => {
       borderBottomRightRadius: 30,
       marginTop: -1,
     },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-    top: 20,
-    zIndex: 10,
-  },
   headerTitle: { 
     color: theme === 'dark' ? Colors.primary : '#FFF', 
     fontSize: 20, 

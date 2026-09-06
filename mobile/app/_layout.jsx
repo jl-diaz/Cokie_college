@@ -95,7 +95,7 @@ function LayoutInner() {
             headerRightContainerStyle: {
               paddingRight: 12,
               justifyContent: 'center',
-              alignItems: 'flex-end',
+              alignItems: 'center',
               flexGrow: 0,
               flexShrink: 0,
               width: 157,
@@ -103,9 +103,9 @@ function LayoutInner() {
               maxWidth: 157,
             },
             headerLeftContainerStyle: {
-              paddingLeft: 8,
+              paddingLeft: 12,
               justifyContent: 'center',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               flexGrow: 0,
               flexShrink: 0,
             },

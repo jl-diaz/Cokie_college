@@ -459,7 +459,8 @@ export default function TeacherGradesScreen() {
                     else router.replace('/home');
                   }
                 }}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 8, marginLeft: 4 }}
+                style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+                activeOpacity={0.7}
               >
                 <ArrowLeft size={24} color={Colors.text.headerTxtC || '#FFF'} />
               </TouchableOpacity>
