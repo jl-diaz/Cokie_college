@@ -20,7 +20,7 @@
     "@supabase/supabase-js": "^2.43.2",
     "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.7.2",
-    "expo": "^57.0.0",
+    "expo": "^57.0.20",
     "expo-audio": "~57.0.4",
     "expo-build-properties": "~57.0.16",
     "expo-camera": "~57.0.4",

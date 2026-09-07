@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from '@studio-freight/lenis';
+import Lenis from 'lenis';
 import Header from './modules/Header';
 import AboutUs from './modules/aboutUs';
 import LegalTerms from './modules/LegalTerms';

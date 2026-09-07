@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -78,6 +78,31 @@ function AboutUs() {
     );
 
   }, { scope: containerRef });
+
+  useEffect(() => {
+    // Configurar meta robots a noindex para evitar que Nosotros aparezca como resultado separado en Google
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+    const prevRobots = robotsMeta ? robotsMeta.getAttribute('content') : null;
+
+    if (robotsMeta) {
+      robotsMeta.setAttribute('content', 'noindex, follow');
+    } else {
+      robotsMeta = document.createElement('meta');
+      robotsMeta.name = 'robots';
+      robotsMeta.content = 'noindex, follow';
+      document.head.appendChild(robotsMeta);
+    }
+
+    return () => {
+      if (robotsMeta) {
+        if (prevRobots) {
+          robotsMeta.setAttribute('content', prevRobots);
+        } else {
+          robotsMeta.setAttribute('content', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
+        }
+      }
+    };
+  }, []);
 
   // Desplazamiento fluido hacia "Nuestra historia"
   const handleScrollToHistory = () => {
