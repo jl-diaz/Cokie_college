@@ -320,7 +320,39 @@ const adminController = {
 
     createConductCode: async (req, res) => {
         try {
-            const { code, name, description, category } = req.body;
+            let { code, name, description, category } = req.body;
+
+            // Si el código no viene definido, generarlo automáticamente según la categoría
+            if (!code || !String(code).trim()) {
+                const categoryPrefixMap = {
+                    'Positivo': 'P',
+                    'Leve': 'L',
+                    'Grave': 'G',
+                    'Muy Grave': 'MG'
+                };
+                const prefix = categoryPrefixMap[category] || 'C';
+
+                const { data: existingCodes } = await supabaseAdmin
+                    .from('conduct_codes')
+                    .select('code')
+                    .eq('category', category);
+
+                let maxNumber = 0;
+                if (existingCodes && existingCodes.length > 0) {
+                    existingCodes.forEach(c => {
+                        const match = String(c.code || '').match(/\d+/);
+                        if (match) {
+                            const num = parseInt(match[0], 10);
+                            if (num > maxNumber) maxNumber = num;
+                        }
+                    });
+                }
+                const nextNum = String(maxNumber + 1).padStart(2, '0');
+                code = `${prefix}${nextNum}`;
+            } else {
+                code = String(code).trim().toUpperCase();
+            }
+
             const { data, error } = await supabaseAdmin
                 .from('conduct_codes')
                 .insert([{ code, name, description, category }])

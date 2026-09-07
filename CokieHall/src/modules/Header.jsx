@@ -204,15 +204,27 @@ function Header() {
               Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las
               herramientas para crecer, aprender y alcanzar su máximo potencial.
             </p>
-            {/* Imagen institucional para rastreadores y previsualizaciones */}
+            {/* Imagen institucional oficial para rastreadores y previsualizaciones (sin display:none para cumplir directrices de Google Search) */}
             <img
               src="/og-image.png"
-              alt="Cokie Hall - Comunidad Educativa"
+              alt="Cokie Hall | Institución Educativa y Comunidad Académica"
               width="1200"
               height="630"
               loading="eager"
-              style={{ display: 'none' }}
-              aria-hidden="true"
+              fetchPriority="high"
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: 0,
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+                opacity: 0.001,
+                pointerEvents: 'none'
+              }}
             />
             <DownloadButton />
             

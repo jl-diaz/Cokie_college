@@ -95,10 +95,42 @@ export default function ConductCatalogScreen() {
     }
   };
 
+  const getNextAvailableCode = (category, currentCodes = codes) => {
+    const prefixMap = {
+      'Positivo': 'P',
+      'Leve': 'L',
+      'Grave': 'G',
+      'Muy Grave': 'MG'
+    };
+    const prefix = prefixMap[category] || 'C';
+    let maxNum = 0;
+    currentCodes.forEach(c => {
+      if (c.category === category || (c.code && c.code.toUpperCase().startsWith(prefix))) {
+        const match = (c.code || '').match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+    });
+    return `${prefix}${String(maxNum + 1).padStart(2, '0')}`;
+  };
+
   const handleOpenCreateModal = () => {
     setEditingCode(null);
-    setFormData({ code: '', name: '', category: 'Leve' });
+    const initialCategory = 'Leve';
+    const autoCode = getNextAvailableCode(initialCategory);
+    setFormData({ code: autoCode, name: '', category: initialCategory });
     setModalVisible(true);
+  };
+
+  const handleSelectCategory = (cat) => {
+    if (!editingCode) {
+      const autoCode = getNextAvailableCode(cat);
+      setFormData(prev => ({ ...prev, category: cat, code: autoCode }));
+    } else {
+      setFormData(prev => ({ ...prev, category: cat }));
+    }
   };
 
   const handleOpenEditModal = (item) => {
@@ -292,13 +324,37 @@ export default function ConductCatalogScreen() {
 
             <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 8 }}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Código</Text>
+                <Text style={styles.label}>Categoría</Text>
+                <View style={styles.categoryRow}>
+                  {categories.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
+                      onPress={() => handleSelectCategory(cat)}
+                    >
+                      <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={[styles.label, { marginBottom: 0 }]}>Código</Text>
+                  {!editingCode && (
+                    <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#0284c7' }}>Generado Automático</Text>
+                    </View>
+                  )}
+                </View>
                 <TextInput
                   placeholder="Ej. L-01"
                   placeholderTextColor={Colors.text.muted}
                   value={formData.code}
                   onChangeText={(v) => setFormData({ ...formData, code: v })}
-                  style={styles.input}
+                  style={[styles.input, !editingCode && { backgroundColor: Colors.gray[100] || '#f1f5f9', fontWeight: 'bold' }]}
                 />
               </View>
 
@@ -311,23 +367,6 @@ export default function ConductCatalogScreen() {
                   onChangeText={(v) => setFormData({ ...formData, name: v })}
                   style={[styles.input, styles.textArea]}
                 />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Categoría</Text>
-                <View style={styles.categoryRow}>
-                  {categories.map(cat => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.categoryBtn, formData.category === cat && styles.categoryBtnActive]}
-                      onPress={() => setFormData({ ...formData, category: cat })}
-                    >
-                      <Text style={[styles.categoryBtnText, formData.category === cat && styles.categoryBtnTextActive]}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
               </View>
 
               <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>

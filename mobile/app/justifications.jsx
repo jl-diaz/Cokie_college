@@ -478,20 +478,52 @@ export default function JustificationsScreen() {
                     {/* Fecha de Inasistencia */}
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>{t('justifications.dateLabel', 'Fecha de Inasistencia')}</Text>
-                      <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
-                        <Calendar size={20} color={Colors.primary} />
-                        <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
-                          {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
-                        </Text>
-                      </TouchableOpacity>
-                      {showDatePicker && (
-                        <DateTimePicker
-                          value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
-                          mode="date"
-                          display="default"
-                          maximumDate={new Date()}
-                          onChange={handleDateChange}
-                        />
+                      {Platform.OS === 'web' ? (
+                        <View style={[styles.datePickerBtn, { position: 'relative', overflow: 'hidden' }]}>
+                          <Calendar size={20} color={Colors.primary} />
+                          <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
+                            {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
+                          </Text>
+                          <input
+                            type="date"
+                            max={new Date().toISOString().split('T')[0]}
+                            value={formData.date || ''}
+                            onChange={(e) => {
+                              const selected = e.target.value;
+                              if (selected) {
+                                handleDateChange(null, new Date(selected + 'T12:00:00'));
+                              }
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              opacity: 0,
+                              cursor: 'pointer',
+                              zIndex: 10
+                            }}
+                          />
+                        </View>
+                      ) : (
+                        <>
+                          <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
+                            <Calendar size={20} color={Colors.primary} />
+                            <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
+                              {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
+                            </Text>
+                          </TouchableOpacity>
+                          {showDatePicker && (
+                            <DateTimePicker
+                              value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
+                              mode="date"
+                              display="default"
+                              maximumDate={new Date()}
+                              onChange={handleDateChange}
+                            />
+                          )}
+                        </>
                       )}
                     </View>
 

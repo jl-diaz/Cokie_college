@@ -80,27 +80,33 @@ function AboutUs() {
   }, { scope: containerRef });
 
   useEffect(() => {
-    // Configurar meta robots a noindex para evitar que Nosotros aparezca como resultado separado en Google
+    // Metadatos específicos de la subpágina /nosotros para que Google la trate como Sitelink
+    const prevTitle = document.title;
+    document.title = 'Sobre Nosotros | Cokie Hall';
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    const prevCanonical = canonical ? canonical.getAttribute('href') : 'https://www.cokiehall.lat/';
+    if (canonical) {
+      canonical.setAttribute('href', 'https://www.cokiehall.lat/nosotros');
+    }
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc ? metaDesc.getAttribute('content') : '';
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'Conoce la historia, visión, valores y comunidad de Cokie Hall. Acompañamos a los jóvenes en su crecimiento académico y personal.');
+    }
+
     let robotsMeta = document.querySelector('meta[name="robots"]');
     const prevRobots = robotsMeta ? robotsMeta.getAttribute('content') : null;
-
     if (robotsMeta) {
-      robotsMeta.setAttribute('content', 'noindex, follow');
-    } else {
-      robotsMeta = document.createElement('meta');
-      robotsMeta.name = 'robots';
-      robotsMeta.content = 'noindex, follow';
-      document.head.appendChild(robotsMeta);
+      robotsMeta.setAttribute('content', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
     }
 
     return () => {
-      if (robotsMeta) {
-        if (prevRobots) {
-          robotsMeta.setAttribute('content', prevRobots);
-        } else {
-          robotsMeta.setAttribute('content', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
-        }
-      }
+      document.title = prevTitle;
+      if (canonical) canonical.setAttribute('href', prevCanonical);
+      if (metaDesc && prevDesc) metaDesc.setAttribute('content', prevDesc);
+      if (robotsMeta && prevRobots) robotsMeta.setAttribute('content', prevRobots);
     };
   }, []);
 

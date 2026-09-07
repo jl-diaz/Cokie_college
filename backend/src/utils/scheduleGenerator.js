@@ -41,9 +41,17 @@ async function generateSchedule(level) {
     });
     const classrooms = Array.from(classroomsMap.values());
 
+    if (!classrooms || classrooms.length === 0) {
+        throw new Error('No se encontraron salones o estudiantes para este nivel.');
+    }
+
     const { data: subjectsData } = await supabaseAdmin
         .from('subjects')
         .select('*');
+
+    if (!subjectsData || subjectsData.length === 0) {
+        throw new Error('No hay materias registradas en el sistema.');
+    }
 
     let teacherLevels = [level];
     if (level === 'Secundaria' || level === 'Tercer Ciclo') {
@@ -70,127 +78,196 @@ async function generateSchedule(level) {
         teachersBySubject[t.specialty_subject_id].push(t);
     });
 
-    const subjects = [...subjectsData].sort((a, b) => {
-        const hoursA = a.weekly_hours || 4;
-        const hoursB = b.weekly_hours || 4;
-        if (hoursB !== hoursA) return hoursB - hoursA;
-        const teachersA = teachersBySubject[a.id]?.length || 0;
-        const teachersB = teachersBySubject[b.id]?.length || 0;
-        return teachersA - teachersB;
-    });
+    const numClasses = classrooms.length;
+    const numSlots = 40; // 5 días × 8 bloques diarios
 
-    let proposal = [];
-    let teacherScheduleMap = new Map(); 
-    let classScheduleMap = new Map(); 
-    const teacherPeriodsMap = new Map(); 
-
-    const shuffleArray = (array) => {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-    };
-
-    classrooms.forEach(classroom => {
-        const classKey = `${classroom.grade}-${classroom.section}`;
-        
-        subjects.forEach(subject => {
-            // Conversión: 1 hora reloj = 2 bloques de 30 minutos
-            const weeklyHours = subject.weekly_hours || 3;
-            const requiredBlocks = weeklyHours * 2;
-            const maxBlocksPerDay = 3; // Límite diario (1.5h máximo) por materia
-
-            const availableTeachers = teachersBySubject[subject.id];
-            
-            if (!availableTeachers || availableTeachers.length === 0) {
-                return; 
-            }
-
-            const sortedTeachers = [...availableTeachers].sort((a, b) => {
-                const periodsA = teacherPeriodsMap.get(a.id) || 0;
-                const periodsB = teacherPeriodsMap.get(b.id) || 0;
-                return periodsA - periodsB;
-            });
-
-            let success = false;
-
-            for (const teacher of sortedTeachers) {
-                const backupProposal = [...proposal];
-                const backupTeacherSchedule = new Map(teacherScheduleMap);
-                const backupClassSchedule = new Map(classScheduleMap);
-
-                let blocksAssigned = 0;
-                
-                // Track daily blocks for this specific subject/classroom to enforce maxBlocksPerDay
-                let subjectDailyBlocks = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-                
-                // Mezclamos días para empezar a probar aleatoriamente
-                let daysPool = [...DAYS_OF_WEEK];
-                shuffleArray(daysPool);
-
-                let keepTrying = true;
-                // Loop principal de Backtracking para asignar todos los bloques requeridos
-                while (blocksAssigned < requiredBlocks && keepTrying) {
-                    keepTrying = false; // asume falso hasta que logremos colocar al menos 1 bloque
-                    
-                    for (let day of daysPool) {
-                        if (blocksAssigned >= requiredBlocks) break;
-                        
-                        // Si ya superamos el límite diario, saltar de día
-                        if (subjectDailyBlocks[day] >= maxBlocksPerDay) continue;
-
-                        let slotsPool = [0, 1, 2, 3, 4, 5, 6, 7];
-                        
-                        // Preferimos colocar los bloques de una misma materia en slots contiguos
-                        // Pero por ahora solo iteramos todos los posibles slots del día
-                        for (let slot of slotsPool) {
-                            if (blocksAssigned >= requiredBlocks) break;
-                            if (subjectDailyBlocks[day] >= maxBlocksPerDay) break;
-
-                            const teacherKey = `${teacher.id}_${day}_${slot}`;
-                            const cKey = `${classKey}_${day}_${slot}`;
-
-                            if (!teacherScheduleMap.has(teacherKey) && !classScheduleMap.has(cKey)) {
-                                teacherScheduleMap.set(teacherKey, true);
-                                classScheduleMap.set(cKey, true);
-                                subjectDailyBlocks[day]++;
-                                
-                                proposal.push({
-                                    teacher_id: teacher.id,
-                                    teacher_name: teacher.full_name,
-                                    subject_id: subject.id,
-                                    subject_name: subject.name,
-                                    grade: classroom.grade,
-                                    section: classroom.section,
-                                    day_of_week: day,
-                                    start_time: TIME_SLOTS[slot].start,
-                                    end_time: TIME_SLOTS[slot].end,
-                                    slot_index: slot
-                                });
-                                blocksAssigned++;
-                                keepTrying = true; // Logramos avanzar, mantenemos el ciclo vivo
-                            }
-                        }
-                    }
-                }
-
-                if (blocksAssigned === requiredBlocks) {
-                    teacherPeriodsMap.set(teacher.id, (teacherPeriodsMap.get(teacher.id) || 0) + requiredBlocks);
-                    success = true;
-                    break;
-                } else {
-                    // Rollback
-                    proposal = backupProposal;
-                    teacherScheduleMap = backupTeacherSchedule;
-                    classScheduleMap = backupClassSchedule;
-                }
-            }
-
-            if (!success) {
-                console.warn(`No se pudieron asignar ${requiredBlocks} bloques de ${subject.name} para ${classKey}`);
-            }
+    // Asignar un docente específico por materia para cada salón de forma equitativa
+    const classSubjectTeacher = new Map();
+    subjectsData.forEach(sub => {
+        const tList = teachersBySubject[sub.id] || [];
+        if (tList.length === 0) return;
+        classrooms.forEach((c, idx) => {
+            const teacher = tList[idx % tList.length];
+            classSubjectTeacher.set(`${c.grade}-${c.section}_${sub.id}`, teacher);
         });
     });
+
+    // Función que corre un intento de optimización (Simulated Annealing / Min-Conflicts)
+    const runOptimizationAttempt = () => {
+        let grid = [];
+
+        for (let c = 0; c < numClasses; c++) {
+            const cObj = classrooms[c];
+            const classKey = `${cObj.grade}-${cObj.section}`;
+            const blocks = [];
+
+            subjectsData.forEach(sub => {
+                const teacher = classSubjectTeacher.get(`${classKey}_${sub.id}`);
+                if (!teacher) return;
+                const count = (sub.weekly_hours || 3) * 2;
+                for (let k = 0; k < count; k++) {
+                    blocks.push({
+                        grade: cObj.grade,
+                        section: cObj.section,
+                        subject_id: sub.id,
+                        subject_name: sub.name,
+                        teacher_id: teacher.id,
+                        teacher_name: teacher.full_name
+                    });
+                }
+            });
+
+            // Rellenar hasta 40 bloques si faltan
+            while (blocks.length < numSlots) {
+                blocks.push(null);
+            }
+
+            // Mezclar aleatoriamente el estado inicial
+            for (let i = blocks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+            }
+
+            grid.push(blocks);
+        }
+
+        // Medir choques de profesores en un slot
+        const slotTeacherConflicts = (s) => {
+            let conf = 0;
+            const seen = {};
+            for (let c = 0; c < numClasses; c++) {
+                const b = grid[c][s];
+                if (!b) continue;
+                if (seen[b.teacher_id]) conf++;
+                else seen[b.teacher_id] = true;
+            }
+            return conf;
+        };
+
+        // Medir límite de bloques de la misma materia en un mismo día (> 3 bloques)
+        const dayLimitClashes = (c, day) => {
+            let clashes = 0;
+            const counts = {};
+            const startSlot = day * 8;
+            for (let s = startSlot; s < startSlot + 8; s++) {
+                const b = grid[c][s];
+                if (!b) continue;
+                counts[b.subject_id] = (counts[b.subject_id] || 0) + 1;
+                if (counts[b.subject_id] > 3) clashes++;
+            }
+            return clashes;
+        };
+
+        // Medir contigüidad (incentivo pedagógico para bloques continuos en el mismo día)
+        const contiguityScore = (c, day) => {
+            let score = 0;
+            const startSlot = day * 8;
+            // Bloques 0, 1, 2 antes del primer receso
+            if (grid[c][startSlot]?.subject_id === grid[c][startSlot + 1]?.subject_id) score++;
+            if (grid[c][startSlot + 1]?.subject_id === grid[c][startSlot + 2]?.subject_id) score++;
+            // Bloques 3, 4, 5 entre recesos
+            if (grid[c][startSlot + 3]?.subject_id === grid[c][startSlot + 4]?.subject_id) score++;
+            if (grid[c][startSlot + 4]?.subject_id === grid[c][startSlot + 5]?.subject_id) score++;
+            // Bloques 6, 7 después del segundo receso
+            if (grid[c][startSlot + 6]?.subject_id === grid[c][startSlot + 7]?.subject_id) score++;
+            return score;
+        };
+
+        const maxIters = 60000;
+
+        for (let iter = 0; iter < maxIters; iter++) {
+            const c = Math.floor(Math.random() * numClasses);
+            const s1 = Math.floor(Math.random() * numSlots);
+            const s2 = Math.floor(Math.random() * numSlots);
+            if (s1 === s2) continue;
+
+            const b1 = grid[c][s1];
+            const b2 = grid[c][s2];
+            if (!b1 && !b2) continue;
+            if (b1 && b2 && b1.teacher_id === b2.teacher_id && b1.subject_id === b2.subject_id) continue;
+
+            const d1 = Math.floor(s1 / 8);
+            const d2 = Math.floor(s2 / 8);
+
+            const oldSlotConf = slotTeacherConflicts(s1) + slotTeacherConflicts(s2);
+            const oldDayClash = dayLimitClashes(c, d1) + (d1 !== d2 ? dayLimitClashes(c, d2) : 0);
+            const oldContig = contiguityScore(c, d1) + (d1 !== d2 ? contiguityScore(c, d2) : 0);
+
+            // Intentar intercambio
+            grid[c][s1] = b2;
+            grid[c][s2] = b1;
+
+            const newSlotConf = slotTeacherConflicts(s1) + slotTeacherConflicts(s2);
+            const newDayClash = dayLimitClashes(c, d1) + (d1 !== d2 ? dayLimitClashes(c, d2) : 0);
+            const newContig = contiguityScore(c, d1) + (d1 !== d2 ? contiguityScore(c, d2) : 0);
+
+            const costDelta = (newSlotConf - oldSlotConf) * 1000 + 
+                              (newDayClash - oldDayClash) * 50 - 
+                              (newContig - oldContig) * 10;
+
+            const temp = Math.max(0.01, 1 - (iter / maxIters));
+            if (costDelta <= 0 || Math.random() < Math.exp(-costDelta / (250 * temp))) {
+                // Aceptar intercambio
+            } else {
+                // Revertir
+                grid[c][s1] = b1;
+                grid[c][s2] = b2;
+            }
+        }
+
+        let totalTeacherConflicts = 0;
+        for (let s = 0; s < numSlots; s++) {
+            totalTeacherConflicts += slotTeacherConflicts(s);
+        }
+
+        return {
+            success: totalTeacherConflicts === 0,
+            grid,
+            conflicts: totalTeacherConflicts
+        };
+    };
+
+    let bestSolution = null;
+    for (let attempt = 1; attempt <= 6; attempt++) {
+        const result = runOptimizationAttempt();
+        if (result.success) {
+            bestSolution = result.grid;
+            break;
+        }
+        if (!bestSolution || result.conflicts < bestSolution.conflicts) {
+            bestSolution = result.grid;
+        }
+    }
+
+    if (!bestSolution) {
+        throw new Error('No se pudo encontrar una distribución de horario sin conflictos. Por favor intenta de nuevo.');
+    }
+
+    // Convertir grid al formato esperado por la base de datos y la vista
+    const proposal = [];
+    for (let c = 0; c < numClasses; c++) {
+        for (let s = 0; s < numSlots; s++) {
+            const item = bestSolution[c][s];
+            if (!item) continue;
+
+            const dayIndex = Math.floor(s / 8); // 0..4
+            const slotIndex = s % 8;           // 0..7
+            const day = DAYS_OF_WEEK[dayIndex];
+
+            proposal.push({
+                teacher_id: item.teacher_id,
+                teacher_name: item.teacher_name,
+                subject_id: item.subject_id,
+                subject_name: item.subject_name,
+                grade: item.grade,
+                section: item.section,
+                day_of_week: day,
+                start_time: TIME_SLOTS[slotIndex].start,
+                end_time: TIME_SLOTS[slotIndex].end,
+                slot_index: slotIndex
+            });
+        }
+    }
 
     return proposal;
 }

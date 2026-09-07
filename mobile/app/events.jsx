@@ -472,24 +472,55 @@ export default function EventsScreen() {
                   />
 
                   <Text style={styles.inputLabel}>{t('events.dateLabel', 'Fecha del Evento *')}</Text>
-                  <TouchableOpacity
-                    style={[styles.textInput, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-                    onPress={() => setShowDatePicker(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={{ color: eventDate ? Colors.text.primary : Colors.text.muted, fontSize: 14 }}>
-                      {eventDate || 'Seleccionar fecha...'}
-                    </Text>
-                    <CalendarIcon size={18} color={Colors.text.muted} />
-                  </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    <View style={[styles.textInput, { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+                      <Text style={{ color: eventDate ? Colors.text.primary : Colors.text.muted, fontSize: 14 }}>
+                        {eventDate || 'Seleccionar fecha...'}
+                      </Text>
+                      <CalendarIcon size={18} color={Colors.text.muted} />
+                      <input
+                        type="date"
+                        value={eventDate || ''}
+                        onChange={(e) => {
+                          const selected = e.target.value;
+                          if (selected) {
+                            handleDateChange(null, new Date(selected + 'T12:00:00'));
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          opacity: 0,
+                          cursor: 'pointer',
+                          zIndex: 10
+                        }}
+                      />
+                    </View>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.textInput, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                        onPress={() => setShowDatePicker(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={{ color: eventDate ? Colors.text.primary : Colors.text.muted, fontSize: 14 }}>
+                          {eventDate || 'Seleccionar fecha...'}
+                        </Text>
+                        <CalendarIcon size={18} color={Colors.text.muted} />
+                      </TouchableOpacity>
 
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={eventDate ? new Date(eventDate + 'T12:00:00') : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleDateChange}
-                    />
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={eventDate ? new Date(eventDate + 'T12:00:00') : new Date()}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          onChange={handleDateChange}
+                        />
+                      )}
+                    </>
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>

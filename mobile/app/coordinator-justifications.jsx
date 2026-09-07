@@ -553,20 +553,52 @@ export default function CoordinatorJustificationsScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Fecha de Ausencia</Text>
-                <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
-                  <Calendar size={18} color={Colors.primary} />
-                  <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
-                    {absenceDate || 'Seleccionar fecha'}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={absenceDate ? new Date(absenceDate + 'T12:00:00') : new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
-                    maximumDate={new Date()}
-                  />
+                {Platform.OS === 'web' ? (
+                  <View style={[styles.datePickerBtn, { position: 'relative', overflow: 'hidden' }]}>
+                    <Calendar size={18} color={Colors.primary} />
+                    <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
+                      {absenceDate || 'Seleccionar fecha'}
+                    </Text>
+                    <input
+                      type="date"
+                      max={new Date().toISOString().split('T')[0]}
+                      value={absenceDate || ''}
+                      onChange={(e) => {
+                        const selected = e.target.value;
+                        if (selected) {
+                          handleDateChange(null, new Date(selected + 'T12:00:00'));
+                        }
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        opacity: 0,
+                        cursor: 'pointer',
+                        zIndex: 10
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
+                      <Calendar size={18} color={Colors.primary} />
+                      <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
+                        {absenceDate || 'Seleccionar fecha'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={absenceDate ? new Date(absenceDate + 'T12:00:00') : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={handleDateChange}
+                        maximumDate={new Date()}
+                      />
+                    )}
+                  </>
                 )}
               </View>
 
