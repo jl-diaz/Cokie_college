@@ -348,7 +348,7 @@ export default function ClassScreen() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => {
-                if (selectedClass && profile?.role !== 'coordinator') {
+                if (selectedClass && !params?.grade) {
                   setSelectedClass(null);
                 } else {
                   if (router.canGoBack()) router.back();
@@ -358,7 +358,7 @@ export default function ClassScreen() {
               style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={24} color={colors.text.headerTxtC || (theme === 'dark' ? '#FFF' : '#FFF')} />
+              <ArrowLeft size={24} color={Colors.text?.headerTxtC || '#FFF'} />
             </TouchableOpacity>
           )
         }}

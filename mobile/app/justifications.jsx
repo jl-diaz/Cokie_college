@@ -22,16 +22,26 @@ const SCHOOL_HOURS = [
   '10:30 AM',
   '11:00 AM',
   '11:30 AM',
-  '12:00 PM',
-  '12:30 PM',
-  '01:00 PM',
-  '01:30 PM',
-  '02:00 PM',
-  '02:30 PM',
-  '03:00 PM',
-  '03:30 PM',
-  '04:00 PM'
+  '12:00 PM'
 ];
+
+export const timeStringToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const match12 = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2], 10);
+    const period = match12[3].toUpperCase();
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  }
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    return parseInt(match24[1], 10) * 60 + parseInt(match24[2], 10);
+  }
+  return 0;
+};
 
 export default function JustificationsScreen() {
   const { t } = useTranslation();
@@ -112,12 +122,52 @@ export default function JustificationsScreen() {
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (selectedDate > today) {
+        showAlert({
+          type: 'warning',
+          title: 'Fecha Inválida',
+          message: 'Solo se permiten justificaciones hasta la fecha actual.'
+        });
+        return;
+      }
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       setFormData(prev => ({ ...prev, date: formattedDate }));
     }
+  };
+
+  const handleSelectHour = (hour) => {
+    if (timePickerTarget === 'start') {
+      const newStartMins = timeStringToMinutes(hour);
+      const currentEndMins = timeStringToMinutes(formData.end_time);
+      let newEndTime = formData.end_time;
+      if (newStartMins >= currentEndMins) {
+        const nextSlot = SCHOOL_HOURS.find(h => timeStringToMinutes(h) > newStartMins);
+        if (nextSlot) {
+          newEndTime = nextSlot;
+        } else {
+          newEndTime = hour;
+        }
+      }
+      setFormData(prev => ({ ...prev, start_time: hour, end_time: newEndTime }));
+    } else {
+      const startMins = timeStringToMinutes(formData.start_time);
+      const endMins = timeStringToMinutes(hour);
+      if (endMins <= startMins) {
+        showAlert({
+          type: 'warning',
+          title: 'Horario Inválido',
+          message: 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).'
+        });
+        return;
+      }
+      setFormData(prev => ({ ...prev, end_time: hour }));
+    }
+    setTimePickerVisible(false);
   };
 
   const showDatepicker = () => {
@@ -150,6 +200,30 @@ export default function JustificationsScreen() {
       return;
     }
 
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (formData.date > todayStr) {
+      showAlert({
+        type: 'warning',
+        title: 'Fecha Inválida',
+        message: 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.'
+      });
+      return;
+    }
+
+    if (formData.scope === 'hourly') {
+      const startMins = timeStringToMinutes(formData.start_time);
+      const endMins = timeStringToMinutes(formData.end_time);
+      if (endMins <= startMins) {
+        showAlert({
+          type: 'warning',
+          title: 'Horario Inválido',
+          message: 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).'
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let finalEvidenceUrl = null;
@@ -178,13 +252,14 @@ export default function JustificationsScreen() {
         message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
       });
       setModalVisible(false);
+      setTimePickerVisible(false);
       setFormData({ 
         date: '', 
         reason: '', 
         evidence: null, 
         scope: 'full_day', 
-        start_time: '07:00', 
-        end_time: '09:00' 
+        start_time: '07:00 AM', 
+        end_time: '09:30 AM' 
       });
       fetchJustifications();
     } catch (error) {
@@ -300,196 +375,211 @@ export default function JustificationsScreen() {
       />
 
       {/* Modal para Crear Solicitud de Justificación */}
-      <BottomModal visible={modalVisible} onClose={() => setModalVisible(false)}>
+      <BottomModal 
+        visible={modalVisible} 
+        onClose={() => {
+          if (timePickerVisible) {
+            setTimePickerVisible(false);
+          } else {
+            setModalVisible(false);
+          }
+        }}
+      >
           <View style={styles.modalContent}>
-            <ScrollView 
-              keyboardShouldPersistTaps="handled" 
-              showsVerticalScrollIndicator={false}
-              style={{ flexGrow: 0 }}
-              contentContainerStyle={{ paddingBottom: 8 }}
-            >
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
-                    <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
-                      <X size={24} color={Colors.primary} />
-                    </TouchableOpacity>
+            {timePickerVisible ? (
+              <View style={{ paddingBottom: 12 }}>
+                <View style={styles.modalHeader}>
+                  <View>
+                    <Text style={styles.modalTitle}>
+                      {timePickerTarget === 'start' ? 'Hora de Inicio (Desde)' : 'Hora de Fin (Hasta)'}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: Colors.text.secondary, marginTop: 2 }}>
+                      {timePickerTarget === 'start' 
+                        ? 'Selecciona cuándo inicia tu ausencia' 
+                        : `Selecciona cuándo finaliza (posterior a ${formData.start_time})`}
+                    </Text>
                   </View>
+                  <TouchableOpacity onPress={() => setTimePickerVisible(false)} style={{ padding: 4 }}>
+                    <X size={24} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
+                    {SCHOOL_HOURS.map(hour => {
+                      const isSelected = (timePickerTarget === 'start' ? formData.start_time : formData.end_time) === hour;
+                      const isDisabled = timePickerTarget === 'end' && timeStringToMinutes(hour) <= timeStringToMinutes(formData.start_time);
 
-                  {/* Modalidad de Inasistencia */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>{t('justifications.scopeLabel', 'Tipo de Inasistencia')}</Text>
-                    <View style={styles.scopeSelector}>
-                      <TouchableOpacity
-                        style={[styles.scopeBtn, formData.scope === 'full_day' && styles.scopeBtnActive]}
-                        onPress={() => setFormData(prev => ({ ...prev, scope: 'full_day' }))}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.scopeBtnText, formData.scope === 'full_day' && styles.scopeBtnTextActive]}>
-                          Día Completo
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.scopeBtn, formData.scope === 'hourly' && styles.scopeBtnActive]}
-                        onPress={() => setFormData(prev => ({ ...prev, scope: 'hourly' }))}
-                        activeOpacity={0.8}
-                      >
-                        <Clock size={16} color={formData.scope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
-                        <Text style={[styles.scopeBtnText, formData.scope === 'hourly' && styles.scopeBtnTextActive]}>
-                          Por Horario
-                        </Text>
+                      return (
+                        <TouchableOpacity
+                          key={hour}
+                          style={[
+                            styles.hourChip, 
+                            isSelected && styles.hourChipActive,
+                            isDisabled && { opacity: 0.35, backgroundColor: theme === 'dark' ? Colors.card : '#f1f5f9', borderColor: '#cbd5e1' }
+                          ]}
+                          disabled={isDisabled}
+                          onPress={() => handleSelectHour(hour)}
+                          activeOpacity={0.7}
+                        >
+                          <Clock size={14} color={isSelected ? '#FFF' : (isDisabled ? Colors.text.muted : Colors.primary)} style={{ marginRight: 6 }} />
+                          <Text style={[
+                            styles.hourChipText, 
+                            isSelected && styles.hourChipTextActive,
+                            isDisabled && { color: Colors.text.muted, textDecorationLine: 'line-through' }
+                          ]}>
+                            {hour}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            ) : (
+              <ScrollView 
+                keyboardShouldPersistTaps="handled" 
+                showsVerticalScrollIndicator={false}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ paddingBottom: 8 }}
+              >
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
+                      <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
+                        <X size={24} color={Colors.primary} />
                       </TouchableOpacity>
                     </View>
-                  </View>
 
-                  {/* Fecha de Inasistencia */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>{t('justifications.dateLabel', 'Fecha de Inasistencia')}</Text>
-                    <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
-                      <Calendar size={20} color={Colors.primary} />
-                      <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
-                        {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
-                      />
+                    {/* Modalidad de Inasistencia */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>{t('justifications.scopeLabel', 'Tipo de Inasistencia')}</Text>
+                      <View style={styles.scopeSelector}>
+                        <TouchableOpacity
+                          style={[styles.scopeBtn, formData.scope === 'full_day' && styles.scopeBtnActive]}
+                          onPress={() => setFormData(prev => ({ ...prev, scope: 'full_day' }))}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.scopeBtnText, formData.scope === 'full_day' && styles.scopeBtnTextActive]}>
+                            Día Completo
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.scopeBtn, formData.scope === 'hourly' && styles.scopeBtnActive]}
+                          onPress={() => setFormData(prev => ({ ...prev, scope: 'hourly' }))}
+                          activeOpacity={0.8}
+                        >
+                          <Clock size={16} color={formData.scope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
+                          <Text style={[styles.scopeBtnText, formData.scope === 'hourly' && styles.scopeBtnTextActive]}>
+                            Por Horario
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Fecha de Inasistencia */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>{t('justifications.dateLabel', 'Fecha de Inasistencia')}</Text>
+                      <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
+                        <Calendar size={20} color={Colors.primary} />
+                        <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
+                          {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
+                        </Text>
+                      </TouchableOpacity>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
+                          mode="date"
+                          display="default"
+                          maximumDate={new Date()}
+                          onChange={handleDateChange}
+                        />
+                      )}
+                    </View>
+
+                    {/* Rango de Horario (Selector Táctil) */}
+                    {formData.scope === 'hourly' && (
+                      <View style={styles.timeRangeContainer}>
+                        <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                          <Text style={styles.label}>Desde (Hora Inicio)</Text>
+                          <TouchableOpacity
+                            style={styles.timeSelectorBtn}
+                            onPress={() => {
+                              setTimePickerTarget('start');
+                              setTimePickerVisible(true);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                              <Text style={styles.timeSelectorText}>{formData.start_time}</Text>
+                            </View>
+                            <ChevronDown size={16} color={Colors.text.muted} />
+                          </TouchableOpacity>
+                        </View>
+                        <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                          <Text style={styles.label}>Hasta (Hora Fin)</Text>
+                          <TouchableOpacity
+                            style={styles.timeSelectorBtn}
+                            onPress={() => {
+                              setTimePickerTarget('end');
+                              setTimePickerVisible(true);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                              <Text style={styles.timeSelectorText}>{formData.end_time}</Text>
+                            </View>
+                            <ChevronDown size={16} color={Colors.text.muted} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     )}
-                  </View>
 
-                  {/* Rango de Horario (Selector Táctil) */}
-                  {formData.scope === 'hourly' && (
-                    <View style={styles.timeRangeContainer}>
-                      <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                        <Text style={styles.label}>Desde (Hora Inicio)</Text>
-                        <TouchableOpacity
-                          style={styles.timeSelectorBtn}
-                          onPress={() => {
-                            setTimePickerTarget('start');
-                            setTimePickerVisible(true);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
-                            <Text style={styles.timeSelectorText}>{formData.start_time}</Text>
-                          </View>
-                          <ChevronDown size={16} color={Colors.text.muted} />
-                        </TouchableOpacity>
-                      </View>
-                      <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-                        <Text style={styles.label}>Hasta (Hora Fin)</Text>
-                        <TouchableOpacity
-                          style={styles.timeSelectorBtn}
-                          onPress={() => {
-                            setTimePickerTarget('end');
-                            setTimePickerVisible(true);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Clock size={16} color={Colors.primary} style={{ marginRight: 6 }} />
-                            <Text style={styles.timeSelectorText}>{formData.end_time}</Text>
-                          </View>
-                          <ChevronDown size={16} color={Colors.text.muted} />
-                        </TouchableOpacity>
-                      </View>
+                    {/* Motivo */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>{t('dashboard.reason', 'Motivo')}</Text>
+                      <TextInput
+                        style={[styles.input, styles.textArea]}
+                        multiline
+                        numberOfLines={4}
+                        placeholder={t('justifications.reasonPlaceholder', 'Describe la razón de tu ausencia...')}
+                        placeholderTextColor={Colors.text.muted}
+                        value={formData.reason}
+                        onChangeText={(text) => setFormData(prev => ({ ...prev, reason: text }))}
+                      />
                     </View>
-                  )}
 
-                  {/* Motivo */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>{t('dashboard.reason', 'Motivo')}</Text>
-                    <TextInput
-                      style={[styles.input, styles.textArea]}
-                      multiline
-                      numberOfLines={4}
-                      placeholder={t('justifications.reasonPlaceholder', 'Describe la razón de tu ausencia...')}
-                      placeholderTextColor={Colors.text.muted}
-                      value={formData.reason}
-                      onChangeText={(text) => setFormData(prev => ({ ...prev, reason: text }))}
-                    />
-                  </View>
+                    {/* Adjuntar Evidencia */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>{t('justifications.evidenceLabel', 'Comprobante / Evidencia (Opcional)')}</Text>
+                      <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} activeOpacity={0.8}>
+                        <Upload size={20} color={Colors.primary} />
+                        <Text style={[styles.uploadBtnText, { flex: 1 }]} numberOfLines={1}>
+                          {formData.evidence ? (formData.evidence.name || 'Archivo Seleccionado') : t('justifications.attachFile', 'Adjuntar archivo PDF o imagen')}
+                        </Text>
+                        {formData.evidence && (
+                          <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, evidence: null }))} style={{ padding: 4 }}>
+                            <X size={18} color="#e74c3c" />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    </View>
 
-                  {/* Adjuntar Evidencia */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>{t('justifications.evidenceLabel', 'Comprobante / Evidencia (Opcional)')}</Text>
-                    <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} activeOpacity={0.8}>
-                      <Upload size={20} color={Colors.primary} />
-                      <Text style={[styles.uploadBtnText, { flex: 1 }]} numberOfLines={1}>
-                        {formData.evidence ? (formData.evidence.name || 'Archivo Seleccionado') : t('justifications.attachFile', 'Adjuntar archivo PDF o imagen')}
-                      </Text>
-                      {formData.evidence && (
-                        <TouchableOpacity onPress={() => setFormData(prev => ({ ...prev, evidence: null }))} style={{ padding: 4 }}>
-                          <X size={18} color="#e74c3c" />
-                        </TouchableOpacity>
+                    {/* Botón Enviar */}
+                    <TouchableOpacity 
+                      style={[styles.submitBtn, submitting && { opacity: 0.7 }]} 
+                      onPress={handleSubmit} 
+                      disabled={submitting}
+                      activeOpacity={0.8}
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <Text style={styles.submitBtnText}>{t('dashboard.save', 'Enviar Solicitud')}</Text>
                       )}
                     </TouchableOpacity>
-                  </View>
-
-                  {/* Botón Enviar */}
-                  <TouchableOpacity 
-                    style={[styles.submitBtn, submitting && { opacity: 0.7 }]} 
-                    onPress={handleSubmit} 
-                    disabled={submitting}
-                    activeOpacity={0.8}
-                  >
-                    {submitting ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <Text style={styles.submitBtnText}>{t('dashboard.save', 'Enviar Solicitud')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </ScrollView>
-          </View>
-        </BottomModal>
-
-        {/* Time Picker Modal */}
-        <BottomModal visible={timePickerVisible} onClose={() => setTimePickerVisible(false)}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>
-                  {timePickerTarget === 'start' ? 'Hora de Inicio' : 'Hora de Fin'}
-                </Text>
-                <Text style={{ fontSize: 13, color: Colors.text.secondary, marginTop: 2 }}>
-                  Selecciona la hora correspondiente
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
-                <X size={24} color={Colors.primary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
-                {SCHOOL_HOURS.map(hour => {
-                  const isSelected = (timePickerTarget === 'start' ? formData.start_time : formData.end_time) === hour;
-                  return (
-                    <TouchableOpacity
-                      key={hour}
-                      style={[styles.hourChip, isSelected && styles.hourChipActive]}
-                      onPress={() => {
-                        if (timePickerTarget === 'start') {
-                          setFormData(prev => ({ ...prev, start_time: hour }));
-                        } else {
-                          setFormData(prev => ({ ...prev, end_time: hour }));
-                        }
-                        setTimePickerVisible(false);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Clock size={14} color={isSelected ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
-                      <Text style={[styles.hourChipText, isSelected && styles.hourChipTextActive]}>
-                        {hour}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
+                  </ScrollView>
+            )}
           </View>
         </BottomModal>
     </View>

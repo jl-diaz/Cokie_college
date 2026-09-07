@@ -23,16 +23,26 @@ const SCHOOL_HOURS = [
   '10:30 AM',
   '11:00 AM',
   '11:30 AM',
-  '12:00 PM',
-  '12:30 PM',
-  '01:00 PM',
-  '01:30 PM',
-  '02:00 PM',
-  '02:30 PM',
-  '03:00 PM',
-  '03:30 PM',
-  '04:00 PM'
+  '12:00 PM'
 ];
+
+const timeStringToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const match12 = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2], 10);
+    const period = match12[3].toUpperCase();
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  }
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    return parseInt(match24[1], 10) * 60 + parseInt(match24[2], 10);
+  }
+  return 0;
+};
 
 export default function CoordinatorJustificationsScreen() {
   const { t } = useTranslation();
@@ -183,6 +193,31 @@ export default function CoordinatorJustificationsScreen() {
       });
       return;
     }
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (absenceDate > todayStr) {
+      showAlert({
+        type: 'warning',
+        title: 'Fecha Inválida',
+        message: 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.'
+      });
+      return;
+    }
+
+    if (absenceScope === 'hourly') {
+      const startMins = timeStringToMinutes(startTime);
+      const endMins = timeStringToMinutes(endTime);
+      if (endMins <= startMins) {
+        showAlert({
+          type: 'warning',
+          title: 'Horario Inválido',
+          message: 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).'
+        });
+        return;
+      }
+    }
+
     setCreating(true);
     try {
       const finalReason = absenceScope === 'hourly'
@@ -233,6 +268,16 @@ export default function CoordinatorJustificationsScreen() {
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (selectedDate > today) {
+        showAlert({
+          type: 'warning',
+          title: 'Fecha Inválida',
+          message: 'Solo se permiten justificaciones hasta la fecha actual.'
+        });
+        return;
+      }
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -642,10 +687,10 @@ export default function CoordinatorJustificationsScreen() {
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>
-                {timePickerTarget === 'start' ? 'Hora de Inicio' : 'Hora de Fin'}
+                {timePickerTarget === 'start' ? 'Hora de Inicio (Desde)' : 'Hora de Fin (Hasta)'}
               </Text>
               <Text style={styles.modalSubtitle}>
-                Selecciona la hora lectiva correspondiente
+                {timePickerTarget === 'start' ? 'Selecciona la hora lectiva de inicio' : `Selecciona la hora de fin (posterior a ${startTime})`}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
@@ -656,22 +701,49 @@ export default function CoordinatorJustificationsScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
               {SCHOOL_HOURS.map(hour => {
                 const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;
+                const isDisabled = timePickerTarget === 'end' && timeStringToMinutes(hour) <= timeStringToMinutes(startTime);
                 return (
                   <TouchableOpacity
                     key={hour}
-                    style={[styles.hourChip, isSelected && styles.hourChipActive]}
+                    style={[
+                      styles.hourChip, 
+                      isSelected && styles.hourChipActive,
+                      isDisabled && { opacity: 0.35, backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }
+                    ]}
+                    disabled={isDisabled}
                     onPress={() => {
                       if (timePickerTarget === 'start') {
+                        const newStartMins = timeStringToMinutes(hour);
+                        const currentEndMins = timeStringToMinutes(endTime);
+                        if (newStartMins >= currentEndMins) {
+                          const nextSlot = SCHOOL_HOURS.find(h => timeStringToMinutes(h) > newStartMins);
+                          if (nextSlot) setEndTime(nextSlot);
+                          else setEndTime(hour);
+                        }
                         setStartTime(hour);
                       } else {
+                        const startMins = timeStringToMinutes(startTime);
+                        const endMins = timeStringToMinutes(hour);
+                        if (endMins <= startMins) {
+                          showAlert({
+                            type: 'warning',
+                            title: 'Horario Inválido',
+                            message: 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).'
+                          });
+                          return;
+                        }
                         setEndTime(hour);
                       }
                       setTimePickerVisible(false);
                     }}
                     activeOpacity={0.7}
                   >
-                    <Clock size={14} color={isSelected ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
-                    <Text style={[styles.hourChipText, isSelected && styles.hourChipTextActive]}>
+                    <Clock size={14} color={isSelected ? '#FFF' : (isDisabled ? Colors.text.muted : Colors.primary)} style={{ marginRight: 6 }} />
+                    <Text style={[
+                      styles.hourChipText, 
+                      isSelected && styles.hourChipTextActive,
+                      isDisabled && { color: Colors.text.muted, textDecorationLine: 'line-through' }
+                    ]}>
                       {hour}
                     </Text>
                   </TouchableOpacity>
