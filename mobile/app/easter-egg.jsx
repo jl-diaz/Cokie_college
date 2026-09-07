@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, Image, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,32 +21,44 @@ export default function EasterEggScreen() {
   const screenWidth = gameDimensions.width;
   const screenHeight = gameDimensions.height;
 
-  // Load initial records
-  useEffect(() => {
-    const loadRecords = async () => {
-      try {
-        const localScore = await AsyncStorage.getItem('flappyHighScore');
-        if (localScore !== null) {
-          setHighScore(parseInt(localScore, 10));
-        }
-        
-        // Attempt to fetch global record (fails silently if table doesn't exist)
-        const { data, error } = await supabase
-          .from('flappy_scores')
-          .select('score, user_name')
-          .order('score', { ascending: false })
-          .limit(1);
-          
-        if (!error && data && data.length > 0) {
-          setGlobalRecord(data[0].score);
-          setGlobalRecordHolder(data[0].user_name || 'Anónimo');
-        }
-      } catch (e) {
-        console.warn('Error loading records', e);
+  // Load initial records (weekly global record and personal record)
+  const loadRecords = useCallback(async () => {
+    try {
+      const localScore = await AsyncStorage.getItem('flappyHighScore');
+      if (localScore !== null) {
+        setHighScore(parseInt(localScore, 10));
       }
-    };
-    loadRecords();
+      
+      // Calculate start of current week (Monday 00:00:00)
+      const now = new Date();
+      const diff = (now.getDay() + 6) % 7;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - diff);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Fetch global record for current week
+      const { data, error } = await supabase
+        .from('flappy_scores')
+        .select('score, user_name, created_at')
+        .gte('created_at', startOfWeek.toISOString())
+        .order('score', { ascending: false })
+        .limit(1);
+        
+      if (!error && data && data.length > 0) {
+        setGlobalRecord(data[0].score);
+        setGlobalRecordHolder(data[0].user_name || 'Anónimo');
+      } else {
+        setGlobalRecord(0);
+        setGlobalRecordHolder('Nadie aún');
+      }
+    } catch (e) {
+      console.warn('Error loading records', e);
+    }
   }, []);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
 
   const GRAVITY = 0.35;
   const JUMP = -6.5;
@@ -103,6 +115,7 @@ export default function EasterEggScreen() {
     obstacles.current = [];
     lastTimeRef.current = 0;
     spawnObstacle(screenWidth, screenHeight);
+    loadRecords();
   };
 
   const gameLoop = (timestamp) => {
@@ -269,9 +282,13 @@ export default function EasterEggScreen() {
             <View style={styles.scoreBoard}>
               <Text style={styles.finalScoreText}>Puntaje: {score}</Text>
               <Text style={styles.recordText}>Récord Personal: {highScore}</Text>
-              {globalRecord > 0 && (
+              {globalRecord > 0 ? (
                 <Text style={styles.recordTextGlobal}>
-                  Récord Global Semanal: {Math.max(globalRecord, score, highScore)} ({globalRecordHolder})
+                  Récord Global Semanal: {globalRecord} ({globalRecordHolder})
+                </Text>
+              ) : (
+                <Text style={styles.recordTextGlobal}>
+                  Récord Global Semanal: Sin récord aún
                 </Text>
               )}
             </View>
