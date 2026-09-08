@@ -403,7 +403,6 @@ export default function AcademicPeriodsScreen() {
       <PageHeader
         title={t('titles.academicPeriods', 'Periodos Académicos')}
         subtitle={t('titles.academicPeriodsSubtitle', 'Gestión de fechas de inicio y fin de periodos')}
-        showBack={true}
       />
 
       {/* Tarjeta Informativa de Normativa de Periodos */}

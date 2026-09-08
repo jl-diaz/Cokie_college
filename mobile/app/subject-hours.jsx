@@ -395,7 +395,6 @@ export default function SubjectHoursScreen() {
       <PageHeader
         title={t('titles.subjectHours', 'Horas de Materias')}
         subtitle={t('titles.subjectHoursSubtitle', 'Control de horas semanales para el generador de horarios')}
-        showBack={true}
       />
 
       {/* Tarjeta de Capacidad Semanal considerando Recesos */}
