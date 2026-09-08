@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions, StatusBar, Platform, ScrollView } from 'react-native';
-import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell } from 'lucide-react-native';
+import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell, Clock } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -79,6 +79,8 @@ export default function CustomDrawer({ visible, onClose }) {
       { name: t('menu.home', 'Inicio'), path: '/home', icon: Home },
       { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils },
       { name: t('menu.users', 'Usuarios'), path: '/users', icon: Users },
+      { name: t('menu.subject_hours', 'Horas de Materias'), path: '/subject-hours', icon: Clock },
+      { name: t('menu.academic_periods', 'Periodos Académicos'), path: '/academic-periods', icon: Calendar },
       { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText },
       ...commonMenuItems
     ],

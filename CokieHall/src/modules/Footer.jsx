@@ -8,7 +8,7 @@ function Footer() {
         
         <div className="footer-top-row">
           
-          <div className="footer-left-info">
+          <div className="footer-left-info" data-nosnippet="true">
             <h2 className="footer-dev-title">Cokie Dev</h2>
             <p className="footer-dev-desc">
               Una empresa emergente de desarrollo de software y experiencias digitales enfocada 

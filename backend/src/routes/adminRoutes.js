@@ -21,11 +21,17 @@ router.post('/conduct-codes', adminController.createConductCode);
 router.put('/conduct-codes/:id', adminController.updateConductCode);
 router.delete('/conduct-codes/:id', adminController.deleteConductCode);
 
-// Asignación de Horarios
+// Materias y Asignación de Horarios
 router.get('/subjects', adminController.getSubjects);
+router.post('/subjects', adminController.createSubject);
+router.put('/subjects/:id', adminController.updateSubject);
+router.delete('/subjects/:id', adminController.deleteSubject);
 router.post('/schedules', adminController.createSchedule);
 
 // Periodos académicos
 router.get('/academic-periods', adminController.getAcademicPeriods);
+router.post('/academic-periods', adminController.createAcademicPeriod);
+router.put('/academic-periods/:period_number', adminController.updateAcademicPeriod);
+router.delete('/academic-periods/:period_number', adminController.deleteAcademicPeriod);
 
 module.exports = router;

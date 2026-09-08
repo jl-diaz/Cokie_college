@@ -17,6 +17,43 @@ function LegalTerms() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const tabTitles = {
+      terminos: 'Términos y Condiciones de Uso | Cokie Hall',
+      privacidad: 'Política de Privacidad | Cokie Hall',
+      copyright: 'Derechos de Autor y Propiedad Intelectual | Cokie Hall',
+      pautas: 'Pautas de Convivencia Digital | Cokie Hall',
+    };
+
+    const tabDescriptions = {
+      terminos: 'Términos y condiciones de uso de la plataforma educativa Cokie College y portal institucional Cokie Hall.',
+      privacidad: 'Política de privacidad, tratamiento y protección de datos personales de la comunidad académica de Cokie Hall.',
+      copyright: 'Políticas de propiedad intelectual, marcas registradas y derechos de autor de Cokie Hall.',
+      pautas: 'Pautas para el usuario, ética pedagógica y convivencia digital en la plataforma Cokie College.',
+    };
+
+    const prevTitle = document.title;
+    document.title = tabTitles[activeTab] || 'Términos y Políticas de Privacidad | Cokie Hall';
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    const prevCanonical = canonical ? canonical.getAttribute('href') : 'https://www.cokiehall.lat/';
+    if (canonical) {
+      canonical.setAttribute('href', 'https://www.cokiehall.lat/legal');
+    }
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc ? metaDesc.getAttribute('content') : '';
+    if (metaDesc) {
+      metaDesc.setAttribute('content', tabDescriptions[activeTab] || 'Consulta los términos de uso y políticas de privacidad de Cokie Hall.');
+    }
+
+    return () => {
+      document.title = prevTitle;
+      if (canonical) canonical.setAttribute('href', prevCanonical);
+      if (metaDesc && prevDesc) metaDesc.setAttribute('content', prevDesc);
+    };
+  }, [activeTab]);
+
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     setSearchParams({ tab: tabId });

@@ -133,8 +133,10 @@ function AboutUs() {
             <h1 className="clint-hero-title">
               Nosotros <br />
               <div className="hero-tilted-group">
-                <span className="clint-capsule">hacemos crecer</span> <br />
-                a los <span className="clint-underlined">jovenes</span>
+                <span className="clint-capsule">hacemos crecer</span>
+                <span className="clint-hero-line-break">
+                  a los <span className="clint-underlined">jovenes</span>
+                </span>
               </div>
             </h1>
 

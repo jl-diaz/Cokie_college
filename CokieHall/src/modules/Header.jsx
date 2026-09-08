@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -43,6 +43,18 @@ gsap.registerPlugin(ScrollTrigger);
 
 function Header() {
   const mainRef = useRef(null);
+
+  useEffect(() => {
+    document.title = 'Cokie Hall | Institución Educativa y Comunidad Académica';
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', 'https://www.cokiehall.lat/');
+    }
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.');
+    }
+  }, []);
 
   useGSAP(() => {
     const reveals = gsap.utils.toArray('.reveal');

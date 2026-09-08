@@ -397,11 +397,124 @@ const adminController = {
 
     // --- Asignación de Materias (Horarios) ---
 
+    // Capacidad máxima de horas semanales de clase:
+    // 25h jornada semanal (07:00 a 12:00 L-V) - 5h receso (1h diaria) = 20h netas de clase (40 bloques de 30 min)
+    MAX_WEEKLY_HOURS: 20,
+
     getSubjects: async (req, res) => {
         try {
-            const { data, error } = await supabaseAdmin.from('subjects').select('*');
+            const { data, error } = await supabaseAdmin
+                .from('subjects')
+                .select('*')
+                .order('name', { ascending: true });
             if (error) throw error;
             res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createSubject: async (req, res) => {
+        try {
+            const { name, weekly_hours } = req.body;
+            if (!name || !name.trim()) {
+                return res.status(400).json({ error: 'El nombre de la materia es requerido' });
+            }
+            const hours = parseInt(weekly_hours, 10) || 1;
+            if (hours < 1) {
+                return res.status(400).json({ error: 'Las horas semanales deben ser al menos 1' });
+            }
+
+            // Validar capacidad semanal considerando recesos (máximo 20 horas de clase)
+            const { data: existingSubjects, error: fetchErr } = await supabaseAdmin
+                .from('subjects')
+                .select('id, weekly_hours');
+            if (fetchErr) throw fetchErr;
+
+            const currentTotalHours = (existingSubjects || []).reduce((acc, s) => acc + (s.weekly_hours || 0), 0);
+            const newTotalHours = currentTotalHours + hours;
+            const MAX_HOURS = 20;
+
+            if (newTotalHours > MAX_HOURS) {
+                const remaining = Math.max(0, MAX_HOURS - currentTotalHours);
+                return res.status(400).json({
+                    error: `La suma total de horas semanales (${newTotalHours}h) excede el tiempo disponible de clase (máximo 20 horas netas semanales, considerando 25h de jornada menos 5h de receso). Horas disponibles restantes: ${remaining}h.`
+                });
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('subjects')
+                .insert([{ name: name.trim(), weekly_hours: hours }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.status(201).json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    updateSubject: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { name, weekly_hours } = req.body;
+
+            const updateData = {};
+            if (name !== undefined) {
+                if (!name.trim()) return res.status(400).json({ error: 'El nombre no puede estar vacío' });
+                updateData.name = name.trim();
+            }
+
+            if (weekly_hours !== undefined) {
+                const hours = parseInt(weekly_hours, 10);
+                if (isNaN(hours) || hours < 1) {
+                    return res.status(400).json({ error: 'Las horas semanales deben ser al menos 1' });
+                }
+
+                // Validar capacidad semanal considerando recesos
+                const { data: existingSubjects, error: fetchErr } = await supabaseAdmin
+                    .from('subjects')
+                    .select('id, weekly_hours');
+                if (fetchErr) throw fetchErr;
+
+                const currentOtherHours = (existingSubjects || [])
+                    .filter(s => s.id !== id)
+                    .reduce((acc, s) => acc + (s.weekly_hours || 0), 0);
+
+                const newTotalHours = currentOtherHours + hours;
+                const MAX_HOURS = 20;
+
+                if (newTotalHours > MAX_HOURS) {
+                    const remainingForThis = Math.max(0, MAX_HOURS - currentOtherHours);
+                    return res.status(400).json({
+                        error: `La suma total de horas semanales (${newTotalHours}h) excede el tiempo disponible de clase (máximo 20 horas netas semanales, considerando 25h de jornada menos 5h de receso). Máximo asignable a esta materia: ${remainingForThis}h.`
+                    });
+                }
+
+                updateData.weekly_hours = hours;
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('subjects')
+                .update(updateData)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    deleteSubject: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { error } = await supabaseAdmin.from('subjects').delete().eq('id', id);
+            if (error) throw error;
+            res.json({ message: 'Materia eliminada correctamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
@@ -423,6 +536,8 @@ const adminController = {
         }
     },
 
+    // --- Periodos Académicos ---
+
     getAcademicPeriods: async (req, res) => {
         try {
             const { data, error } = await supabaseAdmin
@@ -432,6 +547,106 @@ const adminController = {
 
             if (error) throw error;
             res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    createAcademicPeriod: async (req, res) => {
+        try {
+            const { period_number, start_date, end_date } = req.body;
+            const pNum = parseInt(period_number, 10);
+            if (!pNum || pNum < 1) {
+                return res.status(400).json({ error: 'El número de periodo debe ser un entero positivo' });
+            }
+            if (!start_date || !end_date) {
+                return res.status(400).json({ error: 'Las fechas de inicio y fin son obligatorias' });
+            }
+            if (end_date < start_date) {
+                return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la fecha de inicio' });
+            }
+
+            const { data: existing, error: fetchErr } = await supabaseAdmin
+                .from('academic_periods')
+                .select('*');
+            if (fetchErr) throw fetchErr;
+
+            if (existing?.some(p => p.period_number === pNum)) {
+                return res.status(400).json({ error: `El Periodo ${pNum} ya está registrado. Edítalo en su lugar.` });
+            }
+
+            // Validar que no haya coincidencia / solapamiento con ningún periodo existente
+            const collision = existing?.find(p => start_date <= p.end_date && end_date >= p.start_date);
+            if (collision) {
+                return res.status(400).json({
+                    error: `Las fechas seleccionadas coinciden o se solapan con el Periodo ${collision.period_number} (${collision.start_date} al ${collision.end_date}). Dos periodos no pueden coincidir.`
+                });
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('academic_periods')
+                .insert([{ period_number: pNum, start_date, end_date }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.status(201).json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    updateAcademicPeriod: async (req, res) => {
+        try {
+            const { period_number } = req.params;
+            const pNum = parseInt(period_number, 10);
+            const { start_date, end_date } = req.body;
+
+            if (!start_date || !end_date) {
+                return res.status(400).json({ error: 'Las fechas de inicio y fin son obligatorias' });
+            }
+            if (end_date < start_date) {
+                return res.status(400).json({ error: 'La fecha de fin no puede ser anterior a la fecha de inicio' });
+            }
+
+            const { data: existing, error: fetchErr } = await supabaseAdmin
+                .from('academic_periods')
+                .select('*');
+            if (fetchErr) throw fetchErr;
+
+            // Validar solapamiento con otros periodos (excluyendo el actual)
+            const collision = existing?.find(p => p.period_number !== pNum && (start_date <= p.end_date && end_date >= p.start_date));
+            if (collision) {
+                return res.status(400).json({
+                    error: `Las fechas seleccionadas coinciden o se solapan con el Periodo ${collision.period_number} (${collision.start_date} al ${collision.end_date}). Dos periodos no pueden coincidir.`
+                });
+            }
+
+            const { data, error } = await supabaseAdmin
+                .from('academic_periods')
+                .update({ start_date, end_date })
+                .eq('period_number', pNum)
+                .select()
+                .single();
+
+            if (error) throw error;
+            res.json(data);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    deleteAcademicPeriod: async (req, res) => {
+        try {
+            const { period_number } = req.params;
+            const pNum = parseInt(period_number, 10);
+            const { error } = await supabaseAdmin
+                .from('academic_periods')
+                .delete()
+                .eq('period_number', pNum);
+
+            if (error) throw error;
+            res.json({ message: `Periodo ${pNum} eliminado correctamente` });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

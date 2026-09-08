@@ -51,6 +51,12 @@
   transform: rotate(-3deg);
   transform-origin: left center;
   margin-top: 0.18em;
+  max-width: 100%;
+}
+
+.clint-hero-line-break {
+  display: block;
+  margin-top: 0.25rem;
 }
 
 .clint-capsule {
@@ -489,10 +495,18 @@
 }
 
 @media (max-width: 640px) {
-  .clint-hero-section { padding: 8.5rem 1.5rem 4.5rem; }
-  .clint-hero-title { line-height: 1.25; }
-  .clint-capsule { font-size: 0.85em; padding: 0.08em 0.45em; }
-  .clint-hero-seam-button-container { left: 1.5rem; }
+  .clint-hero-section { padding: 7.5rem 1.25rem 4rem; }
+  .clint-hero-title {
+    font-size: clamp(2.1rem, 7.8vw, 2.7rem);
+    line-height: 1.22;
+  }
+  .hero-tilted-group {
+    transform: rotate(-2deg);
+    margin-top: 0.15em;
+  }
+  .clint-capsule { font-size: 0.8em; padding: 0.08em 0.45em; }
+  .clint-underlined { text-underline-offset: 6px; text-decoration-thickness: 3.5px; }
+  .clint-hero-seam-button-container { left: 1.25rem; }
   
   .clint-history-section { padding: 5.5rem 0 6.5rem; }
   .clint-history-left { margin-left: 0; padding: 0 1rem; }
