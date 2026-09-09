@@ -98,17 +98,39 @@ function Navbar() {
 
         {/* SELECTOR DE IDIOMA & MENÚ MÓVIL */}
         <div className="navbar__actions">
-          <button
-            type="button"
-            onClick={toggleLang}
-            className="navbar__lang-btn"
+          <div 
+            className="navbar__lang-switch" 
+            role="group" 
             aria-label={t('nav.langAria')}
-            title={lang === 'es' ? 'Switch to English' : 'Cambiar a Español'}
           >
-            <span className={`lang-pill ${lang === 'es' ? 'lang-pill--active' : ''}`}>ES</span>
-            <span className="lang-divider">/</span>
-            <span className={`lang-pill ${lang === 'en' ? 'lang-pill--active' : ''}`}>EN</span>
-          </button>
+
+            <div className="navbar__lang-track">
+              <span 
+                className={`navbar__lang-pill-bg ${lang === 'en' ? 'navbar__lang-pill-bg--en' : 'navbar__lang-pill-bg--es'}`} 
+                aria-hidden="true" 
+              />
+              
+              <button
+                type="button"
+                className={`navbar__lang-tab ${lang === 'es' ? 'navbar__lang-tab--active' : ''}`}
+                onClick={() => lang !== 'es' && toggleLang()}
+                title="Cambiar a Español"
+                aria-pressed={lang === 'es'}
+              >
+                ES
+              </button>
+              
+              <button
+                type="button"
+                className={`navbar__lang-tab ${lang === 'en' ? 'navbar__lang-tab--active' : ''}`}
+                onClick={() => lang !== 'en' && toggleLang()}
+                title="Switch to English"
+                aria-pressed={lang === 'en'}
+              >
+                EN
+              </button>
+            </div>
+          </div>
 
           <div className="navbar__mobile-staggered-wrapper">
             <StaggeredMenu 

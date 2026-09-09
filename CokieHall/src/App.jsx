@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-route
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 import Header from './modules/Header';
 import AboutUs from './modules/aboutUs';
 import LegalTerms from './modules/LegalTerms';
@@ -10,18 +11,27 @@ import { LanguageProvider } from './context/LanguageContext';
 import './App.css';
 
 gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== 'undefined') {
+  window.ScrollTrigger = ScrollTrigger;
+}
 
 function ScrollHandler() {
   const location = useLocation();
   const lenisRef = useRef(null);
 
   useEffect(() => {
-    // Inicializar Lenis smooth scroll
+    // Inicializar Lenis smooth scroll (efecto mantequilla garantizado)
     const lenis = new Lenis({
-      duration: 1.35,
+      duration: 1.25,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothTouch: false,
-      smooth: true,
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1.05,
+      touchMultiplier: 1.5,
+      infinite: false,
+      respectReducedMotion: false, // Asegura suavidad aún si el SO tiene 'reducir movimiento'
+      autoResize: true,
     });
 
     lenisRef.current = lenis;

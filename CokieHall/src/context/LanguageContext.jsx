@@ -40,8 +40,11 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       document.documentElement.lang = lang;
-      // Refrescar GSAP ScrollTrigger tras un tick si está activo
+      // Refrescar Lenis y GSAP ScrollTrigger tras actualizar dimensiones del texto
       const timer = setTimeout(() => {
+        if (window.__lenis) {
+          window.__lenis.resize();
+        }
         if (window.ScrollTrigger) {
           window.ScrollTrigger.refresh();
         }

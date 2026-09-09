@@ -94,45 +94,102 @@
   margin-left: auto;
 }
 
-.navbar__lang-btn {
+/* SELECTOR DE IDIOMA ULTRA-POLISHED (SEGMENTED CONTROL CON SLIDER ANIMADO) */
+.navbar__lang-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.35rem 0.65rem;
+  gap: 0.4rem;
+  padding: 0.22rem 0.35rem 0.22rem 0.6rem;
   background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
-.navbar__lang-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.04);
+.navbar__lang-switch:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 208, 116, 0.4);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.lang-pill {
-  padding: 0.15rem 0.35rem;
+.navbar__lang-icon {
+  width: 14px;
+  height: 14px;
+  color: #ffd074;
+  opacity: 0.9;
+  flex-shrink: 0;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navbar__lang-switch:hover .navbar__lang-icon {
+  transform: rotate(30deg);
+}
+
+.navbar__lang-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.28);
   border-radius: 999px;
-  transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.6);
+  padding: 2px;
 }
 
-.lang-pill--active {
-  background: #ffd074;
-  color: #0b1957;
+/* Pastilla animada con deslizamiento suave */
+.navbar__lang-pill-bg {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: calc(50% - 2px);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd074 0%, #fdbb42 100%);
+  box-shadow: 0 2px 8px rgba(253, 187, 66, 0.45);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.navbar__lang-pill-bg--es {
+  left: 2px;
+  transform: translateX(0);
+}
+
+.navbar__lang-pill-bg--en {
+  left: 2px;
+  transform: translateX(100%);
+}
+
+.navbar__lang-tab {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 1.55rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.22s ease;
+  user-select: none;
+}
+
+.navbar__lang-tab:hover {
+  color: #ffffff;
+}
+
+.navbar__lang-tab--active {
+  color: #081033 !important;
   font-weight: 800;
-}
-
-.lang-divider {
-  opacity: 0.4;
-  font-size: 0.75rem;
 }
 
 .navbar__btn-admision {
