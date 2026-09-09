@@ -224,28 +224,34 @@ function Header() {
             <p className="hero-subtitle">
               {t('hero.subtitle')}
             </p>
-            {/* Imagen institucional oficial para rastreadores y previsualizaciones (sin display:none para cumplir directrices de Google Search) */}
-            <img
-              src="/og-image.png"
-              alt="Cokie Hall | Institución Educativa y Comunidad Académica"
-              width="1200"
-              height="630"
-              loading="eager"
-              fetchPriority="high"
-              style={{
-                position: 'absolute',
-                width: '1px',
-                height: '1px',
-                padding: 0,
-                margin: '-1px',
-                overflow: 'hidden',
-                clip: 'rect(0, 0, 0, 0)',
-                whiteSpace: 'nowrap',
-                border: 0,
-                opacity: 0.001,
-                pointerEvents: 'none'
+            {/* Imagen institucional para rastreadores y buscadores con dimensiones reales */}
+            <div 
+              className="hero-crawler-media-box" 
+              style={{ 
+                position: 'absolute', 
+                inset: 0, 
+                overflow: 'hidden', 
+                pointerEvents: 'none', 
+                zIndex: 0, 
+                opacity: 0.035 
               }}
-            />
+              aria-hidden="true"
+            >
+              <img
+                src="/og-image.png"
+                alt="Cokie Hall | Institución Educativa y Comunidad Académica"
+                width="1200"
+                height="630"
+                loading="eager"
+                fetchPriority="high"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'center',
+                }}
+              />
+            </div>
             <DownloadButton />
             
           </div>

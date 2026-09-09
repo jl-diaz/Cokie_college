@@ -1,11 +1,11 @@
 {
   "headers": [
     {
-      "source": "/legal",
+      "source": "/legal(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
-          "value": "noindex, follow"
+          "value": "noindex, nofollow, noarchive"
         }
       ]
     }

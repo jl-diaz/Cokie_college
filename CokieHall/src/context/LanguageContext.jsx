@@ -8,10 +8,6 @@ export function LanguageProvider({ children }) {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('cokie_lang');
       if (saved === 'es' || saved === 'en') return saved;
-      // Auto-detect browser language
-      if (navigator?.language && navigator.language.toLowerCase().startsWith('en')) {
-        return 'en';
-      }
     }
     return 'es';
   });
