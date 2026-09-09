@@ -586,7 +586,7 @@
     "capacityDetail": "{{used}}h de {{total}}h asignadas ({{blocks}} de {{totalBlocks}} bloques)",
     "recessExplanation": "Jornada de 25h semanales (07:00-12:00) menos 5h de receso (1h diaria) = 20h netas de clase",
     "remainingHours": "{{hours}}h disponibles",
-    "fullCapacity": "¡Capacidad completa alcanzada (20h)!",
+    "fullCapacity": "¡Capacidad completa!",
     "exceededCapacity": "Capacidad excedida por {{hours}}h",
     "searchPlaceholder": "Buscar materia...",
     "hoursPerWeek": "{{count}} h/semana",

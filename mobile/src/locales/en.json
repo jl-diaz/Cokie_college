@@ -586,7 +586,7 @@
     "capacityDetail": "{{used}}h of {{total}}h assigned ({{blocks}} of {{totalBlocks}} blocks)",
     "recessExplanation": "25h weekly timetable (07:00-12:00) minus 5h recess (1h daily) = 20h net class time",
     "remainingHours": "{{hours}}h available",
-    "fullCapacity": "Full weekly capacity reached (20h)!",
+    "fullCapacity": "Full capacity!",
     "exceededCapacity": "Capacity exceeded by {{hours}}h",
     "searchPlaceholder": "Search subject...",
     "hoursPerWeek": "{{count}} h/week",

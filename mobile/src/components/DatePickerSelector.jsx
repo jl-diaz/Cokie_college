@@ -36,11 +36,23 @@ export default function DatePickerSelector({
   placeholder,
   error,
   disabled = false,
-  containerStyle
+  containerStyle,
+  isOpen,
+  onToggle
 }) {
   const { colors, theme } = useTheme();
   const { i18n } = useTranslation();
-  const [showNativePicker, setShowNativePicker] = useState(false);
+  const [internalShowPicker, setInternalShowPicker] = useState(false);
+  const showNativePicker = isOpen !== undefined ? isOpen : internalShowPicker;
+
+  const togglePicker = (val) => {
+    const nextVal = typeof val === 'boolean' ? val : !showNativePicker;
+    if (onToggle) {
+      onToggle(nextVal);
+    } else {
+      setInternalShowPicker(nextVal);
+    }
+  };
 
   // Convierte un string 'YYYY-MM-DD' a objeto Date seguro contra desfases horarios UTC
   const parseStringToDate = (dateStr) => {
@@ -82,8 +94,10 @@ export default function DatePickerSelector({
   };
 
   const handleNativeChange = (event, selectedDate) => {
-    setShowNativePicker(false);
-    if (event.type === 'dismissed') return;
+    if (Platform.OS === 'android') {
+      togglePicker(false);
+      if (event.type === 'dismissed') return;
+    }
     if (selectedDate && onChange) {
       const formatted = formatDateToString(selectedDate);
       onChange(formatted);
@@ -161,6 +175,13 @@ export default function DatePickerSelector({
               onChange={(e) => {
                 if (onChange) onChange(e.target.value);
               }}
+              onClick={(e) => {
+                try {
+                  if (e.target && typeof e.target.showPicker === 'function') {
+                    e.target.showPicker();
+                  }
+                } catch (err) {}
+              }}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -169,7 +190,8 @@ export default function DatePickerSelector({
                 height: '100%',
                 opacity: 0,
                 cursor: 'pointer',
-                zIndex: 10
+                zIndex: 10,
+                colorScheme: isDark ? 'dark' : 'light',
               }}
             />
           )}
@@ -180,12 +202,12 @@ export default function DatePickerSelector({
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={disabled}
-            onPress={() => setShowNativePicker(true)}
+            onPress={() => togglePicker(!showNativePicker)}
             style={[
               styles.inputContainer,
               { 
                 backgroundColor: inputBg,
-                borderColor,
+                borderColor: showNativePicker ? colors.primary : borderColor,
                 opacity: disabled ? 0.6 : 1
               }
             ]}
@@ -214,19 +236,68 @@ export default function DatePickerSelector({
                   </Text>
                 ) : null}
               </View>
-              <ChevronDown size={16} color={colors.text.muted} />
+              <ChevronDown 
+                size={16} 
+                color={showNativePicker ? colors.primary : colors.text.muted} 
+                style={{ transform: [{ rotate: showNativePicker ? '180deg' : '0deg' }] }}
+              />
             </View>
           </TouchableOpacity>
 
           {showNativePicker && DateTimePicker && (
-            <DateTimePicker
-              value={currentDateObj}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              minimumDate={minDateObj}
-              maximumDate={maxDateObj}
-              onChange={handleNativeChange}
-            />
+            Platform.OS === 'ios' ? (
+              <View style={[
+                styles.pickerContainer,
+                {
+                  backgroundColor: isDark ? (colors.card || '#1E293B') : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                }
+              ]}>
+                <View style={[
+                  styles.iosPickerToolbar,
+                  {
+                    borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC'
+                  }
+                ]}>
+                  <Text style={[styles.iosPickerToolbarTitle, { color: isDark ? colors.text.secondary : '#64748B' }]}>
+                    {label ? label.replace('*', '').trim() : 'Seleccionar fecha'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => togglePicker(false)}
+                    style={styles.iosDoneButton}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.iosDoneText, { color: colors.primary }]}>
+                      Listo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={currentDateObj}
+                  mode="date"
+                  display="spinner"
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  textColor={isDark ? '#F8FAFC' : '#0F172A'}
+                  style={{
+                    backgroundColor: isDark ? (colors.card || '#1E293B') : '#FFFFFF',
+                    width: '100%',
+                  }}
+                  minimumDate={minDateObj}
+                  maximumDate={maxDateObj}
+                  onChange={handleNativeChange}
+                />
+              </View>
+            ) : (
+              <DateTimePicker
+                value={currentDateObj}
+                mode="date"
+                display="default"
+                minimumDate={minDateObj}
+                maximumDate={maxDateObj}
+                onChange={handleNativeChange}
+              />
+            )
           )}
         </>
       )}
@@ -302,5 +373,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     flex: 1,
+  },
+  pickerContainer: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  iosPickerToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  iosPickerToolbarTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  iosDoneButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  iosDoneText: {
+    fontSize: 14,
+    fontWeight: '700',
   }
 });

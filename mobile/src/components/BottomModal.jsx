@@ -77,15 +77,25 @@ export default function BottomModal({ visible, onClose, children }) {
       }).start();
     } else {
       Keyboard.dismiss();
+      let finishedCalled = false;
+      const finish = () => {
+        if (!finishedCalled) {
+          finishedCalled = true;
+          setShowModal(false);
+          setKeyboardHeight(0);
+          keyboardAnim.setValue(0);
+        }
+      };
+
       Animated.timing(slideAnim, {
         toValue: screenHeight,
-        duration: 220,
+        duration: 200,
         useNativeDriver: true,
-      }).start(() => {
-        setShowModal(false);
-        setKeyboardHeight(0);
-        keyboardAnim.setValue(0);
-      });
+      }).start(finish);
+
+      // Fallback para garantizar que el modal siempre se desmonte aun si la animación nativa se interrumpe
+      const timer = setTimeout(finish, 230);
+      return () => clearTimeout(timer);
     }
   }, [visible, screenHeight]);
 
@@ -110,11 +120,15 @@ export default function BottomModal({ visible, onClose, children }) {
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <View style={styles.overlayContainer}>
+      <View 
+        style={styles.overlayContainer}
+        pointerEvents={visible ? 'auto' : 'none'}
+      >
         {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
         <Pressable 
           style={StyleSheet.absoluteFillObject} 
           onPress={handleClose}
+          disabled={!visible}
           accessibilityLabel="Cerrar modal"
         />
 

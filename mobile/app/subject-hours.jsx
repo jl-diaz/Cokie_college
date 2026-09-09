@@ -244,24 +244,24 @@ export default function SubjectHoursScreen() {
           name: formName.trim(),
           weekly_hours: formHours
         });
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('subjectHours.updateSuccess', 'Materia actualizada correctamente')
-        });
       } else {
         await api.post('/admin/subjects', {
           name: formName.trim(),
           weekly_hours: formHours
         });
+      }
+      setModalVisible(false);
+      await fetchSubjects();
+      const successMsg = editingSubject 
+        ? t('subjectHours.updateSuccess', 'Materia actualizada correctamente')
+        : t('subjectHours.createSuccess', 'Materia creada exitosamente');
+      setTimeout(() => {
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
-          message: t('subjectHours.createSuccess', 'Materia creada exitosamente')
+          message: successMsg
         });
-      }
-      setModalVisible(false);
-      fetchSubjects();
+      }, 300);
     } catch (error) {
       console.error('Error saving subject:', error);
       showAlert({
@@ -435,13 +435,20 @@ export default function SubjectHoursScreen() {
               totalBlocks: TOTAL_BLOCKS
             })}
           </Text>
-          <Text style={[styles.remainingHoursText, { color: isAtFullCapacity ? '#10B981' : isOverCapacity ? '#EF4444' : Colors.text.secondary }]}>
-            {isAtFullCapacity
-              ? t('subjectHours.fullCapacity', '¡Capacidad completa!')
-              : isOverCapacity
-                ? t('subjectHours.exceededCapacity', { hours: totalAllocatedHours - MAX_WEEKLY_HOURS })
-                : t('subjectHours.remainingHours', { hours: remainingHours })}
-          </Text>
+          <View style={[
+            styles.capacityStatusBadge,
+            { backgroundColor: progressColor + '18' }
+          ]}>
+            {isAtFullCapacity && <CheckCircle2 size={12} color="#10B981" style={{ marginRight: 4 }} />}
+            {isOverCapacity && <AlertTriangle size={12} color="#EF4444" style={{ marginRight: 4 }} />}
+            <Text style={[styles.remainingHoursText, { color: progressColor }]}>
+              {isAtFullCapacity
+                ? t('subjectHours.fullCapacity', '¡Capacidad completa!')
+                : isOverCapacity
+                  ? t('subjectHours.exceededCapacity', { hours: totalAllocatedHours - MAX_WEEKLY_HOURS })
+                  : t('subjectHours.remainingHours', { hours: remainingHours })}
+            </Text>
+          </View>
         </View>
 
         {/* Explicación de recesos */}
@@ -739,15 +746,26 @@ const createStyles = (Colors, theme) => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 2,
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 6,
     },
     capacityDetailText: {
       fontSize: 12,
       color: Colors.text.secondary,
       fontWeight: '500',
+      flexShrink: 1,
+    },
+    capacityStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: BorderRadius.full,
+      alignSelf: 'flex-start',
     },
     remainingHoursText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
     },
     recessNotice: {

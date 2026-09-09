@@ -481,11 +481,13 @@ export default function EventsScreen() {
                       <input
                         type="date"
                         value={eventDate || ''}
-                        onChange={(e) => {
-                          const selected = e.target.value;
-                          if (selected) {
-                            handleDateChange(null, new Date(selected + 'T12:00:00'));
-                          }
+                        onChange={(e) => setEventDate(e.target.value)}
+                        onClick={(e) => {
+                          try {
+                            if (e.target && typeof e.target.showPicker === 'function') {
+                              e.target.showPicker();
+                            }
+                          } catch (err) {}
                         }}
                         style={{
                           position: 'absolute',
@@ -495,7 +497,8 @@ export default function EventsScreen() {
                           height: '100%',
                           opacity: 0,
                           cursor: 'pointer',
-                          zIndex: 10
+                          zIndex: 10,
+                          colorScheme: theme === 'dark' ? 'dark' : 'light'
                         }}
                       />
                     </View>
@@ -517,6 +520,8 @@ export default function EventsScreen() {
                           value={eventDate ? new Date(eventDate + 'T12:00:00') : new Date()}
                           mode="date"
                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          themeVariant={theme === 'dark' ? 'dark' : 'light'}
+                          textColor={theme === 'dark' ? '#F8FAFC' : '#0F172A'}
                           onChange={handleDateChange}
                         />
                       )}

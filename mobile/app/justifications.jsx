@@ -494,6 +494,13 @@ export default function JustificationsScreen() {
                                 handleDateChange(null, new Date(selected + 'T12:00:00'));
                               }
                             }}
+                            onClick={(e) => {
+                              try {
+                                if (e.target && typeof e.target.showPicker === 'function') {
+                                  e.target.showPicker();
+                                }
+                              } catch (err) {}
+                            }}
                             style={{
                               position: 'absolute',
                               top: 0,
@@ -502,7 +509,8 @@ export default function JustificationsScreen() {
                               height: '100%',
                               opacity: 0,
                               cursor: 'pointer',
-                              zIndex: 10
+                              zIndex: 10,
+                              colorScheme: theme === 'dark' ? 'dark' : 'light'
                             }}
                           />
                         </View>
@@ -519,6 +527,8 @@ export default function JustificationsScreen() {
                               value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
                               mode="date"
                               display="default"
+                              themeVariant={theme === 'dark' ? 'dark' : 'light'}
+                              textColor={theme === 'dark' ? '#F8FAFC' : '#0F172A'}
                               maximumDate={new Date()}
                               onChange={handleDateChange}
                             />

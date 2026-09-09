@@ -50,6 +50,7 @@ export default function AcademicPeriodsScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [activePicker, setActivePicker] = useState(null); // 'start' | 'end' | null
 
   useEffect(() => {
     fetchPeriods();
@@ -204,6 +205,7 @@ export default function AcademicPeriodsScreen() {
       setEndDate(suggestedStart);
     }
 
+    setActivePicker(null);
     setModalVisible(true);
   };
 
@@ -212,6 +214,7 @@ export default function AcademicPeriodsScreen() {
     setPeriodNumber(period.period_number);
     setStartDate(period.start_date);
     setEndDate(period.end_date);
+    setActivePicker(null);
     setModalVisible(true);
   };
 
@@ -241,25 +244,29 @@ export default function AcademicPeriodsScreen() {
           start_date: startDate,
           end_date: endDate
         });
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('academicPeriods.saveSuccess', 'Periodo guardado correctamente')
-        });
       } else {
         await api.post('/admin/academic-periods', {
           period_number: periodNumber,
           start_date: startDate,
           end_date: endDate
         });
+      }
+
+      setModalVisible(false);
+      setActivePicker(null);
+      await fetchPeriods();
+
+      const successMsg = editingPeriod 
+        ? t('academicPeriods.saveSuccess', 'Periodo guardado correctamente')
+        : t('academicPeriods.saveSuccess', 'Periodo creado exitosamente');
+
+      setTimeout(() => {
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
-          message: t('academicPeriods.saveSuccess', 'Periodo creado exitosamente')
+          message: successMsg
         });
-      }
-      setModalVisible(false);
-      fetchPeriods();
+      }, 300);
     } catch (error) {
       console.error('Error saving period:', error);
       showAlert({
@@ -418,7 +425,7 @@ export default function AcademicPeriodsScreen() {
             </Text>
             {activePeriod && (
               <View style={styles.activePeriodPill}>
-                <CheckCircle size={13} color="#10B981" style={{ marginRight: 5 }} />
+                <CheckCircle size={13} color="#10B981" style={{ marginTop: 2, marginRight: 6 }} />
                 <Text style={styles.activePeriodPillText}>
                   Periodo actual en curso: Periodo {activePeriod.period_number} ({formatDisplayDate(activePeriod.start_date)} - {formatDisplayDate(activePeriod.end_date)})
                 </Text>
@@ -495,82 +502,92 @@ export default function AcademicPeriodsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Campo de Número de Periodo (editable solo al crear) */}
-          {!editingPeriod && (
-            <View style={{ marginBottom: 14 }}>
-              <Text style={styles.inputLabel}>
-                {t('academicPeriods.periodNumber', 'Número de Periodo *')}
-              </Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder={t('academicPeriods.periodNumberPlaceholder', 'Ej. 1, 2, 3...')}
-                placeholderTextColor={Colors.text.muted}
-                keyboardType="numeric"
-                value={String(periodNumber)}
-                onChangeText={(text) => {
-                  const num = parseInt(text.replace(/[^0-9]/g, ''), 10);
-                  setPeriodNumber(isNaN(num) ? '' : num);
-                }}
-              />
-            </View>
-          )}
-
-          {/* Selector Bonito de Fecha de Inicio Multiplataforma */}
-          <DatePickerSelector
-            label={t('academicPeriods.startDate', 'Fecha de Inicio *')}
-            value={startDate}
-            onChange={(d) => setStartDate(d)}
-            placeholder={t('academicPeriods.selectStartDate', 'Seleccionar fecha de inicio')}
-          />
-
-          {/* Selector Bonito de Fecha de Fin Multiplataforma */}
-          <DatePickerSelector
-            label={t('academicPeriods.endDate', 'Fecha de Fin *')}
-            value={endDate}
-            onChange={(d) => setEndDate(d)}
-            placeholder={t('academicPeriods.selectEndDate', 'Seleccionar fecha de fin')}
-          />
-
-          {/* Banner de Validación en Tiempo Real */}
-          {!validationState.isValid && validationState.message ? (
-            <View style={styles.validationErrorBanner}>
-              <ShieldAlert size={18} color="#EF4444" style={{ marginTop: 2, marginRight: 8 }} />
-              <Text style={styles.validationErrorText}>
-                {validationState.message}
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Resumen de duración calculada si es válido */}
-          {validationState.isValid && startDate && endDate ? (
-            <View style={styles.validSummaryBox}>
-              <CheckCircle size={16} color="#10B981" style={{ marginRight: 6 }} />
-              <Text style={styles.validSummaryText}>
-                Rango válido: {calculateDuration(startDate, endDate).days} días de clases lectivas (sin colisiones).
-              </Text>
-            </View>
-          ) : null}
-
-          {/* Botón de Guardar (deshabilitado si hay errores de validación) */}
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              (!validationState.isValid || saving) && styles.submitBtnDisabled
-            ]}
-            onPress={handleSave}
-            disabled={!validationState.isValid || saving}
-            activeOpacity={0.8}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 }}
           >
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {editingPeriod 
-                  ? t('academicPeriods.save', 'Guardar Periodo') 
-                  : t('academicPeriods.create', 'Crear Periodo')}
-              </Text>
+            {/* Campo de Número de Periodo (editable solo al crear) */}
+            {!editingPeriod && (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={styles.inputLabel}>
+                  {t('academicPeriods.periodNumber', 'Número de Periodo *')}
+                </Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={t('academicPeriods.periodNumberPlaceholder', 'Ej. 1, 2, 3...')}
+                  placeholderTextColor={Colors.text.muted}
+                  keyboardType="numeric"
+                  value={String(periodNumber)}
+                  onChangeText={(text) => {
+                    const num = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                    setPeriodNumber(isNaN(num) ? '' : num);
+                  }}
+                />
+              </View>
             )}
-          </TouchableOpacity>
+
+            {/* Selector Bonito de Fecha de Inicio Multiplataforma */}
+            <DatePickerSelector
+              label={t('academicPeriods.startDate', 'Fecha de Inicio *')}
+              value={startDate}
+              onChange={(d) => setStartDate(d)}
+              placeholder={t('academicPeriods.selectStartDate', 'Seleccionar fecha de inicio')}
+              isOpen={activePicker === 'start'}
+              onToggle={(open) => setActivePicker(open ? 'start' : null)}
+            />
+
+            {/* Selector Bonito de Fecha de Fin Multiplataforma */}
+            <DatePickerSelector
+              label={t('academicPeriods.endDate', 'Fecha de Fin *')}
+              value={endDate}
+              onChange={(d) => setEndDate(d)}
+              placeholder={t('academicPeriods.selectEndDate', 'Seleccionar fecha de fin')}
+              isOpen={activePicker === 'end'}
+              onToggle={(open) => setActivePicker(open ? 'end' : null)}
+            />
+
+            {/* Banner de Validación en Tiempo Real */}
+            {!validationState.isValid && validationState.message ? (
+              <View style={styles.validationErrorBanner}>
+                <ShieldAlert size={18} color="#EF4444" style={{ marginTop: 2, marginRight: 8 }} />
+                <Text style={styles.validationErrorText}>
+                  {validationState.message}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Resumen de duración calculada si es válido */}
+            {validationState.isValid && startDate && endDate ? (
+              <View style={styles.validSummaryBox}>
+                <CheckCircle size={16} color="#10B981" style={{ marginRight: 6 }} />
+                <Text style={styles.validSummaryText}>
+                  Rango válido: {calculateDuration(startDate, endDate).days} días de clases lectivas (sin colisiones).
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Botón de Guardar (deshabilitado si hay errores de validación) */}
+            <TouchableOpacity
+              style={[
+                styles.submitBtn,
+                (!validationState.isValid || saving) && styles.submitBtnDisabled
+              ]}
+              onPress={handleSave}
+              disabled={!validationState.isValid || saving}
+              activeOpacity={0.8}
+            >
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {editingPeriod 
+                    ? t('academicPeriods.save', 'Guardar Periodo') 
+                    : t('academicPeriods.create', 'Crear Periodo')}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
         </KeyboardAvoidingView>
       </BottomModal>
     </View>
@@ -612,18 +629,22 @@ const createStyles = (Colors, theme) => {
     },
     activePeriodPill: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       marginTop: 8,
       backgroundColor: '#10B98114',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: BorderRadius.sm,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: BorderRadius.md,
+      maxWidth: '100%',
       alignSelf: 'flex-start',
     },
     activePeriodPillText: {
       fontSize: 11,
       color: '#10B981',
       fontWeight: '700',
+      flex: 1,
+      flexWrap: 'wrap',
+      lineHeight: 16,
     },
     topActionsRow: {
       flexDirection: 'row',
