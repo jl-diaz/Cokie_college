@@ -62,6 +62,7 @@ export default function ClassScreen() {
   const [selectedCode, setSelectedCode] = useState('');
   const [observation, setObservation] = useState('');
   const [codeDropdownOpen, setCodeDropdownOpen] = useState(false);
+  const [codeSearch, setCodeSearch] = useState('');
 
   useEffect(() => {
     fetchSchedulesAndCodes();
@@ -107,7 +108,7 @@ export default function ClassScreen() {
       }
 
       try {
-        const codesRes = await api.get(codesEndpoint);
+        const codesRes = await api.get(codesEndpoint, { params: { limit: 200 } });
         codeList = Array.isArray(codesRes.data?.data) ? codesRes.data.data : (Array.isArray(codesRes.data) ? codesRes.data : []);
       } catch (cErr) {
         console.error('Error fetching conduct codes:', cErr);
@@ -273,6 +274,7 @@ export default function ClassScreen() {
     setSelectedStudent(student);
     setSelectedCode('');
     setObservation('');
+    setCodeSearch('');
     setCodeDropdownOpen(false);
     setConductModalVisible(true);
   };
@@ -295,12 +297,21 @@ export default function ClassScreen() {
         code_id: selectedCode,
         observation: observation
       });
-      showAlert({
-        type: 'success',
-        title: 'Reporte Registrado',
-        message: `Código de conducta aplicado a ${selectedStudent.full_name}.`
-      });
+
+      const studentName = selectedStudent?.full_name || 'el estudiante';
+
+      // Cerramos el modal primero y ocultamos el teclado
       setConductModalVisible(false);
+      Keyboard.dismiss();
+
+      // Mostramos la alerta de éxito tras desmontar el BottomModal para evitar bloqueo nativo de Modals en Android
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: 'Reporte Registrado',
+          message: `Código de conducta aplicado exitosamente a ${studentName}.`
+        });
+      }, 350);
     } catch (error) {
       console.error('Error saving conduct record:', error);
       showAlert({
@@ -317,6 +328,17 @@ export default function ClassScreen() {
     const found = conductCodes.find(c => c.id === id);
     return found ? `${found.code} - ${found.name}` : 'Seleccionar Código de Conducta';
   };
+
+  const filteredConductCodes = useMemo(() => {
+    if (!codeSearch.trim()) return conductCodes;
+    const q = codeSearch.toLowerCase().trim();
+    return conductCodes.filter(c => 
+      c.code?.toLowerCase().includes(q) || 
+      c.name?.toLowerCase().includes(q) ||
+      c.description?.toLowerCase().includes(q) ||
+      c.category?.toLowerCase().includes(q)
+    );
+  }, [conductCodes, codeSearch]);
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return students;
@@ -606,30 +628,78 @@ export default function ClassScreen() {
                 <TouchableOpacity 
                   style={styles.dropdownTrigger} 
                   onPress={() => setCodeDropdownOpen(!codeDropdownOpen)}
+                  activeOpacity={0.8}
                 >
                   <Award size={18} color={Colors.primary} style={styles.inputIcon} />
                   <Text style={styles.dropdownTriggerText} numberOfLines={1}>
                     {getConductCodeLabel(selectedCode)}
                   </Text>
-                  <ChevronDown size={18} color={Colors.text.muted} />
+                  <ChevronDown 
+                    size={18} 
+                    color={Colors.text.muted} 
+                    style={{ transform: [{ rotate: codeDropdownOpen ? '180deg' : '0deg' }] }}
+                  />
                 </TouchableOpacity>
 
                 {codeDropdownOpen && (
                   <View style={styles.dropdownList}>
-                    <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
-                      {conductCodes.map(c => (
-                        <TouchableOpacity
-                          key={c.id}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setSelectedCode(c.id);
-                            setCodeDropdownOpen(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemCode}>{c.code}</Text>
-                          <Text style={styles.dropdownItemText}>{c.name}</Text>
+                    {/* Buscador de código o descripción */}
+                    <View style={styles.codeSearchBox}>
+                      <Search size={16} color={Colors.text.muted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        placeholder="Buscar por código (ej. L-01) o descripción..."
+                        placeholderTextColor={Colors.text.muted}
+                        value={codeSearch}
+                        onChangeText={setCodeSearch}
+                        style={styles.codeSearchInput}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                      {codeSearch.length > 0 && (
+                        <TouchableOpacity onPress={() => setCodeSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <X size={16} color={Colors.text.muted} />
                         </TouchableOpacity>
-                      ))}
+                      )}
+                    </View>
+
+                    <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      {filteredConductCodes.length === 0 ? (
+                        <View style={styles.emptyDropdownResult}>
+                          <Text style={styles.emptyDropdownText}>No se encontraron códigos que coincidan.</Text>
+                        </View>
+                      ) : (
+                        filteredConductCodes.map(c => {
+                          const isSelected = selectedCode === c.id;
+                          const catColor = getCategoryColor(c.category);
+                          return (
+                            <TouchableOpacity
+                              key={c.id}
+                              style={[
+                                styles.dropdownItem,
+                                isSelected && { backgroundColor: theme === 'dark' ? 'rgba(59,130,246,0.15)' : '#eff6ff' }
+                              ]}
+                              onPress={() => {
+                                setSelectedCode(c.id);
+                                setCodeDropdownOpen(false);
+                              }}
+                            >
+                              <View style={styles.dropdownItemHeader}>
+                                <View style={[styles.dropdownItemCodeBadge, { backgroundColor: catColor + '20' }]}>
+                                  <Text style={[styles.dropdownItemCode, { color: catColor }]}>{c.code}</Text>
+                                </View>
+                                {c.category ? (
+                                  <Text style={[styles.dropdownCategoryText, { color: catColor }]}>{c.category}</Text>
+                                ) : null}
+                                {isSelected && <Check size={16} color="#10b981" style={{ marginLeft: 'auto' }} />}
+                              </View>
+                              <Text style={styles.dropdownItemText}>{c.name}</Text>
+                              {c.description ? (
+                                <Text style={styles.dropdownItemDesc} numberOfLines={2}>{c.description}</Text>
+                              ) : null}
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
                     </ScrollView>
                   </View>
                 )}
@@ -943,19 +1013,77 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     marginTop: 6,
-    padding: 4,
+    padding: 6,
     borderWidth: 1,
     borderColor: Colors.gray[300],
     ...Shadows.card,
   },
-  dropdownItem: { 
-    paddingVertical: 10, 
-    paddingHorizontal: 12, 
-    borderBottomWidth: 1, 
-    borderBottomColor: Colors.gray[100] || '#f1f5f9' 
+  codeSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    height: 38,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
-  dropdownItemCode: { fontSize: 11, fontWeight: '800', color: Colors.primary },
-  dropdownItemText: { fontSize: Typography.size.sm, color: Colors.text.primary, marginTop: 1 },
+  codeSearchInput: {
+    flex: 1,
+    fontSize: Typography.size.xs,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+  emptyDropdownResult: {
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyDropdownText: {
+    fontSize: Typography.size.xs,
+    color: Colors.text.muted,
+    fontStyle: 'italic',
+  },
+  dropdownItem: { 
+    paddingVertical: 8, 
+    paddingHorizontal: 10, 
+    borderBottomWidth: 1, 
+    borderBottomColor: Colors.gray[100] || '#f1f5f9',
+    borderRadius: BorderRadius.sm,
+  },
+  dropdownItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  dropdownItemCodeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  dropdownItemCode: { 
+    fontSize: 11, 
+    fontWeight: '800' 
+  },
+  dropdownCategoryText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  dropdownItemText: { 
+    fontSize: Typography.size.sm, 
+    fontWeight: '600',
+    color: Colors.text.primary, 
+    marginTop: 2 
+  },
+  dropdownItemDesc: {
+    fontSize: 11,
+    color: Colors.text.secondary,
+    marginTop: 1,
+    lineHeight: 15,
+  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -980,4 +1108,14 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   submitBtnText: { color: '#FFF', fontSize: Typography.size.md, fontWeight: Typography.weight.bold }
 });
+
+const getCategoryColor = (category) => {
+  switch (category) {
+    case 'Positivo': return '#10b981';
+    case 'Leve': return '#f59e0b';
+    case 'Grave': return '#f97316';
+    case 'Muy Grave': return '#ef4444';
+    default: return '#3b82f6';
+  }
+};
 

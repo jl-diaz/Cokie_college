@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import api from '../src/utils/api';
-import { AlertCircle, CheckCircle, ChevronDown } from 'lucide-react-native';
+import { AlertCircle, CheckCircle, ChevronDown, Search, X } from 'lucide-react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useAlert } from '../src/context/AlertContext';
@@ -19,6 +19,7 @@ export default function ApplyConductScreen() {
   const [saving, setSaving] = useState(false);
   const [selectedCode, setSelectedCode] = useState(null);
   const [observation, setObservation] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -66,6 +67,17 @@ export default function ApplyConductScreen() {
     }
   };
 
+  const filteredCodes = React.useMemo(() => {
+    if (!searchQuery.trim()) return codes;
+    const q = searchQuery.toLowerCase().trim();
+    return codes.filter(c => 
+      c.code?.toLowerCase().includes(q) ||
+      c.name?.toLowerCase().includes(q) ||
+      c.description?.toLowerCase().includes(q) ||
+      c.category?.toLowerCase().includes(q)
+    );
+  }, [codes, searchQuery]);
+
   const handleApply = async () => {
     if (!selectedCode) {
       showAlert({
@@ -86,9 +98,9 @@ export default function ApplyConductScreen() {
       showAlert({
         type: 'success',
         title: t('dashboard.success', '¡Éxito!'),
-        message: t('class.conductApplied', 'Código de conducta aplicado correctamente')
+        message: t('class.conductApplied', 'Código de conducta aplicado correctamente'),
+        onConfirm: () => router.back()
       });
-      router.back();
     } catch (error) {
       console.error(error);
       showAlert({
@@ -118,12 +130,37 @@ export default function ApplyConductScreen() {
 
       <FlatList 
         style={styles.content}
-        data={codes}
+        data={filteredCodes}
         keyExtractor={item => item.id}
         onEndReached={loadMoreCodes}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
-          <Text style={styles.sectionTitle}>{t('class.selectConductCode', 'Seleccione un Código')}</Text>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.sectionTitle}>{t('class.selectConductCode', 'Seleccione un Código')}</Text>
+            <View style={styles.searchBar}>
+              <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar por código (ej. L-01) o texto..."
+                placeholderTextColor={Colors.text.muted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={18} color={Colors.text.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: Colors.text.muted, fontSize: 14 }}>
+              {searchQuery ? 'No se encontraron códigos que coincidan con la búsqueda.' : 'No hay códigos de conducta disponibles.'}
+            </Text>
+          </View>
         }
         renderItem={({ item: code }) => (
           <TouchableOpacity 
@@ -131,8 +168,13 @@ export default function ApplyConductScreen() {
             onPress={() => setSelectedCode(code)}
           >
             <View style={styles.codeHeader}>
-              <View style={[styles.badge, { backgroundColor: getCategoryColor(code.category) + '20' }]}>
-                <Text style={[styles.badgeText, { color: getCategoryColor(code.category) }]}>{code.category}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={[styles.codeBadge, { backgroundColor: Colors.primary + '18' }]}>
+                  <Text style={[styles.codeBadgeText, { color: Colors.primary }]}>{code.code}</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: getCategoryColor(code.category) + '20' }]}>
+                  <Text style={[styles.badgeText, { color: getCategoryColor(code.category) }]}>{code.category}</Text>
+                </View>
               </View>
               {selectedCode?.id === code.id && <CheckCircle color="#10b981" size={20} />}
             </View>
@@ -203,6 +245,30 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 4 },
   content: { padding: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.text.primary, marginBottom: 12 },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 46,
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? Colors.gray[200] : '#e2e8f0',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  codeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  codeBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   codeCard: {
     backgroundColor: Colors.card,
     padding: 16,
