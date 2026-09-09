@@ -47,8 +47,8 @@ if (fs.existsSync(indexHtmlPath)) {
     },
     {
       dir: 'contacto',
-      title: 'Contacto y Admisiones | Cokie Hall',
-      description: 'Información de admisiones, horarios, ubicación y atención a familias en Cokie Hall.',
+      title: 'Contacto | Cokie Hall',
+      description: 'Información de contacto, teléfono, correo institucional, horarios y atención a familias en Cokie Hall.',
       canonical: 'https://www.cokiehall.lat/contacto'
     },
     {

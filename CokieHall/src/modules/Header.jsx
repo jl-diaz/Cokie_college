@@ -59,11 +59,11 @@ function Header() {
       : 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.';
 
     if (location.pathname === '/contacto') {
-      pageTitle = isEn ? 'Contact & Admissions | Cokie Hall' : 'Contacto y Admisiones | Cokie Hall';
+      pageTitle = isEn ? 'Contact | Cokie Hall' : 'Contacto | Cokie Hall';
       canonicalUrl = 'https://www.cokiehall.lat/contacto';
       metaDescription = isEn
-        ? 'Admissions information, schedule, location, and family support at Cokie Hall.'
-        : 'Información de admisiones, horarios, ubicación y atención a familias en Cokie Hall.';
+        ? 'Contact details, phone, email, schedule, and location of Cokie Hall.'
+        : 'Información de contacto, teléfono, correo institucional, horarios y atención a familias en Cokie Hall.';
     } else if (location.pathname === '/niveles') {
       pageTitle = isEn ? 'Educational Offer | Cokie Hall' : 'Oferta Educativa | Cokie Hall';
       canonicalUrl = 'https://www.cokiehall.lat/niveles';
