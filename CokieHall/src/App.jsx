@@ -6,6 +6,7 @@ import Lenis from 'lenis';
 import Header from './modules/Header';
 import AboutUs from './modules/aboutUs';
 import LegalTerms from './modules/LegalTerms';
+import { LanguageProvider } from './context/LanguageContext';
 import './App.css';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -100,16 +101,18 @@ function ScrollHandler() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <ScrollHandler />
-      <Routes>
-        <Route path="/" element={<Header />} />
-        <Route path="/nosotros" element={<AboutUs />} />
-        <Route path="/legal" element={<LegalTerms />} />
-        {/* Fallback a home */}
-        <Route path="*" element={<Header />} />
-      </Routes>
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter>
+        <ScrollHandler />
+        <Routes>
+          <Route path="/" element={<Header />} />
+          <Route path="/nosotros" element={<AboutUs />} />
+          <Route path="/legal" element={<LegalTerms />} />
+          {/* Fallback a home */}
+          <Route path="*" element={<Header />} />
+        </Routes>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }
 

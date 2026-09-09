@@ -35,6 +35,7 @@ import AppDownload from './AppDownload.jsx';
 import Footer from './Footer.jsx';
 import ScrollToTop from './ScrollToTop.jsx';
 import DownloadButton from './DownloadButton.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 import './Hero.css';
 import './Header.css';
@@ -43,18 +44,26 @@ gsap.registerPlugin(ScrollTrigger);
 
 function Header() {
   const mainRef = useRef(null);
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
-    document.title = 'Cokie Hall | Institución Educativa y Comunidad Académica';
+    document.title = lang === 'en' 
+      ? 'Cokie Hall | Educational Institution and Academic Community'
+      : 'Cokie Hall | Institución Educativa y Comunidad Académica';
     let canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
       canonical.setAttribute('href', 'https://www.cokiehall.lat/');
     }
     let metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.');
+      metaDesc.setAttribute(
+        'content',
+        lang === 'en'
+          ? 'Cokie Hall is an educational community committed to academic excellence, human values, and comprehensive education for Elementary and Middle School.'
+          : 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.'
+      );
     }
-  }, []);
+  }, [lang]);
 
   useGSAP(() => {
     const reveals = gsap.utils.toArray('.reveal');
@@ -168,21 +177,21 @@ function Header() {
   ];
 
     const diferenciadores = [
-    { icono: birrete, titulo: 'Educación de calidad' },
-    { icono: ac, titulo: 'Acompañamiento cercano' },
-    { icono: pizarra, titulo: 'Aprender jugando' },
-    { icono: arte, titulo: 'Arte y creatividad' },
+    { icono: birrete, titulo: t('diferenciadores.quality') },
+    { icono: ac, titulo: t('diferenciadores.support') },
+    { icono: pizarra, titulo: t('diferenciadores.play') },
+    { icono: arte, titulo: t('diferenciadores.art') },
     ]; 
     const imagenesHS = [
-    { icono: imagen1, titulo: 'Educación de calidad' },
-    { icono: imagen2, titulo: 'Acompañamiento cercano' },
-    { icono: imagen3, titulo: 'Aprender jugando' },
-    { icono: imagen4, titulo: 'Arte y creatividad' },
+    { icono: imagen1, titulo: t('diferenciadores.quality') },
+    { icono: imagen2, titulo: t('diferenciadores.support') },
+    { icono: imagen3, titulo: t('diferenciadores.play') },
+    { icono: imagen4, titulo: t('diferenciadores.art') },
     ]; const cifras = [
-    { numero: '1,180+', etiqueta: 'Estudiantes activos', icono: birrete },
-    { numero: '68', etiqueta: 'Docentes certificados', icono: ac },
-    { numero: '24', etiqueta: 'Personal administrativo', icono: pizarra },
-    { numero: '45+', etiqueta: 'Años de trayectoria', icono: arte },
+    { numero: '1,180+', etiqueta: t('stats.students'), icono: birrete },
+    { numero: '68', etiqueta: t('stats.teachers'), icono: ac },
+    { numero: '24', etiqueta: t('stats.staff'), icono: pizarra },
+    { numero: '45+', etiqueta: t('stats.years'), icono: arte },
   ];
 
   return (
@@ -213,8 +222,7 @@ function Header() {
               />
             </h1>
             <p className="hero-subtitle">
-              Una comunidad educativa donde cada estudiante encuentra el acompañamiento y las
-              herramientas para crecer, aprender y alcanzar su máximo potencial.
+              {t('hero.subtitle')}
             </p>
             {/* Imagen institucional oficial para rastreadores y previsualizaciones (sin display:none para cumplir directrices de Google Search) */}
             <img
@@ -256,7 +264,7 @@ function Header() {
 
             <div className="seccion-bienvenida__centro">
               <FoldText
-                text="Bienvenido a Cokie Hall"
+                text={t('welcome.title')}
                 splitBy="char"
                 hinge="top"
                 trigger="scroll"
@@ -279,18 +287,13 @@ function Header() {
                 wordAnimationEnd="bottom 30%"
               >
                 <p className="seccion-bienvenida__parrafo">
-                  Somos una comunidad educativa comprometida con ofrecer una plataforma de aprendizaje
-                  sobresaliente para cada estudiante.
+                  {t('welcome.p1')}
                 </p>
                 <p className="seccion-bienvenida__parrafo">
-                  El ambiente cálido y cercano que se vive en nuestra escuela es la clave de nuestro
-                  éxito, junto con la calidad de las relaciones y el alto nivel de cuidado entre todos
-                  los miembros de la comunidad.
+                  {t('welcome.p2')}
                 </p>
                 <p className="seccion-bienvenida__parrafo">
-                  La vida de nuestra escuela está impulsada por el entusiasmo y el deseo de superación.
-                  Queremos despertar en nuestros estudiantes una sed de aprendizaje que los acompañe
-                  durante toda su vida.
+                  {t('welcome.p3')}
                 </p>
               </ScrollReveal>
             </div>
@@ -311,7 +314,7 @@ function Header() {
 
         <section className="seccion-diferenciadores">
           <h2 className="seccion-diferenciadores__titulo reveal">
-            Nosotros hacemos la diferencia en la vida de cada niño
+            {t('diferenciadores.title')}
           </h2>
           
           <div className="diferenciadores-seamless-grid">

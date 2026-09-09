@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 const APK_URL = 'https://github.com/jl-diaz/Cokie_college/releases/download/v1.2/CokieCollege.apk';
 const WEB_URL = 'https://app.cokiehall.lat/';
 
 function DownloadButton({ className = '' }) {
   const [isAndroid, setIsAndroid] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator?.userAgent) {
@@ -13,7 +15,7 @@ function DownloadButton({ className = '' }) {
   }, []);
 
   const href = isAndroid ? APK_URL : WEB_URL;
-  const buttonText = isAndroid ? 'Descargar aplicación' : 'Probar versión web';
+  const buttonText = isAndroid ? t('hero.downloadApp') : t('hero.tryWeb');
 
   return (
     <div className={`botonCont ${className}`}>

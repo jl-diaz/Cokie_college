@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useLanguage } from '../context/LanguageContext';
 
 import Navbar from './Navbar.jsx';
 import Footer from './Footer.jsx';
@@ -29,30 +30,37 @@ gsap.registerPlugin(ScrollTrigger);
 
 function AboutUs() {
   const containerRef = useRef(null);
+  const { t, lang } = useLanguage();
 
   useGSAP(() => {
-    // Animación de aparición de las 3 imágenes del collage vertical
-    const collageCards = gsap.utils.toArray('.history-collage-item');
-    collageCards.forEach((card, index) => {
-      const targetRotation = index === 0 ? 4.5 : index === 1 ? -2.5 : -4;
-      
-      gsap.fromTo(
-        card,
-        {
-          opacity: 0,
-          x: -60,
-          y: 40,
-          rotation: 0,
+    // Parallax y rotación sutil en el collage de imágenes de historia
+    const collageItems = gsap.utils.toArray('.history-collage-item');
+    collageItems.forEach((item, index) => {
+      gsap.to(item, {
+        y: (index + 1) * -20,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: item,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.2,
         },
+      });
+    });
+
+    // Fade-in con subida suave en los bloques de texto
+    const textBlocks = gsap.utils.toArray('.history-content-block, .clint-phrase-container, .clint-grid-box');
+    textBlocks.forEach((block) => {
+      gsap.fromTo(
+        block,
+        { opacity: 0, y: 40 },
         {
           opacity: 1,
-          x: 0,
           y: 0,
-          rotation: targetRotation,
-          duration: 1,
+          duration: 0.9,
           ease: 'power3.out',
           scrollTrigger: {
-            trigger: card,
+            trigger: block,
             start: 'top 85%',
             toggleActions: 'play none none reverse',
           },
@@ -60,29 +68,11 @@ function AboutUs() {
       );
     });
 
-    // Animación para el contenido de texto en Nuestra Historia
-    gsap.fromTo(
-      '.history-content-block',
-      { opacity: 0, y: 50 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: '.history-content-block',
-          start: 'top 80%',
-          toggleActions: 'play none none reverse',
-        },
-      }
-    );
-
   }, { scope: containerRef });
 
   useEffect(() => {
-    // Metadatos específicos de la subpágina /nosotros para que Google la trate como Sitelink
     const prevTitle = document.title;
-    document.title = 'Sobre Nosotros | Cokie Hall';
+    document.title = lang === 'en' ? 'About Us | Cokie Hall' : 'Sobre Nosotros | Cokie Hall';
 
     let canonical = document.querySelector('link[rel="canonical"]');
     const prevCanonical = canonical ? canonical.getAttribute('href') : 'https://www.cokiehall.lat/';
@@ -93,7 +83,12 @@ function AboutUs() {
     let metaDesc = document.querySelector('meta[name="description"]');
     const prevDesc = metaDesc ? metaDesc.getAttribute('content') : '';
     if (metaDesc) {
-      metaDesc.setAttribute('content', 'Conoce la historia, visión, valores y comunidad de Cokie Hall. Acompañamos a los jóvenes en su crecimiento académico y personal.');
+      metaDesc.setAttribute(
+        'content',
+        lang === 'en'
+          ? 'Discover the history, vision, values, and learning community of Cokie Hall. Empowering every student to grow.'
+          : 'Conoce la historia, visión, valores y comunidad formativa de Cokie Hall. Acompañamos el crecimiento de cada estudiante.'
+      );
     }
 
     let robotsMeta = document.querySelector('meta[name="robots"]');
@@ -108,7 +103,7 @@ function AboutUs() {
       if (metaDesc && prevDesc) metaDesc.setAttribute('content', prevDesc);
       if (robotsMeta && prevRobots) robotsMeta.setAttribute('content', prevRobots);
     };
-  }, []);
+  }, [lang]);
 
   // Desplazamiento fluido hacia "Nuestra historia"
   const handleScrollToHistory = () => {
@@ -131,18 +126,17 @@ function AboutUs() {
           {/* Lado izquierdo: Título con inclinación + Subtítulo */}
           <div className="clint-hero-left">
             <h1 className="clint-hero-title">
-              Nosotros <br />
+              {t('aboutUs.heroTitle')} <br />
               <div className="hero-tilted-group">
-                <span className="clint-capsule">hacemos crecer</span>
+                <span className="clint-capsule">{t('aboutUs.heroCapsule')}</span>
                 <span className="clint-hero-line-break">
-                  a los <span className="clint-underlined">jovenes</span>
+                  {t('aboutUs.heroLineBreak')} <span className="clint-underlined">{t('aboutUs.heroYoung')}</span>
                 </span>
               </div>
             </h1>
 
             <p className="clint-hero-desc">
-              Acompañamos a cada estudiante con metodologías modernas, valores sólidos y
-              un entorno diseñado para descubrir y potenciar su verdadero talento.
+              {t('aboutUs.heroDesc')}
             </p>
           </div>
 
@@ -165,14 +159,14 @@ function AboutUs() {
             type="button" 
             onClick={handleScrollToHistory} 
             className="clint-btn-learn-more"
-            aria-label="Conocer más sobre nuestra historia"
+            aria-label={t('aboutUs.learnMore')}
           >
             <img 
               src={downArrow} 
               alt="Icono flecha hacia abajo" 
               className="clint-btn-arrow-img" 
             />
-            <span>Conocer más</span>
+            <span>{t('aboutUs.learnMore')}</span>
           </button>
         </div>
       </section>
@@ -220,26 +214,23 @@ function AboutUs() {
             <div className="history-content-block">
               
               <h2 className="history-pink-title">
-                Nuestra historia <span className="history-title-white">impulsa nuevas</span> metas
+                {t('aboutUs.historyPink')} <span className="history-title-white">{t('aboutUs.historyWhite')}</span> {t('aboutUs.historyGoals')}
               </h2>
 
               <div className="history-text-body">
                 <p>
-                  En Cokie Hall creemos que cada estudiante tiene un potencial extraordinario listo
-                  para ser despertado. Enfrentamos los desafíos educativos del presente con un modelo
-                  humano, cercano y enfocado en <span className="history-text-pink">brindar soluciones de aprendizaje significativas</span>.
+                  {t('aboutUs.historyP1_1')}{' '}
+                  <span className="history-text-pink">{t('aboutUs.historyP1_highlight')}</span>.
                 </p>
 
                 <p>
-                  A lo largo de nuestra trayectoria, hemos consolidado un equipo docente certificado,
-                  apasionado y comprometido con la excelencia académica, integrando las mejores prácticas
-                  pedagógicas para formar líderes con valores sólidos e integridad.
+                  {t('aboutUs.historyP2')}
                 </p>
 
                 <p>
-                  Nuestra misión fundamental es <span className="history-text-pink">acompañar a las familias</span> en el desarrollo integral
-                  de sus hijos, preparándolos no solo para superar con éxito sus etapas escolares, sino para
-                  transformar positivamente la sociedad del mañana.
+                  {t('aboutUs.historyP3_1')}{' '}
+                  <span className="history-text-pink">{t('aboutUs.historyP3_highlight')}</span>{' '}
+                  {t('aboutUs.historyP3_2')}
                 </p>
               </div>
 
@@ -256,7 +247,7 @@ function AboutUs() {
         <div className="clint-phrase-container">
           <img src={logoBlan} alt="Cokie Hall Logo" className="clint-phrase-logo" />
           <h3 className="clint-phrase-text">
-            Creemos que la educación de calidad y en valores es el verdadero motor de cambio en la sociedad.
+            {t('aboutUs.phrase')}
           </h3>
         </div>
       </section>
@@ -268,12 +259,9 @@ function AboutUs() {
             {/* Izquierda: Misión (Negro suave con borde inferior de nubes SVG perfecto) */}
             <div className="clint-grid-box clint-box-dark">
               <div className="clint-box-dark-inner">
-                <p className="clint-box-subtitle">Nuestra misión</p>
+                <p className="clint-box-subtitle">{t('aboutUs.missionSubtitle')}</p>
                 <h3 className="clint-box-title">
-                  FORMAR LÍDERES<br />
-                  COMPROMETIDOS,<br />
-                  UNIDOS Y CON<br />
-                  PENSAMIENTO CRÍTICO.
+                  {t('aboutUs.missionTitle')}
                 </h3>
               </div>
 
@@ -315,24 +303,21 @@ function AboutUs() {
               
               {/* Visión (Crema/Blanco) */}
               <div className="clint-subbox clint-subbox-light">
-                <p className="clint-box-subtitle">Nuestra visión</p>
+                <p className="clint-box-subtitle">{t('aboutUs.visionSubtitle')}</p>
                 <h3 className="clint-box-title clint-text-navy">
-                  INNOVACIÓN,<br />
-                  COMUNIDAD &<br />
-                  EXCELENCIA.
+                  {t('aboutUs.visionTitle')}
                 </h3>
                 <p className="clint-box-desc">
-                  Ser la institución educativa referente por nuestro enfoque humano e integral para el desarrollo de los futuros talentos.
+                  {t('aboutUs.visionDesc')}
                 </p>
               </div>
 
               {/* Valores / Otros (Azul Marino) */}
               <div className="clint-subbox clint-subbox-navy">
-                <p className="clint-box-subtitle">Nuestros valores</p>
+                <p className="clint-box-subtitle">{t('aboutUs.valuesSubtitle')}</p>
                 <h3 className="clint-box-title clint-text-white">
-                  AQUÍ ESTAMOS PARA<br />
-                  CAMBIAR EL MUNDO,<br />
-                  y acompañar a las familias en cada paso.
+                  {t('aboutUs.valuesTitle')}<br />
+                  {t('aboutUs.valuesSub')}
                 </h3>
               </div>
 

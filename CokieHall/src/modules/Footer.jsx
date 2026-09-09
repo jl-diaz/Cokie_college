@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import './Footer.css';
 import CokieKids from '../assets/CokieKids.png';
+
 function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="site-footer" id="contacto">
       <div className="footer-container">
@@ -9,10 +13,9 @@ function Footer() {
         <div className="footer-top-row">
           
           <div className="footer-left-info" data-nosnippet="true">
-            <h2 className="footer-dev-title">Cokie Dev</h2>
+            <h2 className="footer-dev-title">{t('footer.devTitle')}</h2>
             <p className="footer-dev-desc">
-              Una empresa emergente de desarrollo de software y experiencias digitales enfocada 
-              en transformar la tecnología educativa con soluciones intuitivas y de alto rendimiento.
+              {t('footer.devDesc')}
             </p>
           </div>
 
@@ -38,31 +41,30 @@ function Footer() {
         <div className="footer-middle-columns" data-nosnippet="true">
           
           <div className="footer-col">
-            <h4 className="footer-col-title">Sobre Nosotros</h4>
+            <h4 className="footer-col-title">{t('footer.aboutTitle')}</h4>
             <p className="footer-col-text">
-              Cokie Hall es una comunidad educativa comprometida con la excelencia académica, 
-              valores y formación integral para Primaria y Tercer Ciclo.
+              {t('footer.aboutDesc')}
             </p>
           </div>
 
           <div className="footer-col">
-            <h4 className="footer-col-title">Navegación</h4>
+            <h4 className="footer-col-title">{t('footer.navTitle')}</h4>
             <nav aria-label="Navegación secundaria del pie de página">
               <ul className="footer-col-list">
-                <li><Link to="/#hero" className="footer-col-link">Home</Link></li>
-                <li><Link to="/nosotros" className="footer-col-link">Nosotros</Link></li>
-                <li><Link to="/#niveles" className="footer-col-link">Niveles Educativos</Link></li>
-                <li><Link to="/#app-download" className="footer-col-link">Cokie College</Link></li>
+                <li><Link to="/#hero" className="footer-col-link">{t('nav.home')}</Link></li>
+                <li><Link to="/nosotros" className="footer-col-link">{t('nav.about')}</Link></li>
+                <li><Link to="/#niveles" className="footer-col-link">{t('nav.levels')}</Link></li>
+                <li><Link to="/#app-download" className="footer-col-link">{t('nav.app')}</Link></li>
               </ul>
             </nav>
           </div>
 
           <div className="footer-col">
-            <h4 className="footer-col-title">Legales & Privacidad</h4>
+            <h4 className="footer-col-title">{t('footer.legalTitle')}</h4>
             <ul className="footer-col-list">
-              <li><Link to="/legal?tab=terminos" className="footer-col-link">Términos y Condiciones</Link></li>
-              <li><Link to="/legal?tab=privacidad" className="footer-col-link">Política de Privacidad</Link></li>
-              <li><Link to="/legal?tab=copyright" className="footer-col-link">Derechos de Autor & PI</Link></li>
+              <li><Link to="/legal?tab=terminos" className="footer-col-link">{t('footer.terms')}</Link></li>
+              <li><Link to="/legal?tab=privacidad" className="footer-col-link">{t('footer.privacy')}</Link></li>
+              <li><Link to="/legal?tab=copyright" className="footer-col-link">{t('footer.copyright')}</Link></li>
               <li><span className="footer-col-copy">© 2026 Cokie Dev</span></li>
             </ul>
           </div>

@@ -86,12 +86,53 @@
   color: #ffd074;
 }
 
-/* BOTÓN DE ADMISIÓN */
+/* BOTÓN DE ADMISIÓN & SELECTOR DE IDIOMA */
 .navbar__actions {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-left: auto;
+}
+
+.navbar__lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.65rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.navbar__lang-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.04);
+}
+
+.lang-pill {
+  padding: 0.15rem 0.35rem;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lang-pill--active {
+  background: #ffd074;
+  color: #0b1957;
+  font-weight: 800;
+}
+
+.lang-divider {
+  opacity: 0.4;
+  font-size: 0.75rem;
 }
 
 .navbar__btn-admision {

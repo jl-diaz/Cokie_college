@@ -8,6 +8,7 @@ import Cokie1 from '../assets/Cokie1.png';
 import kids1 from '../assets/kids1.png';
 
 import DownloadButton from './DownloadButton.jsx';
+import { useLanguage } from '../context/LanguageContext';
 import './AppDownload.css';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,6 +16,7 @@ gsap.registerPlugin(ScrollTrigger);
 function AppDownload() {
   const sectionRef = useRef(null);
   const blocksRef = useRef(null);
+  const { t } = useLanguage();
 
   useGSAP(() => {
     const section = sectionRef.current;
@@ -91,17 +93,17 @@ function AppDownload() {
           
           {/* Primer bloque: Azul claro */}
           <div className="collage-block block--blue">
-            <span className="block-text">Pero sabemos que necesitas</span>
+            <span className="block-text">{t('appDownload.block1')}</span>
           </div>
 
           {/* Segundo bloque: Rosado */}
           <div className="collage-block block--pink">
-            <span className="block-text">Herramientas</span>
+            <span className="block-text">{t('appDownload.block2')}</span>
           </div>
 
           {/* Tercer bloque: Naranja */}
           <div className="collage-block block--orange">
-            <span className="block-text">Descargar Cokie College</span>
+            <span className="block-text">{t('appDownload.block3')}</span>
           </div>
 
         </div>
@@ -122,7 +124,7 @@ function AppDownload() {
      
           <div className="app-right-col">
             <h2 className="app-right-title">
-              Todo el control escolar y académico en la palma de tu mano
+              {t('appDownload.title')}
             </h2>
 
             <DownloadButton />

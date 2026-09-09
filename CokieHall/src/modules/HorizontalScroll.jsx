@@ -18,11 +18,13 @@ import lucha from '../assets/lucha.png';
 import foro from '../assets/foro.png';
 import './HorizontalScroll.css';
 import play from '../assets/play.png';
+import { useLanguage } from '../context/LanguageContext';
 gsap.registerPlugin(ScrollTrigger);
 
 function HorizontalScroll() {
   const containerRef = useRef(null);
   const trackRef = useRef(null);
+  const { t } = useLanguage();
 
   useGSAP(() => {
     const track = trackRef.current;
@@ -74,14 +76,14 @@ function HorizontalScroll() {
         <div className="hs-panel hs-panel--intro">
           <div className="hs-intro-minimal">
             <h2 className="hs-intro-title">
-              En Cokie Hall encontrarás los siguientes niveles
+              {t('levels.intro')}
             </h2>  
           </div>
         </div>
 
         <div className="hs-panel hs-panel--level">
           <div className="hs-level-header">
-            <h3 className="hs-level-title">Primaria</h3>
+            <h3 className="hs-level-title">{t('levels.elementary')}</h3>
           </div>
 
           <div className="hs-img-card-png">
@@ -113,7 +115,7 @@ function HorizontalScroll() {
 
         <div className="hs-panel hs-panel--level">
           <div className="hs-level-header">
-            <h3 className="hs-level-title">Tercer ciclo</h3>
+            <h3 className="hs-level-title">{t('levels.middle')}</h3>
           </div>
 
           <div className="hs-img-card-png">
@@ -145,7 +147,7 @@ function HorizontalScroll() {
 
         <div className="hs-panel hs-panel--clubes" id="clubes">
           <div className="hs-level-header">
-            <h3 className="hs-level-title">Y Clubes deportivos:</h3>
+            <h3 className="hs-level-title">{t('levels.clubs')}</h3>
           </div>
 
           <div className="hs-img-card-png">
