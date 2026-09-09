@@ -59,8 +59,7 @@ function Navbar() {
   ];
 
   const socialItems = [
-    { label: 'Instagram', link: 'https://instagram.com' },
-    { label: 'Facebook', link: 'https://facebook.com' }
+    { label: 'Instagram', link: 'https://www.instagram.com/cokiehall/' }
   ];
 
   return (

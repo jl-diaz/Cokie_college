@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -44,26 +45,44 @@ gsap.registerPlugin(ScrollTrigger);
 
 function Header() {
   const mainRef = useRef(null);
+  const location = useLocation();
   const { t, lang } = useLanguage();
 
   useEffect(() => {
-    document.title = lang === 'en' 
+    const isEn = lang === 'en';
+    let pageTitle = isEn 
       ? 'Cokie Hall | Educational Institution and Academic Community'
       : 'Cokie Hall | Institución Educativa y Comunidad Académica';
+    let canonicalUrl = 'https://www.cokiehall.lat/';
+    let metaDescription = isEn
+      ? 'Cokie Hall is an educational community committed to academic excellence, human values, and comprehensive education for Elementary and Middle School.'
+      : 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.';
+
+    if (location.pathname === '/contacto') {
+      pageTitle = isEn ? 'Contact & Admissions | Cokie Hall' : 'Contacto y Admisiones | Cokie Hall';
+      canonicalUrl = 'https://www.cokiehall.lat/contacto';
+      metaDescription = isEn
+        ? 'Admissions information, schedule, location, and family support at Cokie Hall.'
+        : 'Información de admisiones, horarios, ubicación y atención a familias en Cokie Hall.';
+    } else if (location.pathname === '/niveles') {
+      pageTitle = isEn ? 'Educational Offer | Cokie Hall' : 'Oferta Educativa | Cokie Hall';
+      canonicalUrl = 'https://www.cokiehall.lat/niveles';
+      metaDescription = isEn
+        ? 'Explore Elementary, Middle School, and Sports Clubs at Cokie Hall.'
+        : 'Descubre los niveles educativos de Primaria, Tercer Ciclo y Clubes Deportivos de Cokie Hall.';
+    }
+
+    document.title = pageTitle;
+
     let canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) {
-      canonical.setAttribute('href', 'https://www.cokiehall.lat/');
+      canonical.setAttribute('href', canonicalUrl);
     }
     let metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-      metaDesc.setAttribute(
-        'content',
-        lang === 'en'
-          ? 'Cokie Hall is an educational community committed to academic excellence, human values, and comprehensive education for Elementary and Middle School.'
-          : 'Cokie Hall es una comunidad educativa comprometida con la excelencia académica, valores y formación integral para Primaria y Tercer Ciclo. Conoce nuestra oferta académica y descarga Cokie College.'
-      );
+      metaDesc.setAttribute('content', metaDescription);
     }
-  }, [lang]);
+  }, [lang, location.pathname]);
 
   useGSAP(() => {
     const reveals = gsap.utils.toArray('.reveal');
