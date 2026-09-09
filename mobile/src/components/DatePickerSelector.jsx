@@ -54,17 +54,24 @@ export default function DatePickerSelector({
     }
   };
 
-  // Convierte un string 'YYYY-MM-DD' a objeto Date seguro contra desfases horarios UTC
-  const parseStringToDate = (dateStr) => {
-    if (!dateStr || typeof dateStr !== 'string') return new Date();
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      const y = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10) - 1;
-      const d = parseInt(parts[2], 10);
-      return new Date(y, m, d, 12, 0, 0); // Mediodía local para evitar shifts
+  // Convierte un string o Date a objeto Date seguro contra desfases horarios UTC
+  const parseStringToDate = (dateInput) => {
+    if (!dateInput) return new Date();
+    if (dateInput instanceof Date && !isNaN(dateInput.getTime())) return dateInput;
+    if (typeof dateInput === 'string') {
+      const datePart = dateInput.split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          return new Date(y, m, d, 12, 0, 0); // Mediodía local para evitar shifts
+        }
+      }
     }
-    return new Date();
+    const fallback = new Date(dateInput);
+    return isNaN(fallback.getTime()) ? new Date() : fallback;
   };
 
   // Convierte objeto Date a string 'YYYY-MM-DD'
@@ -107,6 +114,15 @@ export default function DatePickerSelector({
   const currentDateObj = value ? parseStringToDate(value) : new Date();
   const minDateObj = minDate ? parseStringToDate(minDate) : undefined;
   const maxDateObj = maxDate ? parseStringToDate(maxDate) : undefined;
+
+  // Clamping seguro para evitar excepciones nativas en iOS
+  let safeDateObj = currentDateObj;
+  if (maxDateObj && safeDateObj > maxDateObj) {
+    safeDateObj = maxDateObj;
+  }
+  if (minDateObj && safeDateObj < minDateObj) {
+    safeDateObj = minDateObj;
+  }
 
   const isDark = theme === 'dark';
   const borderColor = error 
@@ -274,7 +290,7 @@ export default function DatePickerSelector({
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
-                  value={currentDateObj}
+                  value={safeDateObj}
                   mode="date"
                   display="spinner"
                   themeVariant={isDark ? 'dark' : 'light'}
@@ -290,7 +306,7 @@ export default function DatePickerSelector({
               </View>
             ) : (
               <DateTimePicker
-                value={currentDateObj}
+                value={safeDateObj}
                 mode="date"
                 display="default"
                 minimumDate={minDateObj}

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+import DatePickerSelector from '../src/components/DatePickerSelector';
 
 const SCHOOL_HOURS = [
   '07:00 AM',
@@ -551,66 +552,25 @@ export default function CoordinatorJustificationsScreen() {
                 </View>
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Fecha de Ausencia</Text>
-                {Platform.OS === 'web' ? (
-                  <View style={[styles.datePickerBtn, { position: 'relative', overflow: 'hidden' }]}>
-                    <Calendar size={18} color={Colors.primary} />
-                    <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
-                      {absenceDate || 'Seleccionar fecha'}
-                    </Text>
-                    <input
-                      type="date"
-                      max={new Date().toISOString().split('T')[0]}
-                      value={absenceDate || ''}
-                      onChange={(e) => {
-                        const selected = e.target.value;
-                        if (selected) {
-                          handleDateChange(null, new Date(selected + 'T12:00:00'));
-                        }
-                      }}
-                      onClick={(e) => {
-                        try {
-                          if (e.target && typeof e.target.showPicker === 'function') {
-                            e.target.showPicker();
-                          }
-                        } catch (err) {}
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        opacity: 0,
-                        cursor: 'pointer',
-                        zIndex: 10,
-                        colorScheme: theme === 'dark' ? 'dark' : 'light'
-                      }}
-                    />
-                  </View>
-                ) : (
-                  <>
-                    <TouchableOpacity style={styles.datePickerBtn} onPress={() => setShowDatePicker(true)}>
-                      <Calendar size={18} color={Colors.primary} />
-                      <Text style={[styles.datePickerText, absenceDate ? styles.selectedText : null]}>
-                        {absenceDate || 'Seleccionar fecha'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={absenceDate ? new Date(absenceDate + 'T12:00:00') : new Date()}
-                        mode="date"
-                        display="default"
-                        themeVariant={theme === 'dark' ? 'dark' : 'light'}
-                        textColor={theme === 'dark' ? '#F8FAFC' : '#0F172A'}
-                        onChange={handleDateChange}
-                        maximumDate={new Date()}
-                      />
-                    )}
-                  </>
-                )}
-              </View>
+              <DatePickerSelector
+                label="Fecha de Ausencia *"
+                value={absenceDate}
+                onChange={(dateStr) => {
+                  const today = new Date();
+                  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  if (dateStr > todayStr) {
+                    showAlert({
+                      type: 'warning',
+                      title: 'Fecha Inválida',
+                      message: 'Solo se permiten justificaciones hasta la fecha actual.'
+                    });
+                    return;
+                  }
+                  setAbsenceDate(dateStr);
+                }}
+                maxDate={new Date().toISOString().split('T')[0]}
+                placeholder="Seleccionar fecha"
+              />
 
               {/* Rango de Horario (Selector Táctil) */}
               {absenceScope === 'hourly' && (

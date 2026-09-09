@@ -8,6 +8,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+import DatePickerSelector from '../src/components/DatePickerSelector';
 
 import { useAlert } from '../src/context/AlertContext';
 
@@ -476,66 +477,25 @@ export default function JustificationsScreen() {
                     </View>
 
                     {/* Fecha de Inasistencia */}
-                    <View style={styles.formGroup}>
-                      <Text style={styles.label}>{t('justifications.dateLabel', 'Fecha de Inasistencia')}</Text>
-                      {Platform.OS === 'web' ? (
-                        <View style={[styles.datePickerBtn, { position: 'relative', overflow: 'hidden' }]}>
-                          <Calendar size={20} color={Colors.primary} />
-                          <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
-                            {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
-                          </Text>
-                          <input
-                            type="date"
-                            max={new Date().toISOString().split('T')[0]}
-                            value={formData.date || ''}
-                            onChange={(e) => {
-                              const selected = e.target.value;
-                              if (selected) {
-                                handleDateChange(null, new Date(selected + 'T12:00:00'));
-                              }
-                            }}
-                            onClick={(e) => {
-                              try {
-                                if (e.target && typeof e.target.showPicker === 'function') {
-                                  e.target.showPicker();
-                                }
-                              } catch (err) {}
-                            }}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              opacity: 0,
-                              cursor: 'pointer',
-                              zIndex: 10,
-                              colorScheme: theme === 'dark' ? 'dark' : 'light'
-                            }}
-                          />
-                        </View>
-                      ) : (
-                        <>
-                          <TouchableOpacity style={styles.datePickerBtn} onPress={showDatepicker} activeOpacity={0.8}>
-                            <Calendar size={20} color={Colors.primary} />
-                            <Text style={[styles.datePickerText, formData.date ? { color: Colors.text.primary, fontWeight: '600' } : null]}>
-                              {formData.date || t('justifications.selectDate', 'Seleccionar fecha')}
-                            </Text>
-                          </TouchableOpacity>
-                          {showDatePicker && (
-                            <DateTimePicker
-                              value={formData.date ? new Date(formData.date + 'T12:00:00') : new Date()}
-                              mode="date"
-                              display="default"
-                              themeVariant={theme === 'dark' ? 'dark' : 'light'}
-                              textColor={theme === 'dark' ? '#F8FAFC' : '#0F172A'}
-                              maximumDate={new Date()}
-                              onChange={handleDateChange}
-                            />
-                          )}
-                        </>
-                      )}
-                    </View>
+                    <DatePickerSelector
+                      label={`${t('justifications.dateLabel', 'Fecha de Inasistencia')} *`}
+                      value={formData.date}
+                      onChange={(dateStr) => {
+                        const today = new Date();
+                        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                        if (dateStr > todayStr) {
+                          showAlert({
+                            type: 'warning',
+                            title: 'Fecha Inválida',
+                            message: 'Solo se permiten justificaciones hasta la fecha actual.'
+                          });
+                          return;
+                        }
+                        setFormData(prev => ({ ...prev, date: dateStr }));
+                      }}
+                      maxDate={new Date().toISOString().split('T')[0]}
+                      placeholder={t('justifications.selectDate', 'Seleccionar fecha')}
+                    />
 
                     {/* Rango de Horario (Selector Táctil) */}
                     {formData.scope === 'hourly' && (
