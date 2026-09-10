@@ -11,8 +11,7 @@ import './NotFound.css';
 
 function NotFound() {
   const containerRef = useRef(null);
-  const cardRef = useRef(null);
-  const imgRef = useRef(null);
+  const heroRef = useRef(null);
   const { t, lang } = useLanguage();
 
   useEffect(() => {
@@ -40,109 +39,58 @@ function NotFound() {
   }, [lang, t]);
 
   useGSAP(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-
-    tl.fromTo(
-      cardRef.current,
-      { opacity: 0, y: 35, scale: 0.98 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.85 }
+    // Animación sutil de entrada única al cargar (sin loop de movimiento continuo)
+    gsap.fromTo(
+      heroRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }
     );
-
-    // Animación de levitación suave en la ilustración
-    gsap.to(imgRef.current, {
-      y: -12,
-      rotation: 1.2,
-      duration: 3,
-      repeat: -1,
-      yoyo: true,
-      ease: 'sine.inOut'
-    });
   }, { scope: containerRef });
 
   return (
-    <div className="nf-page-wrapper" ref={containerRef}>
+    <div className="nf-page" ref={containerRef}>
       <Navbar />
 
       <main className="nf-main" id="main-content">
-        <div className="nf-container">
-          <div className="nf-card" ref={cardRef}>
+        <div className="nf-center-content" ref={heroRef}>
+          
+          {/* Columna Izquierda: 404, Texto y Botón */}
+          <div className="nf-text-col">
+            <div className="nf-number" aria-hidden="true">
+              {t('notfound.number', '404')}
+            </div>
             
-            {/* Columna de Ilustración */}
-            <div className="nf-visual-col">
-              <div className="nf-glow-circle" aria-hidden="true" />
-              <div className="nf-img-frame" ref={imgRef}>
-                <img 
-                  src={notFoundImg} 
-                  alt="Ilustración 404 Cokie Hall - Aula no encontrada" 
-                  className="nf-illustration" 
-                  loading="eager"
-                  width="480"
-                  height="480"
-                />
-              </div>
-            </div>
+            <h1 className="nf-heading">
+              {t('notfound.title', 'Lo sentimos, no encontramos la página que buscas')}
+            </h1>
 
-            {/* Columna de Contenido */}
-            <div className="nf-content-col">
-              <div className="nf-badge">
-                <span className="nf-badge-dot" />
-                <span className="nf-badge-text">{t('notfound.badge', 'Error 404')}</span>
-              </div>
-
-              <h1 className="nf-title">
-                {t('notfound.title', '¡Ups! Esta aula no fue encontrada')}
-              </h1>
-
-              <p className="nf-subtitle">
-                {t('notfound.subtitle', 'Parece que la página que buscas no existe, cambió de ubicación o ha sido movida.')}
-              </p>
-
-              {/* Botón Principal al HOME requerido */}
-              <div className="nf-actions">
-                <Link to="/" className="nf-btn nf-btn--primary">
-                  <svg 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2.2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className="nf-btn-icon"
-                  >
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
-                  <span>{t('notfound.homeBtn', 'Volver al Inicio')}</span>
-                </Link>
-
-                <Link to="/nosotros" className="nf-btn nf-btn--secondary">
-                  <span>{t('notfound.aboutBtn', 'Sobre Nosotros')}</span>
-                </Link>
-              </div>
-
-              {/* Enlaces Rápidos de Navegación */}
-              <div className="nf-quicklinks-section">
-                <span className="nf-quicklinks-hint">
-                  {t('notfound.hint', 'Puedes regresar a la página principal o explorar nuestras secciones destacadas:')}
-                </span>
-                <div className="nf-quicklinks-row">
-                  <Link to="/#niveles" className="nf-quicklink-pill">
-                    {t('notfound.levelsBtn', 'Oferta Educativa')}
-                  </Link>
-                  <Link to="/#app-download" className="nf-quicklink-pill">
-                    {t('nav.app', 'Cokie College')}
-                  </Link>
-                  <Link to="/#contacto" className="nf-quicklink-pill">
-                    {t('notfound.contactBtn', 'Contacto')}
-                  </Link>
-                </div>
-              </div>
-
-            </div>
-
+            <Link to="/" className="nf-home-link">
+              {t('notfound.homeBtn', 'Ir a la página principal ›')}
+            </Link>
           </div>
+
+          {/* Columna Derecha: Mascota Cokie estática y más grande */}
+          <div className="nf-mascot-col">
+            <img 
+              src={notFoundImg} 
+              alt="Mascota Cokie Hall 404" 
+              className="nf-mascot-img"
+              loading="eager"
+              width="460"
+              height="440"
+            />
+          </div>
+
+        </div>
+
+        {/* Sección Dato Curioso en la parte inferior */}
+        <div className="nf-did-you-know">
+          <h2 className="nf-dyk-title">
+            {t('notfound.didYouKnowTitle', '¿Sabías que...?')}
+          </h2>
+          <p className="nf-dyk-text">
+            {t('notfound.didYouKnowText', 'Los perros tienen un sentido del olfato entre 10,000 y 100,000 veces más potente que el humano, y son capaces de aprender y asociar más de 150 palabras y señales gestuales.')}
+          </p>
         </div>
       </main>
 

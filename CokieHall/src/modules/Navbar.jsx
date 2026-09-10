@@ -17,11 +17,12 @@ function Navbar() {
       // Si el menú móvil está desplegado, siempre visible
       if (mobileMenuOpen) {
         setVisible(true);
+        lastScroll = scroll;
         return;
       }
 
       // Cerca del top → siempre visible
-      if (scroll < 30) {
+      if (scroll < 50) {
         setVisible(true);
         lastScroll = scroll;
         return;
@@ -29,9 +30,9 @@ function Navbar() {
 
       // direction: 1 = bajando, -1 = subiendo
       if (direction === -1) {
-        setVisible(true);
+        setVisible(true); // Reaparece al hacer scroll hacia arriba
       } else if (direction === 1 && scroll - lastScroll > 5) {
-        setVisible(false);
+        setVisible(false); // Desaparece al hacer scroll hacia abajo o dirigirse a secciones
       }
 
       lastScroll = scroll;

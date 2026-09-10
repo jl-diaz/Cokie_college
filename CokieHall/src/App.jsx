@@ -55,6 +55,18 @@ function ScrollHandler() {
       const href = anchor.getAttribute('href');
       if (!href) return;
 
+      // Si se hace clic en "Inicio" ('/' o '/#hero' o '#hero') y ya estamos en Home ('/'):
+      if ((href === '/' || href === '/#hero' || href === '#hero') && window.location.pathname === '/') {
+        e.preventDefault();
+        window.history.pushState(null, '', '/');
+        if (lenis) {
+          lenis.scrollTo(0, { duration: 1.2 });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
+
       let targetSelector = null;
 
       if (href.startsWith('#') && href !== '#') {
@@ -68,7 +80,10 @@ function ScrollHandler() {
         if (target) {
           e.preventDefault();
           window.history.pushState(null, '', href);
-          lenis.scrollTo(target, { offset: -76, duration: 1.5 });
+          lenis.scrollTo(target, { 
+            offset: -76, 
+            duration: 1.2
+          });
         }
       }
     };
@@ -82,7 +97,10 @@ function ScrollHandler() {
       const scrollToHash = (duration = 1.2) => {
         const target = document.querySelector(location.hash);
         if (target && lenis) {
-          lenis.scrollTo(target, { offset: -76, duration });
+          lenis.scrollTo(target, { 
+            offset: -76, 
+            duration
+          });
         }
       };
       hashTimer1 = setTimeout(() => scrollToHash(1.2), 350);
@@ -105,7 +123,20 @@ function ScrollHandler() {
       lenisRef.current = null;
       window.__lenis = null;
     };
-  }, [location.pathname, location.hash]);
+  }, [location.pathname]);
+
+  // Si cambia el hash en la misma página, hacer scroll suave sin destruir Lenis
+  useEffect(() => {
+    if (location.hash && lenisRef.current) {
+      const target = document.querySelector(location.hash);
+      if (target) {
+        lenisRef.current.scrollTo(target, {
+          offset: -76,
+          duration: 1.2
+        });
+      }
+    }
+  }, [location.hash]);
 
   return null;
 }

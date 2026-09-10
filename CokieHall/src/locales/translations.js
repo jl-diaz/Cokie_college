@@ -225,14 +225,11 @@ export const translations = {
       }
     },
     notfound: {
-      badge: 'Error 404',
-      title: '¡Ups! Esta aula no fue encontrada',
-      subtitle: 'Parece que la página que buscas no existe, cambió de ubicación o ha sido movida.',
-      homeBtn: 'Volver al Inicio',
-      aboutBtn: 'Sobre Nosotros',
-      levelsBtn: 'Oferta Educativa',
-      contactBtn: 'Contacto',
-      hint: 'Puedes regresar a la página principal o explorar nuestras secciones destacadas:',
+      number: '404',
+      title: 'Lo sentimos, no encontramos la página que buscas',
+      homeBtn: 'Ir a la página principal ›',
+      didYouKnowTitle: '¿Sabías que...?',
+      didYouKnowText: 'Los perros tienen un sentido del olfato entre 10,000 y 100,000 veces más potente que el humano, y son capaces de aprender y asociar más de 150 palabras y señales gestuales.',
       metaTitle: '404: Página no encontrada | Cokie Hall'
     }
   },
@@ -462,14 +459,11 @@ export const translations = {
       }
     },
     notfound: {
-      badge: 'Error 404',
-      title: 'Oops! This classroom was not found',
-      subtitle: 'It seems the page you are looking for does not exist, has been moved, or is no longer available.',
-      homeBtn: 'Back to Home',
-      aboutBtn: 'About Us',
-      levelsBtn: 'Academic Levels',
-      contactBtn: 'Contact',
-      hint: 'You can return to our homepage or explore our main sections:',
+      number: '404',
+      title: "Sorry, we can't find the page you're looking for",
+      homeBtn: 'Visit the home page ›',
+      didYouKnowTitle: 'Did you know...',
+      didYouKnowText: 'Dogs possess a sense of smell between 10,000 and 100,000 times more acute than humans, and can learn to recognize more than 150 words and gestures.',
       metaTitle: '404: Page Not Found | Cokie Hall'
     }
   }
