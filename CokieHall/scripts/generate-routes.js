@@ -40,18 +40,6 @@ if (fs.existsSync(indexHtmlPath)) {
       canonical: 'https://www.cokiehall.lat/nosotros'
     },
     {
-      dir: 'niveles',
-      title: 'Oferta Educativa | Cokie Hall',
-      description: 'Descubre los niveles educativos de Primaria, Tercer Ciclo y Clubes Deportivos de Cokie Hall.',
-      canonical: 'https://www.cokiehall.lat/niveles'
-    },
-    {
-      dir: 'contacto',
-      title: 'Contacto | Cokie Hall',
-      description: 'Información de contacto, teléfono, correo institucional, horarios y atención a familias en Cokie Hall.',
-      canonical: 'https://www.cokiehall.lat/contacto'
-    },
-    {
       dir: 'legal',
       title: 'Aviso Legal | Cokie Hall',
       description: 'Términos de uso, política de privacidad y normativas institucionales de Cokie Hall.',
@@ -70,6 +58,15 @@ if (fs.existsSync(indexHtmlPath)) {
     console.log(`✓ dist/${route.dir}/index.html generado exitosamente.`);
   });
 
+  // Generar 404.html estático para plataformas de hosting
+  const notFoundHtml = createRouteHtml({
+    title: '404: Página no encontrada | Cokie Hall',
+    description: 'La página que buscas no existe o ha sido movida.',
+    canonical: 'https://www.cokiehall.lat/',
+    robots: 'noindex, nofollow, noarchive'
+  });
+  fs.writeFileSync(path.join(distDir, '404.html'), notFoundHtml, 'utf8');
+  console.log('✓ dist/404.html generado exitosamente.');
 } else {
   console.error('No se encontró dist/index.html');
 }

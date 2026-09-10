@@ -7,6 +7,7 @@ import 'lenis/dist/lenis.css';
 import Header from './modules/Header';
 import AboutUs from './modules/aboutUs';
 import LegalTerms from './modules/LegalTerms';
+import NotFound from './modules/NotFound';
 import { LanguageProvider } from './context/LanguageContext';
 import './App.css';
 
@@ -60,10 +61,6 @@ function ScrollHandler() {
         targetSelector = href;
       } else if (href.startsWith('/#') && window.location.pathname === '/') {
         targetSelector = href.replace('/', '');
-      } else if (href === '/niveles' && window.location.pathname === '/') {
-        targetSelector = '#niveles';
-      } else if (href === '/contacto' && window.location.pathname === '/') {
-        targetSelector = '#contacto';
       }
 
       if (targetSelector) {
@@ -81,17 +78,7 @@ function ScrollHandler() {
     let hashTimer1 = null;
     let hashTimer2 = null;
 
-    if (location.pathname === '/niveles') {
-      hashTimer1 = setTimeout(() => {
-        const target = document.querySelector('#niveles');
-        if (target && lenis) lenis.scrollTo(target, { offset: -76, duration: 1.2 });
-      }, 350);
-    } else if (location.pathname === '/contacto') {
-      hashTimer1 = setTimeout(() => {
-        const target = document.querySelector('#contacto');
-        if (target && lenis) lenis.scrollTo(target, { offset: -76, duration: 1.2 });
-      }, 350);
-    } else if (location.hash) {
+    if (location.hash) {
       const scrollToHash = (duration = 1.2) => {
         const target = document.querySelector(location.hash);
         if (target && lenis) {
@@ -118,7 +105,7 @@ function ScrollHandler() {
       lenisRef.current = null;
       window.__lenis = null;
     };
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
 
   return null;
 }
@@ -131,11 +118,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Header />} />
           <Route path="/nosotros" element={<AboutUs />} />
-          <Route path="/niveles" element={<Header />} />
-          <Route path="/contacto" element={<Header />} />
           <Route path="/legal" element={<LegalTerms />} />
-          {/* Fallback a home */}
-          <Route path="*" element={<Header />} />
+          {/* Ruta 404 para cualquier URL no encontrada */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </LanguageProvider>

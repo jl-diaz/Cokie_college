@@ -223,6 +223,17 @@ export const translations = {
         s5_title: '5. Medidas y sanciones disciplinarias',
         s5_p1: 'El mal uso deliberado de la plataforma, el intento de vulnerar registros académicos o la falsedad en la documentación aportada dará lugar a la aplicación de las medidas contempladas en el Reglamento Interno de Convivencia Escolar de Cokie Hall, sin perjuicio de las acciones legales que correspondan.',
       }
+    },
+    notfound: {
+      badge: 'Error 404',
+      title: '¡Ups! Esta aula no fue encontrada',
+      subtitle: 'Parece que la página que buscas no existe, cambió de ubicación o ha sido movida.',
+      homeBtn: 'Volver al Inicio',
+      aboutBtn: 'Sobre Nosotros',
+      levelsBtn: 'Oferta Educativa',
+      contactBtn: 'Contacto',
+      hint: 'Puedes regresar a la página principal o explorar nuestras secciones destacadas:',
+      metaTitle: '404: Página no encontrada | Cokie Hall'
     }
   },
   en: {
@@ -449,6 +460,17 @@ export const translations = {
         s5_title: '5. Disciplinary Measures and Sanctions',
         s5_p1: 'Any deliberate misuse of the platform, attempts to compromise academic records, or submission of fraudulent documentation will result in disciplinary measures according to Cokie Hall’s School Regulations, without prejudice to appropriate legal actions.',
       }
+    },
+    notfound: {
+      badge: 'Error 404',
+      title: 'Oops! This classroom was not found',
+      subtitle: 'It seems the page you are looking for does not exist, has been moved, or is no longer available.',
+      homeBtn: 'Back to Home',
+      aboutBtn: 'About Us',
+      levelsBtn: 'Academic Levels',
+      contactBtn: 'Contact',
+      hint: 'You can return to our homepage or explore our main sections:',
+      metaTitle: '404: Page Not Found | Cokie Hall'
     }
   }
 };

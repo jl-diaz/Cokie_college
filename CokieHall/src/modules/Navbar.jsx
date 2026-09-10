@@ -53,9 +53,9 @@ function Navbar() {
   const menuItems = [
     { label: t('nav.home'), link: '/', ariaLabel: t('nav.home') },
     { label: t('nav.about'), link: '/nosotros', ariaLabel: t('nav.about') },
-    { label: t('nav.levels'), link: '/niveles', ariaLabel: t('nav.levels') },
+    { label: t('nav.levels'), link: '/#niveles', ariaLabel: t('nav.levels') },
     { label: t('nav.app'), link: '/#app-download', ariaLabel: t('nav.app') },
-    { label: t('nav.contact'), link: '/contacto', ariaLabel: t('nav.contact') },
+    { label: t('nav.contact'), link: '/#contacto', ariaLabel: t('nav.contact') },
   ];
 
   const socialItems = [
@@ -82,7 +82,7 @@ function Navbar() {
             </li>
 
             <li className="navbar__item">
-              <Link to="/niveles" className="navbar__link">{t('nav.levels')}</Link>
+              <Link to="/#niveles" className="navbar__link">{t('nav.levels')}</Link>
             </li>
 
             <li className="navbar__item">
@@ -90,7 +90,7 @@ function Navbar() {
             </li>
 
             <li className="navbar__item">
-              <Link to="/contacto" className="navbar__link">{t('nav.contact')}</Link>
+              <Link to="/#contacto" className="navbar__link">{t('nav.contact')}</Link>
             </li>
           </ul>
         </nav>
