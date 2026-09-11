@@ -108,17 +108,19 @@ export default function CoordinatorTicketsScreen() {
         coordinator_message: coordinatorMessage.trim() || undefined
       });
 
+      setSelectedTicket(null);
+      setActionType(null);
       showAlert({
         type: 'success',
         title: t('dashboard.success', 'Operación exitosa'),
         message: `El ticket ha sido ${status === 'approved' ? 'aprobado' : 'denegado'} correctamente.`
       });
-      setSelectedTicket(null);
-      setActionType(null);
       setPage(1);
       fetchTickets(1, true);
     } catch (error) {
       console.error('Error processing ticket:', error);
+      setSelectedTicket(null);
+      setActionType(null);
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),

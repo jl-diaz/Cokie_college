@@ -251,6 +251,8 @@ export default function EventsScreen() {
 
       if (editingEvent) {
         await api.put(`/events/${editingEvent.id}`, payload);
+        setModalVisible(false);
+        setTimePickerVisible(false);
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
@@ -258,6 +260,8 @@ export default function EventsScreen() {
         });
       } else {
         await api.post('/events', payload);
+        setModalVisible(false);
+        setTimePickerVisible(false);
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
@@ -265,8 +269,6 @@ export default function EventsScreen() {
         });
       }
 
-      setModalVisible(false);
-      setTimePickerVisible(false);
       fetchEvents();
     } catch (error) {
       console.error('Error saving event:', error);
@@ -458,9 +460,9 @@ export default function EventsScreen() {
                 </View>
 
                 <ScrollView 
-                  showsVerticalScrollIndicator={false} 
+                  showsVerticalScrollIndicator={true} 
                   keyboardShouldPersistTaps="handled"
-                  style={{ flexGrow: 0 }}
+                  style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 90px)' : undefined }}
                   contentContainerStyle={{ paddingBottom: 8 }}
                 >
                   <Text style={styles.inputLabel}>{t('events.eventTitleLabel', 'Título del Evento *')}</Text>
@@ -720,6 +722,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
+    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
     padding: 24,
     paddingBottom: 24,
   },

@@ -47,7 +47,21 @@ export default function ClassroomsScreen() {
       setLoading(true);
       const endpoint = profile?.role === 'coordinator' ? '/coordinator/classrooms' : '/teacher/classrooms';
       const response = await api.get(endpoint);
-      setClassrooms(response.data || []);
+      let list = Array.isArray(response.data) ? response.data : [];
+      if (profile?.role === 'coordinator' && profile?.level) {
+        if (profile.level === 'Primaria') {
+          list = list.filter(c => {
+            const g = parseInt(c.grade, 10);
+            return g >= 1 && g <= 6;
+          });
+        } else if (profile.level === 'Tercer Ciclo' || profile.level === 'Secundaria') {
+          list = list.filter(c => {
+            const g = parseInt(c.grade, 10);
+            return g >= 7 && g <= 11;
+          });
+        }
+      }
+      setClassrooms(list);
     } catch (error) {
       console.error('Error fetching classrooms:', error);
       showAlert({

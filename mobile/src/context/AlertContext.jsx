@@ -61,17 +61,23 @@ export const AlertProvider = ({ children }) => {
   }, []);
 
   const handleConfirm = () => {
-    if (config.onConfirm) {
-      config.onConfirm();
-    }
+    const onConfirmAction = config.onConfirm;
     hideAlert();
+    if (onConfirmAction) {
+      setTimeout(() => {
+        onConfirmAction();
+      }, 50);
+    }
   };
 
   const handleCancel = () => {
-    if (config.onCancel) {
-      config.onCancel();
-    }
+    const onCancelAction = config.onCancel;
     hideAlert();
+    if (onCancelAction) {
+      setTimeout(() => {
+        onCancelAction();
+      }, 50);
+    }
   };
 
   const getIcon = () => {
@@ -177,6 +183,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    zIndex: 9999,
+    elevation: 9999,
   },
   alertCard: {
     width: '100%',

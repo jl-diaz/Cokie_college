@@ -1,14 +1,23 @@
 const nodemailer = require('nodemailer');
 const path = require('path');
 
-// Configuración del transportador para Nodemailer
-const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Para Gmail, usar una "Contraseña de Aplicación"
-    },
-});
+// Obtener transportador Nodemailer con sanitización de contraseña
+const getTransporter = () => {
+    const user = process.env.EMAIL_USER;
+    const rawPass = process.env.EMAIL_PASS;
+    const pass = rawPass ? rawPass.replace(/\s+/g, '') : '';
+
+    return nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: {
+            user,
+            pass
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
+    });
+};
 
 /**
  * Envía un correo de bienvenida con las credenciales usando Nodemailer.
@@ -206,10 +215,18 @@ const sendWelcomeEmail = async (full_name, email, code, password) => {
             attachments: attachments
         };
 
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            console.warn('[EMAIL WARNING] EMAIL_USER o EMAIL_PASS no están configurados en el entorno.');
+            return { success: false, error: 'Credenciales de correo no configuradas en el servidor.' };
+        }
+
+        const transporter = getTransporter();
         const info = await transporter.sendMail(mailOptions);
         console.log(`Email enviado exitosamente a ${email} ID: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error enviando email con Nodemailer:', error);
+        console.error('Error enviando email con Nodemailer:', error.message || error);
+        return { success: false, error: error.message || 'Error al conectar con el servidor de correo.' };
     }
 };
 

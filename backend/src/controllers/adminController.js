@@ -157,18 +157,30 @@ const adminController = {
                 throw profileError;
             }
 
-            // 4. Enviar correo (Intentar enviar, pero no bloquear si falla)
+            // 4. Enviar correo (Intentar enviar, reportar estado sin bloquear creación)
+            let emailSent = false;
+            let emailErrorMsg = null;
             try {
-                await sendWelcomeEmail(full_name, email, institutional_code, password);
+                const mailRes = await sendWelcomeEmail(full_name, email, institutional_code, password);
+                if (mailRes && mailRes.success) {
+                    emailSent = true;
+                } else {
+                    emailErrorMsg = mailRes?.error || 'No se pudo entregar el correo con las credenciales.';
+                }
             } catch (emailError) {
                 console.error('Fallo no crítico al enviar email:', emailError);
+                emailErrorMsg = emailError.message;
             }
 
             res.status(201).json({ 
-                message: 'Usuario creado exitosamente', 
+                message: emailSent 
+                    ? 'Usuario creado exitosamente y credenciales enviadas por correo' 
+                    : 'Usuario creado exitosamente. No se pudo enviar el correo de credenciales.', 
                 profile,
                 institutional_code,
-                temp_password: password
+                temp_password: password,
+                email_sent: emailSent,
+                email_error: emailErrorMsg
             });
         } catch (error) {
             console.error('Error al crear usuario:', error);

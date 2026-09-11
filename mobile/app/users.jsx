@@ -207,6 +207,7 @@ export default function UsersScreen() {
           level: (formData.role === 'coordinator' || formData.role === 'teacher' || formData.role === 'student') ? computedLevel : '',
           materia_principal: formData.role === 'teacher' ? formData.materia_principal : null
         });
+        setModalVisible(false);
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
@@ -214,17 +215,27 @@ export default function UsersScreen() {
         });
       } else {
         // Create Mode
-        await api.post('/admin/users', {
+        const res = await api.post('/admin/users', {
           ...formData,
           level: computedLevel
         });
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('users.userCreated', 'Usuario creado exitosamente.')
-        });
+        const resData = res.data || {};
+        
+        setModalVisible(false);
+        if (resData.email_sent === false) {
+          showAlert({
+            type: 'warning',
+            title: 'Usuario Creado (Aviso de Correo)',
+            message: `Usuario creado con éxito.\nCódigo: ${resData.institutional_code || ''}\nContraseña temporal: ${resData.temp_password || ''}\n\nNota: No se pudo enviar el correo con credenciales (${resData.email_error || 'revisa la contraseña de aplicación de correo'}). Asegúrate de entregar estas credenciales.`
+          });
+        } else {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('users.userCreated', 'Usuario creado exitosamente y credenciales enviadas.')
+          });
+        }
       }
-      setModalVisible(false);
       setPage(1);
       fetchUsers(1, true);
     } catch (error) {
@@ -456,7 +467,12 @@ export default function UsersScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalForm}>
+            <ScrollView 
+              style={styles.modalForm}
+              contentContainerStyle={{ paddingBottom: 24 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
               <View style={styles.formGroup}>
                 <Text style={styles.label}>{editingUser ? 'Nombre Completo' : 'Nombres'}</Text>
                 <View style={styles.inputWrapper}>
@@ -544,7 +560,7 @@ export default function UsersScreen() {
                 </TouchableOpacity>
 
                 {roleDropdownOpen && editingUser?.id !== currentProfile?.id && (
-                  <View style={styles.dropdownList}>
+                  <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
                     {roles.map(r => (
                       <TouchableOpacity
                         key={r.value}
@@ -557,7 +573,7 @@ export default function UsersScreen() {
                         <Text style={styles.dropdownItemText}>{r.label}</Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 )}
               </View>
 
@@ -576,7 +592,7 @@ export default function UsersScreen() {
                   </TouchableOpacity>
 
                   {levelDropdownOpen && (
-                    <View style={styles.dropdownList}>
+                    <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
                       {levels.map(l => (
                         <TouchableOpacity
                           key={l.value}
@@ -589,7 +605,7 @@ export default function UsersScreen() {
                           <Text style={styles.dropdownItemText}>{l.label}</Text>
                         </TouchableOpacity>
                       ))}
-                    </View>
+                    </ScrollView>
                   )}
                 </View>
               )}
@@ -643,7 +659,7 @@ export default function UsersScreen() {
                     </TouchableOpacity>
 
                     {gradeDropdownOpen && (
-                      <View style={styles.dropdownList}>
+                      <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
                         {grades.map(g => (
                           <TouchableOpacity
                             key={g.value}
@@ -656,7 +672,7 @@ export default function UsersScreen() {
                             <Text style={styles.dropdownItemText}>{g.label}</Text>
                           </TouchableOpacity>
                         ))}
-                      </View>
+                      </ScrollView>
                     )}
                   </View>
 
@@ -674,7 +690,7 @@ export default function UsersScreen() {
                     </TouchableOpacity>
 
                     {sectionDropdownOpen && (
-                      <View style={styles.dropdownList}>
+                      <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
                         {sections.map(s => (
                           <TouchableOpacity
                             key={s.value}
@@ -687,7 +703,7 @@ export default function UsersScreen() {
                             <Text style={styles.dropdownItemText}>{s.label}</Text>
                           </TouchableOpacity>
                         ))}
-                      </View>
+                      </ScrollView>
                     )}
                   </View>
                 </View>
@@ -823,8 +839,10 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
+    maxHeight: Platform.OS === 'web' ? '82vh' : '100%',
     padding: 24,
     paddingBottom: 24,
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -834,7 +852,11 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
   closeBtn: { padding: 4 },
-  modalForm: { flexGrow: 0 },
+  modalForm: { 
+    flex: 1,
+    flexGrow: 1,
+    maxHeight: Platform.OS === 'web' ? 'calc(82vh - 140px)' : undefined,
+  },
   formGroup: { marginBottom: Spacing.lg },
   label: { fontSize: Typography.size.xs, fontWeight: '700', color: Colors.text.muted, marginBottom: 8, textTransform: 'uppercase' },
   inputWrapper: {

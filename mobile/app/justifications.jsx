@@ -247,11 +247,6 @@ export default function JustificationsScreen() {
         evidence_url: finalEvidenceUrl
       });
       
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', '¡Enviado!'),
-        message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
-      });
       setModalVisible(false);
       setTimePickerVisible(false);
       setFormData({ 
@@ -261,6 +256,11 @@ export default function JustificationsScreen() {
         scope: 'full_day', 
         start_time: '07:00 AM', 
         end_time: '09:30 AM' 
+      });
+      showAlert({
+        type: 'success',
+        title: t('dashboard.success', '¡Enviado!'),
+        message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
       });
       fetchJustifications();
     } catch (error) {
@@ -439,8 +439,8 @@ export default function JustificationsScreen() {
             ) : (
               <ScrollView 
                 keyboardShouldPersistTaps="handled" 
-                showsVerticalScrollIndicator={false}
-                style={{ flexGrow: 0 }}
+                showsVerticalScrollIndicator={true}
+                style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 80px)' : undefined }}
                 contentContainerStyle={{ paddingBottom: 8 }}
               >
                     <View style={styles.modalHeader}>
@@ -696,6 +696,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {
     width: '100%',
+    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
     padding: 24,
     paddingBottom: 24,
   },

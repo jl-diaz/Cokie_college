@@ -157,6 +157,7 @@ export default function ConductCatalogScreen() {
     try {
       if (editingCode) {
         await api.put(`/admin/conduct-codes/${editingCode.id}`, formData);
+        setModalVisible(false);
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
@@ -164,13 +165,13 @@ export default function ConductCatalogScreen() {
         });
       } else {
         await api.post('/admin/conduct-codes', formData);
+        setModalVisible(false);
         showAlert({
           type: 'success',
           title: t('dashboard.success', '¡Éxito!'),
           message: 'Código creado correctamente.'
         });
       }
-      setModalVisible(false);
       fetchCodes();
     } catch (error) {
       console.error(error);
@@ -322,7 +323,12 @@ export default function ConductCatalogScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled" style={{ flexGrow: 0 }} contentContainerStyle={{ paddingBottom: 8 }}>
+            <ScrollView 
+              keyboardShouldPersistTaps="handled" 
+              showsVerticalScrollIndicator={true}
+              style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 90px)' : undefined }} 
+              contentContainerStyle={{ paddingBottom: 8 }}
+            >
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Categoría</Text>
                 <View style={styles.categoryRow}>
@@ -478,6 +484,7 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
+    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
     padding: 24,
     paddingBottom: 24,
   },

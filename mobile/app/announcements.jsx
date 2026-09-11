@@ -103,13 +103,12 @@ export default function AnnouncementsScreen() {
       };
 
       await api.post('/announcements', payload);
+      setModalVisible(false);
       showAlert({
         type: 'success',
         title: t('dashboard.success', '¡Aviso Enviado!'),
         message: t('announcements.publishSuccess', 'El aviso ha sido enviado y notificado instantáneamente a los destinatarios.')
       });
-
-      setModalVisible(false);
       fetchAnnouncements();
     } catch (error) {
       console.error('Error sending announcement:', error);
@@ -235,9 +234,9 @@ export default function AnnouncementsScreen() {
                   </View>
 
                   <ScrollView 
-                    showsVerticalScrollIndicator={false} 
+                    showsVerticalScrollIndicator={true} 
                     keyboardShouldPersistTaps="handled"
-                    style={{ flexGrow: 0 }}
+                    style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 90px)' : undefined }}
                     contentContainerStyle={{ paddingBottom: 8 }}
                   >
                     <Text style={styles.inputLabel}>{t('announcements.announcementTitleLabel', 'Título del Aviso *')}</Text>
@@ -361,7 +360,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowRadius: 8,
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', padding: 24, paddingBottom: 24 },
+  modalContent: { width: '100%', maxHeight: Platform.OS === 'web' ? '82vh' : undefined, padding: 24, paddingBottom: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
   inputLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.secondary, marginBottom: 6, textTransform: 'uppercase' },

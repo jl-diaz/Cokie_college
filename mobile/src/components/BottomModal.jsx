@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
-  Modal, 
   StyleSheet, 
   Pressable, 
   Animated, 
   Dimensions, 
   Platform, 
-  Keyboard 
+  Keyboard,
+  BackHandler
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -28,6 +28,7 @@ export default function BottomModal({ visible, onClose, children }) {
 
   const screenHeight = windowDimensions.height;
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const keyboardAnim = useRef(new Animated.Value(0)).current;
@@ -65,16 +66,34 @@ export default function BottomModal({ visible, onClose, children }) {
     };
   }, []);
 
+  // Manejar el botón 'Atrás' nativo de Android
+  useEffect(() => {
+    if (!visible) return;
+    const onBackPress = () => {
+      handleClose();
+      return true;
+    };
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
+  }, [visible]);
+
   useEffect(() => {
     if (visible) {
       setShowModal(true);
       slideAnim.setValue(screenHeight);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        friction: 9,
-        tension: 70,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 9,
+          tension: 70,
+          useNativeDriver: true,
+        })
+      ]).start();
     } else {
       Keyboard.dismiss();
       let finishedCalled = false;
@@ -87,11 +106,18 @@ export default function BottomModal({ visible, onClose, children }) {
         }
       };
 
-      Animated.timing(slideAnim, {
-        toValue: screenHeight,
-        duration: 200,
-        useNativeDriver: true,
-      }).start(finish);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: screenHeight,
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start(finish);
 
       // Fallback para garantizar que el modal siempre se desmonte aun si la animación nativa se interrumpe
       const timer = setTimeout(finish, 230);
@@ -101,10 +127,14 @@ export default function BottomModal({ visible, onClose, children }) {
 
   if (!showModal) return null;
 
-  const bottomInset = Platform.OS === 'web' ? 0 : Math.max(insets.bottom, 0);
+  const isWeb = Platform.OS === 'web';
+  const bottomInset = isWeb ? 0 : Math.max(insets.bottom, 0);
   const topSafe = insets.top > 0 ? insets.top + 20 : 50;
-  // Limitar altura máxima para que nunca se desborde fuera de la pantalla al subir el teclado
-  const maxSheetHeight = screenHeight - keyboardHeight - topSafe;
+  
+  // Limitar altura máxima para que nunca se desborde fuera de la pantalla
+  const maxSheetHeight = isWeb 
+    ? Math.min(screenHeight * 0.9, 850) 
+    : (screenHeight - keyboardHeight - topSafe);
 
   const handleClose = () => {
     Keyboard.dismiss();
@@ -112,55 +142,59 @@ export default function BottomModal({ visible, onClose, children }) {
   };
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={showModal}
-      onRequestClose={handleClose}
-      statusBarTranslucent
-      navigationBarTranslucent
+    <View 
+      style={styles.overlayContainer}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
-      <View 
-        style={styles.overlayContainer}
-        pointerEvents={visible ? 'auto' : 'none'}
+      {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
+      <Pressable 
+        style={StyleSheet.absoluteFillObject} 
+        onPress={handleClose}
+        disabled={!visible}
+        accessibilityLabel="Cerrar modal"
       >
-        {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
-        <Pressable 
-          style={StyleSheet.absoluteFillObject} 
-          onPress={handleClose}
-          disabled={!visible}
-          accessibilityLabel="Cerrar modal"
-        />
-
-        {/* Hoja modal inferior animada que sube con el teclado */}
         <Animated.View 
           style={[
-            styles.panelWrapper, 
+            StyleSheet.absoluteFillObject, 
             { 
-              transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
-              backgroundColor: colors.card,
-              paddingBottom: keyboardHeight > 0 ? 10 : (Platform.OS === 'ios' ? Math.min(bottomInset, 16) : 0),
-              maxHeight: maxSheetHeight,
-              borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              opacity: fadeAnim 
             }
           ]} 
-          onStartShouldSetResponder={() => true}
-        >
-          {children}
-        </Animated.View>
-      </View>
-    </Modal>
+        />
+      </Pressable>
+
+      {/* Hoja modal inferior animada que sube con el teclado */}
+      <Animated.View 
+        style={[
+          styles.panelWrapper, 
+          { 
+            transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
+            backgroundColor: colors.card,
+            paddingBottom: keyboardHeight > 0 ? 10 : (Platform.OS === 'ios' ? Math.min(bottomInset, 16) : 0),
+            maxHeight: maxSheetHeight,
+            borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+          }
+        ]} 
+        onStartShouldSetResponder={() => true}
+      >
+        {children}
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    zIndex: 1000,
+    elevation: 25,
   },
   panelWrapper: {
     width: '100%',
+    maxWidth: Platform.OS === 'web' ? 640 : '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1.5,

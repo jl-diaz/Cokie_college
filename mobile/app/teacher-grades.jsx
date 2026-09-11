@@ -261,16 +261,17 @@ export default function TeacherGradesScreen() {
         days_requested: selectedDays
       });
 
+      setTicketModalVisible(false);
+      setTicketReason('');
       showAlert({
         type: 'success',
         title: 'Ticket Enviado',
         message: 'Tu solicitud de días extra ha sido enviada al coordinador de tu nivel. Recibirás una notificación cuando sea procesada.'
       });
-      setTicketModalVisible(false);
-      setTicketReason('');
       fetchInitialData();
     } catch (error) {
       console.error('Error creating ticket:', error);
+      setTicketModalVisible(false);
       showAlert({
         type: 'error',
         title: 'Error',

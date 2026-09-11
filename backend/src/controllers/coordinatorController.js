@@ -55,7 +55,7 @@ const coordinatorController = {
             // Filtrar por el nivel del coordinador
             if (level === 'Primaria') {
                 query = query.in('grade', ['1', '2', '3', '4', '5', '6']);
-            } else if (level === 'Secundaria') {
+            } else if (level === 'Secundaria' || level === 'Tercer Ciclo') {
                 query = query.in('grade', ['7', '8', '9', '10', '11']);
             }
 
@@ -498,7 +498,7 @@ const coordinatorController = {
 
             if (level === 'Primaria') {
                 query = query.in('grade', ['1', '2', '3', '4', '5', '6']);
-            } else if (level === 'Secundaria') {
+            } else if (level === 'Secundaria' || level === 'Tercer Ciclo') {
                 query = query.in('grade', ['7', '8', '9', '10', '11']);
             }
 

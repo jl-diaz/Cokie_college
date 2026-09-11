@@ -9,11 +9,13 @@ import { useTheme } from '../src/context/ThemeContext';
 import PageHeader from '../src/components/PageHeader';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function StudentsScreen() {
   const { t } = useTranslation();
   const { colors: Colors } = useTheme();
   const { showAlert } = useAlert();
+  const { profile } = useAuth();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,21 @@ export default function StudentsScreen() {
     setLoading(true);
     try {
       const response = await api.get('/coordinator/students');
-      setStudents(response.data);
+      let data = Array.isArray(response.data) ? response.data : [];
+      if (profile?.role === 'coordinator' && profile?.level) {
+        if (profile.level === 'Primaria') {
+          data = data.filter(s => {
+            const g = parseInt(s.grade, 10);
+            return g >= 1 && g <= 6;
+          });
+        } else if (profile.level === 'Tercer Ciclo' || profile.level === 'Secundaria') {
+          data = data.filter(s => {
+            const g = parseInt(s.grade, 10);
+            return g >= 7 && g <= 11;
+          });
+        }
+      }
+      setStudents(data);
     } catch (error) {
       console.error(error);
       showAlert({
