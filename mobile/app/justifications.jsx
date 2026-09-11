@@ -440,7 +440,7 @@ export default function JustificationsScreen() {
               <ScrollView 
                 keyboardShouldPersistTaps="handled" 
                 showsVerticalScrollIndicator={true}
-                style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 80px)' : undefined }}
+                style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]}
                 contentContainerStyle={{ paddingBottom: 8 }}
               >
                     <View style={styles.modalHeader}>

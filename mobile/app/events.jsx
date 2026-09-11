@@ -462,7 +462,7 @@ export default function EventsScreen() {
                 <ScrollView 
                   showsVerticalScrollIndicator={true} 
                   keyboardShouldPersistTaps="handled"
-                  style={{ flexGrow: 1, maxHeight: Platform.OS === 'web' ? 'calc(82vh - 90px)' : undefined }}
+                  style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]}
                   contentContainerStyle={{ paddingBottom: 8 }}
                 >
                   <Text style={styles.inputLabel}>{t('events.eventTitleLabel', 'Título del Evento *')}</Text>

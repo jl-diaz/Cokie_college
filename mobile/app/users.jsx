@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native';
 import api from '../src/utils/api';
 import { Search, Plus, Trash2, Edit2, X, ChevronDown, User, Mail, Shield, Book, CheckCircle2 } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
@@ -709,22 +709,22 @@ export default function UsersScreen() {
                 </View>
               )}
 
-              <View style={{ height: 30 }} />
-            </ScrollView>
+              <TouchableOpacity 
+                style={styles.submitBtn} 
+                onPress={handleSaveUser}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>
+                    {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
+                  </Text>
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.submitBtn} 
-              onPress={handleSaveUser}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>
-                  {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
-                </Text>
-              )}
-            </TouchableOpacity>
+              <View style={{ height: 32 }} />
+            </ScrollView>
           </View>
         </BottomModal>
     </View>
@@ -839,23 +839,21 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : '100%',
-    padding: 24,
-    paddingBottom: 24,
-    flex: 1,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 16,
+    ...(Platform.OS === 'web' ? { maxHeight: '85vh' } : {}),
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
   closeBtn: { padding: 4 },
   modalForm: { 
-    flex: 1,
-    flexGrow: 1,
-    maxHeight: Platform.OS === 'web' ? 'calc(82vh - 140px)' : undefined,
+    flexGrow: 0,
+    maxHeight: Platform.OS === 'web' ? 520 : Math.min(Dimensions.get('window').height * 0.68, 520),
   },
   formGroup: { marginBottom: Spacing.lg },
   label: { fontSize: Typography.size.xs, fontWeight: '700', color: Colors.text.muted, marginBottom: 8, textTransform: 'uppercase' },

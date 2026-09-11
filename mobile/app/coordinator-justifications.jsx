@@ -1,10 +1,10 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions, BackHandler } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions, BackHandler, StatusBar } from 'react-native';
 import api from '../src/utils/api';
 import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown, Download } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
@@ -14,6 +14,7 @@ import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 import DatePickerSelector from '../src/components/DatePickerSelector';
+import { WebView } from 'react-native-webview';
 
 const SCHOOL_HOURS = [
   '07:00 AM',
@@ -306,6 +307,108 @@ export default function CoordinatorJustificationsScreen() {
     return { type: 'document', url: rawUrl };
   };
 
+  const getPdfViewerHtml = (pdfUrl) => {
+    let b64 = pdfUrl || '';
+    if (b64.includes('base64,')) {
+      b64 = b64.split('base64,')[1];
+    }
+    b64 = b64.replace(/[\r\n\s]+/g, '');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=yes">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background-color: #000000;
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      padding-top: 76px;
+      padding-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    canvas {
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+      display: block;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+    #loader {
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      margin-top: 80px;
+      text-align: center;
+    }
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loader">
+    <div class="spinner"></div>
+    <span>Cargando documento PDF...</span>
+  </div>
+  <div id="container"></div>
+  <script>
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const b64Data = "${b64}";
+      const binaryString = atob(b64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      pdfjsLib.getDocument({ data: bytes }).promise.then(function(pdf) {
+        document.getElementById('loader').style.display = 'none';
+        for (let p = 1; p <= pdf.numPages; p++) {
+          pdf.getPage(p).then(function(page) {
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement('canvas');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            const ctx = canvas.getContext('2d');
+            document.getElementById('container').appendChild(canvas);
+            page.render({ canvasContext: ctx, viewport: viewport });
+          });
+        }
+      }).catch(function(err) {
+        document.getElementById('loader').innerHTML = '<span style="color:#f87171;">Error al renderizar PDF: ' + err.message + '</span>';
+      });
+    } catch(e) {
+      document.getElementById('loader').innerHTML = '<span style="color:#f87171;">Error al procesar: ' + e.message + '</span>';
+    }
+  </script>
+</body>
+</html>`;
+  };
+
   const handleOpenPdfMobile = async (pdfUrl) => {
     try {
       if (Platform.OS === 'web') {
@@ -316,6 +419,7 @@ export default function CoordinatorJustificationsScreen() {
       if (pdfUrl.includes('base64,')) {
         base64Data = pdfUrl.split('base64,')[1];
       }
+      base64Data = base64Data.replace(/[\r\n\s]+/g, '');
       const fileUri = `${FileSystem.cacheDirectory}evidencia_justificacion_${Date.now()}.pdf`;
       await FileSystem.writeAsStringAsync(fileUri, base64Data, {
         encoding: FileSystem.EncodingType.Base64,
@@ -852,162 +956,235 @@ export default function CoordinatorJustificationsScreen() {
         </View>
       </BottomModal>
 
-      {/* Evidence Viewer Overlay */}
-      {evidenceModalVisible && (
-        <View style={[StyleSheet.absoluteFillObject, { zIndex: 5000, elevation: 50, backgroundColor: 'rgba(0, 0, 0, 0.92)', justifyContent: 'center', alignItems: 'center' }]}>
-          <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, flexDirection: 'row', gap: 16 }}>
-            {(() => {
-              const info = getEvidenceInfo(evidenceUrlToView);
-              if (info.type === 'pdf') {
-                return (
-                  <TouchableOpacity 
-                    onPress={() => handleOpenPdfMobile(info.url)} 
-                    style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}
-                  >
-                    <Download size={22} color="#FFF" />
-                  </TouchableOpacity>
-                );
-              }
-              if (info.type === 'external') {
-                return (
-                  <TouchableOpacity 
-                    onPress={() => Linking.openURL(info.url)} 
-                    style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}
-                  >
-                    <ExternalLink size={22} color="#FFF" />
-                  </TouchableOpacity>
-                );
-              }
-              return null;
-            })()}
-            <TouchableOpacity onPress={() => setEvidenceModalVisible(false)} style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 12, borderRadius: 24 }}>
-              <X size={24} color="#FFF" />
-            </TouchableOpacity>
+      {/* Evidence Viewer Modal - Full Screen Edge-to-Edge */}
+      <Modal
+        visible={evidenceModalVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => setEvidenceModalVisible(false)}
+        statusBarTranslucent={true}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
+        <View style={{ flex: 1, backgroundColor: '#000000', width: '100%', height: '100%' }}>
+          {/* Header Bar */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 100,
+              height: Platform.OS === 'ios' ? 96 : (Platform.OS === 'android' ? 76 : 64),
+              paddingTop: Platform.OS === 'ios' ? 44 : (Platform.OS === 'android' ? 24 : 8),
+              paddingHorizontal: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 8 }}>
+              <TouchableOpacity
+                onPress={() => setEvidenceModalVisible(false)}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 16,
+                  fontWeight: '700',
+                  flexShrink: 1,
+                }}
+                numberOfLines={1}
+              >
+                Evidencia Adjunta
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              {(() => {
+                const info = getEvidenceInfo(evidenceUrlToView);
+                if (info.type === 'pdf') {
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleOpenPdfMobile(info.url)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: Colors.primary,
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        gap: 6,
+                      }}
+                    >
+                      <Download size={16} color="#FFFFFF" />
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Descargar</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                if (info.type === 'external') {
+                  return (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(info.url)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: Colors.primary,
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        gap: 6,
+                      }}
+                    >
+                      <ExternalLink size={16} color="#FFFFFF" />
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Abrir</Text>
+                    </TouchableOpacity>
+                  );
+                }
+                return null;
+              })()}
+            </View>
           </View>
-          
-          <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+
+          {/* Full Screen Content Body */}
+          <View style={{ flex: 1, width: '100%', height: '100%' }}>
             {(() => {
               const info = getEvidenceInfo(evidenceUrlToView);
               if (info.type === 'image') {
                 return Platform.OS === 'web' ? (
-                  <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-                    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} maximumZoomScale={3} minimumZoomScale={1}>
-                      <img 
-                        src={info.url} 
-                        style={{ maxWidth: '90%', maxHeight: '80vh', objectFit: 'contain', transition: 'transform 0.2s ease-out' }} 
-                        alt="Evidencia" 
-                        onClick={(e) => {
-                           const img = e.target;
-                           const currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
-                           img.style.transform = `scale(${currentScale === 1 ? 2 : 1})`;
-                           img.style.cursor = currentScale === 1 ? 'zoom-out' : 'zoom-in';
-                        }}
-                      />
-                      <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 20 }}>
-                        Haz clic para hacer zoom.
-                      </Text>
-                    </ScrollView>
+                  <View
+                    style={{
+                      flex: 1,
+                      width: '100%',
+                      height: '100%',
+                      paddingTop: 64,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: '#000000',
+                    }}
+                  >
+                    <img
+                      src={info.url}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: 'calc(100vh - 64px)',
+                        objectFit: 'contain',
+                        cursor: 'zoom-in',
+                        transition: 'transform 0.2s ease-out',
+                      }}
+                      alt="Evidencia"
+                      onClick={(e) => {
+                        const img = e.target;
+                        const currentScale = img.style.transform ? parseFloat(img.style.transform.replace('scale(', '')) : 1;
+                        img.style.transform = `scale(${currentScale === 1 ? 2 : 1})`;
+                        img.style.cursor = currentScale === 1 ? 'zoom-out' : 'zoom-in';
+                      }}
+                    />
                   </View>
                 ) : (
-                  <ScrollView 
-                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} 
-                    maximumZoomScale={4} 
-                    minimumZoomScale={1}
-                    showsHorizontalScrollIndicator={false}
-                    showsVerticalScrollIndicator={false}
-                    bouncesZoom={true}
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    <Image
-                      source={{ uri: info.url }}
-                      style={{ width: Dimensions.get('window').width * 0.95, height: Dimensions.get('window').height * 0.8, resizeMode: 'contain' }}
-                      onError={(e) => console.warn('Error cargando imagen de evidencia:', e.nativeEvent?.error)}
-                    />
-                  </ScrollView>
+                  <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#000000' }}>
+                    <ScrollView
+                      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
+                      maximumZoomScale={5}
+                      minimumZoomScale={1}
+                      showsHorizontalScrollIndicator={false}
+                      showsVerticalScrollIndicator={false}
+                      bouncesZoom={true}
+                      style={{ flex: 1, width: '100%', height: '100%' }}
+                    >
+                      <Image
+                        source={{ uri: info.url }}
+                        style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                        onError={(e) => console.warn('Error cargando imagen de evidencia:', e.nativeEvent?.error)}
+                      />
+                    </ScrollView>
+                  </View>
                 );
               }
 
               if (info.type === 'pdf') {
                 return Platform.OS === 'web' ? (
-                  <View style={{ width: '92%', maxWidth: 880, height: '82vh', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', alignItems: 'center' }}>
-                    <iframe 
-                      src={info.url} 
-                      style={{ width: '100%', height: 'calc(100% - 60px)', border: 'none' }} 
-                      title="Documento PDF" 
+                  <View style={{ flex: 1, width: '100%', height: '100%', paddingTop: 64, backgroundColor: '#000000' }}>
+                    <iframe
+                      src={info.url}
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      title="Documento PDF"
                     />
-                    <View style={{ height: 60, width: '100%', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0', gap: 12 }}>
-                      <TouchableOpacity
-                        style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center' }}
-                        onPress={() => window.open(info.url, '_blank')}
-                      >
-                        <ExternalLink size={18} color="#FFF" style={{ marginRight: 6 }} />
-                        <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Abrir en Pestaña Nueva</Text>
-                      </TouchableOpacity>
-                    </View>
                   </View>
                 ) : (
-                  <View style={{ alignItems: 'center', padding: 30, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 24, maxWidth: '88%' }}>
-                    <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: 'rgba(239, 68, 68, 0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                      <FileText size={48} color="#EF4444" />
-                    </View>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
-                      Comprobante / Justificación (PDF)
-                    </Text>
-                    <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', textAlign: 'center', marginBottom: 24, lineHeight: 18 }}>
-                      El estudiante adjuntó un documento en formato PDF como evidencia de inasistencia.
-                    </Text>
-                    <TouchableOpacity
-                      style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, flexDirection: 'row', alignItems: 'center' }}
-                      onPress={() => handleOpenPdfMobile(info.url)}
-                    >
-                      <ExternalLink size={20} color="#FFF" style={{ marginRight: 8 }} />
-                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Abrir Documento PDF</Text>
-                    </TouchableOpacity>
+                  <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#000000' }}>
+                    <WebView
+                      originWhitelist={['*']}
+                      source={{ html: getPdfViewerHtml(info.url) }}
+                      style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#000000' }}
+                      scalesPageToFit={true}
+                      javaScriptEnabled={true}
+                      domStorageEnabled={true}
+                      showsVerticalScrollIndicator={true}
+                    />
                   </View>
                 );
               }
 
               if (info.type === 'external') {
                 return (
-                  <View style={{ alignItems: 'center', padding: 24, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, maxWidth: 360 }}>
-                    <ExternalLink size={60} color="#FFF" style={{ marginBottom: 16 }} />
-                    <Text style={{ fontSize: 16, color: '#FFF', textAlign: 'center', marginBottom: 20 }}>
-                      El archivo está disponible como enlace externo.
-                    </Text>
-                    <TouchableOpacity
-                      style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 }}
-                      onPress={() => Linking.openURL(info.url)}
-                    >
-                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Abrir Enlace</Text>
-                    </TouchableOpacity>
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#000000' }}>
+                    <View style={{ alignItems: 'center', padding: 28, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, maxWidth: 360, width: '90%' }}>
+                      <ExternalLink size={56} color="#38BDF8" style={{ marginBottom: 16 }} />
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
+                        Enlace Externo
+                      </Text>
+                      <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 24 }}>
+                        El archivo está disponible mediante un enlace o servicio externo.
+                      </Text>
+                      <TouchableOpacity
+                        style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, width: '100%', alignItems: 'center' }}
+                        onPress={() => Linking.openURL(info.url)}
+                      >
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Abrir Enlace Externo</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               }
 
               return (
-                <View style={{ alignItems: 'center', padding: 30, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, maxWidth: '85%' }}>
-                  <FileText size={60} color="#FFF" style={{ marginBottom: 16 }} />
-                  <Text style={{ fontSize: 17, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
-                    Documento de Evidencia Adjunto
-                  </Text>
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 20 }}>
-                    Comprobante registrado en la solicitud de justificación.
-                  </Text>
-                  {info.url && info.url.length > 30 && (
-                    <TouchableOpacity
-                      style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center' }}
-                      onPress={() => handleOpenPdfMobile(info.url)}
-                    >
-                      <Download size={18} color="#FFF" style={{ marginRight: 8 }} />
-                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>Abrir Documento</Text>
-                    </TouchableOpacity>
-                  )}
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#000000' }}>
+                  <View style={{ alignItems: 'center', padding: 28, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, maxWidth: 360, width: '90%' }}>
+                    <FileText size={56} color="#38BDF8" style={{ marginBottom: 16 }} />
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
+                      Documento Adjunto
+                    </Text>
+                    <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 24 }}>
+                      Comprobante registrado en la solicitud. Puedes abrirlo con una aplicación compatible.
+                    </Text>
+                    {info.url && info.url.length > 20 && (
+                      <TouchableOpacity
+                        style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                        onPress={() => handleOpenPdfMobile(info.url)}
+                      >
+                        <Download size={18} color="#FFF" />
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Abrir o Descargar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               );
             })()}
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }

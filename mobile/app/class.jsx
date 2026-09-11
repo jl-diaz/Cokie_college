@@ -12,7 +12,8 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   TouchableWithoutFeedback, 
-  Keyboard 
+  Keyboard,
+  Dimensions
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import api from '../src/utils/api';
@@ -720,19 +721,20 @@ export default function ClassScreen() {
                   />
                 </View>
               </View>
-            </ScrollView>
 
-            <TouchableOpacity 
-              style={styles.submitBtn} 
-              onPress={handleSaveConductRecord}
-              disabled={savingConduct}
-            >
-              {savingConduct ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Aplicar Código de Conducta</Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.submitBtn} 
+                onPress={handleSaveConductRecord}
+                disabled={savingConduct}
+              >
+                {savingConduct ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>Aplicar Código de Conducta</Text>
+                )}
+              </TouchableOpacity>
+              <View style={{ height: 28 }} />
+            </ScrollView>
           </View>
         </BottomModal>
     </View>
@@ -983,7 +985,10 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: Colors.primary },
   closeHeaderBtn: { padding: 4 },
-  modalForm: { flexGrow: 0 },
+  modalForm: { 
+    flexGrow: 0,
+    maxHeight: Platform.OS === 'web' ? 520 : Math.min(Dimensions.get('window').height * 0.68, 520),
+  },
   studentBannerCard: {
     backgroundColor: Colors.background,
     padding: Spacing.md,
