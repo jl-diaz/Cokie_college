@@ -3,10 +3,13 @@ import numpy as np
 import base64
 import os
 import math
+from collections import deque
 
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+
+import gesture_trainer
 
 # ─────────────────────────────────────────────────────────────────
 # Mapeo de gestos MediaPipe → Translation Keys
@@ -102,7 +105,35 @@ def palm_facing_camera(landmarks):
     return cross > 0
 
 # ─────────────────────────────────────────────────────────────────
-# Clasificador de señas (Traducciones clave)
+# Normalizador de Puntos Clave para Movimiento Temporal
+# ─────────────────────────────────────────────────────────────────
+def normalize_hand_landmarks(landmarks_list):
+    """
+    Convierte hasta 2 manos en un vector continuo de 126 valores normalizados
+    respecto a la muñeca, haciéndolo invariante a la distancia y escala.
+    """
+    vector = np.zeros(126, dtype=np.float32)
+    if not landmarks_list:
+        return vector
+
+    for h_idx, landmarks in enumerate(landmarks_list[:2]):
+        base_offset = h_idx * 63  # 21 puntos x 3 (x, y, z)
+        wrist = landmarks[0]
+
+        # Calcular factor de escala (distancia muñeca a base dedo medio)
+        scale = distance_2d(wrist, landmarks[9])
+        if scale < 1e-4:
+            scale = 1.0
+
+        for p_idx, pt in enumerate(landmarks):
+            idx = base_offset + (p_idx * 3)
+            vector[idx]     = (pt.x - wrist.x) / scale
+            vector[idx + 1] = (pt.y - wrist.y) / scale
+            vector[idx + 2] = (pt.z - wrist.z if hasattr(pt, 'z') else 0.0) / scale
+    return vector
+
+# ─────────────────────────────────────────────────────────────────
+# Clasificador Heurístico de Alfabeto y Señas Estáticas
 # ─────────────────────────────────────────────────────────────────
 def classify_sign_from_landmarks(landmarks):
     if not landmarks or len(landmarks) < 21: return None
@@ -131,26 +162,17 @@ def classify_sign_from_landmarks(landmarks):
     index_middle_dist = distance_2d(landmarks[8], landmarks[12])
     
     # ── NUEVAS SEÑAS COMUNES ──
-    # NO (Índice y Medio tocando Pulgar, resto cerrado)
+    # NO
     if tips_touching(landmarks, 4, 8, 0.05) and tips_touching(landmarks, 4, 12, 0.05) and ring_curled and pinky_curled:
         return "sign.no"
     
-    # SÍ (Puño cerrado moviéndose, aproximado con pulgar cerrado sobre puño vertical)
-    # Lo mapearemos como un puño ligeramente inclinado o "S"
-    
-    # OK (Pulgar e índice en círculo, resto arriba)
+    # OK
     if tips_touching(landmarks, 4, 8, 0.05) and middle and ring and pinky:
         return "sign.ok"
         
-    # TE QUIERO / I LOVE YOU (Rock on pero pulgar fuera)
+    # TE QUIERO / I LOVE YOU
     if thumb and index and not middle and not ring and pinky:
         return "sign.i_love_you"
-
-    # PERDÓN / SORRY (Puño cerrado frotando pecho - aproximado a puño cerrado frente a cámara con pulgar cruzado)
-    if index_curled and middle_curled and ring_curled and pinky_curled and thumb_across and orientation == 'vertical':
-        # Podría confundirse con 'S' o 'A'. Añadimos un pequeño chequeo extra.
-        if palm_facing_camera(landmarks):
-            return "sign.a" # Sigue siendo A, es difícil hacer 'perdón' sin trackear pecho
             
     # NÚMEROS
     if tips_touching(landmarks, 4, 8, 0.04) and not middle and not ring and not pinky: return "sign.0"
@@ -204,7 +226,7 @@ def classify_sign_from_landmarks(landmarks):
     return None
 
 # ─────────────────────────────────────────────────────────────────
-# Global Models
+# Modelos Globales de MediaPipe
 # ─────────────────────────────────────────────────────────────────
 _global_gesture_recognizer = None
 _global_hand_landmarker = None
@@ -249,18 +271,67 @@ def load_models():
             
     _models_loaded = (_global_gesture_recognizer is not None or _global_hand_landmarker is not None)
 
+# ─────────────────────────────────────────────────────────────────
+# Clase Principal de Inferencia Híbrida (Estática + Temporal Dinámica)
+# ─────────────────────────────────────────────────────────────────
 class ISLModel:
     def __init__(self):
         load_models()
         self.gesture_recognizer = _global_gesture_recognizer
         self.hand_landmarker = _global_hand_landmarker
         
+        # Búfer de ventana temporal deslizante (30 fotogramas para movimiento dinámico)
+        self.sequence_buffer = deque(maxlen=30)
         self.recent_predictions = []
         self.last_stable_prediction = None
-        self.stability_threshold = 2  # 2 frames seguidos para confirmación rápida (~300-500ms)
+        self.stability_threshold = 2
         self.no_detection_count = 0
 
+    def extract_landmarks_from_base64(self, base64_img):
+        """
+        Extrae y retorna los puntos de la mano para visualización y para grabación
+        en el Módulo Administrador.
+        """
+        try:
+            if not self.hand_landmarker:
+                return None
+            encoded_data = base64_img.split(',')[1] if ',' in base64_img else base64_img
+            nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if image is None: return None
+
+            h, w = image.shape[:2]
+            if w > 480:
+                scale = 480.0 / w
+                image = cv2.resize(image, (480, int(h * scale)), interpolation=cv2.INTER_AREA)
+
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+            hand_result = self.hand_landmarker.detect(mp_image)
+
+            if hand_result and hand_result.hand_landmarks:
+                vector = normalize_hand_landmarks(hand_result.hand_landmarks)
+                # Formato ligero de landmarks para dibujar en frontend
+                simplified = []
+                for hand in hand_result.hand_landmarks:
+                    simplified.append([{"x": round(p.x, 3), "y": round(p.y, 3)} for p in hand])
+                return {
+                    "detected": True,
+                    "vector": vector.tolist(),
+                    "hands": simplified
+                }
+            return {"detected": False, "vector": np.zeros(126).tolist(), "hands": []}
+        except Exception as e:
+            print(f"Error extrayendo landmarks: {e}")
+            return {"detected": False, "vector": np.zeros(126).tolist(), "hands": []}
+
     def process_frame_base64(self, base64_img):
+        """
+        Procesa el fotograma con estrategia de doble capa:
+        1. Capa Temporal (Red Neuronal del Administrador): Reconoce movimientos dinámicos
+           de brazos y manos en la ventana de 30 frames.
+        2. Capa Estática (MediaPipe): Reconoce señas fijas y letras del alfabeto (A-Z).
+        """
         try:
             if not self.gesture_recognizer and not self.hand_landmarker:
                 return None
@@ -271,40 +342,72 @@ class ISLModel:
             
             if image is None: return None
 
-            # Redimensionar si la imagen es grande para acelerar drásticamente MediaPipe
+            # Redimensionar si la imagen es grande para acelerar la inferencia
             h, w = image.shape[:2]
-            if w > 480:
-                scale = 480.0 / w
-                image = cv2.resize(image, (480, int(h * scale)), interpolation=cv2.INTER_AREA)
+            if w > 360:
+                scale = 360.0 / w
+                image = cv2.resize(image, (360, int(h * scale)), interpolation=cv2.INTER_AREA)
 
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
             
             current_prediction = None
+            hand_landmarks_list = None
             
-            if self.gesture_recognizer:
+            # 1. Detección de puntos de mano
+            if self.hand_landmarker:
+                hand_result = self.hand_landmarker.detect(mp_image)
+                if hand_result and hand_result.hand_landmarks:
+                    hand_landmarks_list = hand_result.hand_landmarks
+            
+            # Si hay manos detectadas, guardar en la ventana de movimiento temporal
+            if hand_landmarks_list:
+                frame_vector = normalize_hand_landmarks(hand_landmarks_list)
+                self.sequence_buffer.append(frame_vector)
+                
+                # 2. CAPA TEMPORAL DINÁMICA: Modelo entrenado del Administrador
+                active_model = gesture_trainer.get_active_model()
+                if active_model and len(self.sequence_buffer) >= 20:
+                    try:
+                        feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
+                        pred_label, confidence = active_model.predict(feats)
+                        if pred_label and confidence >= 0.72:
+                            info = gesture_trainer.get_gesture_display_info(pred_label)
+                            current_prediction = {
+                                "id": f"sign.{info['id']}",
+                                "text": info["name_es"],
+                                "name_es": info["name_es"],
+                                "name_en": info["name_en"]
+                            }
+                    except Exception as e:
+                        pass
+                
+                # 3. CAPA ESTÁTICA: Si no hay predicción dinámica, buscar en alfabeto / señas
+                if current_prediction is None:
+                    for hand_landmarks in hand_landmarks_list:
+                        sign = classify_sign_from_landmarks(hand_landmarks)
+                        if sign:
+                            current_prediction = sign
+                            break
+            else:
+                # Si no hay manos, agregar vector neutro o limpiar buffer si pasa mucho tiempo
+                self.sequence_buffer.append(np.zeros(126, dtype=np.float32))
+
+            # 4. Fallback a GestureRecognizer de Google
+            if current_prediction is None and self.gesture_recognizer:
                 result = self.gesture_recognizer.recognize(mp_image)
                 if result and result.gestures:
                     for hand_gestures in result.gestures:
                         if hand_gestures:
                             gesture = hand_gestures[0]
-                            if gesture.score > 0.70 and gesture.category_name != "None":
+                            if gesture.score > 0.72 and gesture.category_name != "None":
                                 current_prediction = GESTURE_TO_ISL.get(gesture.category_name, gesture.category_name)
                                 break
-            
-            if current_prediction is None and self.hand_landmarker:
-                hand_result = self.hand_landmarker.detect(mp_image)
-                if hand_result and hand_result.hand_landmarks:
-                    for hand_landmarks in hand_result.hand_landmarks:
-                        sign = classify_sign_from_landmarks(hand_landmarks)
-                        if sign:
-                            current_prediction = sign
-                            break
-            
-            # Estabilización rápida
+
+            # 5. Estabilización de predicción
             if current_prediction is None:
                 self.no_detection_count += 1
-                if self.no_detection_count >= 2: # Resetear de inmediato si no hay manos
+                if self.no_detection_count >= 2:
                     self.last_stable_prediction = None
                     self.recent_predictions = []
                     self.no_detection_count = 0
@@ -314,7 +417,6 @@ class ISLModel:
             self.recent_predictions.append(current_prediction)
             self.recent_predictions = self.recent_predictions[-self.stability_threshold:]
             
-            # Verificamos si los frames requeridos coinciden
             if len(self.recent_predictions) >= self.stability_threshold:
                 if all(p == self.recent_predictions[0] for p in self.recent_predictions):
                     stable = self.recent_predictions[0]

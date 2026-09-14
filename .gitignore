@@ -43,3 +43,8 @@ Estudio-web.md
 /.agents/
 *.apk
 CokieHall/JS/*.apk
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

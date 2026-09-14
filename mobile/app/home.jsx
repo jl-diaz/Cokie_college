@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils, Camera, Clock } from 'lucide-react-native';
+import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils, Camera, Clock, Sparkles } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -43,9 +43,10 @@ export default function HomeScreen() {
         return [
           lunchModule,
           { name: t('menu.users', 'Usuarios'), path: '/users', icon: Users, color: '#3b82f6', desc: t('home.usersDesc', 'Gestionar usuarios del sistema') },
+          { name: t('menu.gesture_studio', 'Estudio de Gestos e IA'), path: '/gesture-studio', icon: Sparkles, color: '#8b5cf6', desc: t('home.gestureStudioDesc', 'Gestionar dialecto, grabar señas y entrenar la IA') },
           { name: t('menu.subject_hours', 'Horas de Materias'), path: '/subject-hours', icon: Clock, color: '#6366f1', desc: t('home.subjectHoursDesc', 'Carga horaria semanal para horarios') },
           { name: t('menu.academic_periods', 'Periodos Académicos'), path: '/academic-periods', icon: Calendar, color: '#0ea5e9', desc: t('home.academicPeriodsDesc', 'Fechas de inicio y fin de periodos') },
-          { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText, color: '#8b5cf6', desc: t('home.conductCatalogDesc', 'Administrar códigos disciplinarios') },
+          { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText, color: '#a855f7', desc: t('home.conductCatalogDesc', 'Administrar códigos disciplinarios') },
           ...commonModules
         ];
       case 'coordinator':

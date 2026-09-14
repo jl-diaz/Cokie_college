@@ -1,0 +1,72 @@
+[
+  {
+    "id": "hola",
+    "name": "Hola",
+    "type": "movement",
+    "description": "Mano abierta a la altura del hombro moviéndose lateralmente",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Hola",
+    "name_en": "Hello"
+  },
+  {
+    "id": "gracias",
+    "name": "Gracias",
+    "type": "movement",
+    "description": "Mano abierta tocando barbilla y extendiéndose hacia adelante",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Gracias",
+    "name_en": "Thank you"
+  },
+  {
+    "id": "por_favor",
+    "name": "Por favor",
+    "type": "movement",
+    "description": "Palma abierta en el pecho haciendo movimiento circular",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Por favor",
+    "name_en": "Please"
+  },
+  {
+    "id": "permiso_bano",
+    "name": "Permiso para ir al baño",
+    "type": "movement",
+    "description": "Mano en letra 'B' o sacudiendo suavemente a la altura del pecho",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Permiso para ir al baño",
+    "name_en": "Bathroom permission"
+  },
+  {
+    "id": "te_quiero",
+    "name": "Te quiero",
+    "type": "static",
+    "description": "Pulgar, índice y meñique extendidos",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Te quiero",
+    "name_en": "I love you"
+  },
+  {
+    "id": "si",
+    "name": "Sí",
+    "type": "movement",
+    "description": "Puño vertical asintiendo suavemente o cabeza asintiendo",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "Sí",
+    "name_en": "Yes"
+  },
+  {
+    "id": "no",
+    "name": "No",
+    "type": "movement",
+    "description": "Índice y medio tocando pulgar o mano negando",
+    "sample_count": 4,
+    "is_default": true,
+    "name_es": "No",
+    "name_en": "No"
+  }
+]

@@ -1,24 +1,22 @@
 import io from 'socket.io-client';
-import { setAudioModeAsync, createAudioPlayer } from 'expo-audio';
 
 class WebSocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
-    this.isPlaying = false;
     this.lastSpokenText = '';
     this.lastSpokenTime = 0;
-    this.player = null;
+    this.listeners = [];
+    this.trainingListeners = [];
   }
 
-  // Se llamará con process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL
+  // Conexión al servidor de IA y Lenguaje de Señas
   connect(url) {
     if (!url) {
-      console.warn('Falta la URL del servidor de lenguaje de señas en el archivo .env');
+      console.warn('Falta la URL del servidor de lenguaje de señas');
       return;
     }
 
-    // Si ya hay una conexión previa, limpiarla para evitar listeners duplicados
     if (this.socket) {
       this.socket.removeAllListeners();
       this.socket.disconnect();
@@ -26,46 +24,33 @@ class WebSocketService {
     }
 
     this.socket = io(url, {
-      transports: ['websocket', 'polling'], // Priorizar websocket
+      transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 20,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 30000, // 30s para esperar cold-start de Render
+      timeout: 30000,
     });
 
     this.socket.on('connect', () => {
-      console.log('Conectado al servidor de Intérprete');
+      console.log('[SOCKET.IO] Conectado al servidor de IA Cokie College');
       this.isConnected = true;
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Desconectado del servidor:', reason);
+      console.log('[SOCKET.IO] Desconectado del servidor:', reason);
       this.isConnected = false;
     });
 
     this.socket.on('connect_error', (err) => {
-      console.warn('Error de conexión con intérprete:', err.message);
+      console.warn('[SOCKET.IO] Error de conexión:', err.message);
       this.isConnected = false;
     });
 
-    this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`Reconectado al intérprete después de ${attemptNumber} intentos`);
-    });
-
-    this.socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`Intento de reconexión #${attemptNumber}...`);
-    });
-
-    this.socket.on('reconnect_failed', () => {
-      console.error('No se pudo reconectar al servidor de intérprete después de todos los intentos');
-    });
-
-    // Texto de traducción (llega inmediatamente)
+    // ── EVENTO: Traducción instantánea recibida de la IA ──
     this.socket.on('translation_result', (data) => {
       if (data && data.text) {
-        console.log('Traducción recibida:', data.text);
         this.lastSpokenText = data.text;
         this.lastSpokenTime = Date.now();
         if (this.listeners && this.listeners.length > 0) {
@@ -74,58 +59,28 @@ class WebSocketService {
       }
     });
 
-    // Audio de traducción (llega después del texto desde el servidor)
-    this.socket.on('translation_audio', async (data) => {
-      // Si la locución local (expo-speech o WebSpeech) está activa, ignorar para evitar voz doble
-      if (this.disableBackendAudio) {
-        return;
-      }
-
-      if (data && data.audioBase64) {
-        const now = Date.now();
-        
-        // Evitar repetir el mismo audio en menos de 3 segundos
-        if (data.text === this._lastAudioText && (now - this._lastAudioTime) < 3000) {
-          return;
-        }
-        
-        // No interrumpir si ya está hablando un audio
-        if (this.isPlaying) {
-          return;
-        }
-
-        try {
-          this.isPlaying = true;
-          this._lastAudioText = data.text;
-          this._lastAudioTime = now;
-          
-          // Forzar audio por altavoz principal en iOS y Android
-          await setAudioModeAsync({
-            allowsRecording: false,
-            playsInSilentMode: true,
-            shouldPlayInBackground: true,
-          });
-          
-          const soundUri = `data:audio/mp3;base64,${data.audioBase64}`;
-          
-          if (this.player) {
-            this.player.release();
-          }
-          
-          this.player = createAudioPlayer(soundUri);
-          this.player.play();
-          
-          this.player.addListener('playbackStatusUpdate', (status) => {
-            if (status.didJustFinish) {
-              this.isPlaying = false;
-            }
-          });
-        } catch (e) {
-          console.error("Error reproduciendo audio del backend:", e);
-          this.isPlaying = false;
-        }
-      }
+    // ── EVENTOS DEL MÓDULO ADMINISTRADOR: Progreso de Entrenamiento de IA ──
+    this.socket.on('training_started', (data) => {
+      this.notifyTrainingListeners('started', data);
     });
+
+    this.socket.on('training_progress', (data) => {
+      this.notifyTrainingListeners('progress', data);
+    });
+
+    this.socket.on('training_completed', (data) => {
+      this.notifyTrainingListeners('completed', data);
+    });
+
+    this.socket.on('training_failed', (data) => {
+      this.notifyTrainingListeners('failed', data);
+    });
+  }
+
+  notifyTrainingListeners(event, data) {
+    if (this.trainingListeners && this.trainingListeners.length > 0) {
+      this.trainingListeners.forEach(cb => cb(event, data));
+    }
   }
 
   addListener(callback) {
@@ -136,6 +91,17 @@ class WebSocketService {
   removeListener(callback) {
     if (this.listeners) {
       this.listeners = this.listeners.filter(cb => cb !== callback);
+    }
+  }
+
+  addTrainingListener(callback) {
+    if (!this.trainingListeners) this.trainingListeners = [];
+    this.trainingListeners.push(callback);
+  }
+
+  removeTrainingListener(callback) {
+    if (this.trainingListeners) {
+      this.trainingListeners = this.trainingListeners.filter(cb => cb !== callback);
     }
   }
 
@@ -152,12 +118,10 @@ class WebSocketService {
       this.socket = null;
     }
     this.listeners = [];
+    this.trainingListeners = [];
     this.isConnected = false;
-    this.isPlaying = false;
     this.lastSpokenText = '';
     this.lastSpokenTime = 0;
-    this._lastAudioText = '';
-    this._lastAudioTime = 0;
   }
 }
 
