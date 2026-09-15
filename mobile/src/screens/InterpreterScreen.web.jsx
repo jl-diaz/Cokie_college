@@ -23,7 +23,6 @@ import {
   Check, 
   AlertCircle 
 } from 'lucide-react-native';
-import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
@@ -359,7 +358,6 @@ export default function InterpreterScreenWeb() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
-      <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       {/* ── BARRA DE CONTROL SUPERIOR (CÁMARA Y AUDIO) ── */}
       <View style={styles.controlBar}>
@@ -485,23 +483,6 @@ export default function InterpreterScreenWeb() {
             </View>
           )}
         </View>
-      </View>
-
-      {/* ── FOOTER DE CONTROL ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
-          onPress={() => { unlockWebAudio(); setIsActive(!isActive); }}
-        >
-          {isActive ? <Mic color="#fff" size={28} /> : <MicOff color="#fff" size={28} />}
-        </TouchableOpacity>
-        <Text style={styles.footerText}>
-          {isActive 
-            ? (audioOutput === 'browser' 
-                ? 'Traduciendo y hablando por bocina/audífonos...' 
-                : 'Traduciendo hacia los lentes CokieLens...')
-            : t('interpreter.paused', 'Intérprete Pausado')}
-        </Text>
       </View>
 
       {/* ── MODAL DE CONFIGURACIÓN DE LOS LENTES (ESP32-CAM) ── */}

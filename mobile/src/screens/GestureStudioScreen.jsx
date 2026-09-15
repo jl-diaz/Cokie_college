@@ -29,10 +29,17 @@ import {
   Activity,
   Award,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Search,
+  X,
+  Settings,
+  SwitchCamera,
+  Wifi,
+  Check,
+  AlertCircle
 } from 'lucide-react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
@@ -59,7 +66,7 @@ export default function GestureStudioScreen() {
 
   // Grabador en vivo
   const [selectedGestureId, setSelectedGestureId] = useState(null);
-  const [recorderSource, setRecorderSource] = useState('glasses'); // 'glasses' | 'phone'
+  const [recorderSource, setRecorderSource] = useState('phone'); // 'phone' | 'glasses'
   const [esp32Ip, setEsp32Ip] = useState('cokielens.local');
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'countdown' | 'recording' | 'saving'
   const [countdown, setCountdown] = useState(3);
@@ -67,6 +74,23 @@ export default function GestureStudioScreen() {
   const [liveFrameUri, setLiveFrameUri] = useState(null);
   const recordedFramesRef = useRef([]);
   const isFetchingFrameRef = useRef(false);
+  const recordingStateRef = useRef(recordingState);
+
+  // Cámara de teléfono nativa y permisos
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facingMode, setFacingMode] = useState('front');
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const cameraRef = useRef(null);
+
+  // Búsqueda y filtrado de dialecto escolar
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal de configuración y prueba de IP de lentes
+  const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
+  const [ipInput, setIpInput] = useState('cokielens.local');
+  const [glassesConnected, setGlassesConnected] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   // Consola de entrenamiento
   const [trainingStatus, setTrainingStatus] = useState('idle'); // 'idle' | 'training' | 'completed' | 'failed'
@@ -74,6 +98,10 @@ export default function GestureStudioScreen() {
   const [trainingResult, setTrainingResult] = useState(null);
 
   const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+
+  useEffect(() => {
+    recordingStateRef.current = recordingState;
+  }, [recordingState]);
 
   useEffect(() => {
     loadSavedSettings();
@@ -109,7 +137,14 @@ export default function GestureStudioScreen() {
   const loadSavedSettings = async () => {
     try {
       const savedIp = await AsyncStorage.getItem('cokielens_ip');
-      if (savedIp) setEsp32Ip(savedIp);
+      if (savedIp) {
+        setEsp32Ip(savedIp);
+        setIpInput(savedIp);
+      }
+      const savedSource = await AsyncStorage.getItem('cokielens_studio_source');
+      if (savedSource) {
+        setRecorderSource(savedSource);
+      }
     } catch (e) {}
   };
 
@@ -200,10 +235,113 @@ export default function GestureStudioScreen() {
     }
   };
 
-  // ── BUCLE DE PREVISUALIZACIÓN DE FOTOGRAMAS EN GRABADOR ───────────────────────
+  function toggleCameraType() {
+    setFacingMode(current => (current === 'front' ? 'back' : 'front'));
+  }
+
+  const handleSaveIp = async () => {
+    const clean = ipInput.replace('http://', '').replace('/', '').trim();
+    setEsp32Ip(clean);
+    await AsyncStorage.setItem('cokielens_ip', clean);
+    setIsConfigModalVisible(false);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setTestResult(null);
+    try {
+      const clean = ipInput.replace('http://', '').replace('/', '').trim();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch(`http://${clean}/status`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (Heap: ${json.free_heap || 'OK'})` });
+        setGlassesConnected(true);
+      } else {
+        setTestResult({ success: false, message: 'Respuesta inválida del dispositivo' });
+      }
+    } catch (e) {
+      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que esté en la misma red Wi-Fi.' });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO DURANTE GRABACIÓN ─────────────
+  useEffect(() => {
+    let isRunning = true;
+
+    if (activeTab === 'recorder' && recorderSource === 'phone' && recordingState === 'recording') {
+      const capturePhoneLoop = async () => {
+        while (isRunning && recordingStateRef.current === 'recording') {
+          if (!cameraRef.current || isFetchingFrameRef.current) {
+            await new Promise(r => setTimeout(r, 50));
+            continue;
+          }
+
+          if (recordedFramesRef.current.length >= 30) {
+            break;
+          }
+
+          isFetchingFrameRef.current = true;
+          try {
+            const photo = await cameraRef.current.takePictureAsync({
+              base64: true,
+              quality: 0.10,
+              skipProcessing: true,
+              shutterSound: false,
+              exif: false,
+              pictureSize: '352x288',
+            });
+
+            if (photo?.base64 && isRunning && recordingStateRef.current === 'recording') {
+              const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_base64: photo.base64 })
+              });
+
+              if (extractRes.ok) {
+                const data = await extractRes.json();
+                if (data.vector && data.vector.length > 0) {
+                  recordedFramesRef.current.push(data.vector);
+                  setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / 30) * 100)));
+                  if (recordedFramesRef.current.length >= 30) {
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Ignorar errores transitorios de fotograma
+          } finally {
+            isFetchingFrameRef.current = false;
+          }
+
+          await new Promise(r => setTimeout(r, 75));
+        }
+
+        if (isRunning && recordingStateRef.current === 'recording') {
+          await saveRecordedSequence();
+        }
+      };
+
+      capturePhoneLoop();
+    }
+
+    return () => {
+      isRunning = false;
+    };
+  }, [activeTab, recorderSource, recordingState]);
+
+  // ── BUCLE 2: PREVISUALIZACIÓN Y CAPTURA DESDE LENTES (ESP32-CAM) ─────────────
   useEffect(() => {
     let intervalId;
-    if (activeTab === 'recorder') {
+    if (activeTab === 'recorder' && recorderSource === 'glasses') {
       const cleanIp = esp32Ip.replace('http://', '').replace('/', '');
       const captureUrl = `http://${cleanIp}/capture`;
 
@@ -217,14 +355,15 @@ export default function GestureStudioScreen() {
           clearTimeout(timeoutId);
 
           if (res.ok) {
+            setGlassesConnected(true);
             const blob = await res.blob();
             const reader = new FileReader();
             reader.onloadend = async () => {
               const base64Uri = reader.result;
               setLiveFrameUri(base64Uri);
 
-              // Si estamos en medio de la grabación activa, extraer puntos y acumular cuadro
-              if (recordingState === 'recording' && base64Uri) {
+              // Si estamos en grabación activa, extraer puntos y acumular cuadro
+              if (recordingStateRef.current === 'recording' && base64Uri) {
                 try {
                   const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
                     method: 'POST',
@@ -236,29 +375,40 @@ export default function GestureStudioScreen() {
                     if (data.vector && data.vector.length > 0) {
                       recordedFramesRef.current.push(data.vector);
                       setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / 30) * 100)));
+                      if (recordedFramesRef.current.length >= 30) {
+                        await saveRecordedSequence();
+                      }
                     }
                   }
                 } catch (e) {}
               }
             };
             reader.readAsDataURL(blob);
+          } else {
+            setGlassesConnected(false);
           }
         } catch (e) {
+          setGlassesConnected(false);
         } finally {
           isFetchingFrameRef.current = false;
         }
-      }, 100);
+      }, 110);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [activeTab, esp32Ip, recordingState]);
+  }, [activeTab, recorderSource, esp32Ip]);
 
   // ── INICIAR GRABACIÓN GUIADA CON CUENTA REGRESIVA ─────────────────────────────
   const startGuidedRecording = () => {
     if (!selectedGestureId) {
-      alert('Selecciona un gesto primero.');
+      alert('Selecciona un gesto primero en la barra superior.');
+      return;
+    }
+
+    if (recorderSource === 'phone' && !permission?.granted) {
+      requestPermission();
       return;
     }
 
@@ -277,27 +427,23 @@ export default function GestureStudioScreen() {
         // ¡Empezar a grabar los 30 cuadros!
         setRecordingState('recording');
 
-        // Monitorear finalización al llegar a 30 cuadros o 3.5 segundos timeout
-        const startTime = Date.now();
-        const checkTimer = setInterval(async () => {
-          const count = recordedFramesRef.current.length;
-          const elapsed = Date.now() - startTime;
-
-          if (count >= 30 || elapsed > 3500) {
-            clearInterval(checkTimer);
+        // Temporizador de seguridad de 5.5s para no quedar atascado si no hay manos visibles
+        setTimeout(async () => {
+          if (recordingStateRef.current === 'recording') {
             await saveRecordedSequence();
           }
-        }, 100);
+        }, 5500);
       }
     }, 1000);
   };
 
   const saveRecordedSequence = async () => {
+    if (recordingStateRef.current === 'saving' || recordingStateRef.current === 'idle') return;
     setRecordingState('saving');
     try {
       const frames = recordedFramesRef.current;
-      if (frames.length < 10) {
-        alert('No se detectaron suficientes movimientos de manos en la cámara. Intenta con mejor iluminación.');
+      if (frames.length < 8) {
+        alert('No se detectaron suficientes movimientos de manos en la cámara (mínimo 8 cuadros). Asegúrate de colocarte frente a la cámara con buena luz.');
         setRecordingState('idle');
         return;
       }
@@ -313,7 +459,7 @@ export default function GestureStudioScreen() {
 
       if (res.ok) {
         fetchGestures();
-        alert('¡Muestra de 30 fotogramas guardada con éxito!');
+        alert(`¡Muestra de ${frames.length} fotogramas guardada con éxito!`);
       } else {
         alert('Error al guardar la muestra en el servidor.');
       }
@@ -344,10 +490,21 @@ export default function GestureStudioScreen() {
   const selectedGesture = gestures.find(g => g.id === selectedGestureId);
   const eligibleGestures = gestures.filter(g => (g.sample_count || 0) >= 2);
 
+  // Filtrado reactivo para búsqueda en dialecto escolar
+  const filteredGestures = gestures.filter(item => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const matchName = (item.name && item.name.toLowerCase().includes(q)) || false;
+    const matchNameEs = (item.name_es && item.name_es.toLowerCase().includes(q)) || false;
+    const matchNameEn = (item.name_en && item.name_en.toLowerCase().includes(q)) || false;
+    const matchDesc = (item.description && item.description.toLowerCase().includes(q)) || false;
+    const matchType = (item.type && item.type.toLowerCase().includes(q)) || false;
+    return matchName || matchNameEs || matchNameEn || matchDesc || matchType;
+  });
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
-      <PageHeader title="Estudio de Gestos e IA" />
 
       {/* ── BARRA DE PESTAÑAS ── */}
       <View style={styles.tabBar}>
@@ -415,10 +572,41 @@ export default function GestureStudioScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Barra de Búsqueda */}
+          <View style={styles.searchBarContainer}>
+            <Search size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchBarInput}
+              placeholder="Buscar seña o movimiento..."
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                <X size={18} color="#94a3b8" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           {loading ? (
             <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
+          ) : filteredGestures.length === 0 ? (
+            <View style={styles.emptySearchContainer}>
+              <Search size={32} color="#64748b" style={{ marginBottom: 8 }} />
+              <Text style={styles.emptySearchText}>
+                {searchQuery ? `No se encontraron señas para "${searchQuery}"` : 'No hay señas registradas en el dialecto.'}
+              </Text>
+              {searchQuery ? (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
+                  <Text style={styles.clearSearchBtnText}>Limpiar búsqueda</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
           ) : (
-            gestures.map((item) => (
+            filteredGestures.map((item) => (
               <View key={item.id} style={styles.gestureCard}>
                 <View style={styles.gestureHeader}>
                   <View style={{ flex: 1 }}>
@@ -444,14 +632,12 @@ export default function GestureStudioScreen() {
                     </View>
                   </View>
 
-                  {!item.is_default && (
-                    <TouchableOpacity
-                      onPress={() => handleDeleteGesture(item.id, item.name)}
-                      style={styles.deleteBtn}
-                    >
-                      <Trash2 size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    onPress={() => handleDeleteGesture(item.id, item.name_es || item.name)}
+                    style={styles.deleteBtn}
+                  >
+                    <Trash2 size={18} color="#ef4444" />
+                  </TouchableOpacity>
                 </View>
 
                 {item.description ? (
@@ -479,6 +665,50 @@ export default function GestureStudioScreen() {
       {/* ── PESTAÑA 2: GRABADOR GUIADO EN VIVO ── */}
       {activeTab === 'recorder' && (
         <View style={styles.recorderContainer}>
+          {/* Barra de Selección de Entrada de Video (Teléfono o Lentes) */}
+          <View style={styles.recorderSourceBar}>
+            <View style={styles.sourceSegmentedControl}>
+              <TouchableOpacity
+                style={[styles.sourceSegmentBtn, recorderSource === 'phone' && styles.sourceSegmentBtnActive]}
+                onPress={async () => {
+                  setRecorderSource('phone');
+                  await AsyncStorage.setItem('cokielens_studio_source', 'phone');
+                  if (!permission?.granted) {
+                    await requestPermission();
+                  }
+                }}
+              >
+                <Smartphone size={15} color={recorderSource === 'phone' ? '#FFF' : Colors.text.secondary} />
+                <Text style={[styles.sourceSegmentTxt, recorderSource === 'phone' && styles.sourceSegmentTxtActive]}>
+                  Teléfono
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sourceSegmentBtn, recorderSource === 'glasses' && styles.sourceSegmentBtnActive]}
+                onPress={async () => {
+                  setRecorderSource('glasses');
+                  await AsyncStorage.setItem('cokielens_studio_source', 'glasses');
+                }}
+              >
+                <Glasses size={15} color={recorderSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
+                <Text style={[styles.sourceSegmentTxt, recorderSource === 'glasses' && styles.sourceSegmentTxtActive]}>
+                  Lentes
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {recorderSource === 'glasses' && (
+              <TouchableOpacity
+                style={styles.glassesSettingsBtn}
+                onPress={() => setIsConfigModalVisible(true)}
+              >
+                <Settings size={16} color="#FFF" />
+                <View style={[styles.statusMiniDot, { backgroundColor: glassesConnected ? '#10b981' : '#ef4444' }]} />
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* Barra de selección de gesto a grabar */}
           <View style={styles.gestureSelectorBar}>
             <Text style={styles.selectorLabel}>Grabando para:</Text>
@@ -496,22 +726,54 @@ export default function GestureStudioScreen() {
                     styles.selectorPillText,
                     selectedGestureId === g.id && styles.selectorPillTextActive
                   ]}>
-                    {g.name} ({g.sample_count || 0})
+                    {g.name_es || g.name} ({g.sample_count || 0})
                   </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
 
-          {/* Visor de video en vivo */}
+          {/* Visor de video en vivo (Teléfono o Lentes) */}
           <View style={styles.videoPreviewBox}>
-            {liveFrameUri ? (
-              <Image source={{ uri: liveFrameUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+            {recorderSource === 'phone' ? (
+              !permission?.granted ? (
+                <View style={styles.noSignalBox}>
+                  <Smartphone size={40} color="#64748b" style={{ marginBottom: 12 }} />
+                  <Text style={styles.noSignalText}>Se requiere acceso a la cámara del teléfono para grabar señas.</Text>
+                  <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
+                    <Text style={styles.permissionBtnText}>Conceder Permiso</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <CameraView
+                    ref={cameraRef}
+                    style={StyleSheet.absoluteFill}
+                    facing={facingMode}
+                    onCameraReady={() => setIsCameraReady(true)}
+                    animateShutter={false}
+                  />
+                  <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+                    <SwitchCamera color="#fff" size={22} />
+                  </TouchableOpacity>
+                </>
+              )
             ) : (
-              <View style={styles.noSignalBox}>
-                <Glasses size={36} color="#64748b" />
-                <Text style={styles.noSignalText}>Conectando con cámara de los lentes en {esp32Ip}...</Text>
-              </View>
+              liveFrameUri ? (
+                <Image source={{ uri: liveFrameUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+              ) : (
+                <View style={styles.noSignalBox}>
+                  <Glasses size={40} color="#64748b" style={{ marginBottom: 12 }} />
+                  <Text style={styles.noSignalText}>Conectando con cámara de los lentes en {esp32Ip}...</Text>
+                  <TouchableOpacity 
+                    style={styles.retrySettingsBtn}
+                    onPress={() => setIsConfigModalVisible(true)}
+                  >
+                    <Settings size={14} color="#38bdf8" style={{ marginRight: 6 }} />
+                    <Text style={styles.retrySettingsBtnText}>Configurar IP</Text>
+                  </TouchableOpacity>
+                </View>
+              )
             )}
 
             {/* Overlay de Cuenta Regresiva */}
@@ -562,7 +824,9 @@ export default function GestureStudioScreen() {
             </TouchableOpacity>
 
             <Text style={styles.recorderHint}>
-              Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.
+              {recorderSource === 'phone'
+                ? 'Colócate frente a la cámara del teléfono mostrando torso, brazos y manos.'
+                : 'Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.'}
             </Text>
           </View>
         </View>
@@ -741,6 +1005,78 @@ export default function GestureStudioScreen() {
                 ) : (
                   <Text style={styles.confirmBtnText}>Registrar Gesto</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL: CONFIGURACIÓN DE IP DE LENTES COKIELENS ── */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isConfigModalVisible}
+        onRequestClose={() => setIsConfigModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.modalTitleBadge}>
+                <Glasses size={20} color="#38bdf8" style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>Configurar CokieLens</Text>
+              </View>
+              <TouchableOpacity onPress={() => setIsConfigModalVisible(false)}>
+                <X size={20} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Ingresa la dirección IP asignada a los lentes inteligentes en tu red Wi-Fi local para vincular la cámara.
+            </Text>
+
+            <Text style={styles.fieldLabel}>Dirección IP / Hostname</Text>
+            <View style={styles.ipInputContainer}>
+              <Wifi size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.modalTextInput}
+                placeholder="192.168.1.50 o cokielens.local"
+                placeholderTextColor="#64748b"
+                value={ipInput}
+                onChangeText={setIpInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* Resultado de prueba de conexión */}
+            {testResult && (
+              <View style={[styles.testResultBox, { backgroundColor: testResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }]}>
+                {testResult.success ? (
+                  <Check size={16} color="#10b981" style={{ marginRight: 6 }} />
+                ) : (
+                  <AlertCircle size={16} color="#ef4444" style={{ marginRight: 6 }} />
+                )}
+                <Text style={[styles.testResultText, { color: testResult.success ? '#10b981' : '#ef4444' }]}>
+                  {testResult.message}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity 
+                style={styles.testBtn} 
+                onPress={handleTestConnection}
+                disabled={isTestingConnection}
+              >
+                {isTestingConnection ? (
+                  <ActivityIndicator size="small" color="#38bdf8" />
+                ) : (
+                  <Text style={styles.testBtnText}>Probar Conexión</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
+                <Text style={styles.saveBtnText}>Guardar IP</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1312,5 +1648,212 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   confirmBtnText: {
     color: '#FFF',
     fontWeight: 'bold',
+  },
+
+  // Búsqueda en Dialecto
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#f1f5f9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+  },
+  searchBarInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  emptySearchContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptySearchText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  clearSearchBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  },
+  clearSearchBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#0284c7',
+  },
+
+  // Selector de Fuente en Grabador
+  recorderSourceBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: theme === 'dark' ? '#0b1329' : '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+  },
+  sourceSegmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  sourceSegmentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  sourceSegmentBtnActive: {
+    backgroundColor: '#3b82f6',
+  },
+  sourceSegmentTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+    marginLeft: 6,
+  },
+  sourceSegmentTxtActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  glassesSettingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#0284c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  statusMiniDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  floatingRotateButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 25,
+  },
+  permissionBtn: {
+    marginTop: 14,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  permissionBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  retrySettingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+  },
+  retrySettingsBtnText: {
+    color: '#38bdf8',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+
+  // Modal de Lentes CokieLens
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalTitleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ipInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+  },
+  modalTextInput: {
+    flex: 1,
+    paddingVertical: 10,
+    color: Colors.text.primary,
+    fontSize: 14,
+  },
+  testResultBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 14,
+  },
+  testResultText: {
+    fontSize: 12,
+    fontWeight: '500',
+    flex: 1,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 6,
+  },
+  testBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  testBtnText: {
+    color: '#0284c7',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  saveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });

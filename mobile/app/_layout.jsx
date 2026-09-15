@@ -76,9 +76,10 @@ function LayoutInner() {
 
   const content = (
     <>
-      <StatusBar style={theme === 'dark' ? "light" : "auto"} />
+      <StatusBar style="light" />
       <Stack
           screenOptions={({ route }) => ({
+            statusBarStyle: 'light',
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 
@@ -86,7 +87,7 @@ function LayoutInner() {
               })
             },
             headerShadowVisible: false,
-            headerTintColor: colors.text.headerTxtC,
+            headerTintColor: '#FFFFFF',
             headerTitleAlign: 'center',
             headerTitleStyle: {
               fontWeight: 'bold',
@@ -118,91 +119,95 @@ function LayoutInner() {
                   style={{
                     width: 36,
                     height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}
                   activeOpacity={0.7}
                 >
-                  <ArrowLeft size={24} color={colors.text.headerTxtC} />
+                  <ArrowLeft size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               );
             },
             headerRight: () => {
-               if (route.name === 'index' || route.name === '(auth)/login') return null;
-               return (
-                 <View style={{
-                   width: 145,
-                   minWidth: 145,
-                   maxWidth: 145,
-                   height: 32,
-                   flexShrink: 0,
-                   flexGrow: 0,
-                   flexDirection: 'row',
-                   alignItems: 'center',
-                   justifyContent: 'space-between',
-                   backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                   borderRadius: 20,
-                   paddingHorizontal: 8,
-                   borderWidth: 1,
-                   borderColor: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
-                 }}>
-                   <TouchableOpacity 
-                     onPress={toggleLanguage} 
-                     style={{ height: 26, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
-                     activeOpacity={0.7}
-                   >
-                     <Globe size={15} color={colors.text.headerTxtC} />
-                     <Text style={{ color: colors.text.headerTxtC, fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>
-                       {i18n.language?.toUpperCase() || 'ES'}
-                     </Text>
-                   </TouchableOpacity>
-                   <TouchableOpacity 
-                     onPress={toggleTheme}
-                     onLongPress={openColorModal}
-                     delayLongPress={300}
-                     style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
-                     activeOpacity={0.7}
-                   >
-                     {theme === 'dark' ? <Sun size={16} color={colors.text.headerTxtC} /> : <Moon size={16} color={colors.text.inverse} />}
-                   </TouchableOpacity>
-                   <TouchableOpacity 
-                     onPress={() => setNotifModalVisible(true)}
-                     style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-                     activeOpacity={0.7}
-                   >
-                     <Bell size={16} color={colors.text.headerTxtC} />
-                     {hasBadge && (
-                       <View style={{
-                         position: 'absolute',
-                         top: 1,
-                         right: 1,
-                         minWidth: unreadCount > 0 ? 12 : 7,
-                         height: unreadCount > 0 ? 12 : 7,
-                         borderRadius: unreadCount > 0 ? 6 : 3.5,
-                         backgroundColor: '#EF4444',
-                         borderWidth: 1,
-                         borderColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
-                         justifyContent: 'center',
-                         alignItems: 'center',
-                         paddingHorizontal: 1
-                       }}>
-                         {unreadCount > 0 && (
-                           <Text style={{ color: '#FFF', fontSize: 7, fontWeight: 'bold', lineHeight: 9, textAlign: 'center' }}>
-                             {unreadCount > 9 ? '9+' : unreadCount}
-                           </Text>
-                         )}
-                       </View>
-                     )}
-                   </TouchableOpacity>
-                   <TouchableOpacity 
-                     onPress={() => setDrawerVisible(true)} 
-                     style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
-                     activeOpacity={0.7}
-                   >
-                     <Menu size={18} color={colors.text.headerTxtC} />
-                   </TouchableOpacity>
-                 </View>
-               );
+                if (route.name === 'index' || route.name === '(auth)/login') return null;
+                return (
+                  <View style={{
+                    width: 145,
+                    minWidth: 145,
+                    maxWidth: 145,
+                    height: 34,
+                    flexShrink: 0,
+                    flexGrow: 0,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    borderRadius: 20,
+                    paddingHorizontal: 8,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                  }}>
+                    <TouchableOpacity 
+                      onPress={toggleLanguage} 
+                      style={{ height: 26, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+                      activeOpacity={0.7}
+                    >
+                      <Globe size={15} color="#FFFFFF" />
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>
+                        {i18n.language?.toUpperCase() || 'ES'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={toggleTheme}
+                      onLongPress={openColorModal}
+                      delayLongPress={300}
+                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
+                      activeOpacity={0.7}
+                    >
+                      {theme === 'dark' ? <Sun size={16} color="#FFFFFF" /> : <Moon size={16} color="#FFFFFF" />}
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setNotifModalVisible(true)}
+                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+                      activeOpacity={0.7}
+                    >
+                      <Bell size={16} color="#FFFFFF" />
+                      {hasBadge && (
+                        <View style={{
+                          position: 'absolute',
+                          top: 1,
+                          right: 1,
+                          minWidth: unreadCount > 0 ? 12 : 7,
+                          height: unreadCount > 0 ? 12 : 7,
+                          borderRadius: unreadCount > 0 ? 6 : 3.5,
+                          backgroundColor: '#EF4444',
+                          borderWidth: 1,
+                          borderColor: '#FFFFFF',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          paddingHorizontal: 1
+                        }}>
+                          {unreadCount > 0 && (
+                            <Text style={{ color: '#FFF', fontSize: 7, fontWeight: 'bold', lineHeight: 9, textAlign: 'center' }}>
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </Text>
+                          )}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setDrawerVisible(true)} 
+                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
+                      activeOpacity={0.7}
+                    >
+                      <Menu size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                );
             }
           })}
         >

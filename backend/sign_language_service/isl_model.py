@@ -364,31 +364,53 @@ class ISLModel:
             if hand_landmarks_list:
                 frame_vector = normalize_hand_landmarks(hand_landmarks_list)
                 self.sequence_buffer.append(frame_vector)
-                
-                # 2. CAPA TEMPORAL DINÁMICA: Modelo entrenado del Administrador
-                active_model = gesture_trainer.get_active_model()
-                if active_model and len(self.sequence_buffer) >= 20:
-                    try:
-                        feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
-                        pred_label, confidence = active_model.predict(feats)
-                        if pred_label and confidence >= 0.72:
-                            info = gesture_trainer.get_gesture_display_info(pred_label)
-                            current_prediction = {
-                                "id": f"sign.{info['id']}",
-                                "text": info["name_es"],
-                                "name_es": info["name_es"],
-                                "name_en": info["name_en"]
-                            }
-                    except Exception as e:
-                        pass
-                
-                # 3. CAPA ESTÁTICA: Si no hay predicción dinámica, buscar en alfabeto / señas
+
+                # 1. EVALUAR CAPA ESTÁTICA (Alfabeto A-Z, Números 0-10, Señas Fijas)
+                static_candidate = None
+                for hand_landmarks in hand_landmarks_list:
+                    s = classify_sign_from_landmarks(hand_landmarks)
+                    if s:
+                        static_candidate = s
+                        break
+
+                # Medir si la mano está inmóvil (postura estática / letra) o en movimiento dinámico
+                is_holding_static = False
+                is_moving_dynamically = False
+                if len(self.sequence_buffer) >= 6:
+                    recent = np.array(list(self.sequence_buffer)[-8:], dtype=np.float32)
+                    diffs = np.diff(recent, axis=0)
+                    max_motion = float(np.max(np.abs(diffs)))
+                    if max_motion < 0.05:
+                        is_holding_static = True
+                    elif max_motion >= 0.055:
+                        is_moving_dynamically = True
+
+                # Si el usuario está sosteniendo una letra o seña fija (como 'Y', 'A', 'B', etc.), priorizar de inmediato
+                if static_candidate and is_holding_static:
+                    current_prediction = static_candidate
+
+                # 2. CAPA TEMPORAL DINÁMICA: Solo evaluar si la mano está en movimiento dinámico real
                 if current_prediction is None:
-                    for hand_landmarks in hand_landmarks_list:
-                        sign = classify_sign_from_landmarks(hand_landmarks)
-                        if sign:
-                            current_prediction = sign
-                            break
+                    active_model = gesture_trainer.get_active_model()
+                    if active_model and len(self.sequence_buffer) >= 20 and is_moving_dynamically:
+                        try:
+                            feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
+                            pred_label, confidence = active_model.predict(feats)
+                            # Umbral estricto para evitar que adivine gestos al azar
+                            if pred_label and confidence >= 0.82:
+                                info = gesture_trainer.get_gesture_display_info(pred_label)
+                                current_prediction = {
+                                    "id": f"sign.{info['id']}",
+                                    "text": info["name_es"],
+                                    "name_es": info["name_es"],
+                                    "name_en": info["name_en"]
+                                }
+                        except Exception:
+                            pass
+
+                # 3. Si aún no hay predicción dinámica, asignar la seña estática detectada
+                if current_prediction is None and static_candidate:
+                    current_prediction = static_candidate
             else:
                 # Si no hay manos, agregar vector neutro o limpiar buffer si pasa mucho tiempo
                 self.sequence_buffer.append(np.zeros(126, dtype=np.float32))

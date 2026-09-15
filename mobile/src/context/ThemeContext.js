@@ -100,6 +100,7 @@ export const ThemeProvider = ({ children }) => {
         const savedTheme = await AsyncStorage.getItem('theme');
         if (savedTheme) {
           setTheme(savedTheme);
+          Appearance.setColorScheme?.(savedTheme);
         } else {
           const systemTheme = Appearance.getColorScheme();
           setTheme(systemTheme || 'light');
@@ -119,6 +120,7 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
+    Appearance.setColorScheme?.(newTheme);
     try {
       await AsyncStorage.setItem('theme', newTheme);
     } catch (error) {
@@ -128,6 +130,7 @@ export const ThemeProvider = ({ children }) => {
 
   const changeTheme = async (newTheme) => {
     setTheme(newTheme);
+    Appearance.setColorScheme?.(newTheme);
     try {
       await AsyncStorage.setItem('theme', newTheme);
     } catch (error) {

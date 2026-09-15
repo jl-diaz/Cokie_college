@@ -170,6 +170,23 @@ def delete_gesture(gesture_id):
     if os.path.exists(g_dir):
         import shutil
         shutil.rmtree(g_dir, ignore_errors=True)
+
+    # Si el gesto estaba en el modelo activo, actualizarlo
+    global _active_model
+    if os.path.exists(LABELS_FILE):
+        try:
+            with open(LABELS_FILE, "r", encoding="utf-8") as f:
+                labels = json.load(f)
+            if gesture_id in labels:
+                res = train_dialect_model(epochs=30)
+                if not res.get("success"):
+                    _active_model = None
+                    if os.path.exists(MODEL_FILE):
+                        os.remove(MODEL_FILE)
+                    if os.path.exists(LABELS_FILE):
+                        os.remove(LABELS_FILE)
+        except Exception as e:
+            print(f"[WARN] Error actualizando modelo tras eliminar {gesture_id}: {e}")
     return True
 
 def get_gesture_display_info(gesture_id):
@@ -527,7 +544,6 @@ def train_dialect_model(epochs=40, on_progress=None):
     Lee todas las muestras grabadas en disco, extrae características,
     entrena la red neuronal y recarga en caliente el modelo activo.
     """
-    seed_baseline_samples_if_empty()
     gestures = load_gestures()
     labels = []
     X_list = []

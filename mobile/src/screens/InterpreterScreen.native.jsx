@@ -32,7 +32,6 @@ import {
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
-import PageHeader from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
@@ -191,10 +190,11 @@ export default function InterpreterScreenNative() {
         try {
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.18,
+            quality: 0.10,
             skipProcessing: true,
             shutterSound: false,
-            pictureSize: '640x480',
+            exif: false,
+            pictureSize: '352x288',
           });
 
           if (photo?.base64) {
@@ -207,7 +207,7 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 250);
+      }, 150);
     }
 
     return () => {
@@ -332,7 +332,6 @@ export default function InterpreterScreenNative() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: '' }} />
-      <PageHeader title={t('titles.interpreter', 'Intérprete ISL')} />
 
       {/* ── BARRA SUPERIOR DE SELECTORES (CÁMARA Y AUDIO) ── */}
       <View style={styles.controlBar}>
@@ -463,23 +462,6 @@ export default function InterpreterScreenNative() {
             </View>
           )}
         </View>
-      </View>
-
-      {/* ── FOOTER DE CONTROL ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.micButton, !isActive && styles.micButtonDisabled]} 
-          onPress={() => setIsActive(!isActive)}
-        >
-          {isActive ? <Mic color="#fff" size={28} /> : <MicOff color="#fff" size={28} />}
-        </TouchableOpacity>
-        <Text style={styles.footerText}>
-          {isActive 
-            ? (audioOutput === 'phone' 
-                ? 'Traduciendo por bocina/audífonos del teléfono...' 
-                : 'Traduciendo hacia los lentes CokieLens...')
-            : t('interpreter.paused', 'Intérprete Pausado')}
-        </Text>
       </View>
 
       {/* ── MODAL DE CONFIGURACIÓN DE LOS LENTES (ESP32-CAM) ── */}

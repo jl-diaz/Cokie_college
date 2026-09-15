@@ -104,13 +104,21 @@ async def delete_gesture(gesture_id: str):
     success = gesture_trainer.delete_gesture(gesture_id)
     return {"status": "deleted", "gesture_id": gesture_id, "success": success}
 
+_global_extractor_model = None
+
+def get_extractor_model():
+    global _global_extractor_model
+    if _global_extractor_model is None:
+        _global_extractor_model = ISLModel()
+    return _global_extractor_model
+
 @app.post("/api/gestures/extract-frame")
 async def extract_frame_landmarks(req: ExtractFrameRequest):
     """
     Extrae puntos en tiempo real de un fotograma para alimentar la vista del
-    esqueleto visual y recopilar muestras de entrenamiento.
+    esqueleto visual y recopilar muestras de entrenamiento de forma instantánea.
     """
-    model = ISLModel()
+    model = get_extractor_model()
     res = model.extract_landmarks_from_base64(req.image_base64)
     return res or {"detected": False, "vector": [], "hands": []}
 

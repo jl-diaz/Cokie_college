@@ -531,9 +531,9 @@ const coordinatorController = {
     getJustificationRequests: async (req, res) => {
         try {
             const { level } = req.user;
-            const { status, page = 1, limit = 50 } = req.query;
+            const { status, page = 1, limit = 10 } = req.query;
             const pageNum = parseInt(page) || 1;
-            const limitNum = parseInt(limit) || 50;
+            const limitNum = parseInt(limit) || 10;
             const from = (pageNum - 1) * limitNum;
             const to = from + limitNum - 1;
 

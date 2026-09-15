@@ -108,7 +108,7 @@ export default function CoordinatorJustificationsScreen() {
       else setLoadingMore(true);
 
       const response = await api.get('/coordinator/justifications', {
-        params: { status: statusFilter || undefined, page: pageNum, limit: 50 }
+        params: { status: statusFilter || undefined, page: pageNum, limit: 10 }
       });
       const newRequests = response.data?.data || [];
       
