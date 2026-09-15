@@ -735,6 +735,80 @@ const coordinatorController = {
         }
     },
 
+    bulkJustification: async (req, res) => {
+        try {
+            const coordinator_id = req.user.id;
+            const { student_ids, absence_date, reason } = req.body;
+
+            if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+                return res.status(400).json({ error: 'Debes seleccionar al menos un estudiante' });
+            }
+            if (!absence_date || !reason || !reason.trim()) {
+                return res.status(400).json({ error: 'Fecha y motivo son obligatorios' });
+            }
+
+            // 1. Verificar estudiantes válidos
+            const { data: students, error: studentError } = await supabaseAdmin
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', student_ids)
+                .eq('role', 'student');
+
+            if (studentError) throw studentError;
+            if (!students || students.length === 0) {
+                return res.status(404).json({ error: 'No se encontraron estudiantes válidos' });
+            }
+
+            const validStudentIds = students.map(s => s.id);
+
+            // 2. Crear justificaciones aprobadas directamente en lote
+            const rowsToInsert = validStudentIds.map(sid => ({
+                student_id: sid,
+                coordinator_id,
+                absence_date,
+                reason: reason.trim(),
+                status: 'approved',
+                coordinator_message: 'Justificación masiva grupal autorizada por coordinación'
+            }));
+
+            const { data: created, error: justError } = await supabaseAdmin
+                .from('justifications')
+                .insert(rowsToInsert)
+                .select();
+
+            if (justError) throw justError;
+
+            // 3. Asegurar asistencia justificada y enviar notificaciones a cada estudiante
+            const cleanReason = reason
+                .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+                .replace(/\[JORNADA COMPLETA\]/gi, '')
+                .trim();
+
+            for (const sid of validStudentIds) {
+                await ensureJustifiedAttendanceRecord(sid, absence_date);
+                try {
+                    await sendNotification(
+                        sid,
+                        'Justificación Aprobada ✅',
+                        `Se ha registrado una justificación institucional para el ${absence_date}: ${cleanReason || 'Actividad grupal autorizada'}`,
+                        { type: 'justification', status: 'approved', date: absence_date }
+                    );
+                } catch (notifErr) {
+                    console.error(`Error enviando notificación a estudiante ${sid}:`, notifErr);
+                }
+            }
+
+            res.status(201).json({
+                message: `Se registraron ${validStudentIds.length} justificaciones masivas correctamente.`,
+                count: validStudentIds.length,
+                justifications: created
+            });
+        } catch (error) {
+            console.error('Error en bulkJustification:', error);
+            res.status(500).json({ error: error.message });
+        }
+    },
+
     // --- Generador de Horarios ---
 
     generateScheduleProposal: async (req, res) => {

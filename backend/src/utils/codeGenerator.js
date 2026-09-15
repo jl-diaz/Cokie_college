@@ -22,7 +22,7 @@ const generateInstitutionalCode = (firstName, secondName, year) => {
 const generateRandomPassword = () => {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$&';
     let password = '';
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 10; i++) {
         const randomIndex = crypto.randomInt(0, charset.length);
         password += charset[randomIndex];
     }

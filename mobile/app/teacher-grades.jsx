@@ -584,7 +584,7 @@ export default function TeacherGradesScreen() {
             keyboardShouldPersistTaps="handled" 
             bounces={false}
             style={{ flexGrow: 0 }}
-            contentContainerStyle={{ paddingBottom: 8 }}
+            contentContainerStyle={{ paddingBottom: 24 }}
           >
             <Text style={styles.fieldLabel}>{t('teacherGrades.ticketReasonLabel', 'Motivo de la solicitud (Requerido):')}</Text>
             <TextInput

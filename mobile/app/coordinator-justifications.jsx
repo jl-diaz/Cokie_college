@@ -2,7 +2,8 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions, BackHandler, StatusBar } from 'react-native';
 import api from '../src/utils/api';
-import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown, Download } from 'lucide-react-native';
+import { enqueueOutbox } from '../src/utils/outboxQueue';
+import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown, Download, Users, CheckSquare, Square, Trash2, Check, User } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -70,7 +71,11 @@ export default function CoordinatorJustificationsScreen() {
 
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [creationMode, setCreationMode] = useState('individual'); // 'individual' | 'bulk'
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [gradeFilter, setGradeFilter] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('');
   const [absenceDate, setAbsenceDate] = useState('');
   const [absenceScope, setAbsenceScope] = useState('full_day'); // 'full_day' | 'hourly'
   const [startTime, setStartTime] = useState('07:00 AM');
@@ -188,25 +193,52 @@ export default function CoordinatorJustificationsScreen() {
     }
   };
 
-  const createJustification = async () => {
-    if (!selectedStudent || !absenceDate || !reason.trim()) {
-      showAlert({
-        type: 'warning',
-        title: t('dashboard.error', 'Error'),
-        message: t('dashboard.pleaseCompleteFields', 'Completa todos los campos')
-      });
-      return;
-    }
+  const toggleStudentSelection = (student) => {
+    setSelectedStudents(prev => {
+      const exists = prev.some(s => s.id === student.id);
+      if (exists) {
+        return prev.filter(s => s.id !== student.id);
+      } else {
+        return [...prev, student];
+      }
+    });
+  };
 
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    if (absenceDate > todayStr) {
-      showAlert({
-        type: 'warning',
-        title: 'Fecha Inválida',
-        message: 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.'
-      });
-      return;
+  const removeSelectedStudent = (studentId) => {
+    setSelectedStudents(prev => prev.filter(s => s.id !== studentId));
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedStudents(prev => {
+      const existingIds = new Set(prev.map(s => s.id));
+      const toAdd = filteredStudents.filter(s => !existingIds.has(s.id));
+      return [...prev, ...toAdd];
+    });
+  };
+
+  const clearSelectedStudents = () => {
+    setSelectedStudents([]);
+  };
+
+  const createJustification = async () => {
+    if (creationMode === 'individual') {
+      if (!selectedStudent || !absenceDate || !reason.trim()) {
+        showAlert({
+          type: 'warning',
+          title: t('dashboard.error', 'Error'),
+          message: t('dashboard.pleaseCompleteFields', 'Completa todos los campos')
+        });
+        return;
+      }
+    } else {
+      if (selectedStudents.length === 0 || !absenceDate || !reason.trim()) {
+        showAlert({
+          type: 'warning',
+          title: t('dashboard.error', 'Error'),
+          message: 'Debes seleccionar al menos un estudiante, la fecha y el motivo de ausencia.'
+        });
+        return;
+      }
     }
 
     if (absenceScope === 'hourly') {
@@ -228,34 +260,81 @@ export default function CoordinatorJustificationsScreen() {
         ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
         : `[JORNADA COMPLETA] ${reason.trim()}`;
 
-      await api.post('/coordinator/justifications/student', {
-        student_id: selectedStudent.id,
-        absence_date: absenceDate,
-        reason: finalReason
-      });
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', 'Éxito'),
-        message: 'Justificación registrada y aprobada correctamente'
-      });
+      if (creationMode === 'individual') {
+        await api.post('/coordinator/justifications/student', {
+          student_id: selectedStudent.id,
+          absence_date: absenceDate,
+          reason: finalReason
+        });
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', 'Éxito'),
+          message: 'Justificación individual registrada y aprobada correctamente'
+        });
+      } else {
+        await api.post('/coordinator/justifications/bulk', {
+          student_ids: selectedStudents.map(s => s.id),
+          absence_date: absenceDate,
+          reason: finalReason
+        });
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', 'Éxito'),
+          message: `Se registraron y aprobaron ${selectedStudents.length} justificaciones masivas correctamente`
+        });
+      }
+
       setSelectedStudent(null);
+      setSelectedStudents([]);
       setAbsenceDate('');
       setAbsenceScope('full_day');
       setStartTime('07:00 AM');
       setEndTime('09:30 AM');
       setReason('');
       setView('requests');
+      setPage(1);
+      fetchRequests(1, true);
     } catch (error) {
-      console.error(error);
-      showAlert({
-        type: 'error',
-        title: t('dashboard.error', 'Error'),
-        message: 'No se pudo registrar la justificación.'
-      });
+      console.warn('Error creating justification, checking network:', error);
+      const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.message?.includes('Network Error');
+      if (isNetworkError) {
+        const endpoint = creationMode === 'individual' ? '/coordinator/justifications/student' : '/coordinator/justifications/bulk';
+        const payload = creationMode === 'individual' 
+          ? { student_id: selectedStudent.id, absence_date: absenceDate, reason: finalReason }
+          : { student_ids: selectedStudents.map(s => s.id), absence_date: absenceDate, reason: finalReason };
+
+        await enqueueOutbox({
+          type: 'justification',
+          endpoint,
+          payload
+        });
+
+        showAlert({
+          type: 'info',
+          title: 'Guardado Offline 🕒',
+          message: 'Sin conexión a internet. La justificación quedó en cola de salida y se enviará automáticamente al reconectar.'
+        });
+
+        setSelectedStudent(null);
+        setSelectedStudents([]);
+        setAbsenceDate('');
+        setAbsenceScope('full_day');
+        setStartTime('07:00 AM');
+        setEndTime('09:30 AM');
+        setReason('');
+        setView('requests');
+      } else {
+        showAlert({
+          type: 'error',
+          title: t('dashboard.error', 'Error'),
+          message: error.response?.data?.error || 'No se pudo registrar la justificación.'
+        });
+      }
     } finally {
       setCreating(false);
     }
   };
+
 
   const getEvidenceInfo = (rawUrl) => {
     if (!rawUrl || typeof rawUrl !== 'string') return { type: 'none', url: '' };
@@ -428,7 +507,7 @@ export default function CoordinatorJustificationsScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Comprobante de Justificación (PDF)',
+          dialogTitle: t('coordinatorJustifications.pdfTitle', 'Comprobante de Justificación (PDF)'),
           UTI: 'com.adobe.pdf'
         });
       } else {
@@ -438,8 +517,8 @@ export default function CoordinatorJustificationsScreen() {
       console.error('Error al abrir PDF:', err);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudo abrir el documento PDF en el dispositivo.'
+        title: t('common.error', 'Error'),
+        message: t('coordinatorJustifications.cantOpenPdf', 'No se pudo abrir el documento PDF en el dispositivo.')
       });
     }
   };
@@ -474,8 +553,8 @@ export default function CoordinatorJustificationsScreen() {
       if (selectedDate > today) {
         showAlert({
           type: 'warning',
-          title: 'Fecha Inválida',
-          message: 'Solo se permiten justificaciones hasta la fecha actual.'
+          title: t('justifications.invalidDate', 'Fecha Inválida'),
+          message: t('justifications.invalidDateDesc', 'Solo se permiten justificaciones hasta la fecha actual.')
         });
         return;
       }
@@ -487,10 +566,30 @@ export default function CoordinatorJustificationsScreen() {
     }
   };
 
-  const filteredStudents = students.filter(s => 
-    s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.institutional_code?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const availableGrades = React.useMemo(() => {
+    if (!Array.isArray(students)) return [];
+    const grades = [...new Set(students.map(s => s.grade).filter(Boolean))];
+    return grades.sort((a, b) => parseInt(a) - parseInt(b));
+  }, [students]);
+
+  const availableSections = React.useMemo(() => {
+    if (!Array.isArray(students)) return [];
+    const sections = [...new Set(students.map(s => s.section).filter(Boolean))];
+    return sections.sort();
+  }, [students]);
+
+  const filteredStudents = React.useMemo(() => {
+    if (!Array.isArray(students)) return [];
+    return students.filter(s => {
+      const matchesSearch = !searchTerm || 
+        s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        s.institutional_code?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesGrade = !gradeFilter || s.grade === gradeFilter;
+      const matchesSection = !sectionFilter || s.section === sectionFilter;
+      return matchesSearch && matchesGrade && matchesSection;
+    });
+  }, [students, searchTerm, gradeFilter, sectionFilter]);
+
 
   const renderReasonContent = (rawReason) => {
     if (!rawReason) return null;
@@ -548,13 +647,13 @@ export default function CoordinatorJustificationsScreen() {
             style={[styles.tab, view === 'requests' && styles.activeTab]} 
             onPress={() => setView('requests')}
           >
-            <Text style={[styles.tabText, view === 'requests' && styles.activeTabText]}>Solicitudes</Text>
+            <Text style={[styles.tabText, view === 'requests' && styles.activeTabText]}>{t('justifications.requests', 'Solicitudes')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.tab, view === 'create' && styles.activeTab]} 
             onPress={() => setView('create')}
           >
-            <Text style={[styles.tabText, view === 'create' && styles.activeTabText]}>Ingreso Manual</Text>
+            <Text style={[styles.tabText, view === 'create' && styles.activeTabText]}>{t('justifications.manualEntry', 'Ingreso Manual')}</Text>
           </TouchableOpacity>
         </View>
       </PageHeader>
@@ -599,21 +698,21 @@ export default function CoordinatorJustificationsScreen() {
                     <Text style={styles.studentCode}>{req.profiles?.institutional_code}</Text>
                   </View>
                   <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>Pendiente</Text>
+                    <Text style={styles.statusText}>{t('dashboard.pending', 'Pendiente')}</Text>
                   </View>
                 </View>
                 
                 <View style={styles.cardBody}>
                   {renderReasonContent(req.reason)}
-                  <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
+                  <Text style={styles.dateText}><Text style={styles.boldText}>{t('justifications.date', 'Fecha')}:</Text> {formatDate(req.absence_date)}</Text>
                   
                   {req.evidence_url ? (
                     <TouchableOpacity style={styles.evidenceBtn} onPress={() => openEvidence(req.evidence_url)}>
                       <ExternalLink size={16} color={Colors.primaryLight} />
-                      <Text style={styles.evidenceBtnText}>Ver Evidencia</Text>
+                      <Text style={styles.evidenceBtnText}>{t('coordinatorJustifications.viewEvidence', 'Ver Evidencia')}</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.noEvidenceText}>Sin evidencia adjunta</Text>
+                    <Text style={styles.noEvidenceText}>{t('coordinatorJustifications.noEvidence', 'Sin evidencia adjunta')}</Text>
                   )}
                 </View>
                 
@@ -623,24 +722,24 @@ export default function CoordinatorJustificationsScreen() {
                     onPress={() => openProcessModal(req, 'approved')}
                   >
                     <CheckCircle size={18} color="#FFF" />
-                    <Text style={styles.actionBtnText}>Aprobar</Text>
+                    <Text style={styles.actionBtnText}>{t('coordinatorJustifications.approve', 'Aprobar')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.actionBtn, styles.rejectBtn]}
                     onPress={() => openProcessModal(req, 'rejected')}
                   >
                     <XCircle size={18} color="#FFF" />
-                    <Text style={styles.actionBtnText}>Rechazar</Text>
+                    <Text style={styles.actionBtnText}>{t('coordinatorJustifications.reject', 'Rechazar')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ))
           )}
           
-          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Historial</Text>
+          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('coordinatorJustifications.history', 'Historial')}</Text>
           {historyRequests.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay historial de solicitudes.</Text>
+              <Text style={styles.emptyText}>{t('coordinatorJustifications.noHistory', 'No hay historial de solicitudes.')}</Text>
             </View>
           ) : (
             historyRequests.map(req => (
@@ -652,15 +751,15 @@ export default function CoordinatorJustificationsScreen() {
                   </View>
                   <View style={[styles.statusBadge, req.status === 'approved' ? styles.badgeApproved : styles.badgeRejected]}>
                     <Text style={[styles.statusText, req.status === 'approved' ? styles.textApproved : styles.textRejected]}>
-                      {req.status === 'approved' ? 'Aprobada' : 'Rechazada'}
+                      {req.status === 'approved' ? t('coordinatorJustifications.approved', 'Aprobada') : t('coordinatorJustifications.rejected', 'Rechazada')}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.cardBody}>
                   {renderReasonContent(req.reason)}
-                  <Text style={styles.dateText}><Text style={styles.boldText}>Fecha:</Text> {formatDate(req.absence_date)}</Text>
+                  <Text style={styles.dateText}><Text style={styles.boldText}>{t('justifications.date', 'Fecha')}:</Text> {formatDate(req.absence_date)}</Text>
                   {req.coordinator_message ? (
-                    <Text style={styles.obsText}><Text style={styles.boldText}>Observación:</Text> {req.coordinator_message}</Text>
+                    <Text style={styles.obsText}><Text style={styles.boldText}>{t('coordinatorJustifications.observation', 'Observación')}:</Text> {req.coordinator_message}</Text>
                   ) : null}
                 </View>
               </View>
@@ -676,7 +775,7 @@ export default function CoordinatorJustificationsScreen() {
               {loadingMore ? (
                 <ActivityIndicator color={Colors.primary} size="small" />
               ) : (
-                <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Cargar Más</Text>
+                <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>{t('common.loadMore', 'Cargar Más')}</Text>
               )}
             </TouchableOpacity>
           )}
@@ -695,40 +794,227 @@ export default function CoordinatorJustificationsScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.sectionTitle}>Registrar Justificación Manual</Text>
+            <Text style={styles.sectionTitle}>
+              {creationMode === 'individual' 
+                ? t('justifications.registerManual', 'Registrar Justificación Manual') 
+                : t('justifications.registerBulk', 'Registrar Justificación Masiva (Excursión / Grupal)')}
+            </Text>
             
             <View style={styles.formContainer}>
+              {/* Selector de Modo: Individual vs Masiva */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Buscar Estudiante</Text>
-                <View style={styles.searchBox}>
-                  <Search size={18} color={Colors.text.muted} />
-                  <TextInput 
-                    style={styles.searchInput}
-                    placeholder="Nombre o código..."
-                    value={searchTerm}
-                    onChangeText={setSearchTerm}
-                  />
+                <Text style={styles.formLabel}>{t('bulkJustifications.mode', 'Modalidad de Registro')}</Text>
+                <View style={styles.creationModeContainer}>
+                  <TouchableOpacity
+                    style={[styles.creationModeBtn, creationMode === 'individual' && styles.creationModeBtnActive]}
+                    onPress={() => setCreationMode('individual')}
+                    activeOpacity={0.8}
+                  >
+                    <User size={16} color={creationMode === 'individual' ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.creationModeBtnText, creationMode === 'individual' && styles.creationModeBtnTextActive]}>
+                      {t('bulkJustifications.individual', 'Individual')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.creationModeBtn, creationMode === 'bulk' && styles.creationModeBtnActive]}
+                    onPress={() => setCreationMode('bulk')}
+                    activeOpacity={0.8}
+                  >
+                    <Users size={16} color={creationMode === 'bulk' ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
+                    <Text style={[styles.creationModeBtnText, creationMode === 'bulk' && styles.creationModeBtnTextActive]}>
+                      {t('bulkJustifications.bulk', 'Masiva (Grupal / Excursión)')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-                
-                <ScrollView style={styles.studentList} nestedScrollEnabled>
-                  {filteredStudents.slice(0, 5).map(s => (
-                    <TouchableOpacity
-                      key={s.id}
-                      style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
-                      onPress={() => setSelectedStudent(s)}
-                    >
-                      <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
-                        {s.full_name}
-                      </Text>
-                      <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
               </View>
+
+              {creationMode === 'individual' ? (
+                /* MODO INDIVIDUAL */
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('coordinatorJustifications.searchStudent', 'Buscar Estudiante *')}</Text>
+                  <View style={styles.searchBox}>
+                    <Search size={18} color={Colors.text.muted} />
+                    <TextInput 
+                      style={styles.searchInput}
+                      placeholder={t('coordinatorJustifications.searchStudentPlaceholder', 'Nombre o código...')}
+                      value={searchTerm}
+                      onChangeText={setSearchTerm}
+                    />
+                  </View>
+                  
+                  {selectedStudent && (
+                    <View style={styles.selectedStudentBadge}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.selectedStudentName}>{selectedStudent.full_name}</Text>
+                        <Text style={styles.selectedStudentCode}>{selectedStudent.institutional_code} · {selectedStudent.grade}º {selectedStudent.section}</Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setSelectedStudent(null)} style={styles.removeSelectedBtn}>
+                        <X size={16} color="#dc2626" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  <ScrollView style={styles.studentList} nestedScrollEnabled>
+                    {filteredStudents.slice(0, 8).map(s => (
+                      <TouchableOpacity
+                        key={s.id}
+                        style={[styles.studentItem, selectedStudent?.id === s.id && styles.studentItemSelected]}
+                        onPress={() => setSelectedStudent(s)}
+                      >
+                        <Text style={[styles.studentItemText, selectedStudent?.id === s.id && styles.studentItemTextSelected]}>
+                          {s.full_name}
+                        </Text>
+                        <Text style={styles.studentItemCode}>{s.grade}º {s.section}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : (
+                /* MODO MASIVO (GRUPAL) */
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>{t('coordinatorJustifications.studentSelection', 'Selección de Estudiantes *')}</Text>
+                  
+                  {/* Filtro por Grado */}
+                  <Text style={styles.subFilterLabel}>{t('bulkJustifications.filterClassroom', 'Filtrar por Aula')} - {t('bulkJustifications.grade', 'Grado')}:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                    <TouchableOpacity
+                      style={[styles.filterChip, gradeFilter === '' && styles.filterChipActive]}
+                      onPress={() => setGradeFilter('')}
+                    >
+                      <Text style={[styles.filterChipText, gradeFilter === '' && styles.filterChipTextActive]}>{t('bulkJustifications.allGrades', 'Todos los grados')}</Text>
+                    </TouchableOpacity>
+                    {availableGrades.map(g => (
+                      <TouchableOpacity
+                        key={g}
+                        style={[styles.filterChip, gradeFilter === g && styles.filterChipActive]}
+                        onPress={() => setGradeFilter(prev => prev === g ? '' : g)}
+                      >
+                        <Text style={[styles.filterChipText, gradeFilter === g && styles.filterChipTextActive]}>{g}º {t('bulkJustifications.grade', 'Grado')}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Filtro por Sección */}
+                  <Text style={styles.subFilterLabel}>{t('bulkJustifications.section', 'Sección')}:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                    <TouchableOpacity
+                      style={[styles.filterChip, sectionFilter === '' && styles.filterChipActive]}
+                      onPress={() => setSectionFilter('')}
+                    >
+                      <Text style={[styles.filterChipText, sectionFilter === '' && styles.filterChipTextActive]}>{t('bulkJustifications.allSections', 'Todas las secciones')}</Text>
+                    </TouchableOpacity>
+                    {availableSections.map(sec => (
+                      <TouchableOpacity
+                        key={sec}
+                        style={[styles.filterChip, sectionFilter === sec && styles.filterChipActive]}
+                        onPress={() => setSectionFilter(prev => prev === sec ? '' : sec)}
+                      >
+                        <Text style={[styles.filterChipText, sectionFilter === sec && styles.filterChipTextActive]}>{t('bulkJustifications.section', 'Sección')} {sec}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* Buscador de texto */}
+                  <View style={[styles.searchBox, { marginTop: 6 }]}>
+                    <Search size={18} color={Colors.text.muted} />
+                    <TextInput 
+                      style={styles.searchInput}
+                      placeholder={t('dashboard.search', 'Buscar por nombre o código...')}
+                      value={searchTerm}
+                      onChangeText={setSearchTerm}
+                    />
+                  </View>
+
+                  {/* Botones de acción rápida */}
+                  <View style={styles.quickActionRow}>
+                    <TouchableOpacity
+                      style={styles.quickActionBtn}
+                      onPress={selectAllFiltered}
+                      activeOpacity={0.8}
+                    >
+                      <CheckSquare size={16} color={Colors.primary} style={{ marginRight: 6 }} />
+                      <Text style={styles.quickActionText}>
+                        {t('bulkJustifications.selectFiltered', { count: filteredStudents.length, defaultValue: `Seleccionar filtrados (${filteredStudents.length})` })}
+                      </Text>
+                    </TouchableOpacity>
+                    {selectedStudents.length > 0 && (
+                      <TouchableOpacity
+                        style={[styles.quickActionBtn, styles.quickActionDanger]}
+                        onPress={clearSelectedStudents}
+                        activeOpacity={0.8}
+                      >
+                        <Trash2 size={16} color="#dc2626" style={{ marginRight: 6 }} />
+                        <Text style={[styles.quickActionText, { color: '#dc2626' }]}>{t('bulkJustifications.clear', 'Limpiar')}</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Resumen de seleccionados */}
+                  <View style={styles.selectionCounterCard}>
+                    <Users size={18} color={Colors.primary} style={{ marginRight: 8 }} />
+                    <Text style={styles.selectionCounterText}>
+                      <Text style={{ fontWeight: 'bold' }}>{selectedStudents.length}</Text> {t('bulkJustifications.studentsCount', { count: selectedStudents.length, defaultValue: `${selectedStudents.length} estudiantes seleccionados` })}
+                    </Text>
+                  </View>
+
+                  {/* Chips de seleccionados */}
+                  {selectedStudents.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedChipsScroll}>
+                      {selectedStudents.map(s => (
+                        <View key={s.id} style={styles.studentSelectedChip}>
+                          <Text style={styles.studentSelectedChipText} numberOfLines={1}>
+                            {s.full_name} ({s.grade}º{s.section})
+                          </Text>
+                          <TouchableOpacity onPress={() => removeSelectedStudent(s.id)} style={{ marginLeft: 4 }}>
+                            <X size={14} color="#FFF" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  )}
+
+                  {/* Lista de estudiantes con Checkboxes */}
+                  <ScrollView style={[styles.studentList, { maxHeight: 240 }]} nestedScrollEnabled>
+                    {filteredStudents.length === 0 ? (
+                      <View style={{ padding: 16, alignItems: 'center' }}>
+                        <Text style={{ color: Colors.text.muted, fontSize: 13 }}>{t('coordinatorJustifications.noStudentsFound', 'No se encontraron estudiantes con los filtros aplicados')}</Text>
+                      </View>
+                    ) : (
+                      filteredStudents.map(s => {
+                        const isChecked = selectedStudents.some(sel => sel.id === s.id);
+                        return (
+                          <TouchableOpacity
+                            key={s.id}
+                            style={[styles.studentCheckboxItem, isChecked && styles.studentCheckboxItemActive]}
+                            onPress={() => toggleStudentSelection(s)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.checkboxContainer}>
+                              {isChecked ? (
+                                <CheckSquare size={20} color={Colors.primary} />
+                              ) : (
+                                <Square size={20} color={Colors.gray[400]} />
+                              )}
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                              <Text style={[styles.studentItemText, isChecked && { fontWeight: 'bold', color: Colors.primary }]}>
+                                {s.full_name}
+                              </Text>
+                              <Text style={styles.studentItemCode}>
+                                {s.institutional_code} · {s.grade}º Grado "{s.section}"
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </View>
+              )}
               
               {/* Modalidad de Inasistencia */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Tipo de Inasistencia</Text>
+                <Text style={styles.formLabel}>{t('bulkJustifications.scope', 'Tipo de Inasistencia')}</Text>
                 <View style={styles.scopeSelector}>
                   <TouchableOpacity
                     style={[styles.scopeBtn, absenceScope === 'full_day' && styles.scopeBtnActive]}
@@ -736,7 +1022,7 @@ export default function CoordinatorJustificationsScreen() {
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.scopeBtnText, absenceScope === 'full_day' && styles.scopeBtnTextActive]}>
-                      Día Completo
+                      {t('bulkJustifications.fullDay', 'Día Completo')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -746,37 +1032,26 @@ export default function CoordinatorJustificationsScreen() {
                   >
                     <Clock size={16} color={absenceScope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
                     <Text style={[styles.scopeBtnText, absenceScope === 'hourly' && styles.scopeBtnTextActive]}>
-                      Por Horario
+                      {t('bulkJustifications.bySchedule', 'Por Horario')}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <DatePickerSelector
-                label="Fecha de Ausencia *"
+                label={t('justifications.absenceDate', 'Fecha de Ausencia / Actividad *')}
                 value={absenceDate}
                 onChange={(dateStr) => {
-                  const today = new Date();
-                  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  if (dateStr > todayStr) {
-                    showAlert({
-                      type: 'warning',
-                      title: 'Fecha Inválida',
-                      message: 'Solo se permiten justificaciones hasta la fecha actual.'
-                    });
-                    return;
-                  }
                   setAbsenceDate(dateStr);
                 }}
-                maxDate={new Date().toISOString().split('T')[0]}
-                placeholder="Seleccionar fecha"
+                placeholder={t('dashboard.selectDate', 'Seleccionar fecha')}
               />
 
               {/* Rango de Horario (Selector Táctil) */}
               {absenceScope === 'hourly' && (
                 <View style={styles.timeRangeContainer}>
                   <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                    <Text style={styles.formLabel}>Desde (Hora Inicio)</Text>
+                    <Text style={styles.formLabel}>{t('bulkJustifications.from', 'Desde (Hora Inicio)')}</Text>
                     <TouchableOpacity
                       style={styles.timeSelectorBtn}
                       onPress={() => {
@@ -793,7 +1068,7 @@ export default function CoordinatorJustificationsScreen() {
                     </TouchableOpacity>
                   </View>
                   <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-                    <Text style={styles.formLabel}>Hasta (Hora Fin)</Text>
+                    <Text style={styles.formLabel}>{t('bulkJustifications.to', 'Hasta (Hora Fin)')}</Text>
                     <TouchableOpacity
                       style={styles.timeSelectorBtn}
                       onPress={() => {
@@ -813,10 +1088,10 @@ export default function CoordinatorJustificationsScreen() {
               )}
               
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Motivo de Ausencia</Text>
+                <Text style={styles.formLabel}>{t('justifications.reason', 'Motivo de Ausencia *')}</Text>
                 <TextInput
                   style={[styles.formInput, styles.reasonInput]}
-                  placeholder="Escribe detalladamente el motivo de la ausencia..."
+                  placeholder={creationMode === 'bulk' ? t('bulkJustifications.futureDateHint', "Ej: Excursión escolar al Museo de Ciencias, torneo deportivo intercolegial...") : t('justifications.reasonPlaceholder', "Escribe detalladamente el motivo de la ausencia...")}
                   placeholderTextColor={Colors.text.muted}
                   value={reason}
                   onChangeText={setReason}
@@ -833,7 +1108,11 @@ export default function CoordinatorJustificationsScreen() {
                 {creating ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Guardar y Aprobar</Text>
+                  <Text style={styles.submitBtnText}>
+                    {creationMode === 'individual'
+                      ? t('justifications.saveAndApprove', 'Guardar y Aprobar')
+                      : t('bulkJustifications.submitBulk', { count: selectedStudents.length, defaultValue: `Guardar Justificación Masiva (${selectedStudents.length} Alumnos)` })}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -846,40 +1125,46 @@ export default function CoordinatorJustificationsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {statusToSet === 'approved' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+                {statusToSet === 'approved' ? t('coordinatorJustifications.approveRequest', 'Aprobar Solicitud') : t('coordinatorJustifications.rejectRequest', 'Rechazar Solicitud')}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <X size={24} color={Colors.primary} />
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.modalSubtitle}>
-              Estudiante: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
-            </Text>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Observación (Opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Añade un comentario sobre la decisión..."
-                multiline
-                numberOfLines={4}
-                value={observation}
-                onChangeText={setObservation}
-              />
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
-              onPress={processRequest}
-              disabled={processing}
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 24 }}
             >
-              {processing ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.submitBtnText}>Confirmar</Text>
-              )}
-            </TouchableOpacity>
+              <Text style={styles.modalSubtitle}>
+                {t('coordinatorJustifications.student', 'Estudiante')}: <Text style={{ fontWeight: 'bold' }}>{selectedReq?.profiles?.full_name}</Text>
+              </Text>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>{t('coordinatorJustifications.observationOptional', 'Observación (Opcional)')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t('coordinatorJustifications.decisionObservationPlaceholder', 'Añade un comentario sobre la decisión...')}
+                  multiline
+                  numberOfLines={4}
+                  value={observation}
+                  onChangeText={setObservation}
+                />
+              </View>
+              
+              <TouchableOpacity 
+                style={[styles.submitBtn, statusToSet === 'approved' ? styles.submitApprove : styles.submitReject]}
+                onPress={processRequest}
+                disabled={processing}
+              >
+                {processing ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.submitBtnText}>{t('common.confirm', 'Confirmar')}</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </BottomModal>
 
@@ -889,10 +1174,10 @@ export default function CoordinatorJustificationsScreen() {
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>
-                {timePickerTarget === 'start' ? 'Hora de Inicio (Desde)' : 'Hora de Fin (Hasta)'}
+                {timePickerTarget === 'start' ? t('bulkJustifications.startTimeTitle', 'Hora de Inicio (Desde)') : t('bulkJustifications.endTimeTitle', 'Hora de Fin (Hasta)')}
               </Text>
               <Text style={styles.modalSubtitle}>
-                {timePickerTarget === 'start' ? 'Selecciona la hora lectiva de inicio' : `Selecciona la hora de fin (posterior a ${startTime})`}
+                {timePickerTarget === 'start' ? t('bulkJustifications.selectStartTimeHint', 'Selecciona la hora lectiva de inicio') : t('bulkJustifications.selectEndTimeHint', { startTime, defaultValue: `Selecciona la hora de fin (posterior a ${startTime})` })}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
@@ -929,8 +1214,8 @@ export default function CoordinatorJustificationsScreen() {
                         if (endMins <= startMins) {
                           showAlert({
                             type: 'warning',
-                            title: 'Horario Inválido',
-                            message: 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).'
+                            title: t('bulkJustifications.invalidSchedule', 'Horario Inválido'),
+                            message: t('bulkJustifications.invalidScheduleDesc', 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).')
                           });
                           return;
                         }
@@ -1007,7 +1292,7 @@ export default function CoordinatorJustificationsScreen() {
                 }}
                 numberOfLines={1}
               >
-                Evidencia Adjunta
+                {t('coordinatorJustifications.attachedEvidence', 'Evidencia Adjunta')}
               </Text>
             </View>
 
@@ -1029,7 +1314,7 @@ export default function CoordinatorJustificationsScreen() {
                       }}
                     >
                       <Download size={16} color="#FFFFFF" />
-                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Descargar</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>{t('common.download', 'Descargar')}</Text>
                     </TouchableOpacity>
                   );
                 }
@@ -1048,7 +1333,7 @@ export default function CoordinatorJustificationsScreen() {
                       }}
                     >
                       <ExternalLink size={16} color="#FFFFFF" />
-                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>Abrir</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>{t('common.open', 'Abrir')}</Text>
                     </TouchableOpacity>
                   );
                 }
@@ -1143,16 +1428,16 @@ export default function CoordinatorJustificationsScreen() {
                     <View style={{ alignItems: 'center', padding: 28, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, maxWidth: 360, width: '90%' }}>
                       <ExternalLink size={56} color="#38BDF8" style={{ marginBottom: 16 }} />
                       <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
-                        Enlace Externo
+                        {t('coordinatorJustifications.externalLink', 'Enlace Externo')}
                       </Text>
                       <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 24 }}>
-                        El archivo está disponible mediante un enlace o servicio externo.
+                        {t('coordinatorJustifications.externalLinkDesc', 'El archivo está disponible mediante un enlace o servicio externo.')}
                       </Text>
                       <TouchableOpacity
                         style={{ backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, width: '100%', alignItems: 'center' }}
                         onPress={() => Linking.openURL(info.url)}
                       >
-                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Abrir Enlace Externo</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>{t('coordinatorJustifications.openExternalLink', 'Abrir Enlace Externo')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1164,10 +1449,10 @@ export default function CoordinatorJustificationsScreen() {
                   <View style={{ alignItems: 'center', padding: 28, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, maxWidth: 360, width: '90%' }}>
                     <FileText size={56} color="#38BDF8" style={{ marginBottom: 16 }} />
                     <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', textAlign: 'center', marginBottom: 8 }}>
-                      Documento Adjunto
+                      {t('coordinatorJustifications.attachedDocument', 'Documento Adjunto')}
                     </Text>
                     <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 24 }}>
-                      Comprobante registrado en la solicitud. Puedes abrirlo con una aplicación compatible.
+                      {t('coordinatorJustifications.attachedDocumentDesc', 'Comprobante registrado en la solicitud. Puedes abrirlo con una aplicación compatible.')}
                     </Text>
                     {info.url && info.url.length > 20 && (
                       <TouchableOpacity
@@ -1175,7 +1460,7 @@ export default function CoordinatorJustificationsScreen() {
                         onPress={() => handleOpenPdfMobile(info.url)}
                       >
                         <Download size={18} color="#FFF" />
-                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Abrir o Descargar</Text>
+                        <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>{t('coordinatorJustifications.openOrDownload', 'Abrir o Descargar')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1456,4 +1741,168 @@ const createStyles = (Colors) => StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
+
+  // Bulk & Mode Styles
+  creationModeContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray[100] || '#f1f5f9',
+    borderRadius: BorderRadius.md || 12,
+    padding: 4,
+  },
+  creationModeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: BorderRadius.sm || 8,
+  },
+  creationModeBtnActive: {
+    backgroundColor: Colors.primary,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+  },
+  creationModeBtnText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  creationModeBtnTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  selectedStudentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: (Colors.primary || '#0B1956') + '15',
+    borderWidth: 1,
+    borderColor: Colors.primary || '#0B1956',
+    borderRadius: BorderRadius.md || 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  selectedStudentName: {
+    fontSize: Typography.size.sm,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  selectedStudentCode: {
+    fontSize: Typography.size.xs,
+    color: Colors.text.muted,
+    marginTop: 2,
+  },
+  removeSelectedBtn: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#fee2e2',
+  },
+  subFilterLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: 'bold',
+    color: Colors.text.secondary,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  filterScroll: {
+    marginBottom: 6,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full || 20,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.gray[300],
+    marginRight: 6,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterChipText: {
+    fontSize: Typography.size.xs,
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  quickActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray[100],
+  },
+  quickActionDanger: {
+    backgroundColor: '#fee2e2',
+  },
+  quickActionText: {
+    fontSize: Typography.size.xs,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  selectionCounterCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: (Colors.primary || '#0B1956') + '12',
+    padding: 10,
+    borderRadius: BorderRadius.md,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: (Colors.primary || '#0B1956') + '30',
+  },
+  selectionCounterText: {
+    fontSize: Typography.size.sm,
+    color: Colors.primary,
+  },
+  selectedChipsScroll: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    maxHeight: 38,
+  },
+  studentSelectedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+    marginRight: 6,
+  },
+  studentSelectedChipText: {
+    fontSize: Typography.size.xs,
+    color: '#FFF',
+    fontWeight: '600',
+    maxWidth: 160,
+  },
+  studentCheckboxItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray[100],
+    backgroundColor: Colors.card,
+  },
+  studentCheckboxItemActive: {
+    backgroundColor: (Colors.primary || '#0B1956') + '08',
+  },
+  checkboxContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
+

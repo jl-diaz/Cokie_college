@@ -159,7 +159,7 @@ export default function ClassroomsScreen() {
         <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Filtrar por grado o sección (ej. 9, A)..."
+          placeholder={t('classrooms.filterPlaceholder', 'Filtrar por grado o sección (ej. 9, A)...')}
           placeholderTextColor={Colors.text.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -213,7 +213,7 @@ export default function ClassroomsScreen() {
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.sectionText}>Toca para gestionar asistencia o consultar horario</Text>
+                    <Text style={styles.sectionText}>{t('classrooms.tapToManage', 'Toca para gestionar asistencia o consultar horario')}</Text>
                   </View>
 
                   <ChevronRight color={Colors.text.muted} size={20} />
@@ -232,7 +232,7 @@ export default function ClassroomsScreen() {
                 <Text style={styles.modalTitle}>
                   {selectedClassroom?.grade}º Grado — Sección '{selectedClassroom?.section}'
                 </Text>
-                <Text style={styles.modalSubtitle}>Opciones y acciones disponibles</Text>
+                <Text style={styles.modalSubtitle}>{t('classrooms.optionsAvailable', 'Opciones y acciones disponibles')}</Text>
               </View>
               <TouchableOpacity 
                 style={styles.closeBtn} 
@@ -273,7 +273,7 @@ export default function ClassroomsScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.actionText}>{t('classrooms.downloadZip', 'Descargar Boletines (ZIP)')}</Text>
-                      <Text style={styles.actionSubtext}>Genera un archivo ZIP con todos los PDFs del salón</Text>
+                      <Text style={styles.actionSubtext}>{t('classrooms.generateZipDesc', 'Genera un archivo ZIP con todos los PDFs del salón')}</Text>
                     </View>
                     <ChevronRight color={Colors.text.muted} size={18} />
                   </TouchableOpacity>

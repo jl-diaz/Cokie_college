@@ -4,8 +4,10 @@ import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../src/utils/supabase';
 import { useAuth } from '../src/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function EasterEggScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { profile } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -236,7 +238,7 @@ export default function EasterEggScreen() {
       >
         {!isPlaying && !isGameOver && (
           <View style={styles.startOverlay}>
-            <Text style={styles.startText}>Toca o presiona Espacio para jugar</Text>
+            <Text style={styles.startText}>{t('easterEgg.tapToPlay', 'Toca o presiona Espacio para jugar')}</Text>
           </View>
         )}
 
@@ -265,35 +267,35 @@ export default function EasterEggScreen() {
 
         {isGameOver && (
           <View style={styles.gameOverOverlay}>
-            <Text style={styles.gameOverText}>¡Ups!</Text>
+            <Text style={styles.gameOverText}>{t('easterEgg.gameOver', '¡Ups!')}</Text>
             
             {newRecordType === 'global' && (
               <View style={[styles.congratsBadge, { backgroundColor: '#10b981' }]}>
-                <Text style={styles.congratsText}>👑 ¡NUEVO RÉCORD GLOBAL! 👑</Text>
+                <Text style={styles.congratsText}>{t('easterEgg.newGlobalRecord', '👑 ¡NUEVO RÉCORD GLOBAL! 👑')}</Text>
               </View>
             )}
             
             {newRecordType === 'personal' && (
               <View style={[styles.congratsBadge, { backgroundColor: '#F6BE2F' }]}>
-                <Text style={[styles.congratsText, { color: '#0B1956' }]}>🌟 ¡RÉCORD PERSONAL! 🌟</Text>
+                <Text style={[styles.congratsText, { color: '#0B1956' }]}>{t('easterEgg.newPersonalRecord', '🌟 ¡RÉCORD PERSONAL! 🌟')}</Text>
               </View>
             )}
 
             <View style={styles.scoreBoard}>
-              <Text style={styles.finalScoreText}>Puntaje: {score}</Text>
-              <Text style={styles.recordText}>Récord Personal: {highScore}</Text>
+              <Text style={styles.finalScoreText}>{t('easterEgg.score', 'Puntaje')}: {score}</Text>
+              <Text style={styles.recordText}>{t('easterEgg.personalRecord', 'Récord Personal')}: {highScore}</Text>
               {globalRecord > 0 ? (
                 <Text style={styles.recordTextGlobal}>
-                  Récord Global Semanal: {globalRecord} ({globalRecordHolder})
+                  {t('easterEgg.weeklyGlobalRecord', 'Récord Global Semanal')}: {globalRecord} ({globalRecordHolder})
                 </Text>
               ) : (
                 <Text style={styles.recordTextGlobal}>
-                  Récord Global Semanal: Sin récord aún
+                  {t('easterEgg.weeklyGlobalRecord', 'Récord Global Semanal')}: {t('easterEgg.noRecordYet', 'Sin récord aún')}
                 </Text>
               )}
             </View>
             <TouchableOpacity style={styles.retryButton} onPress={resetGame}>
-              <Text style={styles.retryButtonText}>Jugar de nuevo</Text>
+              <Text style={styles.retryButtonText}>{t('easterEgg.playAgain', 'Jugar de nuevo')}</Text>
             </TouchableOpacity>
           </View>
         )}

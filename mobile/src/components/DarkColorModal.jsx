@@ -71,7 +71,7 @@ export default function DarkColorModal() {
                       <View style={[styles.swatch, { backgroundColor: preset.primaryDark }]} />
                     </View>
                     <Text style={[styles.presetName, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
-                      {preset.name}
+                      {t('theme.presets.' + preset.id, preset.name)}
                     </Text>
                   </View>
 

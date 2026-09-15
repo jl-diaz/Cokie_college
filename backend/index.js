@@ -16,18 +16,20 @@ app.set('trust proxy', true);
 // Rate limiting por capas para alto estrés y prevención de abuso
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 5000, // Aumentado para soportar alto estrés en la red del colegio (muchos usuarios compartiendo IP)
+    max: 5000, // Soportar alto estrés en campus escolar
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Demasiadas peticiones desde esta IP, por favor intente de nuevo en 15 minutos.' }
+    keyGenerator: (req) => req.headers.authorization || req.ip,
+    message: { error: 'Demasiadas peticiones, por favor intente de nuevo en 15 minutos.' }
 });
 
 const strictWriteLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000, // Máximo 1000 escrituras por IP por 15 minutos (aumentado para redes escolares NAT)
+    max: 1000, // Operaciones de escritura
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Límite de registros alcanzado temporalmente. Por favor intente más tarde.' }
+    keyGenerator: (req) => req.headers.authorization || req.ip,
+    message: { error: 'Límite de operaciones alcanzado temporalmente. Por favor intente más tarde.' }
 });
 
 // Middleware de seguridad y optimización
@@ -68,6 +70,7 @@ const announcementRoutes = require('./src/routes/announcementRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const cafetinRoutes = require('./src/routes/cafetinRoutes');
 const lunchRoutes = require('./src/routes/lunchRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
 const { startEventScheduler } = require('./src/utils/eventScheduler');
 
 app.use('/api/admin', adminRoutes);
@@ -79,6 +82,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Middleware global para captura de errores no controlados y evitar crash serverless
 app.use((err, req, res, next) => {

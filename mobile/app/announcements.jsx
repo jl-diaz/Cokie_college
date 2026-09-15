@@ -237,7 +237,7 @@ export default function AnnouncementsScreen() {
                     showsVerticalScrollIndicator={true} 
                     keyboardShouldPersistTaps="handled"
                     style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]}
-                    contentContainerStyle={{ paddingBottom: 8 }}
+                    contentContainerStyle={{ paddingBottom: 24 }}
                   >
                     <Text style={styles.inputLabel}>{t('announcements.announcementTitleLabel', 'Título del Aviso *')}</Text>
                     <TextInput

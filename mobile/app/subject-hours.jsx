@@ -598,10 +598,7 @@ export default function SubjectHoursScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalContent}
-        >
+        <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingSubject 
@@ -613,76 +610,82 @@ export default function SubjectHoursScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.inputLabel}>
-            {t('subjectHours.subjectName', 'Nombre de la Materia *')}
-          </Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder={t('subjectHours.subjectNamePlaceholder', 'Ej. Robótica')}
-            placeholderTextColor={Colors.text.muted}
-            value={formName}
-            onChangeText={setFormName}
-          />
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={styles.inputLabel}>
+              {t('subjectHours.subjectName', 'Nombre de la Materia *')}
+            </Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder={t('subjectHours.subjectNamePlaceholder', 'Ej. Robótica')}
+              placeholderTextColor={Colors.text.muted}
+              value={formName}
+              onChangeText={setFormName}
+            />
 
-          <Text style={[styles.inputLabel, { marginTop: 14 }]}>
-            {t('subjectHours.hoursLabel', 'Horas Semanales *')}
-          </Text>
+            <Text style={[styles.inputLabel, { marginTop: 14 }]}>
+              {t('subjectHours.hoursLabel', 'Horas Semanales *')}
+            </Text>
 
-          {/* Stepper selector en el formulario */}
-          <View style={styles.formStepperRow}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              disabled={formHours <= 1}
-              onPress={() => setFormHours(prev => Math.max(1, prev - 1))}
-              style={[styles.formStepperBtn, formHours <= 1 && styles.stepperBtnDisabled]}
-            >
-              <Minus size={18} color={formHours <= 1 ? Colors.text.muted : Colors.text.primary} />
-            </TouchableOpacity>
+            {/* Stepper selector en el formulario */}
+            <View style={styles.formStepperRow}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                disabled={formHours <= 1}
+                onPress={() => setFormHours(prev => Math.max(1, prev - 1))}
+                style={[styles.formStepperBtn, formHours <= 1 && styles.stepperBtnDisabled]}
+              >
+                <Minus size={18} color={formHours <= 1 ? Colors.text.muted : Colors.text.primary} />
+              </TouchableOpacity>
 
-            <View style={styles.formHoursDisplay}>
-              <Text style={styles.formHoursDisplayText}>{formHours} horas/semana</Text>
-              <Text style={styles.formBlocksDisplayText}>({formHours * 2} bloques de 30 min)</Text>
+              <View style={styles.formHoursDisplay}>
+                <Text style={styles.formHoursDisplayText}>{formHours} horas/semana</Text>
+                <Text style={styles.formBlocksDisplayText}>({formHours * 2} bloques de 30 min)</Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  const otherHours = editingSubject
+                    ? subjects.filter(s => s.id !== editingSubject.id).reduce((sum, s) => sum + (s.weekly_hours || 0), 0)
+                    : totalAllocatedHours;
+                  if (otherHours + formHours + 1 > MAX_WEEKLY_HOURS) {
+                    showAlert({
+                      type: 'warning',
+                      title: t('subjectHours.limitAlertTitle', 'Límite de Capacidad Semanal'),
+                      message: t('subjectHours.limitAlertMessage', 'La jornada escolar dispone de 20 horas de clase netas a la semana.')
+                    });
+                    return;
+                  }
+                  setFormHours(prev => prev + 1);
+                }}
+                style={styles.formStepperBtn}
+              >
+                <Plus size={18} color={Colors.text.primary} />
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => {
-                const otherHours = editingSubject
-                  ? subjects.filter(s => s.id !== editingSubject.id).reduce((sum, s) => sum + (s.weekly_hours || 0), 0)
-                  : totalAllocatedHours;
-                if (otherHours + formHours + 1 > MAX_WEEKLY_HOURS) {
-                  showAlert({
-                    type: 'warning',
-                    title: t('subjectHours.limitAlertTitle', 'Límite de Capacidad Semanal'),
-                    message: t('subjectHours.limitAlertMessage', 'La jornada escolar dispone de 20 horas de clase netas a la semana.')
-                  });
-                  return;
-                }
-                setFormHours(prev => prev + 1);
-              }}
-              style={styles.formStepperBtn}
+              style={[styles.submitBtn, savingForm && { opacity: 0.7 }]}
+              onPress={handleSaveForm}
+              disabled={savingForm}
+              activeOpacity={0.8}
             >
-              <Plus size={18} color={Colors.text.primary} />
+              {savingForm ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {editingSubject 
+                    ? t('subjectHours.save', 'Guardar Cambios') 
+                    : t('subjectHours.create', 'Crear Materia')}
+                </Text>
+              )}
             </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.submitBtn, savingForm && { opacity: 0.7 }]}
-            onPress={handleSaveForm}
-            disabled={savingForm}
-            activeOpacity={0.8}
-          >
-            {savingForm ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {editingSubject 
-                  ? t('subjectHours.save', 'Guardar Cambios') 
-                  : t('subjectHours.create', 'Crear Materia')}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+          </ScrollView>
+        </View>
       </BottomModal>
     </View>
   );

@@ -41,7 +41,7 @@ export default function DatePickerSelector({
   onToggle
 }) {
   const { colors, theme } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [internalShowPicker, setInternalShowPicker] = useState(false);
   const showNativePicker = isOpen !== undefined ? isOpen : internalShowPicker;
 
@@ -244,7 +244,7 @@ export default function DatePickerSelector({
                   ]}
                   numberOfLines={1}
                 >
-                  {value ? formatDisplayDate(value) : (placeholder || 'Seleccionar fecha...')}
+                  {value ? formatDisplayDate(value) : (placeholder || t('dashboard.selectDate', 'Seleccionar fecha...'))}
                 </Text>
                 {value ? (
                   <Text style={[styles.rawDateText, { color: colors.text.muted }]}>
@@ -277,7 +277,7 @@ export default function DatePickerSelector({
                   }
                 ]}>
                   <Text style={[styles.iosPickerToolbarTitle, { color: isDark ? colors.text.secondary : '#64748B' }]}>
-                    {label ? label.replace('*', '').trim() : 'Seleccionar fecha'}
+                    {label ? label.replace('*', '').trim() : t('dashboard.selectDate', 'Seleccionar fecha')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => togglePicker(false)}
@@ -285,7 +285,7 @@ export default function DatePickerSelector({
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.iosDoneText, { color: colors.primary }]}>
-                      Listo
+                      {t('common.done', 'Listo')}
                     </Text>
                   </TouchableOpacity>
                 </View>

@@ -4,8 +4,8 @@ const coordinatorController = require('../controllers/coordinatorController');
 const adminController = require('../controllers/adminController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Todas las rutas requieren autenticación y rol coordinator
-router.use(authenticate, authorize(['coordinator']));
+// Todas las rutas requieren autenticación y rol coordinator o super_admin
+router.use(authenticate, authorize(['coordinator', 'super_admin']));
 
 // Estudiantes y Diario Pedagógico
 router.get('/students', coordinatorController.getStudents);
@@ -32,6 +32,7 @@ router.get('/justifications', coordinatorController.getJustificationRequests);
 router.put('/justifications/:id', coordinatorController.processJustification);
 router.post('/justifications/direct', coordinatorController.directJustification);
 router.post('/justifications/student', coordinatorController.createJustificationForStudent);
+router.post('/justifications/bulk', coordinatorController.bulkJustification);
 
 // Asignación de Maestros (Generador Automático)
 router.get('/schedules/generate', coordinatorController.generateScheduleProposal);

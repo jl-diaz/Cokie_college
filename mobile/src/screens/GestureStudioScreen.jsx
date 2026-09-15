@@ -11,7 +11,8 @@ import {
   Alert,
   Platform,
   Dimensions,
-  Image
+  Image,
+  KeyboardAvoidingView
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import {
@@ -929,86 +930,97 @@ export default function GestureStudioScreen() {
         animationType="fade"
         onRequestClose={() => setIsNewModalOpen(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Agregar Gesto al Dialecto</Text>
-            <Text style={styles.modalSubtitle}>
-              Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.
-            </Text>
-
-            <Text style={styles.fieldLabel}>Nombre en Español *</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newGestureName}
-              onChangeText={setNewGestureName}
-              placeholder="Ej: Puerta, Permiso para ir al baño"
-              placeholderTextColor="#94a3b8"
-            />
-
-            <Text style={styles.fieldLabel}>Nombre en Inglés (Traducción TTS / Subtítulos)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newGestureNameEn}
-              onChangeText={setNewGestureNameEn}
-              placeholder="Ej: Door, Excuse me to go to bathroom"
-              placeholderTextColor="#94a3b8"
-            />
-
-            <Text style={styles.fieldLabel}>Tipo de Expresión</Text>
-            <View style={styles.typeRow}>
-              <TouchableOpacity
-                style={[styles.typeOption, newGestureType === 'movement' && styles.typeOptionActive]}
-                onPress={() => setNewGestureType('movement')}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 16 }}
               >
-                <Activity size={16} color={newGestureType === 'movement' ? '#38bdf8' : Colors.text.secondary} />
-                <Text style={[styles.typeOptionText, newGestureType === 'movement' && styles.typeOptionTextActive]}>
-                  Movimiento Dinámico
+                <Text style={styles.modalTitle}>Agregar Gesto al Dialecto</Text>
+                <Text style={styles.modalSubtitle}>
+                  Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.
                 </Text>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.typeOption, newGestureType === 'static' && styles.typeOptionActive]}
-                onPress={() => setNewGestureType('static')}
-              >
-                <Award size={16} color={newGestureType === 'static' ? '#38bdf8' : Colors.text.secondary} />
-                <Text style={[styles.typeOptionText, newGestureType === 'static' && styles.typeOptionTextActive]}>
-                  Seña Estática
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.fieldLabel}>Nombre en Español *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newGestureName}
+                  onChangeText={setNewGestureName}
+                  placeholder="Ej: Puerta, Permiso para ir al baño"
+                  placeholderTextColor="#94a3b8"
+                />
 
-            <Text style={styles.fieldLabel}>Instrucciones de Movimiento (Opcional)</Text>
-            <TextInput
-              style={[styles.textInput, { height: 60 }]}
-              value={newGestureDesc}
-              onChangeText={setNewGestureDesc}
-              placeholder="Ej: Mano derecha en letra B sacudiéndose a la altura del pecho"
-              placeholderTextColor="#94a3b8"
-              multiline
-            />
+                <Text style={styles.fieldLabel}>Nombre en Inglés (Traducción TTS / Subtítulos)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newGestureNameEn}
+                  onChangeText={setNewGestureNameEn}
+                  placeholder="Ej: Door, Excuse me to go to bathroom"
+                  placeholderTextColor="#94a3b8"
+                />
 
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setIsNewModalOpen(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
+                <Text style={styles.fieldLabel}>Tipo de Expresión</Text>
+                <View style={styles.typeRow}>
+                  <TouchableOpacity
+                    style={[styles.typeOption, newGestureType === 'movement' && styles.typeOptionActive]}
+                    onPress={() => setNewGestureType('movement')}
+                  >
+                    <Activity size={16} color={newGestureType === 'movement' ? '#38bdf8' : Colors.text.secondary} />
+                    <Text style={[styles.typeOptionText, newGestureType === 'movement' && styles.typeOptionTextActive]}>
+                      Movimiento Dinámico
+                    </Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.confirmBtn}
-                onPress={handleCreateGesture}
-                disabled={creating}
-              >
-                {creating ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={styles.confirmBtnText}>Registrar Gesto</Text>
-                )}
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.typeOption, newGestureType === 'static' && styles.typeOptionActive]}
+                    onPress={() => setNewGestureType('static')}
+                  >
+                    <Award size={16} color={newGestureType === 'static' ? '#38bdf8' : Colors.text.secondary} />
+                    <Text style={[styles.typeOptionText, newGestureType === 'static' && styles.typeOptionTextActive]}>
+                      Seña Estática
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.fieldLabel}>Instrucciones de Movimiento (Opcional)</Text>
+                <TextInput
+                  style={[styles.textInput, { height: 60 }]}
+                  value={newGestureDesc}
+                  onChangeText={setNewGestureDesc}
+                  placeholder="Ej: Mano derecha en letra B sacudiéndose a la altura del pecho"
+                  placeholderTextColor="#94a3b8"
+                  multiline
+                />
+
+                <View style={styles.modalButtonRow}>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => setIsNewModalOpen(false)}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.confirmBtn}
+                    onPress={handleCreateGesture}
+                    disabled={creating}
+                  >
+                    {creating ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.confirmBtnText}>Registrar Gesto</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── MODAL: CONFIGURACIÓN DE IP DE LENTES COKIELENS ── */}
@@ -1018,69 +1030,74 @@ export default function GestureStudioScreen() {
         visible={isConfigModalVisible}
         onRequestClose={() => setIsConfigModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <View style={styles.modalTitleBadge}>
-                <Glasses size={20} color="#38bdf8" style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>Configurar CokieLens</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeaderRow}>
+                <View style={styles.modalTitleBadge}>
+                  <Glasses size={20} color="#38bdf8" style={{ marginRight: 8 }} />
+                  <Text style={styles.modalTitle}>Configurar CokieLens</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsConfigModalVisible(false)}>
+                  <X size={20} color={Colors.text.secondary} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setIsConfigModalVisible(false)}>
-                <X size={20} color={Colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
 
-            <Text style={styles.modalSubtitle}>
-              Ingresa la dirección IP asignada a los lentes inteligentes en tu red Wi-Fi local para vincular la cámara.
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                Ingresa la dirección IP asignada a los lentes inteligentes en tu red Wi-Fi local para vincular la cámara.
+              </Text>
 
-            <Text style={styles.fieldLabel}>Dirección IP / Hostname</Text>
-            <View style={styles.ipInputContainer}>
-              <Wifi size={18} color="#94a3b8" style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.modalTextInput}
-                placeholder="192.168.1.50 o cokielens.local"
-                placeholderTextColor="#64748b"
-                value={ipInput}
-                onChangeText={setIpInput}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Resultado de prueba de conexión */}
-            {testResult && (
-              <View style={[styles.testResultBox, { backgroundColor: testResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }]}>
-                {testResult.success ? (
-                  <Check size={16} color="#10b981" style={{ marginRight: 6 }} />
-                ) : (
-                  <AlertCircle size={16} color="#ef4444" style={{ marginRight: 6 }} />
-                )}
-                <Text style={[styles.testResultText, { color: testResult.success ? '#10b981' : '#ef4444' }]}>
-                  {testResult.message}
-                </Text>
+              <Text style={styles.fieldLabel}>Dirección IP / Hostname</Text>
+              <View style={styles.ipInputContainer}>
+                <Wifi size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="192.168.1.50 o cokielens.local"
+                  placeholderTextColor="#64748b"
+                  value={ipInput}
+                  onChangeText={setIpInput}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
               </View>
-            )}
 
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity 
-                style={styles.testBtn} 
-                onPress={handleTestConnection}
-                disabled={isTestingConnection}
-              >
-                {isTestingConnection ? (
-                  <ActivityIndicator size="small" color="#38bdf8" />
-                ) : (
-                  <Text style={styles.testBtnText}>Probar Conexión</Text>
-                )}
-              </TouchableOpacity>
+              {/* Resultado de prueba de conexión */}
+              {testResult && (
+                <View style={[styles.testResultBox, { backgroundColor: testResult.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }]}>
+                  {testResult.success ? (
+                    <Check size={16} color="#10b981" style={{ marginRight: 6 }} />
+                  ) : (
+                    <AlertCircle size={16} color="#ef4444" style={{ marginRight: 6 }} />
+                  )}
+                  <Text style={[styles.testResultText, { color: testResult.success ? '#10b981' : '#ef4444' }]}>
+                    {testResult.message}
+                  </Text>
+                </View>
+              )}
 
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                <Text style={styles.saveBtnText}>Guardar IP</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity 
+                  style={styles.testBtn} 
+                  onPress={handleTestConnection}
+                  disabled={isTestingConnection}
+                >
+                  {isTestingConnection ? (
+                    <ActivityIndicator size="small" color="#38bdf8" />
+                  ) : (
+                    <Text style={styles.testBtnText}>Probar Conexión</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
+                  <Text style={styles.saveBtnText}>Guardar IP</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

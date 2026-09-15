@@ -56,12 +56,12 @@ export default function AssignScreen() {
       
       if (errData?.code === 'SCHEDULE_EXISTS') {
         Alert.alert(
-          'Horario Ya Existente',
+          t('assign.scheduleAlreadyExists', 'Horario Ya Existente'),
           errData.error,
           [
-            { text: 'Cancelar', style: 'cancel' },
+            { text: t('common.cancel', 'Cancelar'), style: 'cancel' },
             { 
-              text: 'Eliminar Horario Actual', 
+              text: t('common.delete', 'Eliminar Horario Actual'), 
               style: 'destructive',
               onPress: deleteExistingSchedule 
             }
@@ -70,8 +70,8 @@ export default function AssignScreen() {
       } else {
         showAlert({
           type: 'error',
-          title: 'Error',
-          message: errData?.error || 'No se pudo generar la propuesta de horario.'
+          title: t('common.error', 'Error'),
+          message: errData?.error || t('assign.saveError', 'No se pudo generar la propuesta de horario.')
         });
       }
     } finally {
@@ -161,9 +161,9 @@ export default function AssignScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Generación Automática</Text>
+          <Text style={styles.cardTitle}>{t('assign.autoGeneration', 'Generación Automática')}</Text>
           <Text style={styles.description}>
-            El sistema creará una propuesta de horario distribuyendo las materias y profesores disponibles para tu nivel, respetando las horas semanales por materia y evitando choques de horario.
+            {t('assign.autoGenerationDesc', 'El sistema creará una propuesta de horario distribuyendo las materias y profesores disponibles para tu nivel, respetando las horas semanales por materia y evitando choques de horario.')}
           </Text>
           
           <TouchableOpacity 
@@ -177,7 +177,7 @@ export default function AssignScreen() {
               <>
                 <RefreshCw size={20} color="#FFF" style={{ marginRight: 8 }} />
                 <Text style={styles.generateBtnText}>
-                  {proposal.length > 0 ? 'Generar Nueva Propuesta' : 'Generar Propuesta'}
+                  {proposal.length > 0 ? t('assign.generateNewProposal', 'Generar Nueva Propuesta') : t('assign.generateProposal', 'Generar Propuesta')}
                 </Text>
               </>
             )}
@@ -186,9 +186,9 @@ export default function AssignScreen() {
 
         {proposal.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Propuesta Generada</Text>
+            <Text style={styles.cardTitle}>{t('assign.proposalGenerated', 'Propuesta Generada')}</Text>
             <Text style={styles.description}>
-              Revisa la propuesta de horario por salón. Si estás de acuerdo, guárdala para aplicarla.
+              {t('assign.proposalGeneratedDesc', 'Revisa la propuesta de horario por salón. Si estás de acuerdo, guárdala para aplicarla.')}
             </Text>
 
             <TouchableOpacity 
@@ -201,7 +201,7 @@ export default function AssignScreen() {
               ) : (
                 <>
                   <Check size={20} color="#FFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.applyBtnText}>Aprobar y Aplicar Horario</Text>
+                  <Text style={styles.applyBtnText}>{t('assign.approveAndApply', 'Aprobar y Aplicar Horario')}</Text>
                 </>
               )}
             </TouchableOpacity>

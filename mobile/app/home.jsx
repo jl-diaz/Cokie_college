@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils, Camera, Clock, Sparkles } from 'lucide-react-native';
+import { Home, Users, FileText, BookOpen, Calendar, Bell, Megaphone, Utensils, Camera, Clock, Sparkles, MessageSquare } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -33,6 +33,7 @@ export default function HomeScreen() {
     const lunchModule = { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils, color: '#10b981', desc: t('home.lunchDesc', 'Encargar tu almuerzo del día') };
 
     const commonModules = [
+      { name: t('menu.chat', 'CokieChat'), path: '/chat', icon: MessageSquare, color: '#0B1956', desc: t('home.chatDesc', 'Mensajería institucional en tiempo real') },
       { name: t('menu.interpreter', 'Intérprete ISL (BETA)'), path: '/interpreter', icon: Camera, color: '#06b6d4', desc: t('home.interpreterDesc', 'Traductor de señas en tiempo real') },
       { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar, color: '#ec4899', desc: t('home.eventsDesc', 'Fechas y actividades institucionales') },
       { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell, color: '#f59e0b', desc: t('home.announcementsDesc', 'Comunicados oficiales') }
@@ -52,7 +53,7 @@ export default function HomeScreen() {
       case 'coordinator':
         return [
           lunchModule,
-          { name: t('menu.classrooms', 'Salones'), path: '/classrooms', icon: BookOpen, color: '#0ea5e9', desc: 'Ver salones y descargar reportes' },
+          { name: t('menu.classrooms', 'Salones'), path: '/classrooms', icon: BookOpen, color: '#0ea5e9', desc: t('home.classroomsDesc', 'Ver salones y descargar reportes') },
           { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users, color: '#8b5cf6', desc: t('home.studentsDesc', 'Ver listado de estudiantes') },
           { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText, color: '#f59e0b', desc: t('home.coordinatorJustificationsDesc', 'Aprobar ausencias') },
           { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText, color: '#ec4899', desc: t('home.gradeTicketsDesc', 'Aprobar extensión de notas') },
@@ -112,7 +113,9 @@ export default function HomeScreen() {
           <View style={styles.badgeRow}>
             <TouchableOpacity activeOpacity={0.8} onPress={handleRoleClick}>
               <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>{profile?.role?.replace('_', ' ').toUpperCase()}</Text>
+                <Text style={styles.roleBadgeText}>
+                  {profile?.role ? t('roles.' + profile.role, profile.role.replace('_', ' ')).toUpperCase() : ''}
+                </Text>
               </View>
             </TouchableOpacity>
             {profile?.level ? (

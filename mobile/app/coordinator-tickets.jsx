@@ -10,7 +10,8 @@ import {
   Modal, 
   TextInput, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  ScrollView 
 } from 'react-native';
 import api from '../src/utils/api';
 import { Check, X, Clock, Calendar, User, FileText, Filter, AlertCircle } from 'lucide-react-native';
@@ -296,45 +297,51 @@ export default function CoordinatorTicketsScreen() {
             </TouchableOpacity>
           </View>
 
-            <Text style={styles.inputLabel}>
-              {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              multiline
-              numberOfLines={4}
-              placeholder={actionType === 'approve' ? t('teacherGrades.approveMsgPlaceholder', 'Escribe algún mensaje para el profesor...') : t('teacherGrades.rejectMsgPlaceholder', 'Explica la razón de la denegación...')}
-              placeholderTextColor={Colors.text.muted}
-              value={coordinatorMessage}
-              onChangeText={setCoordinatorMessage}
-            />
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
+              <Text style={styles.inputLabel}>
+                {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                multiline
+                numberOfLines={4}
+                placeholder={actionType === 'approve' ? t('teacherGrades.approveMsgPlaceholder', 'Escribe algún mensaje para el profesor...') : t('teacherGrades.rejectMsgPlaceholder', 'Explica la razón de la denegación...')}
+                placeholderTextColor={Colors.text.muted}
+                value={coordinatorMessage}
+                onChangeText={setCoordinatorMessage}
+              />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalCancelBtn}
-                onPress={() => setSelectedTicket(null)}
-                disabled={processing}
-              >
-                <Text style={styles.modalCancelText}>{t('dashboard.cancel', 'Cancelar')}</Text>
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.modalCancelBtn}
+                  onPress={() => setSelectedTicket(null)}
+                  disabled={processing}
+                >
+                  <Text style={styles.modalCancelText}>{t('dashboard.cancel', 'Cancelar')}</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[
-                  styles.modalConfirmBtn, 
-                  actionType === 'approve' ? styles.btnGreen : styles.btnRed
-                ]}
-                onPress={handleConfirmAction}
-                disabled={processing}
-              >
-                {processing ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.modalConfirmText}>
-                    {actionType === 'approve' ? t('dashboard.confirmApprove', 'Confirmar Aprobación') : t('dashboard.confirmReject', 'Confirmar Rechazo')}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity 
+                  style={[
+                    styles.modalConfirmBtn, 
+                    actionType === 'approve' ? styles.btnGreen : styles.btnRed
+                  ]}
+                  onPress={handleConfirmAction}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalConfirmText}>
+                      {actionType === 'approve' ? t('dashboard.confirmApprove', 'Confirmar Aprobación') : t('dashboard.confirmReject', 'Confirmar Rechazo')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
       </BottomModal>
     </View>

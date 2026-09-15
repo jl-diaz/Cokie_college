@@ -36,7 +36,9 @@
     "subjectHours": "Horas de Materias",
     "subjectHoursSubtitle": "Control de horas semanales para el generador de horarios",
     "academicPeriods": "Periodos Académicos",
-    "academicPeriodsSubtitle": "Gestión de fechas de inicio y fin de periodos"
+    "academicPeriodsSubtitle": "Gestión de fechas de inicio y fin de periodos",
+    "chat": "CokieChat",
+    "chatSubtitle": "Mensajería institucional en tiempo real"
   },
   "home": {
     "welcome": "¡Hola, {{name}}!",
@@ -52,7 +54,7 @@
     "gradeTicketsDesc": "Aprobar extensión de notas",
     "assignDesc": "Asignar docentes",
     "scheduleDesc": "Clases programadas",
-    "classroomsDesc": "Ver todos los salones",
+    "classroomsDesc": "Ver salones y descargar reportes",
     "activeClassDesc": "Gestionar asistencia",
     "teacherGradesDesc": "Calificar estudiantes",
     "studentScheduleDesc": "Ver tus clases",
@@ -64,7 +66,8 @@
     "eventsDesc": "Fechas y actividades institucionales",
     "announcementsDesc": "Comunicados oficiales",
     "interpreterDesc": "Traducción de lenguaje de señas en tiempo real",
-    "gestureStudioDesc": "Gestionar dialecto, grabar señas y entrenar la IA"
+    "gestureStudioDesc": "Gestionar dialecto, grabar señas y entrenar la IA",
+    "chatDesc": "Mensajería institucional en tiempo real"
   },
   "menu": {
     "home": "Inicio",
@@ -90,7 +93,8 @@
     "gesture_studio": "Estudio de Gestos e IA",
     "subject_hours": "Horas de Materias",
     "academic_periods": "Periodos Académicos",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "chat": "CokieChat"
   },
   "drawer": {
     "subBrand": "Plataforma Estudiantil"
@@ -154,7 +158,8 @@
     "approve": "Aprobar",
     "detailsPlaceholder": "Ingresa detalles aquí...",
     "confirmApprove": "Confirmar Aprobación",
-    "confirmReject": "Confirmar Rechazo"
+    "confirmReject": "Confirmar Rechazo",
+    "selectDate": "Seleccionar fecha"
   },
   "assign": {
     "teacher": "Docente",
@@ -175,7 +180,15 @@
     "success": "Horario asignado correctamente",
     "fillFields": "Por favor completa todos los campos para asignar el horario",
     "loadError": "No se pudieron cargar los datos de docentes y materias",
-    "saveError": "No se pudo guardar la asignación de horario"
+    "saveError": "No se pudo guardar la asignación de horario",
+    "autoGeneration": "Generación Automática",
+    "autoGenerationDesc": "El sistema creará una propuesta de horario distribuyendo las materias y profesores disponibles para tu nivel, respetando las horas semanales por materia y evitando choques de horario.",
+    "proposalGenerated": "Propuesta Generada",
+    "proposalGeneratedDesc": "Revisa la propuesta de horario por salón. Si estás de acuerdo, guárdala para aplicarla.",
+    "approveAndApply": "Aprobar y Aplicar Horario",
+    "scheduleAlreadyExists": "Horario Ya Existente",
+    "generateNewProposal": "Generar Nueva Propuesta",
+    "generateProposal": "Generar Propuesta"
   },
   "lunch": {
     "title": "Encargo de Almuerzos",
@@ -313,7 +326,12 @@
     "selectConductCode": "Seleccionar Código de Conducta",
     "observationsLabel": "Observaciones / Detalle (Opcional)",
     "applyConductBtn": "Aplicar Código de Conducta",
-    "conductApplied": "Código de conducta aplicado a {{name}}."
+    "conductApplied": "Código de conducta aplicado a {{name}}.",
+    "classNotActive": "Clase no activa",
+    "classNotActiveDesc": "Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso.",
+    "errorLoadingStudents": "No se pudieron cargar los alumnos de la clase.",
+    "savedTitle": "¡Asistencia Guardada!",
+    "savedSuccess": "Asistencia de {{count}} estudiantes registrada correctamente."
   },
   "classrooms": {
     "title": "Gestión de Salones",
@@ -335,7 +353,10 @@
     "attendanceDesc": "Toma de asistencia en vivo y reportes conductuales",
     "scheduleDesc": "Materias, asignaciones y horas lectivas del grupo",
     "downloadZip": "Descargar Boletines (ZIP)",
-    "selectPeriod": "Selecciona el Periodo a Descargar"
+    "selectPeriod": "Selecciona el Periodo a Descargar",
+    "filterPlaceholder": "Filtrar por grado o sección (ej. 9, A)...",
+    "optionsAvailable": "Opciones y acciones disponibles",
+    "generateZipDesc": "Genera un archivo ZIP con todos los PDFs del salón"
   },
   "teacherGrades": {
     "title": "Registro de Notas",
@@ -397,7 +418,9 @@
     "userUpdated": "Usuario actualizado correctamente.",
     "userCreated": "Usuario creado exitosamente.",
     "invalidEmail": "Por favor ingresa un correo electrónico válido.",
-    "subtitle": "Gestión de Usuarios Institucionales"
+    "subtitle": "Gestión de Usuarios Institucionales",
+    "specialtySubject": "Especialidad / Materia",
+    "inactive": "Inactivo"
   },
   "cafetin": {
     "menuTab": "1. Menú",
@@ -436,7 +459,11 @@
     "addFoodTitle": "Agregar Alimento al Catálogo",
     "foodName": "Nombre del Alimento *",
     "category": "Categoría *",
-    "descOptional": "Descripción (Opcional)"
+    "descOptional": "Descripción (Opcional)",
+    "cameraPermissionRequired": "Se necesita acceso a la cámara para escanear códigos QR.",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "attention": "¡ATENCIÓN!"
   },
   "coordinatorJustifications": {
     "title": "Justificaciones de Ausencia",
@@ -450,7 +477,41 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "processedSuccess": "Justificación procesada con éxito",
-    "reasonRequired": "Debes ingresar un motivo"
+    "reasonRequired": "Debes ingresar un motivo",
+    "manualEntry": "Ingreso Manual",
+    "requestsTab": "Solicitudes",
+    "historyTab": "Historial",
+    "pendingStatus": "Pendiente",
+    "viewEvidence": "Ver Evidencia",
+    "noEvidence": "Sin evidencia adjunta",
+    "noHistory": "No hay historial de solicitudes.",
+    "loadMore": "Cargar Más",
+    "searchStudent": "Buscar Estudiante *",
+    "searchStudentPlaceholder": "Nombre o código...",
+    "studentSelection": "Selección de Estudiantes *",
+    "noStudentsFound": "No se encontraron estudiantes con los filtros aplicados",
+    "decisionObservation": "Observación (Opcional)",
+    "decisionObservationPlaceholder": "Añade un comentario sobre la decisión...",
+    "loadingPdf": "Cargando documento PDF...",
+    "errorRenderingPdf": "Error al renderizar PDF: ",
+    "errorProcessing": "Error al procesar: ",
+    "approved": "Aprobada",
+    "rejected": "Rechazada",
+    "observation": "Observación",
+    "history": "Historial",
+    "pdfTitle": "Comprobante de Justificación (PDF)",
+    "cantOpenPdf": "No se pudo abrir el documento PDF en el dispositivo.",
+    "attachedEvidence": "Evidencia Adjunta",
+    "externalLink": "Enlace Externo",
+    "externalLinkDesc": "El archivo está disponible mediante un enlace o servicio externo.",
+    "openExternalLink": "Abrir Enlace Externo",
+    "attachedDocument": "Documento Adjunto",
+    "attachedDocumentDesc": "Comprobante registrado en la solicitud. Puedes abrirlo con una aplicación compatible.",
+    "openOrDownload": "Abrir o Descargar",
+    "approveRequest": "Aprobar Solicitud",
+    "rejectRequest": "Rechazar Solicitud",
+    "student": "Estudiante",
+    "observationOptional": "Observación (Opcional)"
   },
   "coordinatorTickets": {
     "title": "Tickets de Extensión de Notas",
@@ -491,7 +552,16 @@
   },
   "theme": {
     "colorModalTitle": "Color Primario (Modo Oscuro)",
-    "colorModalSubtitle": "Selecciona el color primario que se aplicará."
+    "colorModalSubtitle": "Selecciona el color primario que se aplicará.",
+    "presets": {
+      "default": "Azul Eléctrico (Predeterminado)",
+      "pink": "Rosa Cokie",
+      "gold": "Dorado Calidez",
+      "emerald": "Verde Neón",
+      "sky": "Celeste Vibrante",
+      "lime": "Verde Lima Neón",
+      "purple": "Violeta Eléctrico"
+    }
   },
   "days": {
     "monday": "Lun",
@@ -557,11 +627,6 @@
     "recordingSuccess": "Muestra guardada exitosamente"
   },
   "signs": {
-    "hola": "Hola",
-    "gracias": "Gracias",
-    "por_favor": "Por favor",
-    "permiso_bano": "Permiso para ir al baño",
-    "buenos_dias": "Buenos días",
     "0": "0 (Cero)",
     "1": "1 (Uno)",
     "2": "2 (Dos)",
@@ -573,6 +638,11 @@
     "8": "8 (Ocho)",
     "9": "9 (Nueve)",
     "10": "10 (Diez)",
+    "hola": "Hola",
+    "gracias": "Gracias",
+    "por_favor": "Por favor",
+    "permiso_bano": "Permiso para ir al baño",
+    "buenos_dias": "Buenos días",
     "h": "H",
     "open_palm": "Palma abierta / Hola",
     "u": "U",
@@ -618,7 +688,15 @@
   "conduct": {
     "loadError": "No se pudieron cargar los códigos de conducta",
     "deleteConfirm": "¿Estás seguro de eliminar este código de conducta?",
-    "deleteError": "No se pudo eliminar el código de conducta"
+    "deleteError": "No se pudo eliminar el código de conducta",
+    "noCodesRegistered": "No hay códigos registrados.",
+    "category": "Categoría",
+    "code": "Código",
+    "autoGenerated": "Generado Automático",
+    "codePlaceholder": "Ej. L-01",
+    "description": "Descripción",
+    "descPlaceholder": "Ej. Uso inadecuado del uniforme",
+    "saveCode": "Guardar Código"
   },
   "justifications": {
     "coordinatorSubtitle": "Gestión de solicitudes de justificación estudiantil",
@@ -626,7 +704,22 @@
     "selectDate": "Seleccionar Fecha",
     "reasonPlaceholder": "Explica el motivo de la falta...",
     "evidenceLabel": "Evidencia Adjunta (Opcional)",
-    "attachFile": "Subir documento o comprobante"
+    "attachFile": "Subir documento o comprobante",
+    "registerManual": "Registrar Justificación Manual",
+    "registerBulk": "Registrar Justificación Masiva (Excursión / Grupal)",
+    "absenceDate": "Fecha de Ausencia / Actividad *",
+    "reason": "Motivo de Ausencia *",
+    "saveAndApprove": "Guardar y Aprobar",
+    "scopeLabel": "Tipo de Inasistencia",
+    "fullDay": "Día Completo",
+    "bySchedule": "Por Horario",
+    "fromTime": "Desde (Hora Inicio)",
+    "toTime": "Hasta (Hora Fin)",
+    "invalidDate": "Fecha Inválida",
+    "invalidDateDesc": "Solo se permiten justificaciones hasta la fecha actual.",
+    "requests": "Solicitudes",
+    "manualEntry": "Ingreso Manual",
+    "date": "Fecha"
   },
   "tickets": {
     "noRequests": "No hay solicitudes registradas."
@@ -689,5 +782,150 @@
     "emptyList": "No hay periodos académicos registrados.",
     "calendarView": "Calendario Escolar",
     "guidelinesNotice": "Configura los intervalos lectivos. Cada periodo debe ser cronológicamente consecutivo y sin solapamiento de fechas con ningún otro periodo escolar."
+  },
+  "chat": {
+    "title": "Mensajes",
+    "searchContactsOrMessages": "Buscar contactos o mensajes...",
+    "searchConversation": "Buscar conversación...",
+    "all": "Todos",
+    "teachers": "Docentes",
+    "students": "Estudiantes",
+    "coordinator": "Coordinador",
+    "groups": "Grupos",
+    "online": "En linea",
+    "today": "HOY",
+    "todayFull": "HOY · {{date}}",
+    "writeMessage": "Escribe un mensaje...",
+    "writeInstitutional": "Escribe un mensaje institucional...",
+    "newConversation": "Nueva Conversación",
+    "directMessage": "Mensaje Directo",
+    "createGroup": "Crear Grupo",
+    "groupName": "Nombre del Grupo *",
+    "groupNamePlaceholder": "Ej: Docentes 9º Grado, Excursión Museo...",
+    "membersSelected": "{{count}} integrantes seleccionados",
+    "searchContactsPlaceholder": "Buscar por nombre o código institucional...",
+    "confirmCreateGroup": "Crear Grupo ({{count}} integrantes)",
+    "sendAttachment": "Enviar Archivo Adjunto",
+    "sendAttachmentSubtitle": "Selecciona el tipo de contenido que deseas compartir",
+    "camera": "Cámara",
+    "gallery": "Galería",
+    "document": "Documento",
+    "openOrDownload": "Tocar para abrir o descargar",
+    "noConversations": "Sin conversaciones",
+    "noResultsSearch": "No hay resultados para tu búsqueda",
+    "noConversationsHint": "Presiona el botón (+) para iniciar un nuevo chat o grupo",
+    "chatPlaceholderTitle": "CokieChat Institucional",
+    "chatPlaceholderSubtitle": "Selecciona una conversación a la izquierda o inicia un nuevo chat con tus profesores o compañeros.",
+    "loadingMessages": "Cargando mensajes seguros...",
+    "loadingConversations": "Cargando mensajes...",
+    "attachedPhoto": "📷 Foto enviada",
+    "attachedImage": "📷 Imagen",
+    "attachedDocument": "📄 {{name}}",
+    "participantsCount": "{{count}} participantes",
+    "roles": {
+      "teacher": "DOCENTE",
+      "coordinator": "COORDINADOR",
+      "student": "ESTUDIANTE",
+      "admin": "ADMIN",
+      "group": "GRUPO",
+      "institutional": "INSTITUCIONAL"
+    },
+    "alerts": {
+      "sendErrorTitle": "Error de Envío",
+      "sendErrorMessage": "No se pudo entregar el mensaje. Verifica tu conexión.",
+      "directChatError": "No se pudo iniciar la conversación.",
+      "writeGroupName": "Escribe un nombre para el grupo.",
+      "selectGroupMembers": "Selecciona al menos un integrante para el grupo.",
+      "groupCreatedSuccess": "El grupo \"{{name}}\" ha sido creado con éxito.",
+      "groupCreatedError": "No se pudo crear el grupo.",
+      "permissionCamera": "Se necesita permiso para usar la cámara.",
+      "permissionGallery": "Se necesita permiso para acceder a la galería.",
+      "imageProcessError": "No se pudo procesar la imagen seleccionada.",
+      "docAttachError": "No se pudo adjuntar el documento.",
+      "docOpenError": "No se pudo abrir el documento adjunto."
+    }
+  },
+  "bulkJustifications": {
+    "mode": "Modo de Justificación",
+    "individual": "Individual",
+    "bulk": "Masiva (Grupal / Excursión)",
+    "filterClassroom": "Filtrar por Aula",
+    "allGrades": "Todos los grados",
+    "allSections": "Todas las secciones",
+    "grade": "Grado",
+    "section": "Sección",
+    "selectFiltered": "Seleccionar filtrados ({{count}})",
+    "clear": "Limpiar",
+    "selectedStudents": "Alumnos Seleccionados",
+    "scope": "Alcance de Ausencia",
+    "fullDay": "Día Completo",
+    "bySchedule": "Por Horario",
+    "from": "Desde",
+    "to": "Hasta",
+    "futureDateHint": "Puedes registrar actividades grupales o excursiones programadas a futuro.",
+    "submitBulk": "Registrar {{count}} Justificaciones Aprobadas",
+    "studentsCount": "{{count}} estudiantes seleccionados",
+    "startTimeTitle": "Hora de Inicio (Desde)",
+    "endTimeTitle": "Hora de Fin (Hasta)",
+    "selectStartTimeHint": "Selecciona la hora lectiva de inicio",
+    "selectEndTimeHint": "Selecciona la hora de fin (posterior a {{startTime}})",
+    "invalidSchedule": "Horario Inválido",
+    "invalidScheduleDesc": "La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde)."
+  },
+  "common": {
+    "error": "Error",
+    "warning": "Atención",
+    "success": "Éxito",
+    "info": "Información",
+    "ok": "Aceptar",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "loading": "Cargando...",
+    "done": "Listo",
+    "close": "Cerrar",
+    "closeModal": "Cerrar modal",
+    "search": "Buscar...",
+    "noResults": "Sin resultados",
+    "permissionRequired": "Permiso Requerido",
+    "download": "Descargar",
+    "open": "Abrir",
+    "openExternal": "Abrir Enlace Externo",
+    "date": "Fecha",
+    "observation": "Observación",
+    "status": "Estado",
+    "actions": "Acciones",
+    "optional": "Opcional",
+    "required": "Obligatorio",
+    "loadMore": "Cargar Más"
+  },
+  "roles": {
+    "super_admin": "Super Administrador",
+    "coordinator": "Coordinador",
+    "teacher": "Docente",
+    "student": "Estudiante",
+    "cafetin": "Cafetín"
+  },
+  "easterEgg": {
+    "tapToPlay": "Toca o presiona Espacio para jugar",
+    "gameOver": "¡Ups!",
+    "newGlobalRecord": "👑 ¡NUEVO RÉCORD GLOBAL! 👑",
+    "newPersonalRecord": "🌟 ¡RÉCORD PERSONAL! 🌟",
+    "score": "Puntaje",
+    "personalRecord": "Récord Personal",
+    "weeklyGlobalRecord": "Récord Global Semanal",
+    "noRecordYet": "Sin récord aún",
+    "playAgain": "Jugar de nuevo"
+  },
+  "offline": {
+    "syncedTitle": "¡Sincronización Exitosa!",
+    "syncedMsg": "Se sincronizaron {{count}} lotes de asistencia pendientes.",
+    "cachedRosterTitle": "Modo Sin Conexión",
+    "cachedRosterMsg": "Cargando lista de estudiantes desde la memoria local. Podrás registrar la asistencia y se sincronizará cuando recuperes señal.",
+    "savedLocallyTitle": "Guardado Localmente (Offline)",
+    "savedLocallyMsg": "No hay conexión a internet o el servidor tardó en responder. La asistencia se guardó en tu dispositivo y se sincronizará automáticamente.",
+    "pendingBatches": "{{count}} asistencias pendientes de sincronizar",
+    "syncNow": "Sincronizar"
   }
 }

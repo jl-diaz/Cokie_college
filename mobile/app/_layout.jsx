@@ -243,6 +243,7 @@ function LayoutInner() {
           <Stack.Screen name="interpreter" options={{ title: ('') }} />
           <Stack.Screen name="subject-hours" options={{ title: ('') }} />
           <Stack.Screen name="academic-periods" options={{ title: ('') }} />
+          <Stack.Screen name="chat" options={{ headerShown: false }} />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
         <NotificationsModal 

@@ -27,9 +27,11 @@ import {
   ChevronDown, 
   Search, 
   CheckCheck, 
-  UserX, 
-  ChevronRight
-, ArrowLeft } from 'lucide-react-native';
+  ChevronRight,
+  ArrowLeft,
+  WifiOff,
+  RefreshCw
+} from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +39,15 @@ import { useAlert } from '../src/context/AlertContext';
 import { useAuth } from '../src/context/AuthContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+import { SkeletonCard, SkeletonList } from '../src/components/Skeleton';
+import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/utils/haptics';
+import { 
+  cacheClassroomStudents, 
+  getCachedClassroomStudents, 
+  enqueueOfflineAttendance, 
+  getPendingAttendancesCount, 
+  syncPendingAttendances 
+} from '../src/utils/offlineAttendance';
 
 export default function ClassScreen() {
   const router = useRouter();
@@ -65,8 +76,39 @@ export default function ClassScreen() {
   const [codeDropdownOpen, setCodeDropdownOpen] = useState(false);
   const [codeSearch, setCodeSearch] = useState('');
 
+  // Offline Sync State
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+  const [syncingOffline, setSyncingOffline] = useState(false);
+  const [isOfflineLoaded, setIsOfflineLoaded] = useState(false);
+
+  const refreshOfflineStatus = async () => {
+    const count = await getPendingAttendancesCount();
+    setPendingOfflineCount(count);
+  };
+
+  const handleSyncOffline = async () => {
+    setSyncingOffline(true);
+    try {
+      const res = await syncPendingAttendances(api);
+      if (res.syncedCount > 0) {
+        hapticSuccess();
+        showAlert({
+          type: 'success',
+          title: t('offline.syncedTitle', '¡Sincronización Exitosa!'),
+          message: t('offline.syncedMsg', { count: res.syncedCount, defaultValue: `Se sincronizaron ${res.syncedCount} lotes de asistencia pendientes.` })
+        });
+      }
+    } catch (err) {
+      console.warn('Error syncing offline attendance:', err);
+    } finally {
+      setSyncingOffline(false);
+      refreshOfflineStatus();
+    }
+  };
+
   useEffect(() => {
     fetchSchedulesAndCodes();
+    refreshOfflineStatus();
   }, []);
 
   const fetchSchedulesAndCodes = async () => {
@@ -176,6 +218,7 @@ export default function ClassScreen() {
     setSelectedClass(cls);
     setLoading(true);
     setSearchQuery('');
+    setIsOfflineLoaded(false);
     try {
       const studentEndpoint = profile?.role === 'coordinator' ? '/coordinator/students' : '/teacher/class-students';
       const response = await api.get(studentEndpoint, {
@@ -183,14 +226,28 @@ export default function ClassScreen() {
       });
       const mapped = (response.data || []).map(s => ({ ...s, status: 'present' }));
       setStudents(mapped);
+      // Guardar lista en caché local para soporte offline
+      await cacheClassroomStudents(cls.grade, cls.section, mapped);
     } catch (error) {
-      console.error('Error loading students:', error);
-      showAlert({
-        type: 'error',
-        title: 'Error',
-        message: 'No se pudieron cargar los alumnos de la clase.'
-      });
-      setSelectedClass(null);
+      console.warn('Error loading students online, trying offline cache:', error.message);
+      // Intento de recuperación desde memoria local offline
+      const cached = await getCachedClassroomStudents(cls.grade, cls.section);
+      if (cached && cached.length > 0) {
+        setStudents(cached.map(s => ({ ...s, status: 'present' })));
+        setIsOfflineLoaded(true);
+        showAlert({
+          type: 'info',
+          title: t('offline.cachedRosterTitle', 'Modo Sin Conexión'),
+          message: t('offline.cachedRosterMsg', 'Cargando lista de estudiantes desde la memoria local. Podrás registrar la asistencia y se sincronizará cuando recuperes señal.')
+        });
+      } else {
+        showAlert({
+          type: 'error',
+          title: t('common.error', 'Error'),
+          message: t('class.errorLoadingStudents', 'No se pudieron cargar los alumnos de la clase.')
+        });
+        setSelectedClass(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -208,13 +265,15 @@ export default function ClassScreen() {
 
   const toggleStatus = (id) => {
     if (!isSelectedClassActive) {
+      hapticWarning();
       showAlert({
         type: 'warning',
-        title: 'Clase no activa',
-        message: 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso. Puedes consultar la lista de alumnos y aplicar códigos de conducta.'
+        title: t('class.classNotActive', 'Clase no activa'),
+        message: t('class.classNotActiveDesc', 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso. Puedes consultar la lista de alumnos y aplicar códigos de conducta.')
       });
       return;
     }
+    hapticLight();
     setStudents(prev => prev.map(s => {
       if (s.id === id) {
         return { ...s, status: s.status === 'present' ? 'absent' : 'present' };
@@ -225,46 +284,62 @@ export default function ClassScreen() {
 
   const markAllStatus = (statusToSet) => {
     if (!isSelectedClassActive) {
+      hapticWarning();
       showAlert({
         type: 'warning',
-        title: 'Clase no activa',
-        message: 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso. Puedes consultar la lista de alumnos y aplicar códigos de conducta.'
+        title: t('class.classNotActive', 'Clase no activa'),
+        message: t('class.classNotActiveDesc', 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso. Puedes consultar la lista de alumnos y aplicar códigos de conducta.')
       });
       return;
     }
+    hapticMedium();
     setStudents(prev => prev.map(s => ({ ...s, status: statusToSet })));
   };
 
   const handleSaveAttendance = async () => {
     if (!isSelectedClassActive) {
+      hapticWarning();
       showAlert({
         type: 'warning',
-        title: 'Clase no activa',
-        message: 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso.'
+        title: t('class.classNotActive', 'Clase no activa'),
+        message: t('class.classNotActiveDesc', 'Solo se puede registrar asistencia durante la hora correspondiente a la clase activa en curso.')
       });
       return;
     }
     if (students.length === 0) return;
     setSaving(true);
+    const dateNow = new Date().toISOString();
+    const attendances = students.map(s => ({
+      student_id: s.id,
+      subject_id: selectedClass.subject_id,
+      status: s.status,
+      date: dateNow
+    }));
+
     try {
-      const attendances = students.map(s => ({
-        student_id: s.id,
-        subject_id: selectedClass.subject_id,
-        status: s.status,
-        date: new Date().toISOString()
-      }));
       await api.post('/teacher/attendance', { attendances });
+      hapticSuccess();
       showAlert({
         type: 'success',
-        title: '¡Asistencia Guardada!',
-        message: `Asistencia de ${students.length} estudiantes registrada correctamente.`
+        title: t('class.savedTitle', '¡Asistencia Guardada!'),
+        message: t('class.savedSuccess', { count: students.length, defaultValue: `Asistencia de ${students.length} estudiantes registrada correctamente.` })
       });
     } catch (error) {
-      console.error('Error saving attendance:', error);
+      console.warn('Error online saving attendance, saving to offline queue:', error.message);
+      // Fallback a cola offline persistente
+      await enqueueOfflineAttendance({
+        grade: selectedClass.grade,
+        section: selectedClass.section,
+        subjectId: selectedClass.subject_id,
+        attendances,
+        date: dateNow
+      });
+      refreshOfflineStatus();
+      hapticSuccess();
       showAlert({
-        type: 'error',
-        title: 'Error',
-        message: error.response?.data?.error || 'No se pudo guardar la asistencia.'
+        type: 'warning',
+        title: t('offline.savedLocallyTitle', 'Guardado Localmente (Offline)'),
+        message: t('offline.savedLocallyMsg', 'No hay conexión a internet o el servidor tardó en responder. La asistencia se guardó en tu dispositivo y se sincronizará automáticamente.')
       });
     } finally {
       setSaving(false);
@@ -282,6 +357,7 @@ export default function ClassScreen() {
 
   const handleSaveConductRecord = async () => {
     if (!selectedCode) {
+      hapticWarning();
       showAlert({
         type: 'warning',
         title: 'Campo Requerido',
@@ -304,6 +380,7 @@ export default function ClassScreen() {
       // Cerramos el modal primero y ocultamos el teclado
       setConductModalVisible(false);
       Keyboard.dismiss();
+      hapticSuccess();
 
       // Mostramos la alerta de éxito tras desmontar el BottomModal para evitar bloqueo nativo de Modals en Android
       setTimeout(() => {
@@ -358,8 +435,16 @@ export default function ClassScreen() {
 
   if (loading && !selectedClass && schedules.length === 0) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={styles.container}>
+        <PageHeader 
+          title={t('titles.activeClass', 'Clase Activa')} 
+          subtitle={t('class.subtitle', 'Selección de aula y toma de asistencia en tiempo real')} 
+        />
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </ScrollView>
       </View>
     );
   }
@@ -403,7 +488,7 @@ export default function ClassScreen() {
             >
               <View style={styles.liveBadgeRow}>
                 <View style={styles.liveIndicatorDot} />
-                <Text style={styles.liveBadgeText}>CLASE EN CURSO AHORA</Text>
+                <Text style={styles.liveBadgeText}>{t('class.activeNow', 'CLASE EN CURSO AHORA')}</Text>
               </View>
               <Text style={styles.liveSubjectTitle}>
                 {activeScheduleInfo.subjects?.name || 'Materia En Curso'}
@@ -412,7 +497,7 @@ export default function ClassScreen() {
                 {activeScheduleInfo.grade}º Grado '{activeScheduleInfo.section}' — {activeScheduleInfo.start_time?.substring(0, 5)} a {activeScheduleInfo.end_time?.substring(0, 5)}
               </Text>
               <View style={styles.liveActionRow}>
-                <Text style={styles.liveActionText}>Ingresar a Asistencia y Códigos</Text>
+                <Text style={styles.liveActionText}>{t('class.enterAttendance', 'Ingresar a Asistencia y Códigos')}</Text>
                 <ChevronRight size={18} color="#FFF" />
               </View>
             </TouchableOpacity>
@@ -430,12 +515,12 @@ export default function ClassScreen() {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Todas Tus Clases Asignadas</Text>
+          <Text style={styles.sectionTitle}>{t('class.assignedClasses', 'Todas Tus Clases Asignadas')}</Text>
 
           {schedules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <BookOpen size={48} color={Colors.text.muted} style={{ marginBottom: 12 }} />
-              <Text style={styles.emptyText}>No tienes clases asignadas en el sistema.</Text>
+              <Text style={styles.emptyText}>{t('class.noAssignedClasses', 'No tienes clases asignadas en el sistema.')}</Text>
             </View>
           ) : (
             schedules.map((cls, idx) => (
@@ -462,6 +547,37 @@ export default function ClassScreen() {
       ) : (
         // --- Attendance List View ---
         <View style={styles.flex1}>
+          {/* Offline Sync Banner */}
+          {(pendingOfflineCount > 0 || isOfflineLoaded) && (
+            <View style={[styles.offlineBanner, { marginHorizontal: Spacing.md, marginTop: Spacing.sm }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+                <WifiOff size={16} color={theme === 'dark' ? '#fde68a' : '#b45309'} />
+                <Text style={styles.offlineBannerText}>
+                  {pendingOfflineCount > 0 
+                    ? t('offline.pendingBatches', { count: pendingOfflineCount, defaultValue: `${pendingOfflineCount} asistencias pendientes de sincronizar` })
+                    : t('offline.cachedRosterTitle', 'Modo Sin Conexión (Lista Local)')}
+                </Text>
+              </View>
+              {pendingOfflineCount > 0 && (
+                <TouchableOpacity 
+                  style={styles.syncBtn} 
+                  onPress={handleSyncOffline}
+                  disabled={syncingOffline}
+                  activeOpacity={0.8}
+                >
+                  {syncingOffline ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <RefreshCw size={12} color="#FFF" />
+                      <Text style={styles.syncBtnText}>{t('offline.syncNow', 'Sincronizar')}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Stats Bar & Quick Actions */}
           <View style={styles.statsBar}>
             <View style={styles.statsChips}>
@@ -481,7 +597,7 @@ export default function ClassScreen() {
                 onPress={() => markAllStatus('present')}
               >
                 <CheckCheck size={16} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={styles.quickBtnText}>Todos Asiste</Text>
+                <Text style={styles.quickBtnText}>{t('class.allPresentBtn', 'Todos Asiste')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -489,7 +605,7 @@ export default function ClassScreen() {
                 onPress={() => markAllStatus('absent')}
               >
                 <UserX size={16} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={styles.quickBtnText}>Todos Falta</Text>
+                <Text style={styles.quickBtnText}>{t('class.allAbsentBtn', 'Todos Falta')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -499,7 +615,7 @@ export default function ClassScreen() {
             <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar estudiante por nombre o código..."
+              placeholder={t('class.searchStudent', 'Buscar estudiante por nombre o código...')}
               placeholderTextColor={Colors.text.muted}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -512,8 +628,8 @@ export default function ClassScreen() {
           </View>
 
           {loading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+            <View style={{ paddingHorizontal: Spacing.md, paddingTop: Spacing.sm }}>
+              <SkeletonList count={7} />
             </View>
           ) : (
             <FlatList
@@ -546,12 +662,12 @@ export default function ClassScreen() {
                       {item.status === 'present' ? (
                         <>
                           <Check size={14} color="#FFF" style={{ marginRight: 4 }} />
-                          <Text style={styles.statusBadgeText}>Asiste</Text>
+                          <Text style={styles.statusBadgeText}>{t('class.present', 'Asiste')}</Text>
                         </>
                       ) : (
                         <>
                           <X size={14} color="#FFF" style={{ marginRight: 4 }} />
-                          <Text style={styles.statusBadgeText}>Falta</Text>
+                          <Text style={styles.statusBadgeText}>{t('class.absent', 'Falta')}</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -588,7 +704,7 @@ export default function ClassScreen() {
                   ) : (
                     <>
                       <CheckCheck color="#FFF" size={20} style={{ marginRight: 8 }} />
-                      <Text style={styles.saveBtnText}>Guardar Asistencia</Text>
+                      <Text style={styles.saveBtnText}>{t('class.saveAttendance', 'Guardar Asistencia')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -610,7 +726,7 @@ export default function ClassScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <ShieldAlert size={22} color={Colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>Reportar Conducta</Text>
+                <Text style={styles.modalTitle}>{t('class.reportConduct', 'Reportar Conducta')}</Text>
               </View>
               <TouchableOpacity onPress={() => setConductModalVisible(false)} style={styles.closeHeaderBtn}>
                 <X size={22} color={Colors.primary} />
@@ -619,13 +735,13 @@ export default function ClassScreen() {
 
             <ScrollView style={styles.modalForm} keyboardShouldPersistTaps="handled">
               <View style={styles.studentBannerCard}>
-                <Text style={styles.studentLabelTitle}>Estudiante Seleccionado:</Text>
+                <Text style={styles.studentLabelTitle}>{t('class.selectedStudent', 'Estudiante Seleccionado:')}</Text>
                 <Text style={styles.studentNameHighlight}>{selectedStudent?.full_name}</Text>
                 <Text style={styles.studentCodeHighlight}>{selectedStudent?.institutional_code || 'S/C'}</Text>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Código de Conducta *</Text>
+                <Text style={styles.label}>{t('class.conductCodeLabel', 'Código de Conducta *')}</Text>
                 <TouchableOpacity 
                   style={styles.dropdownTrigger} 
                   onPress={() => setCodeDropdownOpen(!codeDropdownOpen)}
@@ -648,7 +764,7 @@ export default function ClassScreen() {
                     <View style={styles.codeSearchBox}>
                       <Search size={16} color={Colors.text.muted} style={{ marginRight: 8 }} />
                       <TextInput
-                        placeholder="Buscar por código (ej. L-01) o descripción..."
+                        placeholder={t('class.selectConductCode', 'Buscar por código (ej. L-01) o descripción...')}
                         placeholderTextColor={Colors.text.muted}
                         value={codeSearch}
                         onChangeText={setCodeSearch}
@@ -711,7 +827,7 @@ export default function ClassScreen() {
                 <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                   <FileText size={18} color={Colors.text.muted} style={styles.inputIcon} />
                   <TextInput
-                    placeholder="Escribe aquí los detalles del reporte de conducta..."
+                    placeholder={t('class.observationsLabel', 'Escribe aquí los detalles del reporte de conducta...')}
                     placeholderTextColor={Colors.text.muted}
                     multiline
                     numberOfLines={4}
@@ -730,7 +846,7 @@ export default function ClassScreen() {
                 {savingConduct ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.submitBtnText}>Aplicar Código de Conducta</Text>
+                  <Text style={styles.submitBtnText}>{t('class.applyConductBtn', 'Aplicar Código de Conducta')}</Text>
                 )}
               </TouchableOpacity>
               <View style={{ height: 28 }} />
@@ -1103,6 +1219,36 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   inputIcon: { marginRight: 8, marginTop: 2 },
   input: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
   textArea: { textAlignVertical: 'top' },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme === 'dark' ? '#451a03' : '#fef3c7',
+    borderColor: theme === 'dark' ? '#78350f' : '#fde68a',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+  },
+  offlineBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#fde68a' : '#92400e',
+    flex: 1,
+  },
+  syncBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.sm,
+    marginLeft: 8,
+  },
+  syncBtnText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   submitBtn: {
     backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,

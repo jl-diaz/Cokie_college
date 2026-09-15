@@ -1,8 +1,9 @@
 const { supabase, supabaseAdmin } = require('../config/supabase');
 
-// Caché en memoria para perfiles autenticados (TTL: 60 segundos)
+// Caché en memoria para perfiles autenticados (TTL: 60 segundos, Capacidad máx: 1000)
 const profileCache = new Map();
 const PROFILE_CACHE_TTL_MS = 60 * 1000;
+const MAX_PROFILE_CACHE_SIZE = 1000;
 
 const getCachedProfile = async (userId) => {
     const cached = profileCache.get(userId);
@@ -18,6 +19,11 @@ const getCachedProfile = async (userId) => {
         .single();
 
     if (!profileError && profile) {
+        // Evitar crecimiento desmedido en memoria bajo alto estrés
+        if (profileCache.size >= MAX_PROFILE_CACHE_SIZE) {
+            const firstKey = profileCache.keys().next().value;
+            if (firstKey) profileCache.delete(firstKey);
+        }
         profileCache.set(userId, { profile, timestamp: now });
         return profile;
     }
@@ -78,5 +84,6 @@ const authorize = (roles = []) => {
 
 module.exports = {
     authenticate,
-    authorize
+    authorize,
+    invalidateUserProfileCache
 };

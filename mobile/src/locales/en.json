@@ -36,7 +36,9 @@
     "subjectHours": "Subject Hours",
     "subjectHoursSubtitle": "Weekly hours configuration for timetable generator",
     "academicPeriods": "Academic Periods",
-    "academicPeriodsSubtitle": "Start and end dates management for school terms"
+    "academicPeriodsSubtitle": "Start and end dates management for school terms",
+    "chat": "CokieChat",
+    "chatSubtitle": "Real-time institutional messaging"
   },
   "home": {
     "welcome": "Hello, {{name}}!",
@@ -52,7 +54,7 @@
     "gradeTicketsDesc": "Approve grade extension tickets",
     "assignDesc": "Assign teachers to classes",
     "scheduleDesc": "Scheduled classes",
-    "classroomsDesc": "View all classrooms",
+    "classroomsDesc": "View classrooms and download reports",
     "activeClassDesc": "Manage attendance",
     "teacherGradesDesc": "Grade student work",
     "studentScheduleDesc": "View your classes",
@@ -64,7 +66,8 @@
     "eventsDesc": "Institutional dates and activities",
     "announcementsDesc": "Official announcements",
     "interpreterDesc": "Real-time sign language translation",
-    "gestureStudioDesc": "Manage school dialect, record gestures and train AI"
+    "gestureStudioDesc": "Manage school dialect, record gestures and train AI",
+    "chatDesc": "Real-time institutional messaging"
   },
   "menu": {
     "home": "Home",
@@ -90,7 +93,8 @@
     "interpreter": "Interpreter ISL (BETA)",
     "gesture_studio": "Gesture & AI Studio",
     "subject_hours": "Subject Hours",
-    "academic_periods": "Academic Periods"
+    "academic_periods": "Academic Periods",
+    "chat": "CokieChat"
   },
   "drawer": {
     "subBrand": "Student Platform"
@@ -154,7 +158,8 @@
     "approve": "Approve",
     "detailsPlaceholder": "Enter details here...",
     "confirmApprove": "Confirm Approval",
-    "confirmReject": "Confirm Rejection"
+    "confirmReject": "Confirm Rejection",
+    "selectDate": "Select date"
   },
   "assign": {
     "teacher": "Teacher",
@@ -175,7 +180,15 @@
     "success": "Schedule assigned successfully",
     "fillFields": "Please complete all fields to assign the schedule",
     "loadError": "Could not load teachers and subjects data",
-    "saveError": "Could not save schedule assignment"
+    "saveError": "Could not save schedule assignment",
+    "autoGeneration": "Automatic Generation",
+    "autoGenerationDesc": "The system will generate a schedule proposal distributing available subjects and teachers for your level, respecting weekly hours per subject and preventing schedule conflicts.",
+    "proposalGenerated": "Proposal Generated",
+    "proposalGeneratedDesc": "Review the schedule proposal by classroom. If you agree, save it to apply.",
+    "approveAndApply": "Approve and Apply Schedule",
+    "scheduleAlreadyExists": "Schedule Already Exists",
+    "generateNewProposal": "Generate New Proposal",
+    "generateProposal": "Generate Proposal"
   },
   "lunch": {
     "title": "Lunch Pre-Orders",
@@ -313,7 +326,12 @@
     "selectConductCode": "Select Conduct Code",
     "observationsLabel": "Observations / Detail (Optional)",
     "applyConductBtn": "Apply Conduct Code",
-    "conductApplied": "Conduct code applied to {{name}}."
+    "conductApplied": "Conduct code applied to {{name}}.",
+    "classNotActive": "Class Not Active",
+    "classNotActiveDesc": "Attendance can only be recorded during the active class period.",
+    "errorLoadingStudents": "Could not load classroom students.",
+    "savedTitle": "Attendance Saved!",
+    "savedSuccess": "Attendance for {{count}} students recorded successfully."
   },
   "classrooms": {
     "title": "Classroom Management",
@@ -335,7 +353,10 @@
     "attendanceDesc": "Live attendance tracking and behavioral reports",
     "scheduleDesc": "Subjects, assignments, and class hours",
     "downloadZip": "Download Report Cards (ZIP)",
-    "selectPeriod": "Select Period to Download"
+    "selectPeriod": "Select Period to Download",
+    "filterPlaceholder": "Filter by grade or section (e.g. 9, A)...",
+    "optionsAvailable": "Options and available actions",
+    "generateZipDesc": "Generates a ZIP file with all classroom PDFs"
   },
   "teacherGrades": {
     "title": "Grade Entry",
@@ -397,7 +418,9 @@
     "userUpdated": "User updated successfully.",
     "userCreated": "User created successfully.",
     "invalidEmail": "Please enter a valid email address.",
-    "subtitle": "Institutional User Management"
+    "subtitle": "Institutional User Management",
+    "specialtySubject": "Specialty / Subject",
+    "inactive": "Inactive"
   },
   "cafetin": {
     "menuTab": "1. Menu",
@@ -436,7 +459,11 @@
     "addFoodTitle": "Add Food to Catalog",
     "foodName": "Food Name *",
     "category": "Category *",
-    "descOptional": "Description (Optional)"
+    "descOptional": "Description (Optional)",
+    "cameraPermissionRequired": "Camera access is required to scan QR codes.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "attention": "ATTENTION!"
   },
   "coordinatorJustifications": {
     "title": "Absence Justifications",
@@ -450,7 +477,41 @@
     "approve": "Approve",
     "reject": "Reject",
     "processedSuccess": "Justification processed successfully",
-    "reasonRequired": "You must enter a reason"
+    "reasonRequired": "You must enter a reason",
+    "manualEntry": "Manual Entry",
+    "requestsTab": "Requests",
+    "historyTab": "History",
+    "pendingStatus": "Pending",
+    "viewEvidence": "View Evidence",
+    "noEvidence": "No evidence attached",
+    "noHistory": "No request history found.",
+    "loadMore": "Load More",
+    "searchStudent": "Search Student *",
+    "searchStudentPlaceholder": "Name or code...",
+    "studentSelection": "Student Selection *",
+    "noStudentsFound": "No students found matching filters",
+    "decisionObservation": "Observation (Optional)",
+    "decisionObservationPlaceholder": "Add a comment on the decision...",
+    "loadingPdf": "Loading PDF document...",
+    "errorRenderingPdf": "Error rendering PDF: ",
+    "errorProcessing": "Error processing: ",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "observation": "Observation",
+    "history": "History",
+    "pdfTitle": "Justification Receipt (PDF)",
+    "cantOpenPdf": "Could not open PDF document on the device.",
+    "attachedEvidence": "Attached Evidence",
+    "externalLink": "External Link",
+    "externalLinkDesc": "The file is available via an external link or service.",
+    "openExternalLink": "Open External Link",
+    "attachedDocument": "Attached Document",
+    "attachedDocumentDesc": "Receipt recorded in the request. You can open it with a compatible application.",
+    "openOrDownload": "Open or Download",
+    "approveRequest": "Approve Request",
+    "rejectRequest": "Reject Request",
+    "student": "Student",
+    "observationOptional": "Observation (Optional)"
   },
   "coordinatorTickets": {
     "title": "Grade Extension Tickets",
@@ -491,7 +552,16 @@
   },
   "theme": {
     "colorModalTitle": "Primary Color (Dark Mode)",
-    "colorModalSubtitle": "Select the primary accent color to apply."
+    "colorModalSubtitle": "Select the primary accent color to apply.",
+    "presets": {
+      "default": "Electric Blue (Default)",
+      "pink": "Cokie Pink",
+      "gold": "Warm Gold",
+      "emerald": "Neon Green",
+      "sky": "Vibrant Sky",
+      "lime": "Neon Lime",
+      "purple": "Electric Purple"
+    }
   },
   "days": {
     "monday": "Mon",
@@ -557,11 +627,6 @@
     "recordingSuccess": "Sample saved successfully"
   },
   "signs": {
-    "hola": "Hello",
-    "gracias": "Thank you",
-    "por_favor": "Please",
-    "permiso_bano": "Bathroom permission",
-    "buenos_dias": "Good morning",
     "0": "0 (Zero)",
     "1": "1 (One)",
     "2": "2 (Two)",
@@ -573,6 +638,11 @@
     "8": "8 (Eight)",
     "9": "9 (Nine)",
     "10": "10 (Ten)",
+    "hola": "Hello",
+    "gracias": "Thank you",
+    "por_favor": "Please",
+    "permiso_bano": "Bathroom permission",
+    "buenos_dias": "Good morning",
     "h": "H",
     "open_palm": "Open palm / Hello",
     "u": "U",
@@ -618,7 +688,15 @@
   "conduct": {
     "loadError": "Could not load conduct codes",
     "deleteConfirm": "Are you sure you want to delete this conduct code?",
-    "deleteError": "Could not delete conduct code"
+    "deleteError": "Could not delete conduct code",
+    "noCodesRegistered": "No codes registered.",
+    "category": "Category",
+    "code": "Code",
+    "autoGenerated": "Auto Generated",
+    "codePlaceholder": "E.g. L-01",
+    "description": "Description",
+    "descPlaceholder": "E.g. Improper uniform use",
+    "saveCode": "Save Code"
   },
   "justifications": {
     "coordinatorSubtitle": "Student justification request management",
@@ -626,7 +704,22 @@
     "selectDate": "Select Date",
     "reasonPlaceholder": "Explain the reason for absence...",
     "evidenceLabel": "Attach Evidence (Optional)",
-    "attachFile": "Upload document or image"
+    "attachFile": "Upload document or image",
+    "registerManual": "Register Manual Justification",
+    "registerBulk": "Register Bulk Justification (Field Trip / Group)",
+    "absenceDate": "Absence / Activity Date *",
+    "reason": "Absence Reason *",
+    "saveAndApprove": "Save and Approve",
+    "scopeLabel": "Absence Type",
+    "fullDay": "Full Day",
+    "bySchedule": "By Schedule",
+    "fromTime": "From (Start Time)",
+    "toTime": "To (End Time)",
+    "invalidDate": "Invalid Date",
+    "invalidDateDesc": "Only justifications up to the current date are allowed.",
+    "requests": "Requests",
+    "manualEntry": "Manual Entry",
+    "date": "Date"
   },
   "tickets": {
     "noRequests": "No registered requests."
@@ -689,5 +782,150 @@
     "emptyList": "No academic periods registered.",
     "calendarView": "School Calendar",
     "guidelinesNotice": "Configure term dates. Each period must be chronologically non-overlapping with any other academic period."
+  },
+  "chat": {
+    "title": "Messages",
+    "searchContactsOrMessages": "Search contacts or messages...",
+    "searchConversation": "Search conversation...",
+    "all": "All",
+    "teachers": "Teachers",
+    "students": "Students",
+    "coordinator": "Coordinator",
+    "groups": "Groups",
+    "online": "Online",
+    "today": "TODAY",
+    "todayFull": "TODAY · {{date}}",
+    "writeMessage": "Write a message...",
+    "writeInstitutional": "Write an institutional message...",
+    "newConversation": "New Conversation",
+    "directMessage": "Direct Message",
+    "createGroup": "Create Group",
+    "groupName": "Group Name *",
+    "groupNamePlaceholder": "E.g.: 9th Grade Teachers, Museum Trip...",
+    "membersSelected": "{{count}} members selected",
+    "searchContactsPlaceholder": "Search by name or institutional code...",
+    "confirmCreateGroup": "Create Group ({{count}} members)",
+    "sendAttachment": "Send Attachment",
+    "sendAttachmentSubtitle": "Select the type of content you want to share",
+    "camera": "Camera",
+    "gallery": "Gallery",
+    "document": "Document",
+    "openOrDownload": "Tap to open or download",
+    "noConversations": "No conversations",
+    "noResultsSearch": "No results found for your search",
+    "noConversationsHint": "Press the (+) button to start a new chat or group",
+    "chatPlaceholderTitle": "Institutional CokieChat",
+    "chatPlaceholderSubtitle": "Select a conversation on the left or start a new chat with your teachers or classmates.",
+    "loadingMessages": "Loading secure messages...",
+    "loadingConversations": "Loading messages...",
+    "attachedPhoto": "📷 Photo sent",
+    "attachedImage": "📷 Image",
+    "attachedDocument": "📄 {{name}}",
+    "participantsCount": "{{count}} participants",
+    "roles": {
+      "teacher": "TEACHER",
+      "coordinator": "COORDINATOR",
+      "student": "STUDENT",
+      "admin": "ADMIN",
+      "group": "GROUP",
+      "institutional": "INSTITUTIONAL"
+    },
+    "alerts": {
+      "sendErrorTitle": "Delivery Error",
+      "sendErrorMessage": "Could not deliver the message. Check your connection.",
+      "directChatError": "Could not start conversation.",
+      "writeGroupName": "Please enter a group name.",
+      "selectGroupMembers": "Select at least one member for the group.",
+      "groupCreatedSuccess": "The group \"{{name}}\" has been created successfully.",
+      "groupCreatedError": "Could not create group.",
+      "permissionCamera": "Camera permission is required.",
+      "permissionGallery": "Gallery permission is required.",
+      "imageProcessError": "Could not process the selected image.",
+      "docAttachError": "Could not attach document.",
+      "docOpenError": "Could not open attached document."
+    }
+  },
+  "bulkJustifications": {
+    "mode": "Justification Mode",
+    "individual": "Individual",
+    "bulk": "Bulk (Group / Field Trip)",
+    "filterClassroom": "Filter by Classroom",
+    "allGrades": "All grades",
+    "allSections": "All sections",
+    "grade": "Grade",
+    "section": "Section",
+    "selectFiltered": "Select filtered ({{count}})",
+    "clear": "Clear",
+    "selectedStudents": "Selected Students",
+    "scope": "Absence Scope",
+    "fullDay": "Full Day",
+    "bySchedule": "By Schedule",
+    "from": "From",
+    "to": "To",
+    "futureDateHint": "You can register scheduled group activities or future field trips.",
+    "submitBulk": "Register {{count}} Approved Justifications",
+    "studentsCount": "{{count}} students selected",
+    "startTimeTitle": "Start Time (From)",
+    "endTimeTitle": "End Time (To)",
+    "selectStartTimeHint": "Select school start time",
+    "selectEndTimeHint": "Select end time (after {{startTime}})",
+    "invalidSchedule": "Invalid Schedule",
+    "invalidScheduleDesc": "The end time cannot be earlier than or equal to the start time."
+  },
+  "common": {
+    "error": "Error",
+    "warning": "Warning",
+    "success": "Success",
+    "info": "Information",
+    "ok": "OK",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "done": "Done",
+    "close": "Close",
+    "closeModal": "Close modal",
+    "search": "Search...",
+    "noResults": "No results found",
+    "permissionRequired": "Permission Required",
+    "download": "Download",
+    "open": "Open",
+    "openExternal": "Open External Link",
+    "date": "Date",
+    "observation": "Observation",
+    "status": "Status",
+    "actions": "Actions",
+    "optional": "Optional",
+    "required": "Required",
+    "loadMore": "Load More"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "coordinator": "Coordinator",
+    "teacher": "Teacher",
+    "student": "Student",
+    "cafetin": "Cafeteria"
+  },
+  "easterEgg": {
+    "tapToPlay": "Tap or press Space to play",
+    "gameOver": "Oops!",
+    "newGlobalRecord": "👑 NEW GLOBAL RECORD! 👑",
+    "newPersonalRecord": "🌟 PERSONAL BEST! 🌟",
+    "score": "Score",
+    "personalRecord": "Personal Best",
+    "weeklyGlobalRecord": "Weekly Global Record",
+    "noRecordYet": "No record yet",
+    "playAgain": "Play Again"
+  },
+  "offline": {
+    "syncedTitle": "Sync Successful!",
+    "syncedMsg": "{{count}} pending attendance batches were synchronized.",
+    "cachedRosterTitle": "Offline Mode",
+    "cachedRosterMsg": "Loading student roster from local memory. You can record attendance and it will sync when you regain signal.",
+    "savedLocallyTitle": "Saved Locally (Offline)",
+    "savedLocallyMsg": "No internet connection or server timed out. Attendance was saved on your device and will sync automatically.",
+    "pendingBatches": "{{count}} pending attendances to sync",
+    "syncNow": "Sync Now"
   }
 }

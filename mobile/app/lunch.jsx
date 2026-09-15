@@ -28,6 +28,8 @@ import QRCodeDisplay from '../src/components/QRCodeDisplay';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+import { SkeletonCard } from '../src/components/Skeleton';
+import { hapticLight, hapticSuccess, hapticWarning } from '../src/utils/haptics';
 
 export default function LunchScreen() {
   const { t } = useTranslation();
@@ -185,6 +187,7 @@ export default function LunchScreen() {
       const res = await api.post('/lunch/orders', payload);
       setConfirmModalVisible(false);
       setExistingOrder(res.data);
+      hapticSuccess();
       showAlert({
         type: 'success',
         title: t('lunch.orderPlacedTitle', '¡Pedido Exitoso!'),
@@ -192,6 +195,7 @@ export default function LunchScreen() {
       });
     } catch (error) {
       console.error('Error al realizar el pedido:', error);
+      hapticWarning();
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
@@ -211,6 +215,7 @@ export default function LunchScreen() {
           setLoading(true);
           await api.delete('/lunch/my-today-order');
           setExistingOrder(null);
+          hapticSuccess();
           showAlert({
             type: 'success',
             title: 'Pedido Cancelado',
@@ -219,6 +224,7 @@ export default function LunchScreen() {
           await checkTodayOrderAndFetchCafetines();
         } catch (error) {
           console.error('Error al cancelar pedido:', error);
+          hapticWarning();
           showAlert({
             type: 'error',
             title: 'Error',
@@ -235,9 +241,15 @@ export default function LunchScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>{t('lunch.loadingModule', 'Cargando módulo de almuerzos...')}</Text>
+      <View style={styles.flex1}>
+        <PageHeader 
+          title={t('titles.lunch', 'Encargo de Almuerzos')}
+          subtitle={t('titles.lunchSubtitle', 'Pre-pedido y código QR de retiro')}
+        />
+        <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+          <SkeletonCard />
+          <SkeletonCard />
+        </ScrollView>
       </View>
     );
   }

@@ -42,6 +42,8 @@ import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Camera } from 'lucide-react-native';
+import { SkeletonCard } from '../src/components/Skeleton';
+import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -87,7 +89,7 @@ export default function CafetinScreen() {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        showAlert({ type: 'warning', title: 'Permiso requerido', message: 'Se necesita acceso a la cámara para escanear códigos QR.' });
+        showAlert({ type: 'warning', title: t('common.permissionRequired', 'Permiso requerido'), message: t('cafetin.cameraPermissionRequired', 'Se necesita acceso a la cámara para escanear códigos QR.') });
         return;
       }
     }
@@ -203,6 +205,7 @@ export default function CafetinScreen() {
   };
 
   const togglePublishItem = (itemId) => {
+    hapticLight();
     if (publishedItemIds.includes(itemId)) {
       setPublishedItemIds(publishedItemIds.filter(id => id !== itemId));
     } else {
@@ -214,6 +217,7 @@ export default function CafetinScreen() {
     setPublishingMenu(true);
     try {
       await api.post('/cafetin/daily-menu', { item_ids: publishedItemIds });
+      hapticSuccess();
       showAlert({
         type: 'success',
         title: '¡Menú Publicado!',
@@ -322,8 +326,10 @@ export default function CafetinScreen() {
     try {
       const res = await api.get(`/cafetin/orders/verify-qr/${orderIdToQuery}`);
       setScannedOrder(res.data);
+      hapticSuccess();
     } catch (error) {
       console.error('Error al verificar QR:', error);
+      hapticWarning();
       showAlert({
         type: 'error',
         title: 'Pedido No Encontrado',
@@ -339,6 +345,7 @@ export default function CafetinScreen() {
     setConfirmingDispatch(true);
     try {
       const res = await api.post(`/cafetin/orders/confirm-dispatch/${scannedOrder.id}`);
+      hapticSuccess();
       showAlert({
         type: 'success',
         title: '¡Despacho Exitoso!',
@@ -349,6 +356,7 @@ export default function CafetinScreen() {
       fetchTodayOrders();
     } catch (error) {
       console.error('Error al confirmar despacho:', error);
+      hapticWarning();
       showAlert({
         type: 'error',
         title: 'Error',
@@ -436,7 +444,10 @@ export default function CafetinScreen() {
           </View>
 
           {loadingMenu ? (
-            <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+            <View style={{ paddingTop: 16 }}>
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
           ) : (
             <>
               {['fuerte', 'acompanamiento', 'refresco'].map((catKey) => {
@@ -523,12 +534,15 @@ export default function CafetinScreen() {
           </View>
 
           {loadingOrders ? (
-            <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+            <View style={{ padding: 16 }}>
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
           ) : orders.length === 0 ? (
             <View style={styles.emptyContainer}>
               <ShoppingBag size={48} color={Colors.text.muted} />
-              <Text style={styles.emptyTitle}>No hay pedidos para hoy</Text>
-              <Text style={styles.emptyDesc}>Los pedidos de los usuarios aparecerán aquí en cuanto sean ordenados.</Text>
+              <Text style={styles.emptyTitle}>{t('cafetin.noOrdersToday', 'No hay pedidos para hoy')}</Text>
+              <Text style={styles.emptyDesc}>{t('cafetin.noOrdersDesc', 'Los pedidos de los usuarios aparecerán aquí en cuanto sean ordenados.')}</Text>
             </View>
           ) : (
             <FlatList
@@ -563,17 +577,17 @@ export default function CafetinScreen() {
                     </View>
 
                     <View style={styles.orderItemsList}>
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Fuerte:</Text> {order.fuerte?.name}</Text>
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 1:</Text> {order.acompanamiento1?.name}</Text>
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Acompañamiento 2:</Text> {order.acompanamiento2?.name}</Text>
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Tortillas:</Text> {order.tortillas_qty}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.fuerte', 'Fuerte:')}</Text> {order.fuerte?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.acomp1', 'Acompañamiento 1:')}</Text> {order.acompanamiento1?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.acomp2', 'Acompañamiento 2:')}</Text> {order.acompanamiento2?.name}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.tortillas', 'Tortillas:')}</Text> {order.tortillas_qty}</Text>
                       {order.refresco?.name ? (
-                        <Text style={styles.orderItemText}>• <Text style={styles.boldText}>Refresco:</Text> {order.refresco?.name}</Text>
+                        <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.refresco', 'Refresco:')}</Text> {order.refresco?.name}</Text>
                       ) : null}
                     </View>
 
                     <View style={styles.orderCardFooter}>
-                      <Text style={styles.priceLabel}>Monto total a cobrar:</Text>
+                      <Text style={styles.priceLabel}>{t('cafetin.totalToCharge', 'Monto total a cobrar:')}</Text>
                       <Text style={styles.priceValue}>${Number(order.total_price).toFixed(2)}</Text>
                     </View>
                   </TouchableOpacity>
@@ -589,7 +603,7 @@ export default function CafetinScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.qrHeaderCard}>
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />
-            <Text style={styles.qrTitle}>Escanear o Ingresar Código QR</Text>
+            <Text style={styles.qrTitle}>{t('cafetin.scanOrEnterQr', 'Escanear o Ingresar Código QR')}</Text>
             <Text style={styles.qrDesc}>
               Escanea el QR del estudiante o ingresa manualmente el código de la orden.
             </Text>
@@ -624,14 +638,14 @@ export default function CafetinScreen() {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ flex: 1, height: 1, backgroundColor: Colors.gray[200] }} />
-              <Text style={{ marginHorizontal: 12, color: Colors.text.muted, fontSize: 12 }}>o ingresa el código</Text>
+              <Text style={{ marginHorizontal: 12, color: Colors.text.muted, fontSize: 12 }}>{t('cafetin.orEnterCode', 'o ingresa el código')}</Text>
               <View style={{ flex: 1, height: 1, backgroundColor: Colors.gray[200] }} />
             </View>
 
             <View style={styles.searchRow}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Código del pedido (UUID u ID)..."
+                placeholder={t('cafetin.qrSearchPlaceholder', 'Código del pedido (UUID u ID)...')}
                 placeholderTextColor={Colors.text.muted}
                 value={scannedOrderId}
                 onChangeText={setScannedOrderId}
@@ -657,54 +671,54 @@ export default function CafetinScreen() {
               <View style={styles.scannedHeader}>
                 <CheckCircle size={28} color="#10b981" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.scannedTitle}>Pedido Encontrado</Text>
-                  <Text style={styles.scannedSubtitle}>Por favor verifica el cobro en efectivo</Text>
+                  <Text style={styles.scannedTitle}>{t('cafetin.orderFound', 'Pedido Encontrado')}</Text>
+                  <Text style={styles.scannedSubtitle}>{t('cafetin.verifyPayment', 'Por favor verifica el cobro en efectivo')}</Text>
                 </View>
               </View>
 
               <View style={styles.divider} />
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Cliente:</Text>
+                <Text style={styles.infoLabel}>{t('cafetin.customer', 'Cliente:')}</Text>
                 <Text style={styles.infoValue}>{scannedOrder.user?.full_name}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Rol:</Text>
+                <Text style={styles.infoLabel}>{t('cafetin.role', 'Rol:')}</Text>
                 <Text style={styles.infoValue}>{scannedOrder.user?.role?.toUpperCase()}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Platillo Fuerte:</Text>
+                <Text style={styles.infoLabel}>{t('cafetin.mainDish', 'Platillo Fuerte:')}</Text>
                 <Text style={styles.infoValue}>{scannedOrder.fuerte?.name}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Acompañamientos:</Text>
+                <Text style={styles.infoLabel}>{t('cafetin.sides', 'Acompañamientos:')}</Text>
                 <Text style={styles.infoValue}>{scannedOrder.acompanamiento1?.name}, {scannedOrder.acompanamiento2?.name}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tortillas:</Text>
+                <Text style={styles.infoLabel}>{t('cafetin.tortillas', 'Tortillas:')}</Text>
                 <Text style={styles.infoValue}>{scannedOrder.tortillas_qty}</Text>
               </View>
 
               {scannedOrder.refresco?.name ? (
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Refresco:</Text>
+                  <Text style={styles.infoLabel}>{t('cafetin.refresco', 'Refresco:')}</Text>
                   <Text style={styles.infoValue}>{scannedOrder.refresco?.name}</Text>
                 </View>
               ) : null}
 
               <View style={styles.amountBox}>
-                <Text style={styles.amountBoxLabel}>MONTO A COBRAR EN CAJA:</Text>
+                <Text style={styles.amountBoxLabel}>{t('cafetin.amountToChargeCaja', 'MONTO A COBRAR EN CAJA:')}</Text>
                 <Text style={styles.amountBoxValue}>${Number(scannedOrder.total_price).toFixed(2)}</Text>
               </View>
 
               {scannedOrder.status === 'entregado' ? (
                 <View style={{ marginTop: 20, padding: 16, backgroundColor: '#fee2e2', borderRadius: 12, alignItems: 'center' }}>
                   <AlertCircle size={28} color="#ef4444" style={{ marginBottom: 8 }} />
-                  <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 16 }}>¡ATENCIÓN!</Text>
+                  <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 16 }}>{t('cafetin.attention', '¡ATENCIÓN!')}</Text>
                   <Text style={{ color: '#991b1b', textAlign: 'center', marginTop: 4 }}>
                     Este pedido ya fue marcado como ENTREGADO anteriormente. No es posible despacharlo de nuevo.
                   </Text>
@@ -721,7 +735,7 @@ export default function CafetinScreen() {
                   ) : (
                     <>
                       <CheckCircle size={22} color="#FFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.dispatchButtonText}>Confirmar Despacho del Pedido</Text>
+                      <Text style={styles.dispatchButtonText}>{t('cafetin.confirmDispatch', 'Confirmar Despacho del Pedido')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -735,63 +749,69 @@ export default function CafetinScreen() {
       <BottomModal visible={modalAddItem} onClose={() => setModalAddItem(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Agregar Alimento al Catálogo</Text>
+              <Text style={styles.modalTitle}>{t('cafetin.addFoodTitle', 'Agregar Alimento al Catálogo')}</Text>
               <TouchableOpacity onPress={() => setModalAddItem(false)} style={{ padding: 4 }}>
                 <X size={22} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
 
-                  <Text style={styles.inputLabel}>Nombre del Alimento *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ej: Pollo Encebollado"
-                    placeholderTextColor={Colors.text.muted}
-                    value={newItemName}
-                    onChangeText={setNewItemName}
-                  />
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
+              <Text style={styles.inputLabel}>{t('cafetin.foodName', 'Nombre del Alimento *')}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('cafetin.itemName', 'Ej: Pollo Encebollado')}
+                placeholderTextColor={Colors.text.muted}
+                value={newItemName}
+                onChangeText={setNewItemName}
+              />
 
-                  <Text style={styles.inputLabel}>Categoría *</Text>
-                  <View style={styles.catSelectorRow}>
-                    {[
-                      { key: 'fuerte', label: 'Fuerte' },
-                      { key: 'acompanamiento', label: 'Acompañamiento' },
-                      { key: 'refresco', label: 'Refresco' }
-                    ].map(cat => (
-                      <TouchableOpacity
-                        key={cat.key}
-                        style={[styles.catOption, newItemCategory === cat.key && styles.catOptionSelected]}
-                        onPress={() => setNewItemCategory(cat.key)}
-                      >
-                        <Text style={[styles.catOptionText, newItemCategory === cat.key && styles.catOptionTextSelected]}>
-                          {cat.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+              <Text style={styles.inputLabel}>{t('cafetin.category', 'Categoría *')}</Text>
+              <View style={styles.catSelectorRow}>
+                {[
+                  { key: 'fuerte', label: 'Fuerte' },
+                  { key: 'acompanamiento', label: 'Acompañamiento' },
+                  { key: 'refresco', label: 'Refresco' }
+                ].map(cat => (
+                  <TouchableOpacity
+                    key={cat.key}
+                    style={[styles.catOption, newItemCategory === cat.key && styles.catOptionSelected]}
+                    onPress={() => setNewItemCategory(cat.key)}
+                  >
+                    <Text style={[styles.catOptionText, newItemCategory === cat.key && styles.catOptionTextSelected]}>
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-                  <Text style={styles.inputLabel}>Descripción (Opcional)</Text>
-                  <TextInput
-                    style={[styles.input, { height: 70 }]}
-                    placeholder="Ej: Incluye salsa criolla..."
-                    placeholderTextColor={Colors.text.muted}
-                    multiline
-                    value={newItemDesc}
-                    onChangeText={setNewItemDesc}
-                  />
+              <Text style={styles.inputLabel}>{t('cafetin.descOptional', 'Descripción (Opcional)')}</Text>
+              <TextInput
+                style={[styles.input, { height: 70 }]}
+                placeholder={t('cafetin.itemDesc', 'Ej: Incluye salsa criolla...')}
+                placeholderTextColor={Colors.text.muted}
+                multiline
+                value={newItemDesc}
+                onChangeText={setNewItemDesc}
+              />
 
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalAddItem(false)}>
-                      <Text style={styles.cancelBtnText}>Cancelar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.saveBtn, addingItem && { opacity: 0.6 }]}
-                      onPress={handleAddItemToCatalog}
-                      disabled={addingItem}
-                    >
-                      {addingItem ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.saveBtnText}>Guardar</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalAddItem(false)}>
+                  <Text style={styles.cancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveBtn, addingItem && { opacity: 0.6 }]}
+                  onPress={handleAddItemToCatalog}
+                  disabled={addingItem}
+                >
+                  {addingItem ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.saveBtnText}>{t('common.save', 'Guardar')}</Text>}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
         </BottomModal>
 
       {/* --- MODAL CÁMARA QR --- */}
@@ -814,8 +834,8 @@ export default function CafetinScreen() {
             backgroundColor: 'rgba(0,0,0,0.5)',
             alignItems: 'center',
           }}>
-            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>Escanea el Código QR</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>Apunta la cámara al QR del pedido</Text>
+            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold' }}>{t('cafetin.scanQrTitle', 'Escanea el Código QR')}</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>{t('cafetin.pointCamera', 'Apunta la cámara al QR del pedido')}</Text>
           </View>
           <View style={{
             position: 'absolute',
@@ -837,7 +857,7 @@ export default function CafetinScreen() {
               }}
               activeOpacity={0.8}
             >
-              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Cancelar</Text>
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>{t('common.cancel', 'Cancelar')}</Text>
             </TouchableOpacity>
           </View>
         </View>

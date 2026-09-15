@@ -328,18 +328,57 @@ DROP POLICY IF EXISTS "Lectura general autenticados lunch_orders" ON lunch_order
 CREATE POLICY "Lectura general autenticados lunch_orders" ON lunch_orders FOR SELECT TO authenticated USING (auth.uid() = user_id OR auth.uid() = cafetin_id);
 
 -- ========================================================
+-- PREVENCIÓN DE ESCALADA DE PRIVILEGIOS EN PROFILES
+-- ========================================================
+CREATE OR REPLACE FUNCTION prevent_profile_role_escalation()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si la consulta proviene del Service Role (backend con SUPABASE_SERVICE_ROLE_KEY), permitir cambios
+    IF (auth.jwt() ->> 'role') = 'service_role' OR current_setting('role', true) = 'service_role' THEN
+        RETURN NEW;
+    END IF;
+
+    -- Si no es service_role (es decir, usuario regular autenticado vía cliente Supabase)
+    -- Impedir modificar 'role' o 'is_active'
+    IF NEW.role IS DISTINCT FROM OLD.role THEN
+        RAISE EXCEPTION 'No tienes permiso para modificar el rol de usuario.';
+    END IF;
+
+    IF NEW.is_active IS DISTINCT FROM OLD.is_active THEN
+        RAISE EXCEPTION 'No tienes permiso para modificar el estado de activación de usuario.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_prevent_profile_role_escalation ON profiles;
+CREATE TRIGGER trg_prevent_profile_role_escalation
+BEFORE UPDATE ON profiles
+FOR EACH ROW
+EXECUTE FUNCTION prevent_profile_role_escalation();
+
+-- ========================================================
 -- 5. ÍNDICES DE RENDIMIENTO Y CONCURRENCIA
 -- ========================================================
 
 CREATE INDEX IF NOT EXISTS idx_grades_student_period ON grades(student_id, period);
+CREATE INDEX IF NOT EXISTS idx_grades_student_period_subject ON grades(student_id, period, subject_id);
 CREATE INDEX IF NOT EXISTS idx_conduct_records_student_period ON conduct_records(student_id, period);
 CREATE INDEX IF NOT EXISTS idx_conduct_records_teacher_period ON conduct_records(teacher_id, period);
-CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance(student_id, date);
-CREATE INDEX IF NOT EXISTS idx_attendance_teacher_date ON attendance(teacher_id, date);
+CREATE INDEX IF NOT EXISTS idx_conduct_student_created ON conduct_records(student_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON attendance(student_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_attendance_teacher_date ON attendance(teacher_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date DESC);
 CREATE INDEX IF NOT EXISTS idx_justifications_student_status ON justifications(student_id, status);
+CREATE INDEX IF NOT EXISTS idx_justifications_student_date ON justifications(student_id, absence_date DESC);
+CREATE INDEX IF NOT EXISTS idx_justifications_status_date ON justifications(status, absence_date DESC);
 CREATE INDEX IF NOT EXISTS idx_schedules_grade_section ON schedules(grade, section);
+CREATE INDEX IF NOT EXISTS idx_schedules_grade_section_day ON schedules(grade, section, day_of_week);
 CREATE INDEX IF NOT EXISTS idx_schedules_teacher_day ON schedules(teacher_id, day_of_week);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read_created ON notifications(user_id, read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cafetin_menu_items_cafetin_cat ON cafetin_menu_items(cafetin_id, category);
 CREATE INDEX IF NOT EXISTS idx_cafetin_daily_menu_cafetin_date ON cafetin_daily_menu(cafetin_id, date);
 CREATE INDEX IF NOT EXISTS idx_lunch_orders_cafetin_date ON lunch_orders(cafetin_id, date);
@@ -347,6 +386,8 @@ CREATE INDEX IF NOT EXISTS idx_lunch_orders_user_date ON lunch_orders(user_id, d
 CREATE INDEX IF NOT EXISTS idx_events_level_date ON events(level, event_date);
 CREATE INDEX IF NOT EXISTS idx_announcements_level_created ON announcements(level, created_at);
 CREATE INDEX IF NOT EXISTS idx_profiles_role_level ON profiles(role, level);
+CREATE INDEX IF NOT EXISTS idx_profiles_role_active ON profiles(role, is_active);
+CREATE INDEX IF NOT EXISTS idx_profiles_grade_section ON profiles(grade, section) WHERE grade IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_grade_extension_tickets_teacher_period ON grade_extension_tickets(teacher_id, period);
 
 -- Agregar FOREIGN KEY para specialty_subject_id en profiles (si aún no se ha agregado al inicio)
@@ -360,3 +401,46 @@ BEGIN
         ALTER TABLE profiles ADD CONSTRAINT profiles_specialty_subject_id_fkey FOREIGN KEY (specialty_subject_id) REFERENCES subjects(id) ON DELETE SET NULL;
     END IF;
 END $$;
+
+-- ========================================================
+-- 3. MÓDULO COKIECHAT
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS conversations (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    type TEXT NOT NULL CHECK (type IN ('direct', 'group')),
+    name TEXT,
+    avatar_url TEXT,
+    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    last_message_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS conversation_participants (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+    last_read_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(conversation_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
+    sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL NOT NULL,
+    content TEXT,
+    type TEXT NOT NULL DEFAULT 'text' CHECK (type IN ('text', 'image', 'document', 'system')),
+    attachment_url TEXT,
+    attachment_name TEXT,
+    attachment_size INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conv_created ON messages(conversation_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_conv_part_user ON conversation_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_conv_part_conv ON conversation_participants(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conv_last_msg ON conversations(last_message_at DESC);
+

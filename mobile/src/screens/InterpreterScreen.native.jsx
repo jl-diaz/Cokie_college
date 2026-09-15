@@ -9,7 +9,8 @@ import {
   Image, 
   ActivityIndicator,
   ScrollView,
-  Platform
+  Platform,
+  KeyboardAvoidingView
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { setAudioModeAsync } from 'expo-audio';
@@ -471,57 +472,62 @@ export default function InterpreterScreenNative() {
         animationType="fade"
         onRequestClose={() => setIsConfigModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
-              <Text style={styles.modalTitle}>Configurar Lentes CokieLens</Text>
-            </View>
-
-            <Text style={styles.modalHelp}>
-              Ingresa el nombre mDNS (cokielens.local) o la IP de tu ESP32-CAM:
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              value={ipInput}
-              onChangeText={setIpInput}
-              placeholder="Ej: cokielens.local o 192.168.1.50"
-              placeholderTextColor="#94a3b8"
-              keyboardType="default"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            {testResult && (
-              <View style={[styles.testBadge, testResult.success ? styles.testSuccess : styles.testFail]}>
-                {testResult.success ? <Check size={16} color="#10b981" /> : <AlertCircle size={16} color="#ef4444" />}
-                <Text style={styles.testBadgeText}>{testResult.message}</Text>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
+                <Text style={styles.modalTitle}>Configurar Lentes CokieLens</Text>
               </View>
-            )}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.testBtn} 
-                onPress={handleTestConnection}
-                disabled={isTestingConnection}
-              >
-                {isTestingConnection ? (
-                  <ActivityIndicator size="small" color="#38bdf8" />
-                ) : (
-                  <>
-                    <Wifi size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-                    <Text style={styles.testBtnText}>Probar Conexión</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <Text style={styles.modalHelp}>
+                Ingresa el nombre mDNS (cokielens.local) o la IP de tu ESP32-CAM:
+              </Text>
 
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                value={ipInput}
+                onChangeText={setIpInput}
+                placeholder="Ej: cokielens.local o 192.168.1.50"
+                placeholderTextColor="#94a3b8"
+                keyboardType="default"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              {testResult && (
+                <View style={[styles.testBadge, testResult.success ? styles.testSuccess : styles.testFail]}>
+                  {testResult.success ? <Check size={16} color="#10b981" /> : <AlertCircle size={16} color="#ef4444" />}
+                  <Text style={styles.testBadgeText}>{testResult.message}</Text>
+                </View>
+              )}
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.testBtn} 
+                  onPress={handleTestConnection}
+                  disabled={isTestingConnection}
+                >
+                  {isTestingConnection ? (
+                    <ActivityIndicator size="small" color="#38bdf8" />
+                  ) : (
+                    <>
+                      <Wifi size={16} color="#38bdf8" style={{ marginRight: 6 }} />
+                      <Text style={styles.testBtnText}>Probar Conexión</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
+                  <Text style={styles.saveBtnText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require('../config/supabase');
 const { generateInstitutionalCode, generateRandomPassword } = require('../utils/codeGenerator');
 const { sendWelcomeEmail } = require('../utils/emailService');
+const { invalidateUserProfileCache } = require('../middleware/auth');
 
 const adminController = {
     // --- Resolución pública de Carnet / Código Institucional ---
@@ -245,6 +246,7 @@ const adminController = {
                 .single();
 
             if (error) throw error;
+            invalidateUserProfileCache(id);
             res.json(data);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -289,6 +291,7 @@ const adminController = {
                 .eq('id', id);
 
             if (error) throw error;
+            invalidateUserProfileCache(id);
             res.json({ message: 'Usuario desactivado correctamente' });
         } catch (error) {
             res.status(500).json({ error: error.message });

@@ -441,7 +441,7 @@ export default function JustificationsScreen() {
                 keyboardShouldPersistTaps="handled" 
                 showsVerticalScrollIndicator={true}
                 style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]}
-                contentContainerStyle={{ paddingBottom: 8 }}
+                contentContainerStyle={{ paddingBottom: 24 }}
               >
                     <View style={styles.modalHeader}>
                       <Text style={styles.modalTitle}>{t('dashboard.new', 'Nueva Solicitud')}</Text>
@@ -501,7 +501,7 @@ export default function JustificationsScreen() {
                     {formData.scope === 'hourly' && (
                       <View style={styles.timeRangeContainer}>
                         <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                          <Text style={styles.label}>Desde (Hora Inicio)</Text>
+                          <Text style={styles.label}>{t('justifications.fromTime', 'Desde (Hora Inicio)')}</Text>
                           <TouchableOpacity
                             style={styles.timeSelectorBtn}
                             onPress={() => {
@@ -518,7 +518,7 @@ export default function JustificationsScreen() {
                           </TouchableOpacity>
                         </View>
                         <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-                          <Text style={styles.label}>Hasta (Hora Fin)</Text>
+                          <Text style={styles.label}>{t('justifications.toTime', 'Hasta (Hora Fin)')}</Text>
                           <TouchableOpacity
                             style={styles.timeSelectorBtn}
                             onPress={() => {

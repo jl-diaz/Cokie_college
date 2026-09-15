@@ -412,7 +412,7 @@ export default function UsersScreen() {
                     )}
                     {item.is_active === false && (
                       <View style={[styles.roleBadge, { backgroundColor: '#f3f4f6' }]}>
-                        <Text style={[styles.roleBadgeText, { color: '#6b7280' }]}>INACTIVO</Text>
+                        <Text style={[styles.roleBadgeText, { color: '#6b7280' }]}>{t('users.inactive', 'INACTIVO')}</Text>
                       </View>
                     )}
                   </View>
@@ -490,7 +490,7 @@ export default function UsersScreen() {
               {!editingUser && (
                 <>
                   <View style={styles.formGroup}>
-                    <Text style={styles.label}>Primer Apellido</Text>
+                    <Text style={styles.label}>{t('users.firstSurname', 'Primer Apellido')}</Text>
                     <View style={styles.inputWrapper}>
                       <User size={18} color={Colors.text.muted} style={styles.inputIcon} />
                       <TextInput
@@ -504,7 +504,7 @@ export default function UsersScreen() {
                   </View>
 
                   <View style={styles.formGroup}>
-                    <Text style={styles.label}>Segundo Apellido</Text>
+                    <Text style={styles.label}>{t('users.secondSurname', 'Segundo Apellido')}</Text>
                     <View style={styles.inputWrapper}>
                       <User size={18} color={Colors.text.muted} style={styles.inputIcon} />
                       <TextInput
@@ -520,7 +520,7 @@ export default function UsersScreen() {
               )}
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Correo</Text>
+                <Text style={styles.label}>{t('users.email', 'Correo')}</Text>
                 <View style={styles.inputWrapper}>
                   <Mail size={18} color={Colors.text.muted} style={styles.inputIcon} />
                   <TextInput
@@ -536,7 +536,7 @@ export default function UsersScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Rol</Text>
+                <Text style={styles.label}>{t('users.role', 'Rol')}</Text>
                 <TouchableOpacity 
                   style={[styles.dropdownTrigger, editingUser?.id === currentProfile?.id && { opacity: 0.6 }]} 
                   onPress={() => {
@@ -579,7 +579,7 @@ export default function UsersScreen() {
 
               {(formData.role === 'coordinator' || formData.role === 'teacher') && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Nivel</Text>
+                  <Text style={styles.label}>{t('users.level', 'Nivel')}</Text>
                   <TouchableOpacity 
                     style={styles.dropdownTrigger} 
                     onPress={() => setLevelDropdownOpen(!levelDropdownOpen)}
@@ -612,7 +612,7 @@ export default function UsersScreen() {
 
               {formData.role === 'teacher' && (
                 <View style={styles.formGroup}>
-                  <Text style={styles.label}>Materia Principal / Especialidad</Text>
+                  <Text style={styles.label}>{t('users.specialtySubject', 'Materia Principal / Especialidad')}</Text>
                   <TouchableOpacity 
                     style={styles.dropdownTrigger} 
                     onPress={() => setSubjectDropdownOpen(!subjectDropdownOpen)}
@@ -646,7 +646,7 @@ export default function UsersScreen() {
               {formData.role === 'student' && (
                 <View style={styles.row}>
                   <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-                    <Text style={styles.label}>Grado</Text>
+                    <Text style={styles.label}>{t('users.grade', 'Grado')}</Text>
                     <TouchableOpacity 
                       style={styles.dropdownTrigger} 
                       onPress={() => setGradeDropdownOpen(!gradeDropdownOpen)}
@@ -677,7 +677,7 @@ export default function UsersScreen() {
                   </View>
 
                   <View style={[styles.formGroup, { flex: 1 }]}>
-                    <Text style={styles.label}>Sección</Text>
+                    <Text style={styles.label}>{t('users.section', 'Sección')}</Text>
                     <TouchableOpacity 
                       style={styles.dropdownTrigger} 
                       onPress={() => setSectionDropdownOpen(!sectionDropdownOpen)}

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const AlertContext = createContext({
   showAlert: () => {},
@@ -19,6 +20,7 @@ const AlertContext = createContext({
 
 export const AlertProvider = ({ children }) => {
   const { colors: Colors, theme } = useTheme();
+  const { t } = useTranslation();
 
   const [visible, setVisible] = useState(false);
   const [config, setConfig] = useState({
@@ -31,30 +33,30 @@ export const AlertProvider = ({ children }) => {
     onCancel: null
   });
 
-  const showAlert = useCallback(({ type = 'info', title, message, confirmText = 'Aceptar', onConfirm }) => {
+  const showAlert = useCallback(({ type = 'info', title, message, confirmText, onConfirm }) => {
     setConfig({
       type,
       title,
       message,
-      confirmText,
+      confirmText: confirmText || t('common.ok', 'Aceptar'),
       cancelText: null,
       onConfirm
     });
     setVisible(true);
-  }, []);
+  }, [t]);
 
-  const showConfirm = useCallback(({ type = 'danger', title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', onConfirm, onCancel }) => {
+  const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
     setConfig({
       type,
       title,
       message,
-      confirmText,
-      cancelText,
+      confirmText: confirmText || t('common.confirm', 'Confirmar'),
+      cancelText: cancelText || t('common.cancel', 'Cancelar'),
       onConfirm,
       onCancel
     });
     setVisible(true);
-  }, []);
+  }, [t]);
 
   const hideAlert = useCallback(() => {
     setVisible(false);

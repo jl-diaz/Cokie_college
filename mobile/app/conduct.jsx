@@ -304,7 +304,7 @@ export default function ConductCatalogScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay códigos registrados.</Text>
+              <Text style={styles.emptyText}>{t('conduct.noCodesRegistered', 'No hay códigos registrados.')}</Text>
             </View>
           }
         />
@@ -327,10 +327,10 @@ export default function ConductCatalogScreen() {
               keyboardShouldPersistTaps="handled" 
               showsVerticalScrollIndicator={true}
               style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]} 
-              contentContainerStyle={{ paddingBottom: 8 }}
+              contentContainerStyle={{ paddingBottom: 24 }}
             >
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Categoría</Text>
+                <Text style={styles.label}>{t('conduct.category', 'Categoría')}</Text>
                 <View style={styles.categoryRow}>
                   {categories.map(cat => (
                     <TouchableOpacity
@@ -356,7 +356,7 @@ export default function ConductCatalogScreen() {
                   )}
                 </View>
                 <TextInput
-                  placeholder="Ej. L-01"
+                  placeholder={t('conduct.codePlaceholder', 'Ej. L-01')}
                   placeholderTextColor={Colors.text.muted}
                   value={formData.code}
                   onChangeText={(v) => setFormData({ ...formData, code: v })}
@@ -365,9 +365,9 @@ export default function ConductCatalogScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Descripción</Text>
+                <Text style={styles.label}>{t('conduct.description', 'Descripción')}</Text>
                 <TextInput
-                  placeholder="Ej. Uso inadecuado del uniforme"
+                  placeholder={t('conduct.descPlaceholder', 'Ej. Uso inadecuado del uniforme')}
                   placeholderTextColor={Colors.text.muted}
                   value={formData.name}
                   onChangeText={(v) => setFormData({ ...formData, name: v })}
@@ -376,7 +376,7 @@ export default function ConductCatalogScreen() {
               </View>
 
               <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={saving}>
-                {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Guardar Código</Text>}
+                {saving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>{t('conduct.saveCode', 'Guardar Código')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>

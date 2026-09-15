@@ -33,7 +33,7 @@ export default function BottomModal({ visible, onClose, children }) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const keyboardAnim = useRef(new Animated.Value(0)).current;
 
-  // Escuchar eventos de teclado de forma nativa para elevar el modal exactamente sobre el teclado
+  // Escuchar eventos de teclado: en iOS eleva el modal sobre el teclado; en Android 'pan' mode lo maneja el OS nativo
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -41,20 +41,24 @@ export default function BottomModal({ visible, onClose, children }) {
     const onKeyboardShow = (e) => {
       const h = e?.endCoordinates?.height || 0;
       setKeyboardHeight(h);
-      Animated.timing(keyboardAnim, {
-        toValue: h,
-        duration: Platform.OS === 'ios' ? (e?.duration || 250) : 160,
-        useNativeDriver: true,
-      }).start();
+      if (Platform.OS === 'ios') {
+        Animated.timing(keyboardAnim, {
+          toValue: h,
+          duration: e?.duration || 250,
+          useNativeDriver: true,
+        }).start();
+      }
     };
 
     const onKeyboardHide = (e) => {
       setKeyboardHeight(0);
-      Animated.timing(keyboardAnim, {
-        toValue: 0,
-        duration: Platform.OS === 'ios' ? (e?.duration || 200) : 150,
-        useNativeDriver: true,
-      }).start();
+      if (Platform.OS === 'ios') {
+        Animated.timing(keyboardAnim, {
+          toValue: 0,
+          duration: e?.duration || 200,
+          useNativeDriver: true,
+        }).start();
+      }
     };
 
     const subShow = Keyboard.addListener(showEvt, onKeyboardShow);
@@ -134,7 +138,9 @@ export default function BottomModal({ visible, onClose, children }) {
   // Limitar altura máxima para que nunca se desborde fuera de la pantalla
   const maxSheetHeight = isWeb 
     ? Math.min(screenHeight * 0.9, 850) 
-    : (screenHeight - keyboardHeight - topSafe);
+    : Platform.OS === 'ios'
+      ? (screenHeight - keyboardHeight - topSafe)
+      : (screenHeight - topSafe);
 
   const handleClose = () => {
     Keyboard.dismiss();

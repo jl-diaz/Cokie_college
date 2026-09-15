@@ -27,13 +27,18 @@ const fetchAcademicPeriods = async () => {
     return cachedPeriods || [];
 };
 
+const getLocalDateString = (dateInput) => {
+    const d = dateInput ? new Date(dateInput) : new Date();
+    return d.toLocaleDateString('sv-SE', { timeZone: 'America/El_Salvador' });
+};
+
 /**
  * Obtiene el número de periodo académico correspondiente a una fecha dada (YYYY-MM-DD).
- * Si no se proporciona fecha, utiliza la fecha actual.
+ * Si no se proporciona fecha, utiliza la fecha actual en la zona horaria de El Salvador.
  */
 const getPeriodForDate = async (dateInput) => {
     try {
-        const dateStr = dateInput ? new Date(dateInput).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        const dateStr = getLocalDateString(dateInput);
 
         const periods = await fetchAcademicPeriods();
 

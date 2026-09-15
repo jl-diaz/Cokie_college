@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions, StatusBar, Platform, ScrollView } from 'react-native';
-import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell, Clock, Sparkles } from 'lucide-react-native';
+import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell, Clock, Sparkles, MessageSquare } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -70,6 +70,7 @@ export default function CustomDrawer({ visible, onClose }) {
   if (!profile) return null;
 
   const commonMenuItems = [
+    { name: t('menu.chat', 'CokieChat'), path: '/chat', icon: MessageSquare },
     { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar },
     { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell }
   ];
@@ -163,7 +164,9 @@ export default function CustomDrawer({ visible, onClose }) {
             </View>
             <View style={styles.profileInfo}>
               <Text style={[styles.profileName, { color: textColor }]} numberOfLines={1}>{profile.full_name}</Text>
-              <Text style={[styles.profileRole, { color: subTextColor }]}>{profile.role.replace('_', ' ')}</Text>
+              <Text style={[styles.profileRole, { color: subTextColor }]}>
+                {profile?.role ? t('roles.' + profile.role, profile.role.replace('_', ' ')) : ''}
+              </Text>
             </View>
           </View>
 
