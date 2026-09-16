@@ -51,6 +51,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useAlert } from '../src/context/AlertContext';
+import { useTabBar } from '../src/context/TabBarContext';
 import { supabase } from '../src/utils/supabase';
 import api from '../src/utils/api';
 import { encryptMessage, decryptMessage } from '../src/utils/chatCrypto';
