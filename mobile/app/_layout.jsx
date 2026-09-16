@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TouchableOpacity, View, Text, Platform, Pressable } from 'react-native';
 import { Menu, Sun, Moon, Bell, Globe, ArrowLeft } from 'lucide-react-native';
-import { useRouter, useRootNavigationState, useSegments } from 'expo-router';
+import { useRouter, useRootNavigationState, useSegments, usePathname } from 'expo-router';
 import '../src/i18n';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
@@ -16,6 +16,7 @@ import { AlertProvider } from '../src/context/AlertContext';
 import CustomDrawer from '../src/components/CustomDrawer';
 import DarkColorModal from '../src/components/DarkColorModal';
 import NotificationsModal from '../src/components/NotificationsModal';
+import TabBar from '../src/components/TabBar';
 import api from '../src/utils/api';
 
 function LayoutInner() {
@@ -257,6 +258,7 @@ function LayoutInner() {
           <Stack.Screen name="interpreter" options={{ title: ('') }} />
           <Stack.Screen name="subject-hours" options={{ title: ('') }} />
           <Stack.Screen name="academic-periods" options={{ title: ('') }} />
+          <Stack.Screen name="modules" options={{ title: ('') }} />
           <Stack.Screen name="chat" options={{ title: ('') }} />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
@@ -271,10 +273,13 @@ function LayoutInner() {
       <DarkColorModal />
     </>
   );
+  const pathname = usePathname();
+  const showTabBar = ['/home', '/interpreter', '/chat', '/modules', '/profile'].includes(pathname);
 
   return (
     <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
-      {content}
+      <View style={{ flex: 1 }}>{content}</View>
+      {showTabBar && <TabBar currentRoute={pathname} />}
     </View>
   );
 }
