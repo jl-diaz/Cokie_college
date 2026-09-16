@@ -17,7 +17,6 @@ export default function ModulesScreen() {
     const lunchModule = { name: t('menu.lunch', 'Almuerzos'), path: '/lunch', icon: Utensils, color: '#10b981', desc: t('home.lunchDesc', 'Encargar tu almuerzo del día') };
 
     const commonModules = [
-      { name: t('menu.interpreter', 'Intérprete ISL (BETA)'), path: '/interpreter', icon: Camera, color: '#06b6d4', desc: t('home.interpreterDesc', 'Traductor de señas en tiempo real') },
       { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar, color: '#ec4899', desc: t('home.eventsDesc', 'Fechas y actividades institucionales') },
       { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell, color: '#f59e0b', desc: t('home.announcementsDesc', 'Comunicados oficiales') }
     ];
@@ -119,7 +118,6 @@ const createStyles = (Colors, theme) => {
     },
     header: {
       paddingHorizontal: 20,
-      paddingTop: 50,
       paddingBottom: 20,
     },
     headerTitle: {
