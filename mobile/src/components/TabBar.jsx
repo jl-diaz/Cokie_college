@@ -34,13 +34,13 @@ export default function TabBar({ currentRoute }) {
               {isActive ? (
                 <View style={styles.activeContainer}>
                   <View style={styles.activeCircle}>
-                    <Icon size={22} color="#000000" strokeWidth={2.5} />
+                    <Icon size={18} color="#FFFFFF" strokeWidth={2.5} />
                   </View>
                   <Text style={styles.activeLabel}>{tab.name}</Text>
                 </View>
               ) : (
                 <View style={styles.inactiveContainer}>
-                  <Icon size={22} color="#8E8E93" strokeWidth={2} />
+                  <Icon size={18} color="#8E8E93" strokeWidth={2} />
                 </View>
               )}
             </TouchableOpacity>
@@ -65,57 +65,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     backgroundColor: '#18181B',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+    paddingTop: 4,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 6,
     alignItems: 'center',
     justifyContent: 'space-around',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
   },
   tabItem: {
     flex: 1,
-    height: 52,
+    height: 42,
     justifyContent: 'center',
     alignItems: 'center',
   },
   activeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -22,
+    marginTop: -16,
   },
   activeCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#39FF14', // Vibrant neon green
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EC4899', // Rosa Cokie / App Palette
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: '#18181B',
-    shadowColor: '#39FF14',
+    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowRadius: 4,
+    elevation: 5,
   },
   activeLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    color: '#39FF14',
-    marginTop: 2,
+    color: '#EC4899',
+    marginTop: 1,
     letterSpacing: 0.2,
   },
   inactiveContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 36,
+    height: 30,
   },
 });
+
 
