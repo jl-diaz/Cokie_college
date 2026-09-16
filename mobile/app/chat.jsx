@@ -70,6 +70,39 @@ export default function ChatScreen() {
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
+  // Estados de Conversaciones
+  const [conversations, setConversations] = useState([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeConv, setActiveConv] = useState(null);
+
+  // Estados de Mensajes
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [activeParticipants, setActiveParticipants] = useState([]);
+  const flatListRef = useRef(null);
+
+  // Modales
+  const [newChatModalVisible, setNewChatModalVisible] = useState(false);
+  const [newChatTab, setNewChatTab] = useState('direct'); // 'direct' | 'group'
+  const [usersList, setUsersList] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+
+  // Creación de Grupo
+  const [groupName, setGroupName] = useState('');
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  // Adjuntos
+  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+
   // Escuchar teclado para scroll y ajustes de padding
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -132,39 +165,6 @@ export default function ChatScreen() {
     { id: 'coordinator', label: t('chat.coordinator', 'Coordinador') },
     { id: 'group', label: t('chat.groups', 'Grupos') }
   ], [t]);
-
-  // Estados de Conversaciones
-  const [conversations, setConversations] = useState([]);
-  const [loadingConversations, setLoadingConversations] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeConv, setActiveConv] = useState(null);
-
-  // Estados de Mensajes
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [activeParticipants, setActiveParticipants] = useState([]);
-  const flatListRef = useRef(null);
-
-  // Modales
-  const [newChatModalVisible, setNewChatModalVisible] = useState(false);
-  const [newChatTab, setNewChatTab] = useState('direct'); // 'direct' | 'group'
-  const [usersList, setUsersList] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [userSearch, setUserSearch] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState('all');
-
-  // Creación de Grupo
-  const [groupName, setGroupName] = useState('');
-  const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
-  const [creatingGroup, setCreatingGroup] = useState(false);
-
-  // Adjuntos
-  const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
-  const [uploadingAttachment, setUploadingAttachment] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
 
   // Helper para determinar si un mensaje fue leído por el destinatario (Doble Check Azul)
   const isReadByRecipient = (msg) => {
