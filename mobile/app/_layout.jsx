@@ -284,12 +284,16 @@ function LayoutInner() {
   );
 }
 
+import { TabBarProvider } from '../src/context/TabBarContext';
+
 export default function Layout() {
   return (
     <AuthProvider>
       <ThemeProvider>
         <AlertProvider>
-          <LayoutInner />
+          <TabBarProvider>
+            <LayoutInner />
+          </TabBarProvider>
         </AlertProvider>
       </ThemeProvider>
     </AuthProvider>

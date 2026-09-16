@@ -67,6 +67,7 @@ export default function ChatScreen() {
   const { user, profile } = useAuth();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
+  const { setIsTabBarHidden } = useTabBar();
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
@@ -154,7 +155,9 @@ export default function ChatScreen() {
       setAttachmentModalVisible(false);
       setPreviewImage(null);
     }
-  }, [activeConv]);
+    setIsTabBarHidden(!!activeConv);
+    return () => setIsTabBarHidden(false);
+  }, [activeConv, setIsTabBarHidden]);
 
   const styles = useMemo(() => createStyles(Colors, theme, isDesktop), [Colors, theme, isDesktop]);
 
@@ -1147,9 +1150,7 @@ export default function ChatScreen() {
             <View style={[
               styles.mobileChatInputBar,
               {
-                paddingBottom: !isKeyboardVisible 
-                  ? (Platform.OS === 'ios' ? Math.max(insets.bottom + 48, 55) : 55) 
-                  : (Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10)
+                paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10
               }
             ]}>
               <View style={styles.mobileInputPill}>

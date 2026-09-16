@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Home, Camera, MessageCircle, Grid, User } from 'lucide-react-native';
+import { useTabBar } from '../context/TabBarContext';
 
 const TABS = [
   { name: 'Hogar', route: '/home', icon: Home },
@@ -13,6 +14,14 @@ const TABS = [
 
 export default function TabBar({ currentRoute }) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const { isTabBarHidden } = useTabBar();
+
+  const isDesktopOrTablet = width >= 768;
+
+  if (isDesktopOrTablet || isTabBarHidden) {
+    return null;
+  }
 
   let activeIndex = TABS.findIndex(t => currentRoute === t.route);
   if (activeIndex === -1) activeIndex = 0;
