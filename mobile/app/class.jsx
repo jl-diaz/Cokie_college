@@ -30,7 +30,8 @@ import {
   ChevronRight,
   ArrowLeft,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  UserX
 } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -463,12 +464,52 @@ export default function ClassScreen() {
                   else router.replace('/home');
                 }
               }}
-              style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(0, 0, 0, 0.22)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.14)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={24} color={Colors.text?.headerTxtC || '#FFF'} />
+              <ArrowLeft size={20} color="#FFFFFF" />
             </TouchableOpacity>
-          )
+          ),
+          unstable_headerLeftItems: () => [
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (selectedClass && !params?.grade) {
+                      setSelectedClass(null);
+                    } else {
+                      if (router.canGoBack()) router.back();
+                      else router.replace('/home');
+                    }
+                  }}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.14)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <ArrowLeft size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              ),
+            },
+          ],
         }}
       />
       <PageHeader 

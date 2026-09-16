@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
  * Componente base de Skeleton Screen con animación pulsante fluida.
  */
 export const Skeleton = ({ width = '100%', height = 20, borderRadius = 8, style }) => {
-  const { theme, Colors } = useTheme();
+  const { theme, colors: Colors } = useTheme();
   const opacity = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
@@ -50,9 +50,10 @@ export const Skeleton = ({ width = '100%', height = 20, borderRadius = 8, style 
  * Esqueleto para tarjetas de horarios, clases o pedidos.
  */
 export const SkeletonCard = ({ style }) => {
-  const { Colors } = useTheme();
+  const { colors: Colors } = useTheme();
+  const cardBg = Colors?.card || '#FFFFFF';
   return (
-    <View style={[styles.cardContainer, { backgroundColor: Colors.card }, style]}>
+    <View style={[styles.cardContainer, { backgroundColor: cardBg }, style]}>
       <View style={styles.cardHeader}>
         <Skeleton width="60%" height={22} borderRadius={6} />
         <Skeleton width={50} height={20} borderRadius={10} />
@@ -70,7 +71,9 @@ export const SkeletonCard = ({ style }) => {
  * Esqueleto para listas de alumnos o registros de asistencia.
  */
 export const SkeletonList = ({ count = 6, style }) => {
-  const { Colors } = useTheme();
+  const { colors: Colors } = useTheme();
+  const cardBg = Colors?.card || '#FFFFFF';
+  const borderColor = Colors?.gray?.[100] || '#f1f5f9';
   return (
     <View style={style}>
       {Array.from({ length: count }).map((_, idx) => (
@@ -78,7 +81,7 @@ export const SkeletonList = ({ count = 6, style }) => {
           key={idx}
           style={[
             styles.listItem,
-            { backgroundColor: Colors.card, borderBottomColor: Colors.gray[100] || '#f1f5f9' },
+            { backgroundColor: cardBg, borderBottomColor: borderColor },
           ]}
         >
           <Skeleton width={42} height={42} borderRadius={21} />

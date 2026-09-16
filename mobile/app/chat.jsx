@@ -14,8 +14,11 @@ import {
   Platform,
   Dimensions,
   useWindowDimensions,
-  StatusBar
+  StatusBar,
+  Keyboard,
+  BackHandler
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Search,
   Plus,
@@ -43,7 +46,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Linking from 'expo-linking';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
@@ -59,10 +62,66 @@ export default function ChatScreen() {
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, profile } = useAuth();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
+
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Escuchar teclado para scroll y ajustes de padding
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Botón físico atrás en Android
+  useEffect(() => {
+    const onBackPress = () => {
+      if (previewImage) {
+        setPreviewImage(null);
+        return true;
+      }
+      if (attachmentModalVisible) {
+        setAttachmentModalVisible(false);
+        return true;
+      }
+      if (newChatModalVisible) {
+        setNewChatModalVisible(false);
+        return true;
+      }
+      if (activeConv) {
+        setAttachmentModalVisible(false);
+        setActiveConv(null);
+        return true;
+      }
+      return false;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [activeConv, attachmentModalVisible, newChatModalVisible, previewImage]);
+
+  // Cerrar modales automáticamente cuando se sale de una conversación o cambia la conversación activa
+  useEffect(() => {
+    if (!activeConv) {
+      setAttachmentModalVisible(false);
+      setPreviewImage(null);
+    }
+  }, [activeConv]);
 
   const styles = useMemo(() => createStyles(Colors, theme, isDesktop), [Colors, theme, isDesktop]);
 
@@ -821,25 +880,25 @@ export default function ChatScreen() {
                 {/* Contenido Central */}
                 <View style={styles.convDetails}>
                   <View style={styles.convDetailsTop}>
-                    <View style={styles.nameBadgeRow}>
-                      <Text style={[styles.convTitle, isSelected && styles.convTitleActive]} numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <View style={[styles.roleBadge, { backgroundColor: badge.bg }]}>
-                        <Text style={[styles.roleBadgeText, { color: badge.text }]}>
-                          {badge.label}
-                        </Text>
-                      </View>
-                    </View>
+                    <Text style={[styles.convTitle, isSelected && styles.convTitleActive]} numberOfLines={1} ellipsizeMode="tail">
+                      {item.title}
+                    </Text>
                     <Text style={styles.convTime}>
                       {formatTime(item.last_message_at)}
                     </Text>
                   </View>
 
                   <View style={styles.convDetailsBottom}>
-                    <Text style={[styles.convLastMsg, isSelected && { color: Colors.text.primary }]} numberOfLines={1}>
-                      {item.last_message}
-                    </Text>
+                    <View style={styles.badgeAndMsgRow}>
+                      <View style={[styles.roleBadge, { backgroundColor: badge.bg }]}>
+                        <Text style={[styles.roleBadgeText, { color: badge.text }]}>
+                          {badge.label}
+                        </Text>
+                      </View>
+                      <Text style={[styles.convLastMsg, isSelected && { color: Colors.text.primary }]} numberOfLines={1} ellipsizeMode="tail">
+                        {item.last_message}
+                      </Text>
+                    </View>
                     {item.unread_count > 0 && (
                       <View style={styles.unreadBadge}>
                         <Text style={styles.unreadBadgeText}>{item.unread_count}</Text>
@@ -874,84 +933,83 @@ export default function ChatScreen() {
     }
 
     return (
-      <View style={styles.chatPaneContainer}>
-        {/* Cabecera del Chat Activo: Específica para Desktop y Móvil */}
-        {isDesktop ? (
-          <View style={styles.chatHeaderDesktop}>
-            <View style={styles.desktopHeaderAvatarWrapper}>
-              {activeConv.avatar_url ? (
-                <Image source={{ uri: activeConv.avatar_url }} style={styles.desktopHeaderAvatarImg} />
-              ) : (
-                <View style={styles.desktopHeaderAvatarPlaceholder}>
-                  <Text style={styles.desktopHeaderAvatarInitial}>
-                    {(activeConv.title || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.desktopOnlineDot} />
-            </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + (isDesktop ? 60 : 44) : 0}
+      >
+        <View style={styles.chatPaneContainer}>
+          {/* Cabecera del Chat Activo: Específica para Desktop y Móvil */}
+          {isDesktop ? (
+            <View style={styles.chatHeaderDesktop}>
+              <View style={styles.desktopHeaderAvatarWrapper}>
+                {activeConv.avatar_url ? (
+                  <Image source={{ uri: activeConv.avatar_url }} style={styles.desktopHeaderAvatarImg} />
+                ) : (
+                  <View style={styles.desktopHeaderAvatarPlaceholder}>
+                    <Text style={styles.desktopHeaderAvatarInitial}>
+                      {(activeConv.title || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.desktopOnlineDot} />
+              </View>
 
-            <View style={styles.desktopHeaderInfo}>
-              <Text style={styles.desktopHeaderName} numberOfLines={1}>
-                {activeConv.title || activeConv.name}
-              </Text>
-              <Text style={styles.desktopHeaderStatus}>
-                {activeConv.is_group 
-                  ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
-                  : (activeConv.recipient_level || (activeConv.recipient_role === 'coordinator' ? t('chat.roles.coordinator', 'Coordinadora Académica') : (activeConv.recipient_role === 'teacher' ? t('chat.roles.teacher', 'Docente') : t('chat.roles.student', 'Estudiante'))))}
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.chatHeaderMobile}>
-            <TouchableOpacity
-              onPress={() => setActiveConv(null)}
-              style={styles.backBtn}
-              activeOpacity={0.7}
-            >
-              <ArrowLeft size={22} color={isDark ? Colors.text.primary : '#FFF'} />
-            </TouchableOpacity>
-
-            <View style={styles.chatHeaderInfo}>
-              <Text style={styles.chatHeaderName} numberOfLines={1}>
-                {activeConv.title || activeConv.name}
-              </Text>
-              <Text style={styles.chatHeaderStatus}>
-                {activeConv.is_group 
-                  ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
-                  : t('chat.online', 'En linea')}
-              </Text>
-            </View>
-
-            <View style={styles.headerAvatarContainer}>
-              {activeConv.avatar_url ? (
-                <Image source={{ uri: activeConv.avatar_url }} style={styles.headerAvatarImg} />
-              ) : (
-                <View style={styles.headerAvatarPlaceholder}>
-                  <Text style={styles.headerAvatarInitial}>
-                    {(activeConv.title || 'U').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Cuerpo Blanco con Esquinas Redondeadas y Mensajes */}
-        <View style={styles.chatBodyCard}>
-          {loadingMessages ? (
-            <View style={styles.centerLoading}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.loadingText}>{t('chat.loadingMessages', 'Cargando mensajes seguros...')}</Text>
+              <View style={styles.desktopHeaderInfo}>
+                <Text style={styles.desktopHeaderName} numberOfLines={1}>
+                  {activeConv.title || activeConv.name}
+                </Text>
+                <Text style={styles.desktopHeaderStatus}>
+                  {activeConv.is_group 
+                    ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
+                    : (activeConv.recipient_level || (activeConv.recipient_role === 'coordinator' ? t('chat.roles.coordinator', 'Coordinadora Académica') : (activeConv.recipient_role === 'teacher' ? t('chat.roles.teacher', 'Docente') : t('chat.roles.student', 'Estudiante'))))}
+                </Text>
+              </View>
             </View>
           ) : (
-            <FlatList
-              ref={flatListRef}
-              data={messages}
-              keyExtractor={item => item.id || String(Math.random())}
-              contentContainerStyle={styles.messagesListContent}
-              showsVerticalScrollIndicator={false}
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            <View style={styles.chatHeaderMobile}>
+              <View style={styles.headerAvatarContainerLeft}>
+                {activeConv.avatar_url ? (
+                  <Image source={{ uri: activeConv.avatar_url }} style={styles.headerAvatarImg} />
+                ) : (
+                  <View style={styles.headerAvatarPlaceholder}>
+                    <Text style={styles.headerAvatarInitial}>
+                      {(activeConv.title || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.chatHeaderInfo}>
+                <Text style={styles.chatHeaderName} numberOfLines={1}>
+                  {activeConv.title || activeConv.name}
+                </Text>
+                <Text style={styles.chatHeaderStatus}>
+                  {activeConv.is_group 
+                    ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
+                    : t('chat.online', 'En linea')}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Cuerpo Blanco con Esquinas Redondeadas y Mensajes */}
+          <View style={styles.chatBodyCard}>
+            {loadingMessages ? (
+              <View style={styles.centerLoading}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.loadingText}>{t('chat.loadingMessages', 'Cargando mensajes seguros...')}</Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={flatListRef}
+                data={messages}
+                keyExtractor={item => item.id || String(Math.random())}
+                contentContainerStyle={styles.messagesListContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
               ListHeaderComponent={() => (
                 <View style={styles.dateSeparatorWrapper}>
                   <Text style={styles.dateSeparatorText}>
@@ -1049,7 +1107,10 @@ export default function ChatScreen() {
             <View style={styles.desktopChatInputBar}>
               <TouchableOpacity
                 style={styles.desktopClipBtn}
-                onPress={() => setAttachmentModalVisible(true)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAttachmentModalVisible(true);
+                }}
                 activeOpacity={0.7}
               >
                 <Paperclip size={22} color={isDark ? Colors.text.muted : '#64748b'} />
@@ -1083,7 +1144,12 @@ export default function ChatScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.mobileChatInputBar}>
+            <View style={[
+              styles.mobileChatInputBar,
+              {
+                paddingBottom: !isKeyboardVisible && Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10
+              }
+            ]}>
               <View style={styles.mobileInputPill}>
                 <TextInput
                   style={styles.mobileChatTextInput}
@@ -1095,7 +1161,10 @@ export default function ChatScreen() {
                 />
                 <TouchableOpacity
                   style={styles.mobileClipBtn}
-                  onPress={() => setAttachmentModalVisible(true)}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setAttachmentModalVisible(true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Paperclip size={20} color={isDark ? Colors.text.muted : '#64748b'} />
@@ -1118,7 +1187,7 @@ export default function ChatScreen() {
           )}
         </View>
       </View>
-
+    </KeyboardAvoidingView>
     );
   };
 
@@ -1225,8 +1294,8 @@ export default function ChatScreen() {
 
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={styles.contactName} numberOfLines={1}>{u.full_name}</Text>
-                      <View style={[styles.roleBadge, { backgroundColor: badge.bg, marginLeft: 6 }]}>
+                      <Text style={styles.contactName} numberOfLines={1} ellipsizeMode="tail">{u.full_name}</Text>
+                      <View style={[styles.roleBadge, { backgroundColor: badge.bg, marginLeft: 6, flexShrink: 0 }]}>
                         <Text style={[styles.roleBadgeText, { color: badge.text }]}>{badge.label}</Text>
                       </View>
                     </View>
@@ -1266,8 +1335,20 @@ export default function ChatScreen() {
   const renderAttachmentModal = () => (
     <BottomModal visible={attachmentModalVisible} onClose={() => setAttachmentModalVisible(false)}>
       <View style={styles.attachmentModalContent}>
-        <Text style={styles.attachmentModalTitle}>{t('chat.sendAttachment', 'Enviar Archivo Adjunto')}</Text>
-        <Text style={styles.attachmentModalSubtitle}>{t('chat.sendAttachmentSubtitle', 'Selecciona el tipo de contenido que deseas compartir')}</Text>
+        <View style={styles.attachmentModalHeader}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={styles.attachmentModalTitle}>{t('chat.sendAttachment', 'Enviar Archivo Adjunto')}</Text>
+            <Text style={styles.attachmentModalSubtitle}>{t('chat.sendAttachmentSubtitle', 'Selecciona el tipo de contenido que deseas compartir')}</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={() => setAttachmentModalVisible(false)}
+            style={styles.attachmentCloseBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <X size={20} color={isDark ? Colors.text.muted : '#64748b'} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.attachmentOptionsRow}>
           <TouchableOpacity style={styles.attachmentOptionBtn} onPress={() => pickImage(true)}>
@@ -1311,11 +1392,64 @@ export default function ChatScreen() {
     </Modal>
   );
 
+  const handleChatBack = () => {
+    Keyboard.dismiss();
+    if (previewImage) {
+      setPreviewImage(null);
+      return;
+    }
+    if (attachmentModalVisible) {
+      setAttachmentModalVisible(false);
+      return;
+    }
+    if (newChatModalVisible) {
+      setNewChatModalVisible(false);
+      return;
+    }
+    if (activeConv) {
+      setAttachmentModalVisible(false);
+      setActiveConv(null);
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/home');
+    }
+  };
+
   return (
     <View style={styles.rootContainer}>
+      <Stack.Screen
+        options={{
+          title: '',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={handleChatBack}
+              style={styles.headerBackBtn}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          ),
+          unstable_headerLeftItems: () => [
+            {
+              type: 'custom',
+              hidesSharedBackground: true,
+              element: (
+                <TouchableOpacity
+                  onPress={handleChatBack}
+                  style={styles.headerBackBtn}
+                  activeOpacity={0.7}
+                >
+                  <ArrowLeft size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              ),
+            },
+          ],
+        }}
+      />
       <StatusBar
         barStyle="light-content"
-        backgroundColor={isDark ? Colors.card : '#0B1956'}
+        backgroundColor={isDark ? Colors.card : (Colors.headerC || '#0B1956')}
       />
 
       {isDesktop ? (
@@ -1371,19 +1505,30 @@ const createStyles = (Colors, theme, isDesktop) => {
     },
 
     // Lista de Conversaciones
+    headerBackBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(0, 0, 0, 0.22)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.14)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     convListContainer: {
       flex: 1,
       backgroundColor: isDark ? Colors.card : '#FFF',
     },
     convListHeader: {
-      backgroundColor: isDark ? Colors.card : '#0B1956',
+      backgroundColor: isDark ? Colors.card : (Colors.headerC || '#0B1956'),
       paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'ios' ? 50 : 20,
+      paddingTop: isDesktop ? 16 : 12,
       paddingBottom: 16,
       borderBottomLeftRadius: isDesktop ? 0 : 24,
       borderBottomRightRadius: isDesktop ? 0 : 24,
       borderBottomWidth: isDark ? 1 : 0,
       borderBottomColor: isDark ? Colors.gray[200] : 'transparent',
+      marginTop: -1,
     },
     convListHeaderTop: {
       flexDirection: 'row',
@@ -1510,17 +1655,12 @@ const createStyles = (Colors, theme, isDesktop) => {
       alignItems: 'center',
       marginBottom: 4,
     },
-    nameBadgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
-      marginRight: 8,
-    },
     convTitle: {
+      flex: 1,
       fontSize: 15,
       fontWeight: 'bold',
       color: isDark ? Colors.text.primary : '#1e293b',
-      marginRight: 6,
+      marginRight: 8,
     },
     convTitleActive: {
       color: Colors.primary,
@@ -1529,6 +1669,8 @@ const createStyles = (Colors, theme, isDesktop) => {
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 6,
+      marginRight: 6,
+      flexShrink: 0,
     },
     roleBadgeText: {
       fontSize: 9,
@@ -1537,17 +1679,23 @@ const createStyles = (Colors, theme, isDesktop) => {
     convTime: {
       fontSize: 11,
       color: Colors.text.muted,
+      flexShrink: 0,
     },
     convDetailsBottom: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
+    badgeAndMsgRow: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: 8,
+    },
     convLastMsg: {
       fontSize: 13,
       color: isDark ? Colors.text.secondary : '#64748b',
       flex: 1,
-      marginRight: 8,
     },
     unreadBadge: {
       minWidth: 20,
@@ -1557,6 +1705,7 @@ const createStyles = (Colors, theme, isDesktop) => {
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 6,
+      flexShrink: 0,
     },
     unreadBadgeText: {
       color: '#FFF',
@@ -1567,7 +1716,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     // Vista de Conversación Activa
     chatPaneContainer: {
       flex: 1,
-      backgroundColor: isDark ? Colors.background : '#0B1956',
+      backgroundColor: isDark ? Colors.background : (Colors.headerC || '#0B1956'),
     },
     chatHeaderDesktop: {
       flexDirection: 'row',
@@ -1626,12 +1775,15 @@ const createStyles = (Colors, theme, isDesktop) => {
     chatHeaderMobile: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? Colors.card : '#0B1956',
+      backgroundColor: isDark ? Colors.card : (Colors.headerC || '#0B1956'),
       paddingHorizontal: 16,
-      paddingTop: Platform.OS === 'ios' ? 50 : 16,
-      paddingBottom: 16,
+      paddingTop: 8,
+      paddingBottom: 14,
       borderBottomWidth: isDark ? 1 : 0,
       borderBottomColor: isDark ? Colors.gray[200] : 'transparent',
+    },
+    headerAvatarContainerLeft: {
+      marginRight: 12,
     },
     backBtn: {
       padding: 8,
@@ -2037,6 +2189,7 @@ const createStyles = (Colors, theme, isDesktop) => {
       fontSize: 14,
       fontWeight: '600',
       color: isDark ? Colors.text.primary : '#1e293b',
+      flexShrink: 1,
     },
     contactCode: {
       fontSize: 11,
@@ -2058,20 +2211,32 @@ const createStyles = (Colors, theme, isDesktop) => {
 
     // Modal Adjuntos
     attachmentModalContent: {
-      padding: 24,
-      alignItems: 'center',
+      padding: 20,
+      paddingBottom: 28,
       backgroundColor: Colors.card,
+    },
+    attachmentModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+      width: '100%',
+    },
+    attachmentCloseBtn: {
+      padding: 6,
+      borderRadius: 16,
+      backgroundColor: isDark ? Colors.gray[100] : '#f1f5f9',
     },
     attachmentModalTitle: {
       fontSize: 18,
       fontWeight: 'bold',
       color: isDark ? Colors.text.primary : Colors.primary,
-      marginBottom: 4,
+      marginBottom: 2,
     },
     attachmentModalSubtitle: {
       fontSize: 13,
       color: Colors.text.muted,
-      marginBottom: 20,
+      marginBottom: 8,
     },
     attachmentOptionsRow: {
       flexDirection: 'row',

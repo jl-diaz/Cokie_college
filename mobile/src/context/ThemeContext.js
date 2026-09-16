@@ -175,6 +175,7 @@ export const ThemeProvider = ({ children }) => {
       toggleTheme,
       changeTheme,
       colors,
+      Colors: colors,
       darkPrimaryPresetId,
       setDarkPrimaryPreset,
       isColorModalOpen,

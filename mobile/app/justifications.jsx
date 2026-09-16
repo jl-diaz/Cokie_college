@@ -355,6 +355,7 @@ export default function JustificationsScreen() {
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshing={refreshing}
         onRefresh={onRefresh}
         ListHeaderComponent={
@@ -439,7 +440,7 @@ export default function JustificationsScreen() {
             ) : (
               <ScrollView 
                 keyboardShouldPersistTaps="handled" 
-                showsVerticalScrollIndicator={true}
+                showsVerticalScrollIndicator={false}
                 style={[{ flexGrow: 0 }, Platform.OS === 'web' && { maxHeight: 520 }]}
                 contentContainerStyle={{ paddingBottom: 24 }}
               >

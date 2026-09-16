@@ -19,7 +19,8 @@
       "bundleIdentifier": "com.cokiecollege.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIDesignRequiresCompatibility": true
+        "UIDesignRequiresCompatibility": true,
+        "UIViewControllerBasedStatusBarAppearance": true
       }
     },
     "android": {

@@ -7,7 +7,8 @@ import {
   Dimensions, 
   Platform, 
   Keyboard,
-  BackHandler
+  BackHandler,
+  Modal
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -83,6 +84,7 @@ export default function BottomModal({ visible, onClose, children }) {
 
   useEffect(() => {
     if (visible) {
+      Keyboard.dismiss();
       setShowModal(true);
       slideAnim.setValue(screenHeight);
       Animated.parallel([
@@ -135,6 +137,11 @@ export default function BottomModal({ visible, onClose, children }) {
   const bottomInset = isWeb ? 0 : Math.max(insets.bottom, 0);
   const topSafe = insets.top > 0 ? insets.top + 20 : 50;
   
+  // Margen inferior seguro para asegurar que botones y contenido queden siempre accesibles sobre el Home Indicator
+  const bottomClearance = Platform.OS === 'ios'
+    ? Math.max(bottomInset, 20) + 8
+    : (bottomInset > 0 ? bottomInset + 8 : 16);
+
   // Limitar altura máxima para que nunca se desborde fuera de la pantalla
   const maxSheetHeight = isWeb 
     ? Math.min(screenHeight * 0.9, 850) 
@@ -148,17 +155,18 @@ export default function BottomModal({ visible, onClose, children }) {
   };
 
   return (
-    <View 
-      style={styles.overlayContainer}
-      pointerEvents={visible ? 'auto' : 'none'}
+    <Modal
+      transparent
+      visible={showModal}
+      animationType="none"
+      onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
-      <Pressable 
-        style={StyleSheet.absoluteFillObject} 
-        onPress={handleClose}
-        disabled={!visible}
-        accessibilityLabel="Cerrar modal"
+      <View 
+        style={styles.overlayContainer}
+        pointerEvents={visible ? 'auto' : 'none'}
       >
+        {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
         <Animated.View 
           style={[
             StyleSheet.absoluteFillObject, 
@@ -167,36 +175,44 @@ export default function BottomModal({ visible, onClose, children }) {
               opacity: fadeAnim 
             }
           ]} 
-        />
-      </Pressable>
+        >
+          <Pressable 
+            style={StyleSheet.absoluteFillObject}
+            onPress={handleClose}
+            disabled={!visible}
+            accessibilityLabel="Cerrar modal"
+          />
+        </Animated.View>
 
-      {/* Hoja modal inferior animada que sube con el teclado */}
-      <Animated.View 
-        style={[
-          styles.panelWrapper, 
-          { 
-            transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
-            backgroundColor: colors.card,
-            paddingBottom: keyboardHeight > 0 ? 10 : (Platform.OS === 'ios' ? Math.min(bottomInset, 16) : 0),
-            maxHeight: maxSheetHeight,
-            borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-          }
-        ]} 
-        onStartShouldSetResponder={() => true}
-      >
-        {children}
-      </Animated.View>
-    </View>
+        {/* Hoja modal inferior animada que sube con el teclado */}
+        <Animated.View 
+          style={[
+            styles.panelWrapper, 
+            { 
+              transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
+              backgroundColor: colors.card,
+              paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
+              maxHeight: maxSheetHeight,
+              borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+            }
+          ]} 
+          onStartShouldSetResponder={() => true}
+        >
+          {children}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    zIndex: 1000,
-    elevation: 25,
+    backgroundColor: 'transparent',
   },
   panelWrapper: {
     width: '100%',

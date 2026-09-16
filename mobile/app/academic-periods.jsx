@@ -412,46 +412,6 @@ export default function AcademicPeriodsScreen() {
         subtitle={t('titles.academicPeriodsSubtitle', 'Gestión de fechas de inicio y fin de periodos')}
       />
 
-      {/* Tarjeta Informativa de Normativa de Periodos */}
-      <View style={styles.noticeCard}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <Info size={18} color={Colors.primary} style={{ marginTop: 2, marginRight: 8 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.noticeTitle}>
-              {t('academicPeriods.calendarView', 'Calendario Escolar')}
-            </Text>
-            <Text style={styles.noticeText}>
-              {t('academicPeriods.guidelinesNotice', 'Configura los intervalos lectivos. Cada periodo debe ser cronológicamente consecutivo y sin solapamiento de fechas con ningún otro periodo escolar.')}
-            </Text>
-            {activePeriod && (
-              <View style={styles.activePeriodPill}>
-                <CheckCircle size={13} color="#10B981" style={{ marginTop: 2, marginRight: 6 }} />
-                <Text style={styles.activePeriodPillText}>
-                  Periodo actual en curso: Periodo {activePeriod.period_number} ({formatDisplayDate(activePeriod.start_date)} - {formatDisplayDate(activePeriod.end_date)})
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Botón de Agregar Periodo */}
-      <View style={styles.topActionsRow}>
-        <Text style={styles.sectionHeading}>
-          Periodos Registrados ({periods.length})
-        </Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={handleOpenCreateModal}
-          activeOpacity={0.8}
-        >
-          <Plus size={18} color="#FFFFFF" />
-          <Text style={styles.addBtnText}>
-            {t('academicPeriods.addPeriod', 'Nuevo Periodo')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Listado de Periodos */}
       {loading ? (
         <View style={styles.centerContainer}>
@@ -463,9 +423,53 @@ export default function AcademicPeriodsScreen() {
           keyExtractor={(item) => String(item.period_number)}
           renderItem={renderPeriodCard}
           contentContainerStyle={styles.listContent}
+          style={{ flex: 1 }}
           refreshing={refreshing}
           onRefresh={onRefresh}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <>
+              {/* Tarjeta Informativa de Normativa de Periodos */}
+              <View style={styles.noticeCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                  <Info size={18} color={Colors.primary} style={{ marginTop: 2, marginRight: 8 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.noticeTitle}>
+                      {t('academicPeriods.calendarView', 'Calendario Escolar')}
+                    </Text>
+                    <Text style={styles.noticeText}>
+                      {t('academicPeriods.guidelinesNotice', 'Configura los intervalos lectivos. Cada periodo debe ser cronológicamente consecutivo y sin solapamiento de fechas con ningún otro periodo escolar.')}
+                    </Text>
+                    {activePeriod && (
+                      <View style={styles.activePeriodPill}>
+                        <CheckCircle size={13} color="#10B981" style={{ marginTop: 2, marginRight: 6 }} />
+                        <Text style={styles.activePeriodPillText}>
+                          Periodo actual en curso: Periodo {activePeriod.period_number} ({formatDisplayDate(activePeriod.start_date)} - {formatDisplayDate(activePeriod.end_date)})
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Botón de Agregar Periodo */}
+              <View style={styles.topActionsRow}>
+                <Text style={styles.sectionHeading}>
+                  Periodos Registrados ({periods.length})
+                </Text>
+                <TouchableOpacity
+                  style={styles.addBtn}
+                  onPress={handleOpenCreateModal}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={18} color="#FFFFFF" />
+                  <Text style={styles.addBtnText}>
+                    {t('academicPeriods.addPeriod', 'Nuevo Periodo')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <CalendarIcon size={48} color={Colors.text.muted} style={{ opacity: 0.5, marginBottom: 12 }} />
@@ -480,7 +484,10 @@ export default function AcademicPeriodsScreen() {
       {/* MODAL: Crear / Editar Periodo con DatePickerSelector y Validaciones en Tiempo Real */}
       <BottomModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setActivePicker(null);
+          setModalVisible(false);
+        }}
       >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -494,15 +501,24 @@ export default function AcademicPeriodsScreen() {
                 {t('academicPeriods.guidelinesNotice', 'El periodo no puede solaparse con ningún otro.')}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+            <TouchableOpacity 
+              onPress={() => {
+                setActivePicker(null);
+                setModalVisible(false);
+              }} 
+              style={styles.closeBtn}
+              activeOpacity={0.7}
+            >
               <X size={20} color={Colors.text.primary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalScrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 24 }}
+            bounces={false}
           >
             {/* Campo de Número de Periodo (editable solo al crear) */}
             {!editingPeriod && (
@@ -563,8 +579,10 @@ export default function AcademicPeriodsScreen() {
                 </Text>
               </View>
             ) : null}
+          </ScrollView>
 
-            {/* Botón de Guardar (deshabilitado si hay errores de validación) */}
+          {/* Footer Fijo: Botón de Guardar / Crear siempre visible y accesible */}
+          <View style={styles.modalFooter}>
             <TouchableOpacity
               style={[
                 styles.submitBtn,
@@ -584,7 +602,7 @@ export default function AcademicPeriodsScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </View>
       </BottomModal>
     </View>
@@ -803,13 +821,28 @@ const createStyles = (Colors, theme) => {
     },
     // Modal
     modalContent: {
-      padding: 20,
+      paddingHorizontal: 20,
+      paddingTop: 16,
     },
     modalHeader: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: 10,
+    },
+    modalScrollView: {
+      flexGrow: 0,
+      flexShrink: 1,
+      maxHeight: 280,
+    },
+    modalScrollContent: {
+      paddingBottom: 6,
+    },
+    modalFooter: {
+      paddingTop: 12,
+      paddingBottom: 4,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
     },
     modalTitle: {
       fontSize: 18,
@@ -879,7 +912,6 @@ const createStyles = (Colors, theme) => {
       paddingVertical: 14,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 6,
       ...Shadows.card,
     },
     submitBtnDisabled: {

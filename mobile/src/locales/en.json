@@ -848,7 +848,7 @@
   "bulkJustifications": {
     "mode": "Justification Mode",
     "individual": "Individual",
-    "bulk": "Bulk (Group / Field Trip)",
+    "bulk": "Bulk",
     "filterClassroom": "Filter by Classroom",
     "allGrades": "All grades",
     "allSections": "All sections",

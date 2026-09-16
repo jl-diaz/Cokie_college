@@ -74,12 +74,117 @@ function LayoutInner() {
 
   const isWeb = Platform.OS === 'web';
 
+  const renderHeaderLeftBtn = (routeName) => {
+    if (routeName === 'index' || routeName === '(auth)/login' || routeName === 'home') return null;
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/home');
+          }
+        }}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: 'rgba(0, 0, 0, 0.22)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.14)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        activeOpacity={0.7}
+      >
+        <ArrowLeft size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderHeaderRightCapsule = (routeName) => {
+    if (routeName === 'index' || routeName === '(auth)/login') return null;
+    return (
+      <View style={{
+        width: 145,
+        minWidth: 145,
+        maxWidth: 145,
+        height: 34,
+        flexShrink: 0,
+        flexGrow: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(0, 0, 0, 0.22)',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.14)',
+      }}>
+        <TouchableOpacity 
+          onPress={toggleLanguage} 
+          style={{ height: 26, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+          activeOpacity={0.7}
+        >
+          <Globe size={15} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>
+            {i18n.language?.toUpperCase() || 'ES'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={toggleTheme}
+          onLongPress={openColorModal}
+          delayLongPress={300}
+          style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={0.7}
+        >
+          {theme === 'dark' ? <Sun size={16} color="#FFFFFF" /> : <Moon size={16} color="#FFFFFF" />}
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setNotifModalVisible(true)}
+          style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+          activeOpacity={0.7}
+        >
+          <Bell size={16} color="#FFFFFF" />
+          {hasBadge && (
+            <View style={{
+              position: 'absolute',
+              top: 1,
+              right: 1,
+              minWidth: unreadCount > 0 ? 12 : 7,
+              height: unreadCount > 0 ? 12 : 7,
+              borderRadius: unreadCount > 0 ? 6 : 3.5,
+              backgroundColor: '#EF4444',
+              borderWidth: 1,
+              borderColor: '#FFFFFF',
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 1
+            }}>
+              {unreadCount > 0 && (
+                <Text style={{ color: '#FFF', fontSize: 7, fontWeight: 'bold', lineHeight: 9, textAlign: 'center' }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setDrawerVisible(true)} 
+          style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
+          activeOpacity={0.7}
+        >
+          <Menu size={18} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const content = (
     <>
       <StatusBar style="light" />
       <Stack
           screenOptions={({ route }) => ({
-            statusBarStyle: 'light',
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 
@@ -93,122 +198,30 @@ function LayoutInner() {
               fontWeight: 'bold',
               fontSize: 16,
             },
-            headerRightContainerStyle: {
-              paddingRight: 16,
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              flexGrow: 1,
+            headerLeft: () => renderHeaderLeftBtn(route.name),
+            headerRight: () => renderHeaderRightCapsule(route.name),
+            unstable_headerLeftItems: () => {
+              const el = renderHeaderLeftBtn(route.name);
+              if (!el) return [];
+              return [
+                {
+                  type: 'custom',
+                  hidesSharedBackground: true,
+                  element: el,
+                },
+              ];
             },
-            headerLeftContainerStyle: {
-              paddingLeft: 16,
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              flexGrow: 1,
+            unstable_headerRightItems: () => {
+              const el = renderHeaderRightCapsule(route.name);
+              if (!el) return [];
+              return [
+                {
+                  type: 'custom',
+                  hidesSharedBackground: true,
+                  element: el,
+                },
+              ];
             },
-            headerLeft: () => {
-              if (route.name === 'index' || route.name === '(auth)/login' || route.name === 'home') return null;
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    if (router.canGoBack()) {
-                      router.back();
-                    } else {
-                      router.replace('/home');
-                    }
-                  }}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.18)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <ArrowLeft size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              );
-            },
-            headerRight: () => {
-                if (route.name === 'index' || route.name === '(auth)/login') return null;
-                return (
-                  <View style={{
-                    width: 145,
-                    minWidth: 145,
-                    maxWidth: 145,
-                    height: 34,
-                    flexShrink: 0,
-                    flexGrow: 0,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: 20,
-                    paddingHorizontal: 8,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.18)',
-                  }}>
-                    <TouchableOpacity 
-                      onPress={toggleLanguage} 
-                      style={{ height: 26, paddingHorizontal: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
-                      activeOpacity={0.7}
-                    >
-                      <Globe size={15} color="#FFFFFF" />
-                      <Text style={{ color: '#FFFFFF', fontSize: 10, marginLeft: 3, fontWeight: 'bold' }}>
-                        {i18n.language?.toUpperCase() || 'ES'}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={toggleTheme}
-                      onLongPress={openColorModal}
-                      delayLongPress={300}
-                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
-                      activeOpacity={0.7}
-                    >
-                      {theme === 'dark' ? <Sun size={16} color="#FFFFFF" /> : <Moon size={16} color="#FFFFFF" />}
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={() => setNotifModalVisible(true)}
-                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-                      activeOpacity={0.7}
-                    >
-                      <Bell size={16} color="#FFFFFF" />
-                      {hasBadge && (
-                        <View style={{
-                          position: 'absolute',
-                          top: 1,
-                          right: 1,
-                          minWidth: unreadCount > 0 ? 12 : 7,
-                          height: unreadCount > 0 ? 12 : 7,
-                          borderRadius: unreadCount > 0 ? 6 : 3.5,
-                          backgroundColor: '#EF4444',
-                          borderWidth: 1,
-                          borderColor: '#FFFFFF',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          paddingHorizontal: 1
-                        }}>
-                          {unreadCount > 0 && (
-                            <Text style={{ color: '#FFF', fontSize: 7, fontWeight: 'bold', lineHeight: 9, textAlign: 'center' }}>
-                              {unreadCount > 9 ? '9+' : unreadCount}
-                            </Text>
-                          )}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      onPress={() => setDrawerVisible(true)} 
-                      style={{ width: 26, height: 26, justifyContent: 'center', alignItems: 'center' }}
-                      activeOpacity={0.7}
-                    >
-                      <Menu size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
-                );
-            }
           })}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -217,7 +230,8 @@ function LayoutInner() {
             name="home" 
             options={{ 
               title: (''),
-              headerLeft: () => null
+              headerLeft: () => null,
+              unstable_headerLeftItems: () => [],
             }} 
           />
           <Stack.Screen name="diary" options={{ title: ('') }} />
@@ -243,7 +257,7 @@ function LayoutInner() {
           <Stack.Screen name="interpreter" options={{ title: ('') }} />
           <Stack.Screen name="subject-hours" options={{ title: ('') }} />
           <Stack.Screen name="academic-periods" options={{ title: ('') }} />
-          <Stack.Screen name="chat" options={{ headerShown: false }} />
+          <Stack.Screen name="chat" options={{ title: ('') }} />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
         <NotificationsModal 

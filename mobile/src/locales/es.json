@@ -848,7 +848,7 @@
   "bulkJustifications": {
     "mode": "Modo de Justificación",
     "individual": "Individual",
-    "bulk": "Masiva (Grupal / Excursión)",
+    "bulk": "Masiva",
     "filterClassroom": "Filtrar por Aula",
     "allGrades": "Todos los grados",
     "allSections": "Todas las secciones",

@@ -822,7 +822,7 @@ export default function CoordinatorJustificationsScreen() {
                   >
                     <Users size={16} color={creationMode === 'bulk' ? '#FFF' : Colors.primary} style={{ marginRight: 6 }} />
                     <Text style={[styles.creationModeBtnText, creationMode === 'bulk' && styles.creationModeBtnTextActive]}>
-                      {t('bulkJustifications.bulk', 'Masiva (Grupal / Excursión)')}
+                      {t('bulkJustifications.bulk', 'Masiva')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1493,26 +1493,35 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: BorderRadius.lg,
-    padding: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+    borderRadius: 14,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    borderRadius: 11,
   },
   activeTab: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   tabText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: 'bold',
-    fontSize: Typography.size.sm,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
+    fontSize: 13,
   },
   activeTabText: {
     color: Colors.primary,
+    fontWeight: '700',
   },
   content: { padding: Spacing.lg },
   sectionTitle: { 
