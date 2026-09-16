@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ChevronRight, Clock, MessageSquare, ArrowUpRight } from 'lucide-react-native';
+import { ChevronRight, ArrowUpRight } from 'lucide-react-native';
 
 export function BentoCard({ children, style, onPress, activeOpacity = 0.8 }) {
   if (onPress) {
@@ -17,7 +17,7 @@ export function BentoCard({ children, style, onPress, activeOpacity = 0.8 }) {
   return <View style={[styles.bentoCard, style]}>{children}</View>;
 }
 
-export function LiveClassWidget({ schedules = [], isDark = false, onPressClass }) {
+export function LiveClassWidget({ schedules = [], isDark = false, onPressClass, actionLabel = 'Ir a clase' }) {
   const now = new Date();
   const currentDay = now.getDay();
   const isWeekend = currentDay === 0 || currentDay === 6;
@@ -43,15 +43,11 @@ export function LiveClassWidget({ schedules = [], isDark = false, onPressClass }
     return (
       <View style={styles.liveClassWrapper}>
         <View style={[styles.liveClassRow, isDark && styles.liveClassRowDark]}>
-          <View style={styles.liveClassInfo}>
-            <View style={[styles.liveBadgeDot, { backgroundColor: '#10B981' }]} />
-            <Text style={[styles.liveClassLabel, isDark && styles.textLight]}>
-              {isWeekend ? 'Fin de semana · Tiempo de descanso' : 'No hay clases programadas para hoy'}
-            </Text>
-          </View>
-          <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(236,72,153,0.15)' : '#FCE7F3' }]}>
-            <Clock size={12} color="#EC4899" />
-            <Text style={[styles.timePillText, { color: '#EC4899' }]}>{isWeekend ? 'Libre' : 'Día libre'}</Text>
+          <Text style={[styles.liveClassLabel, isDark && styles.textMuted]}>
+            {isWeekend ? 'Fin de semana · Sin clases programadas' : 'No tienes clases programadas hoy'}
+          </Text>
+          <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F1F5F9' }]}>
+            <Text style={[styles.timePillText, isDark && styles.textMuted]}>Libre</Text>
           </View>
         </View>
       </View>
@@ -62,32 +58,40 @@ export function LiveClassWidget({ schedules = [], isDark = false, onPressClass }
     <View style={styles.liveClassWrapper}>
       {/* Clase Actual */}
       <TouchableOpacity 
-        style={[styles.liveClassRow, isDark && styles.liveClassRowDark, currentClass && styles.liveClassRowActive]}
+        style={[
+          styles.liveClassRow, 
+          isDark && styles.liveClassRowDark, 
+          currentClass && (isDark ? styles.liveClassRowActiveDark : styles.liveClassRowActive)
+        ]}
         onPress={() => onPressClass && onPressClass(currentClass)}
         activeOpacity={0.85}
         disabled={!currentClass}
       >
         <View style={styles.liveClassInfo}>
-          <Text style={[styles.liveClassPrefix, isDark && styles.textLight]} numberOfLines={1}>
-            Tu clase actual es: <Text style={[styles.subjectHighlight, isDark && { color: '#EC4899' }]}>{currentClass ? (currentClass.subjects?.name || currentClass.name || 'Clase') : 'Ninguna en curso'}</Text>
+          <Text style={[styles.liveClassPrefix, isDark && styles.textMuted]} numberOfLines={1}>
+            Clase actual:{' '}
+            <Text style={[styles.subjectHighlight, isDark && styles.textLight]}>
+              {currentClass ? (currentClass.subjects?.name || currentClass.name || 'Clase') : 'Ninguna'}
+            </Text>
           </Text>
         </View>
+
         {currentClass ? (
           <View style={styles.badgeGroup}>
-            <View style={styles.gradeSectionPill}>
-              <Text style={styles.gradeSectionPillText}>
-                {currentClass.grade ? `${currentClass.grade}º "${currentClass.section}"` : 'En curso'}
+            <View style={[styles.gradeSectionPill, isDark && styles.gradeSectionPillDark]}>
+              <Text style={[styles.gradeSectionPillText, isDark && { color: '#EC4899' }]}>
+                {currentClass.grade ? `${currentClass.grade}º "${currentClass.section}"` : 'Activa'}
               </Text>
             </View>
-            <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(168,85,247,0.2)' : '#F3E8FF' }]}>
-              <Text style={[styles.timePillText, { color: isDark ? '#C084FC' : '#7E22CE' }]}>
+            <View style={[styles.timePill, isDark && styles.timePillDark]}>
+              <Text style={[styles.timePillText, isDark && styles.textLight]}>
                 {`${formatHour(currentClass.start_time)} - ${formatHour(currentClass.end_time)}`}
               </Text>
             </View>
           </View>
         ) : (
-          <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}>
-            <Text style={[styles.timePillText, isDark && styles.textMuted]}>Sin clase activa</Text>
+          <View style={[styles.timePill, isDark && styles.timePillDark]}>
+            <Text style={[styles.timePillText, isDark && styles.textMuted]}>Sin clase</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -100,26 +104,30 @@ export function LiveClassWidget({ schedules = [], isDark = false, onPressClass }
         disabled={!nextClass}
       >
         <View style={styles.liveClassInfo}>
-          <Text style={[styles.liveClassPrefix, isDark && styles.textLight]} numberOfLines={1}>
-            Tu siguiente clase es: <Text style={[styles.subjectHighlight, isDark && { color: '#EC4899' }]}>{nextClass ? (nextClass.subjects?.name || nextClass.name || 'Clase') : 'No hay más clases hoy'}</Text>
+          <Text style={[styles.liveClassPrefix, isDark && styles.textMuted]} numberOfLines={1}>
+            Siguiente:{' '}
+            <Text style={[styles.subjectHighlight, isDark && styles.textLight]}>
+              {nextClass ? (nextClass.subjects?.name || nextClass.name || 'Clase') : 'Jornada completada'}
+            </Text>
           </Text>
         </View>
+
         {nextClass ? (
           <View style={styles.badgeGroup}>
-            <View style={styles.gradeSectionPill}>
-              <Text style={styles.gradeSectionPillText}>
+            <View style={[styles.gradeSectionPill, isDark && styles.gradeSectionPillDark]}>
+              <Text style={[styles.gradeSectionPillText, isDark && { color: '#EC4899' }]}>
                 {nextClass.grade ? `${nextClass.grade}º "${nextClass.section}"` : 'Próxima'}
               </Text>
             </View>
-            <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(168,85,247,0.2)' : '#F3E8FF' }]}>
-              <Text style={[styles.timePillText, { color: isDark ? '#C084FC' : '#7E22CE' }]}>
+            <View style={[styles.timePill, isDark && styles.timePillDark]}>
+              <Text style={[styles.timePillText, isDark && styles.textLight]}>
                 {`${formatHour(nextClass.start_time)} - ${formatHour(nextClass.end_time)}`}
               </Text>
             </View>
           </View>
         ) : (
-          <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}>
-            <Text style={[styles.timePillText, isDark && styles.textMuted]}>Completado</Text>
+          <View style={[styles.timePill, isDark && styles.timePillDark]}>
+            <Text style={[styles.timePillText, isDark && styles.textMuted]}>Finalizado</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -127,21 +135,13 @@ export function LiveClassWidget({ schedules = [], isDark = false, onPressClass }
   );
 }
 
-export function StatWidget({ title, value, subtitle, trend, icon: Icon, color = '#EC4899', isDark = false, onPress }) {
+export function StatWidget({ title, value, subtitle, isDark = false, onPress, color = '#EC4899' }) {
   return (
     <BentoCard style={[styles.statCard, isDark && styles.cardDark]} onPress={onPress}>
-      <View style={styles.statHeader}>
-        <Text style={[styles.statTitle, isDark && styles.textMuted]}>{title}</Text>
-        {Icon && (
-          <View style={[styles.statIconBadge, { backgroundColor: color + '18' }]}>
-            <Icon size={16} color={color} />
-          </View>
-        )}
-      </View>
-      <Text style={[styles.statValue, { color: color }]}>{value}</Text>
+      <Text style={[styles.statTitle, isDark && styles.textMuted]}>{title}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
       {subtitle && (
-        <Text style={[styles.statSubtitle, isDark && styles.textMuted]}>
-          {trend && <Text style={{ color: '#10B981', fontWeight: 'bold' }}>{trend} </Text>}
+        <Text style={[styles.statSubtitle, isDark && styles.textMuted]} numberOfLines={1}>
           {subtitle}
         </Text>
       )}
@@ -149,21 +149,18 @@ export function StatWidget({ title, value, subtitle, trend, icon: Icon, color = 
   );
 }
 
-export function QuickActionBtn({ title, subtitle, icon: Icon, color = '#0B1956', isDark = false, onPress }) {
+export function QuickActionBtn({ title, subtitle, isDark = false, onPress }) {
   return (
     <TouchableOpacity 
       style={[styles.quickBtn, isDark && styles.quickBtnDark]} 
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <View style={[styles.quickBtnIcon, { backgroundColor: color + '18' }]}>
-        <Icon size={18} color={color} />
-      </View>
       <View style={styles.quickBtnTextCol}>
         <Text style={[styles.quickBtnTitle, isDark && styles.textLight]} numberOfLines={1}>{title}</Text>
         {subtitle && <Text style={[styles.quickBtnSubtitle, isDark && styles.textMuted]} numberOfLines={1}>{subtitle}</Text>}
       </View>
-      <ChevronRight size={16} color={isDark ? '#64748B' : '#94A3B8'} />
+      <ChevronRight size={15} color={isDark ? '#64748B' : '#94A3B8'} />
     </TouchableOpacity>
   );
 }
@@ -174,11 +171,8 @@ export function RecentMessagesWidget({ conversations = [], isDark = false, onPre
   return (
     <BentoCard style={[styles.messagesCard, isDark && styles.cardDark]} onPress={onPressChat}>
       <View style={styles.messagesHeader}>
-        <View style={styles.headerTitleRow}>
-          <MessageSquare size={16} color="#EC4899" />
-          <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>Nuevos mensajes</Text>
-        </View>
-        <ArrowUpRight size={16} color={isDark ? '#94A3B8' : '#64748B'} />
+        <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>Mensajes recientes</Text>
+        <ArrowUpRight size={15} color={isDark ? '#94A3B8' : '#64748B'} />
       </View>
 
       {recent.length === 0 ? (
@@ -195,14 +189,14 @@ export function RecentMessagesWidget({ conversations = [], isDark = false, onPre
             return (
               <View key={conv.id || i} style={[styles.messageItem, i < recent.length - 1 && styles.messageBorder]}>
                 <View style={styles.messageSenderRow}>
-                  <Text style={[styles.messageSenderName, isDark && styles.textLight]} numberOfLines={1}>
+                  <Text style={[styles.messageSenderName, isDark && styles.textLight]} numberOfLines={1} ellipsizeMode="tail">
                     {name}
                   </Text>
-                  <View style={styles.rolePill}>
+                  <View style={[styles.rolePill, isDark && styles.rolePillDark]}>
                     <Text style={styles.rolePillText}>{role.replace('_', ' ')}</Text>
                   </View>
                 </View>
-                <Text style={[styles.messageSnippet, isDark && styles.textMuted]} numberOfLines={1}>
+                <Text style={[styles.messageSnippet, isDark && styles.textMuted]} numberOfLines={1} ellipsizeMode="tail">
                   {snippet}
                 </Text>
               </View>
@@ -217,15 +211,16 @@ export function RecentMessagesWidget({ conversations = [], isDark = false, onPre
 const styles = StyleSheet.create({
   bentoCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: 20,
+    padding: 14,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+    overflow: 'hidden',
   },
   cardDark: {
     backgroundColor: '#18181B',
@@ -239,7 +234,7 @@ const styles = StyleSheet.create({
   },
   liveClassWrapper: {
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   liveClassRow: {
     flexDirection: 'row',
@@ -250,12 +245,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
   },
   liveClassRowDark: {
     backgroundColor: '#18181B',
@@ -263,72 +254,68 @@ const styles = StyleSheet.create({
   },
   liveClassRowActive: {
     borderColor: '#EC4899',
-    borderWidth: 1.5,
+    backgroundColor: '#FFF1F2',
+  },
+  liveClassRowActiveDark: {
+    borderColor: '#EC4899',
+    backgroundColor: '#1E1B24',
   },
   liveClassInfo: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  liveBadgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
     marginRight: 8,
   },
   liveClassPrefix: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
   liveClassLabel: {
-    fontSize: 13,
+    fontSize: 12,
+    color: '#64748B',
     fontWeight: '500',
-    color: '#475569',
   },
   subjectHighlight: {
-    fontWeight: '800',
-    color: '#0B1956',
+    fontWeight: '700',
+    color: '#0F172A',
   },
   badgeGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
   gradeSectionPill: {
-    backgroundColor: 'rgba(236,72,153,0.12)',
+    backgroundColor: 'rgba(236,72,153,0.1)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  gradeSectionPillDark: {
+    backgroundColor: 'rgba(236,72,153,0.2)',
   },
   gradeSectionPillText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#EC4899',
   },
   timePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  timePillDark: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   timePillText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#475569',
   },
   statCard: {
     flex: 1,
-    minHeight: 110,
-    justifyContent: 'space-between',
-  },
-  statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    minHeight: 90,
+    justifyContent: 'center',
   },
   statTitle: {
     fontSize: 11,
@@ -336,30 +323,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
-  },
-  statIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 4,
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
-    marginVertical: 4,
   },
   statSubtitle: {
     fontSize: 11,
     color: '#64748B',
+    marginTop: 2,
   },
   quickBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     marginBottom: 8,
@@ -368,19 +351,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#18181B',
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  quickBtnIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
   quickBtnTextCol: {
     flex: 1,
+    marginRight: 8,
   },
   quickBtnTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
   },
@@ -390,21 +366,18 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   messagesCard: {
-    padding: 16,
+    width: '100%',
+    padding: 14,
+    marginBottom: 12,
   },
   messagesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    marginBottom: 10,
   },
   cardHeaderTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
   },
@@ -412,35 +385,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     fontStyle: 'italic',
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   messagesList: {
     gap: 8,
   },
   messageItem: {
-    paddingVertical: 4,
+    paddingVertical: 2,
+    width: '100%',
   },
   messageBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.04)',
-    paddingBottom: 8,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    paddingBottom: 6,
   },
   messageSenderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
     marginBottom: 2,
+    width: '100%',
   },
   messageSenderName: {
     fontSize: 12,
     fontWeight: '700',
     color: '#1E293B',
+    flex: 1,
+    marginRight: 6,
   },
   rolePill: {
-    backgroundColor: 'rgba(236,72,153,0.12)',
+    backgroundColor: 'rgba(236,72,153,0.1)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 6,
+    flexShrink: 0,
+  },
+  rolePillDark: {
+    backgroundColor: 'rgba(236,72,153,0.2)',
   },
   rolePillText: {
     fontSize: 9,
@@ -451,5 +432,6 @@ const styles = StyleSheet.create({
   messageSnippet: {
     fontSize: 11,
     color: '#64748B',
+    width: '100%',
   },
 });

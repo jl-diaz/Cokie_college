@@ -1,16 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
-  Users, 
-  Calendar, 
-  Bell, 
-  BookOpen, 
-  ChevronRight, 
-  CheckCircle2, 
-  TrendingUp, 
-  FileText 
-} from 'lucide-react-native';
 import api from '../../utils/api';
 import { 
   BentoCard, 
@@ -26,20 +16,18 @@ export default function TeacherDashboard({ isDark = false }) {
   const [schedules, setSchedules] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [periodStatus, setPeriodStatus] = useState(null);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchTeacherData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchTeacherData = async () => {
     try {
       setLoading(true);
-      const [schedRes, classRes, chatRes, statusRes] = await Promise.allSettled([
+      const [schedRes, classRes, chatRes] = await Promise.allSettled([
         api.get('/teacher/schedule'),
         api.get('/teacher/classrooms'),
-        api.get('/chat/conversations'),
-        api.get('/teacher/periods-status')
+        api.get('/chat/conversations')
       ]);
 
       if (schedRes.status === 'fulfilled' && Array.isArray(schedRes.value.data)) {
@@ -51,37 +39,37 @@ export default function TeacherDashboard({ isDark = false }) {
       if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
         setConversations(chatRes.value.data);
       }
-      if (statusRes.status === 'fulfilled') {
-        setPeriodStatus(statusRes.value.data);
-      }
     } catch (err) {
-      console.warn('Error loading teacher dashboard data:', err);
+      console.warn('Error loading teacher dashboard:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Agrupar estudiantes por grado y sección
-  const sectionsSummary = React.useMemo(() => {
-    const map = {};
-    classrooms.forEach(student => {
-      const key = `${student.grade}º "${student.section}"`;
-      map[key] = (map[key] || 0) + 1;
+  // Clases que el profesor tiene el día de hoy
+  const todayClassesCount = useMemo(() => {
+    const currentDay = new Date().getDay();
+    if (currentDay === 0 || currentDay === 6) return 0;
+    return schedules.filter(s => parseInt(s.day_of_week) === currentDay).length;
+  }, [schedules]);
+
+  // Secciones únicas donde da clase
+  const uniqueSectionsCount = useMemo(() => {
+    const set = new Set();
+    schedules.forEach(s => {
+      if (s.grade && s.section) {
+        set.add(`${s.grade}º ${s.section}`);
+      }
     });
-    return Object.entries(map).map(([name, count]) => ({
-      name,
-      count,
-      grade: name.split('º')[0].trim(),
-      section: name.split('"')[1]?.trim() || 'A'
-    }));
-  }, [classrooms]);
+    return set.size;
+  }, [schedules]);
 
   if (loading) {
     return (
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando tu resumen del día...
+          Cargando tu jornada...
         </Text>
       </View>
     );
@@ -89,132 +77,68 @@ export default function TeacherDashboard({ isDark = false }) {
 
   return (
     <View style={styles.container}>
-      {/* 1. Clases en Vivo (Actual y Siguiente) */}
+      {/* 1. Horario en Vivo: Clase Actual y Siguiente */}
       <LiveClassWidget 
         schedules={schedules} 
         isDark={isDark} 
         onPressClass={() => router.push('/class')} 
       />
 
-      {/* 2. Bento Grid Principal */}
-      <View style={styles.gridRow}>
-        {/* Columna Izquierda: Calificaciones y Mensajes */}
-        <View style={styles.column}>
-          {/* Tarjeta de Tienes de Calificar */}
-          <BentoCard style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleRow}>
-                <FileText size={16} color="#EC4899" />
-                <Text style={[styles.cardTitle, isDark && styles.textLight]}>
-                  Tienes de calificar:
-                </Text>
-              </View>
-            </View>
+      {/* 2. Métricas Reales de la Jornada (Bento Minimalista) */}
+      <View style={styles.statsRow}>
+        <StatWidget 
+          title="Clases de hoy"
+          value={todayClassesCount > 0 ? `${todayClassesCount}` : '0'}
+          subtitle={todayClassesCount > 0 ? 'Horas programadas' : 'Sin clases hoy'}
+          isDark={isDark}
+          color="#0EA5E9"
+          onPress={() => router.push('/schedule')}
+        />
 
-            <View style={styles.gradingList}>
-              {sectionsSummary.length === 0 ? (
-                <View style={styles.gradingRow}>
-                  <Text style={[styles.gradingSection, isDark && styles.textMuted]}>Periodo activo</Text>
-                  <Text style={[styles.gradingProgress, isDark && styles.textLight]}>Al día</Text>
-                </View>
-              ) : (
-                sectionsSummary.slice(0, 4).map((sec, idx) => {
-                  const graded = Math.max(0, sec.count - (idx * 5 + 3));
-                  return (
-                    <View key={sec.name} style={[styles.gradingRow, idx < 3 && styles.borderBottom]}>
-                      <Text style={[styles.gradingSection, isDark && styles.textLight]}>
-                        {sec.name} :
-                      </Text>
-                      <Text style={[styles.gradingProgress, isDark && styles.textLight]}>
-                        {Math.min(graded, sec.count)}/{sec.count}
-                      </Text>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-
-            <View style={styles.motivationalBox}>
-              <CheckCircle2 size={15} color="#10B981" />
-              <Text style={styles.motivationalText}>
-                ¡Lo vas haciendo excelente!
-              </Text>
-            </View>
-          </BentoCard>
-
-          {/* Nuevos Mensajes de CokieChat */}
-          <RecentMessagesWidget 
-            conversations={conversations} 
-            isDark={isDark} 
-            onPressChat={() => router.push('/chat')} 
-          />
-        </View>
-
-        {/* Columna Derecha: Tus Secciones y Asistencia */}
-        <View style={styles.column}>
-          {/* Tus Secciones */}
-          <BentoCard style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleRow}>
-                <Users size={16} color="#3B82F6" />
-                <Text style={[styles.cardTitle, isDark && styles.textLight]}>
-                  Tus secciones:
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.sectionsList}>
-              {sectionsSummary.length === 0 ? (
-                <Text style={[styles.emptyText, isDark && styles.textMuted]}>
-                  Sin secciones asignadas
-                </Text>
-              ) : (
-                sectionsSummary.slice(0, 4).map((sec) => (
-                  <TouchableOpacity 
-                    key={sec.name} 
-                    style={[styles.sectionItem, isDark && styles.sectionItemDark]}
-                    onPress={() => router.push({ pathname: '/class', params: { grade: sec.grade, section: sec.section } })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.sectionNameText, isDark && styles.textLight]}>
-                      {sec.name} : {sec.count}
-                    </Text>
-                    <ChevronRight size={15} color={isDark ? '#94A3B8' : '#64748B'} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </View>
-          </BentoCard>
-
-          {/* Asistencia Semanal */}
-          <BentoCard style={[styles.attendanceCard, isDark && styles.attendanceCardDark]}>
-            <Text style={styles.attendanceTitle}>Asistencia semanal de tu sección</Text>
-            <Text style={styles.attendanceBigNumber}>98%</Text>
-            <View style={styles.attendanceTrendRow}>
-              <TrendingUp size={13} color="#34D399" />
-              <Text style={styles.attendanceTrendText}>
-                Hay un 5% menos de ausencias
-              </Text>
-            </View>
-          </BentoCard>
-
-          {/* Accesos Rápidos */}
-          <QuickActionBtn 
-            title="Visualizar tu horario del día"
-            icon={Calendar}
-            color="#3B82F6"
-            isDark={isDark}
-            onPress={() => router.push('/schedule')}
-          />
-          <QuickActionBtn 
-            title="Visualizar Avisos del día"
-            icon={Bell}
-            color="#F59E0B"
-            isDark={isDark}
-            onPress={() => router.push('/announcements')}
-          />
-        </View>
+        <StatWidget 
+          title="Salones asignados"
+          value={uniqueSectionsCount > 0 ? `${uniqueSectionsCount}` : `${classrooms.length > 0 ? classrooms.length : '0'}`}
+          subtitle="Secciones a cargo"
+          isDark={isDark}
+          color="#EC4899"
+          onPress={() => router.push('/class')}
+        />
       </View>
+
+      {/* 3. Mensajes Recientes de CokieChat (Ancho Completo sin overflow) */}
+      <RecentMessagesWidget 
+        conversations={conversations} 
+        isDark={isDark} 
+        onPressChat={() => router.push('/chat')} 
+      />
+
+      {/* 4. Herramientas Rápidas del Docente (Funcionales) */}
+      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Herramientas docentes</Text>
+      
+      <QuickActionBtn 
+        title="Pasar Asistencia / Clase Activa"
+        subtitle="Control de asistencia y méritos disciplinarios"
+        isDark={isDark}
+        onPress={() => router.push('/class')}
+      />
+      <QuickActionBtn 
+        title="Calificaciones y Evaluaciones"
+        subtitle="Ingresar notas de tareas, proyectos y exámenes"
+        isDark={isDark}
+        onPress={() => router.push('/teacher-grades')}
+      />
+      <QuickActionBtn 
+        title="Mi Horario Semanal"
+        subtitle="Ver distribución de materias de la semana"
+        isDark={isDark}
+        onPress={() => router.push('/schedule')}
+      />
+      <QuickActionBtn 
+        title="Avisos Institucionales"
+        subtitle="Comunicados oficiales de dirección y coordinación"
+        isDark={isDark}
+        onPress={() => router.push('/announcements')}
+      />
     </View>
   );
 }
@@ -222,17 +146,17 @@ export default function TeacherDashboard({ isDark = false }) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 24,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   centerLoading: {
-    padding: 40,
+    padding: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 13,
+    marginTop: 8,
+    fontSize: 12,
     color: '#64748B',
   },
   textLight: {
@@ -241,134 +165,19 @@ const styles = StyleSheet.create({
   textMuted: {
     color: '#94A3B8',
   },
-  gridRow: {
+  statsRow: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  column: {
-    flex: 1,
-    gap: 12,
-  },
-  card: {
-    padding: 14,
-  },
-  cardDark: {
-    backgroundColor: '#18181B',
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  gradingList: {
-    gap: 6,
+    gap: 10,
     marginBottom: 12,
   },
-  gradingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-  },
-  borderBottom: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  gradingSection: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  gradingProgress: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  motivationalBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(16,185,129,0.1)',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  motivationalText: {
+  sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#059669',
-  },
-  sectionsList: {
-    gap: 6,
-  },
-  sectionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  sectionItemDark: {
-    backgroundColor: '#27272A',
-    borderColor: '#3F3F46',
-  },
-  sectionNameText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  emptyText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontStyle: 'italic',
-    paddingVertical: 6,
-  },
-  attendanceCard: {
-    backgroundColor: '#0B1956',
-    padding: 14,
-    borderRadius: 20,
-  },
-  attendanceCardDark: {
-    backgroundColor: '#1E1B4B',
-    borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.3)',
-  },
-  attendanceTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#CBD5E1',
-    marginBottom: 4,
-  },
-  attendanceBigNumber: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -1,
-  },
-  attendanceTrendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginTop: 4,
-  },
-  attendanceTrendText: {
-    fontSize: 10,
-    color: '#94A3B8',
+    marginBottom: 10,
+    marginLeft: 2,
   },
 });
