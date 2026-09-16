@@ -389,22 +389,29 @@ class ISLModel:
                 if static_candidate and is_holding_static:
                     current_prediction = static_candidate
 
-                # 2. CAPA TEMPORAL DINÁMICA: Solo evaluar si la mano está en movimiento dinámico real
+                # 2. CAPA DEL MODELO ENTRENADO (ESTÁTICA Y DINÁMICA)
                 if current_prediction is None:
                     active_model = gesture_trainer.get_active_model()
-                    if active_model and len(self.sequence_buffer) >= 20 and is_moving_dynamically:
+                    if active_model and len(self.sequence_buffer) >= 15:
                         try:
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
                             pred_label, confidence = active_model.predict(feats)
-                            # Umbral estricto para evitar que adivine gestos al azar
-                            if pred_label and confidence >= 0.82:
-                                info = gesture_trainer.get_gesture_display_info(pred_label)
-                                current_prediction = {
-                                    "id": f"sign.{info['id']}",
-                                    "text": info["name_es"],
-                                    "name_es": info["name_es"],
-                                    "name_en": info["name_en"]
-                                }
+                            if pred_label:
+                                g_type = gesture_trainer.get_gesture_type(pred_label)
+                                should_trigger = False
+                                if g_type == "static" and (is_holding_static or not is_moving_dynamically) and confidence >= 0.78:
+                                    should_trigger = True
+                                elif g_type == "movement" and is_moving_dynamically and confidence >= 0.82:
+                                    should_trigger = True
+
+                                if should_trigger:
+                                    info = gesture_trainer.get_gesture_display_info(pred_label)
+                                    current_prediction = {
+                                        "id": f"sign.{info['id']}",
+                                        "text": info["name_es"],
+                                        "name_es": info["name_es"],
+                                        "name_en": info["name_en"]
+                                    }
                         except Exception:
                             pass
 

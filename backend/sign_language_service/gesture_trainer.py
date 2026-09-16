@@ -217,28 +217,46 @@ def get_gesture_display_info(gesture_id):
 def get_gesture_display_name(gesture_id):
     """Fallback simple para obtener el nombre legible."""
     info = get_gesture_display_info(gesture_id)
-    return info["name_es"]
-
-
+def get_gesture_type(gesture_id):
+    """Retorna el tipo de gesto ('static' o 'movement') según el catálogo."""
+    try:
+        gestures = load_gestures()
+        for g in gestures:
+            if g["id"] == gesture_id:
+                return g.get("type", "movement")
+    except Exception:
+        pass
+    return "movement"
 
 def save_sample(gesture_id, sequence_30_frames):
     """
-    Guarda una secuencia grabada de 30 fotogramas.
-    sequence_30_frames: lista o array de 30 frames.
-    Cada frame contiene un vector de landmarks normalizados (manos + brazos + rostro).
+    Guarda una secuencia grabada de 30 fotogramas para señas estáticas o dinámicas.
+    sequence_30_frames: lista o array de fotogramas.
+    Si se recibe un solo frame (foto estática) o menos de 30 frames, se expande
+    automáticamente a una secuencia normalizada de 30 fotogramas.
     """
     g_dir = os.path.join(SAMPLES_DIR, gesture_id)
     os.makedirs(g_dir, exist_ok=True)
 
     arr = np.array(sequence_30_frames, dtype=np.float32)
-    # Validar forma: (30, N_features)
-    if len(arr.shape) != 2 or arr.shape[0] < 15:
-        raise ValueError(f"Formato de secuencia inválido: {arr.shape}. Se esperan al menos 15-30 frames.")
 
-    # Si tiene menos de 30, re-muestrear o rellenar
-    if arr.shape[0] != 30:
-        indices = np.linspace(0, arr.shape[0] - 1, 30).astype(int)
-        arr = arr[indices]
+    # 1. Si es un único vector 1D (ej. [126]), convertir a 2D (1, 126) y replicar a 30
+    if len(arr.shape) == 1:
+        if arr.shape[0] == 0:
+            raise ValueError("El vector de landmarks recibido está vacío.")
+        arr = np.tile(arr, (30, 1))
+    elif len(arr.shape) == 2:
+        if arr.shape[0] == 0:
+            raise ValueError("La secuencia recibida está vacía.")
+        elif arr.shape[0] == 1:
+            # Foto estática única: replicar los 30 cuadros de la misma postura
+            arr = np.tile(arr, (30, 1))
+        elif arr.shape[0] != 30:
+            # Interpolar suavemente cualquier número de cuadros a 30
+            indices = np.linspace(0, arr.shape[0] - 1, 30).astype(int)
+            arr = arr[indices]
+    else:
+        raise ValueError(f"Formato de secuencia inválido: {arr.shape}.")
 
     filename = f"sample_{int(time.time() * 1000)}.npy"
     filepath = os.path.join(g_dir, filename)
