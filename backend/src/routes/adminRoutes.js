@@ -3,8 +3,18 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { authenticate, authorize } = require('../middleware/auth');
 
+const rateLimit = require('express-rate-limit');
+
+const resolveCodeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 40, // Máximo 40 intentos por IP cada 15 min para evitar enumeración de carnets
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiadas consultas de resolución de código. Por favor espere unos minutos.' }
+});
+
 // Endpoint público para resolver código institucional (Carnet) a correo antes del login
-router.post('/resolve-code', adminController.resolveInstitutionalCode);
+router.post('/resolve-code', resolveCodeLimiter, adminController.resolveInstitutionalCode);
 
 // Las rutas siguientes requieren autenticación y rol super_admin o coordinator
 router.use(authenticate, authorize(['super_admin', 'coordinator']));

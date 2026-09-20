@@ -420,6 +420,10 @@ const chatController = {
                 return res.status(400).json({ error: 'El mensaje no puede estar vacío' });
             }
 
+            if (content && content.length > 5000) {
+                return res.status(400).json({ error: 'El mensaje no puede exceder los 5000 caracteres' });
+            }
+
             // 3. Insertar mensaje
             const { data: newMsg, error: insertError } = await supabaseAdmin
                 .from('messages')
