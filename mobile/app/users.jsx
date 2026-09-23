@@ -14,7 +14,8 @@ import { useAlert } from '../src/context/AlertContext';
 
 export default function UsersScreen() {
   const { t } = useTranslation();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, theme } = useTheme();
+  const isDark = theme === 'dark';
   const { profile: currentProfile } = useAuth();
   const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors), [Colors]);
@@ -425,9 +426,9 @@ export default function UsersScreen() {
                   {item.is_active === false ? (
                     <TouchableOpacity 
                       onPress={() => handleActivateUser(item.id)} 
-                      style={[styles.actionBtn, { backgroundColor: '#dcfce7', marginTop: 8 }]}
+                      style={[styles.actionBtn, { backgroundColor: isDark ? `${Colors.primary}25` : `${Colors.primary}15`, marginTop: 8 }]}
                     >
-                      <CheckCircle2 size={18} color="#16a34a" />
+                      <CheckCircle2 size={18} color={Colors.primary} />
                     </TouchableOpacity>
                   ) : (
                     (item.id !== currentProfile?.id && (!(item.role === 'super_admin' || item.role === 'admin') || currentProfile?.full_name === 'Administrador Principal')) && (

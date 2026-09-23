@@ -6,15 +6,11 @@ import {
   FlatList, 
   TouchableOpacity, 
   ActivityIndicator, 
-  Alert, 
-  Modal, 
   TextInput, 
-  KeyboardAvoidingView, 
-  Platform,
   ScrollView 
 } from 'react-native';
 import api from '../src/utils/api';
-import { Check, X, Clock, Calendar, User, FileText, Filter, AlertCircle } from 'lucide-react-native';
+import { X, AlertCircle } from 'lucide-react-native';
 import BottomModal from '../src/components/BottomModal';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -24,9 +20,10 @@ import PageHeader from '../src/components/PageHeader';
 
 export default function CoordinatorTicketsScreen() {
   const { t } = useTranslation();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = theme === 'dark';
+  const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +64,7 @@ export default function CoordinatorTicketsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los tickets de extensión de notas.'
+        message: t('coordinatorTickets.ticketFetchError', 'No se pudieron cargar los tickets de extensión de notas.')
       });
     } finally {
       setLoading(false);
@@ -113,8 +110,8 @@ export default function CoordinatorTicketsScreen() {
       setActionType(null);
       showAlert({
         type: 'success',
-        title: t('dashboard.success', 'Operación exitosa'),
-        message: `El ticket ha sido ${status === 'approved' ? 'aprobado' : 'denegado'} correctamente.`
+        title: t('coordinatorTickets.successTitle', 'Operación exitosa'),
+        message: t('coordinatorTickets.ticketProcessedSuccess', 'El ticket ha sido procesado correctamente.')
       });
       setPage(1);
       fetchTickets(1, true);
@@ -139,92 +136,130 @@ export default function CoordinatorTicketsScreen() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    try {
+      const d = new Date(dateStr);
+      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    } catch (e) {
+      return dateStr;
+    }
   };
 
+  // Renderizado estilo 2-tone Card inspirado en la referencia
   const renderTicketCard = ({ item }) => {
     const isPending = item.status === 'pending';
     const isApproved = item.status === 'approved';
     const isRejected = item.status === 'rejected';
 
+    const statusLabel = isPending 
+      ? t('dashboard.pending', 'Pendiente') 
+      : isApproved 
+        ? t('dashboard.approved', 'Aprobado') 
+        : t('dashboard.rejected', 'Denegado');
+
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.teacherInfo}>
-            <User size={18} color={Colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.teacherName}>{item.teacher?.full_name || t('dashboard.teacher', 'Docente')}</Text>
-          </View>
+      <View style={[styles.card, isPending ? styles.cardPendingBorder : styles.cardSolidBorder]}>
+        {/* HEADER SUPERIOR: Nombre del profesor + Estado debajo con separación */}
+        <View style={[
+          styles.cardHeader,
+          isPending && styles.headerPending,
+          isApproved && styles.headerApproved,
+          isRejected && styles.headerRejected,
+        ]}>
+          <Text style={[
+            styles.teacherName,
+            isPending && styles.teacherNamePending,
+            isApproved && styles.teacherNameApproved,
+            isRejected && styles.teacherNameRejected,
+          ]} numberOfLines={1}>
+            {item.teacher?.full_name || t('dashboard.teacher', 'Docente')}
+          </Text>
+
           <View style={[
-            styles.statusBadge, 
+            styles.statusBadge,
             isPending && styles.badgePending,
             isApproved && styles.badgeApproved,
-            isRejected && styles.badgeRejected
+            isRejected && styles.badgeRejected,
           ]}>
             <Text style={[
               styles.statusText,
               isPending && styles.statusTextPending,
               isApproved && styles.statusTextApproved,
-              isRejected && styles.statusTextRejected
+              isRejected && styles.statusTextRejected,
             ]}>
-              {isPending ? t('dashboard.pending', 'PENDIENTE').toUpperCase() : isApproved ? t('dashboard.approved', 'APROBADO').toUpperCase() : t('dashboard.rejected', 'DENEGADO').toUpperCase()}
+              {statusLabel}
             </Text>
           </View>
         </View>
 
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailItem}>
-            <Calendar size={14} color={Colors.text.muted} style={{ marginRight: 4 }} />
-            <Text style={styles.detailText}>{t('dashboard.period', 'Periodo')} {item.period}</Text>
+        {/* CUERPO DEL RECUADRO: Filas de información separadas horizontalmente sin iconos */}
+        <View style={styles.cardBody}>
+          {/* Fila: Periodo */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('dashboard.period', 'Periodo')}:</Text>
+            <Text style={styles.infoValue}>{t('dashboard.period', 'Periodo')} {item.period}</Text>
           </View>
-          <View style={styles.detailItem}>
-            <Clock size={14} color={Colors.text.muted} style={{ marginRight: 4 }} />
-            <Text style={styles.detailText}>+ {item.days_requested} {t('days.daysCount', 'día(s) solicitados')}</Text>
+
+          {/* Fila: Día solicitado */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorTickets.requestedDays', 'Día solicitado')}:</Text>
+            <Text style={styles.infoValue}>+{item.days_requested} {t('time.days', 'día(s)')}</Text>
           </View>
-        </View>
 
-        <View style={styles.reasonBox}>
-          <Text style={styles.reasonLabel}>{t('dashboard.reason', 'Motivo de la solicitud')}:</Text>
-          <Text style={styles.reasonText}>{item.reason}</Text>
-        </View>
+          {/* Fila: Motivo */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorJustifications.reason', 'Motivo')}:</Text>
+            <Text style={styles.infoValue}>{item.reason || t('coordinatorJustifications.noReasonSpecified', 'Sin motivo especificado')}</Text>
+          </View>
 
-        {isApproved && item.approved_until && (
-          <View style={styles.approvedNotice}>
-            <Clock size={14} color={Colors.status.approved} style={{ marginRight: 6 }} />
-            <Text style={styles.approvedNoticeText}>
-              Extensión válida hasta: {formatDate(item.approved_until)}
+          {/* Fila: Extensión */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorTickets.extension', 'Extensión')}:</Text>
+            <Text style={styles.infoValue}>
+              {item.approved_until 
+                ? formatDate(item.approved_until) 
+                : (isApproved 
+                    ? t('coordinatorJustifications.approved', 'Aprobada') 
+                    : isRejected 
+                      ? t('coordinatorTickets.rejected', 'Denegada') 
+                      : t('coordinatorTickets.pendingApproval', 'Pendiente de aprobación'))}
             </Text>
           </View>
-        )}
 
-        {item.coordinator_message && (
-          <View style={styles.commentBox}>
-            <Text style={styles.commentLabel}>{t('dashboard.coordinatorResponse', 'Mensaje del Coordinador')}:</Text>
-            <Text style={styles.commentText}>{item.coordinator_message}</Text>
+          {/* Fila: Mensaje del Coordinador (si existe) */}
+          {item.coordinator_message ? (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>{t('coordinatorTickets.reply', 'Respuesta')}:</Text>
+              <Text style={styles.infoValue}>{item.coordinator_message}</Text>
+            </View>
+          ) : null}
+
+          {/* Fila: Fecha de Solicitud */}
+          <View style={[styles.infoRow, { marginBottom: isPending ? 14 : 2 }]}>
+            <Text style={styles.infoLabel}>{t('coordinatorTickets.requestDate', 'Fecha solicitud')}:</Text>
+            <Text style={styles.infoValue}>{formatDate(item.created_at)}</Text>
           </View>
-        )}
 
-        <Text style={styles.dateText}>Solicitado el {formatDate(item.created_at)}</Text>
+          {/* Botones de Acción si está Pendiente */}
+          {isPending && (
+            <View style={styles.actionsRow}>
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.rejectBtn]} 
+                onPress={() => handleOpenActionModal(item, 'reject')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.rejectBtnText}>{t('dashboard.reject', 'Denegar')}</Text>
+              </TouchableOpacity>
 
-        {isPending && (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity 
-              style={[styles.actionBtn, styles.rejectBtn]} 
-              onPress={() => handleOpenActionModal(item, 'reject')}
-            >
-              <X size={16} color="#dc2626" style={{ marginRight: 4 }} />
-              <Text style={styles.rejectBtnText}>{t('dashboard.reject', 'Denegar')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionBtn, styles.approveBtn]} 
-              onPress={() => handleOpenActionModal(item, 'approve')}
-            >
-              <Check size={16} color="#15803d" style={{ marginRight: 4 }} />
-              <Text style={styles.approveBtnText}>{t('dashboard.approve', 'Aprobar')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.approveBtn]} 
+                onPress={() => handleOpenActionModal(item, 'approve')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.approveBtnText}>{t('dashboard.approve', 'Aprobar')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
@@ -247,6 +282,7 @@ export default function CoordinatorTicketsScreen() {
             key={tab.key}
             style={[styles.filterTab, filterStatus === tab.key && styles.filterTabActive]}
             onPress={() => setFilterStatus(tab.key)}
+            activeOpacity={0.8}
           >
             <Text style={[styles.filterTabText, filterStatus === tab.key && styles.filterTabTextActive]}>
               {tab.label}
@@ -265,6 +301,7 @@ export default function CoordinatorTicketsScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderTicketCard}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <AlertCircle size={40} color={Colors.text.muted} />
@@ -297,313 +334,327 @@ export default function CoordinatorTicketsScreen() {
             </TouchableOpacity>
           </View>
 
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 24 }}
-            >
-              <Text style={styles.inputLabel}>
-                {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
-              </Text>
-              <TextInput
-                style={styles.modalInput}
-                multiline
-                numberOfLines={4}
-                placeholder={actionType === 'approve' ? t('teacherGrades.approveMsgPlaceholder', 'Escribe algún mensaje para el profesor...') : t('teacherGrades.rejectMsgPlaceholder', 'Explica la razón de la denegación...')}
-                placeholderTextColor={Colors.text.muted}
-                value={coordinatorMessage}
-                onChangeText={setCoordinatorMessage}
-              />
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
+            <Text style={styles.inputLabel}>
+              {actionType === 'approve' ? t('teacherGrades.optionalObsLabel', 'Mensaje u observaciones (Opcional):') : t('teacherGrades.rejectReasonLabel', 'Motivo del rechazo (Requerido):')}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              multiline
+              numberOfLines={4}
+              placeholder={actionType === 'approve' ? t('teacherGrades.approveMsgPlaceholder', 'Escribe algún mensaje para el profesor...') : t('teacherGrades.rejectMsgPlaceholder', 'Explica la razón de la denegación...')}
+              placeholderTextColor={Colors.text.muted}
+              value={coordinatorMessage}
+              onChangeText={setCoordinatorMessage}
+            />
 
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.modalCancelBtn}
-                  onPress={() => setSelectedTicket(null)}
-                  disabled={processing}
-                >
-                  <Text style={styles.modalCancelText}>{t('dashboard.cancel', 'Cancelar')}</Text>
-                </TouchableOpacity>
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.modalCancelBtn}
+                onPress={() => setSelectedTicket(null)}
+                disabled={processing}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>{t('dashboard.cancel', 'Cancelar')}</Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[
-                    styles.modalConfirmBtn, 
-                    actionType === 'approve' ? styles.btnGreen : styles.btnRed
-                  ]}
-                  onPress={handleConfirmAction}
-                  disabled={processing}
-                >
-                  {processing ? (
-                    <ActivityIndicator color="#FFF" size="small" />
-                  ) : (
-                    <Text style={styles.modalConfirmText}>
-                      {actionType === 'approve' ? t('dashboard.confirmApprove', 'Confirmar Aprobación') : t('dashboard.confirmReject', 'Confirmar Rechazo')}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
+              <TouchableOpacity 
+                style={[
+                  styles.modalConfirmBtn, 
+                  actionType === 'approve' ? styles.btnGreen : styles.btnRed
+                ]}
+                onPress={handleConfirmAction}
+                disabled={processing}
+                activeOpacity={0.8}
+              >
+                {processing ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.modalConfirmText}>
+                    {actionType === 'approve' ? t('dashboard.confirmApprove', 'Confirmar Aprobación') : t('dashboard.confirmReject', 'Confirmar Rechazo')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
       </BottomModal>
     </View>
   );
 }
 
-const createStyles = (Colors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  filterBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.card,
-    padding: 6,
-    marginHorizontal: Spacing.lg,
-    marginTop: -10,
-    borderRadius: BorderRadius.xl,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: BorderRadius.lg,
-  },
-  filterTabActive: {
-    backgroundColor: Colors.primary,
-  },
-  filterTabText: {
-    fontSize: Typography.size.xs,
-    fontWeight: Typography.weight.bold,
-    color: Colors.text.muted,
-  },
-  filterTabTextActive: {
-    color: '#FFF',
-  },
-  listContent: {
-    padding: Spacing.lg,
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.card,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  teacherInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  teacherName: {
-    fontSize: Typography.size.md,
-    fontWeight: Typography.weight.bold,
-    color: Colors.primary,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.md,
-  },
-  badgePending: { backgroundColor: '#fef3c7' },
-  badgeApproved: { backgroundColor: '#dcfce7' },
-  badgeRejected: { backgroundColor: '#fee2e2' },
-  statusText: { fontSize: 10, fontWeight: '800' },
-  statusTextPending: { color: '#d97706' },
-  statusTextApproved: { color: '#15803d' },
-  statusTextRejected: { color: '#b91c1c' },
-  detailsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: Spacing.sm,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailText: {
-    fontSize: Typography.size.xs,
-    fontWeight: Typography.weight.semibold,
-    color: Colors.text.muted,
-  },
-  reasonBox: {
-    backgroundColor: Colors.gray[50] || '#f8fafc',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.sm,
-  },
-  reasonLabel: {
-    fontSize: 11,
-    fontWeight: Typography.weight.bold,
-    color: Colors.text.muted,
-    marginBottom: 2,
-  },
-  reasonText: {
-    fontSize: Typography.size.sm,
-    color: Colors.text.primary,
-    lineHeight: 18,
-  },
-  approvedNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0fdf4',
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  approvedNoticeText: {
-    fontSize: 11,
-    fontWeight: Typography.weight.bold,
-    color: '#166534',
-  },
-  commentBox: {
-    backgroundColor: '#fffbeb',
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  commentLabel: {
-    fontSize: 10,
-    fontWeight: Typography.weight.bold,
-    color: '#b45309',
-  },
-  commentText: {
-    fontSize: Typography.size.xs,
-    color: '#78350f',
-  },
-  dateText: {
-    fontSize: 10,
-    color: Colors.text.muted,
-    textAlign: 'right',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: Spacing.md,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-  },
-  rejectBtn: {
-    borderColor: '#fca5a5',
-    backgroundColor: '#fef2f2',
-  },
-  rejectBtnText: {
-    color: '#dc2626',
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.sm,
-  },
-  approveBtn: {
-    borderColor: '#86efac',
-    backgroundColor: '#f0fdf4',
-  },
-  approveBtnText: {
-    color: '#15803d',
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.sm,
-  },
-  emptyContainer: {
-    padding: Spacing['2xl'],
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginTop: Spacing.md,
-    color: Colors.text.muted,
-    fontSize: Typography.size.md,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-    alignItems: 'stretch',
-    padding: 0,
-    margin: 0,
-  },
-  modalContainer: {
-    width: '100%',
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: BorderRadius['2xl'] || 24,
-    borderTopRightRadius: BorderRadius['2xl'] || 24,
-    padding: Spacing.xl,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-  },
-  modalTitle: {
-    fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.bold,
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: Typography.size.xs,
-    color: Colors.text.muted,
-    marginBottom: Spacing.lg,
-  },
-  inputLabel: {
-    fontSize: Typography.size.xs,
-    fontWeight: Typography.weight.bold,
-    color: Colors.text.primary,
-    marginBottom: 6,
-  },
-  modalInput: {
-    backgroundColor: Colors.gray[50] || '#f8fafc',
-    borderWidth: 1,
-    borderColor: Colors.gray[200] || '#e2e8f0',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    fontSize: Typography.size.sm,
-    color: Colors.text.primary,
-    textAlignVertical: 'top',
-    minHeight: 90,
-    marginBottom: Spacing.xl,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  modalCancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: BorderRadius.lg,
-  },
-  modalCancelText: {
-    color: Colors.text.muted,
-    fontWeight: Typography.weight.bold,
-  },
-  modalConfirmBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnGreen: { backgroundColor: '#16a34a' },
-  btnRed: { backgroundColor: '#dc2626' },
-  modalConfirmText: {
-    color: '#FFF',
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.sm,
-  }
-});
+const createStyles = (Colors, theme) => {
+  const isDark = theme === 'dark';
+  const cardBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+  const bodyBg = isDark ? '#18181B' : '#FFFFFF';
 
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: Colors.background },
+    centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    filterBar: {
+      flexDirection: 'row',
+      backgroundColor: Colors.card,
+      padding: 5,
+      marginHorizontal: Spacing.lg,
+      marginTop: -10,
+      borderRadius: BorderRadius.xl,
+      borderWidth: 1,
+      borderColor: cardBorder,
+      ...Shadows.card,
+    },
+    filterTab: {
+      flex: 1,
+      paddingVertical: 7,
+      alignItems: 'center',
+      borderRadius: BorderRadius.lg,
+    },
+    filterTabActive: {
+      backgroundColor: Colors.primary,
+    },
+    filterTabText: {
+      fontSize: Typography.size.xs,
+      fontWeight: '700',
+      color: Colors.text.muted,
+    },
+    filterTabTextActive: {
+      color: '#FFF',
+    },
+    listContent: {
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.md,
+      paddingBottom: 40,
+    },
 
+    // 2-TONE CARD STYLES
+    card: {
+      backgroundColor: bodyBg,
+      borderRadius: BorderRadius.xl,
+      marginBottom: 14,
+      overflow: 'hidden',
+      ...Shadows.card,
+    },
+    cardPendingBorder: {
+      borderStyle: 'dashed',
+      borderWidth: 1.5,
+      borderColor: isDark ? '#F59E0B' : '#D97706',
+    },
+    cardSolidBorder: {
+      borderStyle: 'solid',
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : '#000000',
+    },
+
+    // HEADER SUPERIOR (TIPO BANNER DE COLOR)
+    cardHeader: {
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: cardBorder,
+    },
+    headerPending: {
+      backgroundColor: isDark ? 'rgba(234, 179, 8, 0.18)' : '#FEF3C7',
+    },
+    headerApproved: {
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#D1FAE5',
+    },
+    headerRejected: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FFE4E6',
+    },
+
+    teacherName: {
+      fontSize: 16,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+      marginBottom: 6,
+    },
+    teacherNamePending: {
+      color: isDark ? '#FDE047' : '#92400E',
+    },
+    teacherNameApproved: {
+      color: isDark ? '#6EE7B7' : '#065F46',
+    },
+    teacherNameRejected: {
+      color: isDark ? '#FCA5A5' : '#9F1239',
+    },
+
+    // PILL / BADGE DE ESTADO
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 9,
+      paddingVertical: 3,
+      borderRadius: BorderRadius.full,
+    },
+    badgePending: {
+      backgroundColor: isDark ? 'rgba(234, 179, 8, 0.3)' : '#FDE68A',
+    },
+    badgeApproved: {
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+    },
+    badgeRejected: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECDD3',
+    },
+
+    statusText: {
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    statusTextPending: {
+      color: isDark ? '#FEF08A' : '#78350F',
+    },
+    statusTextApproved: {
+      color: isDark ? '#A7F3D0' : '#064E3B',
+    },
+    statusTextRejected: {
+      color: isDark ? '#FECDD3' : '#881337',
+    },
+
+    // CUERPO DE LA TARJETA (TABLA HORIZONTAL LIMPIA)
+    cardBody: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 9,
+    },
+    infoLabel: {
+      width: 125, // Separación horizontal generosa
+      fontSize: 13,
+      fontWeight: '600',
+      color: isDark ? '#94A3B8' : '#64748B',
+    },
+    infoValue: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '700',
+      color: isDark ? '#F1F5F9' : '#1E293B',
+      lineHeight: 18,
+    },
+
+    // ACCIONES
+    actionsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 6,
+    },
+    actionBtn: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 38,
+      borderRadius: BorderRadius.lg,
+    },
+    rejectBtn: {
+      borderWidth: 1,
+      borderColor: isDark ? '#3F3F46' : '#18181B',
+      backgroundColor: '#18181B',
+    },
+    rejectBtnText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: Typography.size.sm,
+    },
+    approveBtn: {
+      backgroundColor: Colors.primary,
+    },
+    approveBtnText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+      fontSize: Typography.size.sm,
+    },
+
+    emptyContainer: {
+      padding: Spacing['2xl'],
+      alignItems: 'center',
+    },
+    emptyText: {
+      marginTop: Spacing.md,
+      color: Colors.text.muted,
+      fontSize: Typography.size.md,
+    },
+
+    // MODAL
+    modalContainer: {
+      width: '100%',
+      padding: Spacing.lg,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: Spacing.sm,
+    },
+    modalTitle: {
+      fontSize: Typography.size.lg,
+      fontWeight: '800',
+      color: Colors.primary,
+      marginBottom: 4,
+    },
+    modalSubtitle: {
+      fontSize: Typography.size.xs,
+      color: Colors.text.muted,
+      marginBottom: Spacing.lg,
+    },
+    inputLabel: {
+      fontSize: Typography.size.xs,
+      fontWeight: '700',
+      color: Colors.text.primary,
+      marginBottom: 6,
+    },
+    modalInput: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: cardBorder,
+      borderRadius: BorderRadius.lg,
+      padding: Spacing.md,
+      fontSize: Typography.size.sm,
+      color: Colors.text.primary,
+      textAlignVertical: 'top',
+      minHeight: 90,
+      marginBottom: Spacing.xl,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    modalCancelBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: BorderRadius.lg,
+      backgroundColor: '#18181B',
+      borderWidth: 1,
+      borderColor: isDark ? '#3F3F46' : '#18181B',
+    },
+    modalCancelText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    modalConfirmBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: BorderRadius.lg,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    btnGreen: { backgroundColor: Colors.primary },
+    btnRed: { 
+      backgroundColor: '#18181B',
+      borderWidth: 1,
+      borderColor: isDark ? '#3F3F46' : '#18181B',
+    },
+    modalConfirmText: {
+      color: '#FFF',
+      fontWeight: '700',
+      fontSize: Typography.size.sm,
+    },
+  });
+};

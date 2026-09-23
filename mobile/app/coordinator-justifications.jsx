@@ -51,9 +51,10 @@ const timeStringToMinutes = (timeStr) => {
 
 export default function CoordinatorJustificationsScreen() {
   const { t } = useTranslation();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
-  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = theme === 'dark';
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -97,6 +98,136 @@ export default function CoordinatorJustificationsScreen() {
     if (!Array.isArray(requests)) return [];
     return requests.filter(r => r.status !== 'pending');
   }, [requests]);
+
+  const renderJustificationCard = (req) => {
+    const isPending = req.status === 'pending';
+    const isApproved = req.status === 'approved';
+    const isRejected = req.status === 'rejected';
+
+    const rawReason = req.reason || '';
+    const timeMatch = rawReason.match(/\[HORARIO:\s*([^\]]+)\]/i);
+    const isFullDay = rawReason.includes('[JORNADA COMPLETA]') || (!timeMatch && req.absence_scope === 'full_day');
+    const cleanReason = rawReason
+      .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+      .replace(/\[JORNADA COMPLETA\]/gi, '')
+      .trim() || t('coordinatorJustifications.noReasonSpecified', 'Sin motivo especificado');
+
+    const solicitudText = isFullDay 
+      ? t('coordinatorJustifications.fullDay', 'Día completo') 
+      : (timeMatch ? timeMatch[1] : (req.start_time && req.end_time ? `${req.start_time} - ${req.end_time}` : t('coordinatorJustifications.fullDay', 'Día completo')));
+
+    const statusLabel = isPending 
+      ? t('dashboard.pending', 'Pendiente') 
+      : isApproved 
+        ? t('coordinatorJustifications.approved', 'Aprobada') 
+        : t('coordinatorJustifications.rejected', 'Rechazada');
+
+    return (
+      <View 
+        key={req.id} 
+        style={[
+          styles.card,
+          isPending ? styles.cardPendingBorder : styles.cardSolidBorder
+        ]}
+      >
+        {/* HEADER SUPERIOR: Nombre estudiante, código y estado */}
+        <View style={[
+          styles.cardHeader,
+          isPending && styles.headerPending,
+          isApproved && styles.headerApproved,
+          isRejected && styles.headerRejected,
+        ]}>
+          <Text style={[
+            styles.studentName,
+            isPending && styles.namePending,
+            isApproved && styles.nameApproved,
+            isRejected && styles.nameRejected,
+          ]} numberOfLines={1}>
+            {req.profiles?.full_name || t('coordinatorJustifications.student', 'Estudiante')}
+          </Text>
+
+          <Text style={styles.studentCode}>
+            {req.profiles?.institutional_code || 'S/C'}
+          </Text>
+
+          <View style={[
+            styles.statusBadge,
+            isPending && styles.badgePending,
+            isApproved && styles.badgeApproved,
+            isRejected && styles.badgeRejected,
+          ]}>
+            <Text style={[
+              styles.statusText,
+              isPending && styles.statusTextPending,
+              isApproved && styles.statusTextApproved,
+              isRejected && styles.statusTextRejected,
+            ]}>
+              {statusLabel}
+            </Text>
+          </View>
+        </View>
+
+        {/* CUERPO DEL RECUADRO CON FILAS HORIZONTALES */}
+        <View style={styles.cardBody}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorJustifications.request', 'Solicitud')}:</Text>
+            <Text style={styles.infoValue}>{solicitudText}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorJustifications.reason', 'Motivo')}:</Text>
+            <Text style={styles.infoValue}>{cleanReason}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('coordinatorJustifications.date', 'Fecha')}:</Text>
+            <Text style={styles.infoValue}>{formatDate(req.absence_date)}</Text>
+          </View>
+
+          {req.coordinator_message ? (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>{t('coordinatorJustifications.observation', 'Observación')}:</Text>
+              <Text style={styles.infoValue}>{req.coordinator_message}</Text>
+            </View>
+          ) : null}
+
+          {/* Botón Ver Evidencia */}
+          {req.evidence_url ? (
+            <TouchableOpacity 
+              style={styles.evidenceBtn} 
+              onPress={() => openEvidence(req.evidence_url)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.evidenceBtnText}>
+                {t('coordinatorJustifications.viewEvidence', 'Ver evidencia')}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {/* Botones de Acción para Pendientes */}
+          {isPending && (
+            <View style={styles.cardActions}>
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.rejectBtn]}
+                onPress={() => openProcessModal(req, 'rejected')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.rejectBtnText}>{t('coordinatorJustifications.reject', 'Rechazar')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.approveBtn]}
+                onPress={() => openProcessModal(req, 'approved')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.approveBtnText}>{t('coordinatorJustifications.approve', 'Aprobar')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   useEffect(() => {
     if (view === 'requests') {
@@ -153,7 +284,7 @@ export default function CoordinatorJustificationsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los estudiantes.'
+        message: t('coordinatorJustifications.studentsLoadError', 'No se pudieron cargar los estudiantes.')
       });
     }
   };
@@ -235,7 +366,7 @@ export default function CoordinatorJustificationsScreen() {
         showAlert({
           type: 'warning',
           title: t('dashboard.error', 'Error'),
-          message: 'Debes seleccionar al menos un estudiante, la fecha y el motivo de ausencia.'
+          message: t('coordinatorJustifications.selectStudentRequired', 'Debes seleccionar al menos un estudiante, la fecha y el motivo de ausencia.')
         });
         return;
       }
@@ -247,8 +378,8 @@ export default function CoordinatorJustificationsScreen() {
       if (endMins <= startMins) {
         showAlert({
           type: 'warning',
-          title: 'Horario Inválido',
-          message: 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).'
+          title: t('coordinatorJustifications.invalidHoursTitle', 'Horario Inválido'),
+          message: t('coordinatorJustifications.invalidHoursDesc', 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).')
         });
         return;
       }
@@ -269,7 +400,7 @@ export default function CoordinatorJustificationsScreen() {
         showAlert({
           type: 'success',
           title: t('dashboard.success', 'Éxito'),
-          message: 'Justificación individual registrada y aprobada correctamente'
+          message: t('coordinatorJustifications.individualSuccess', 'Justificación individual registrada y aprobada correctamente')
         });
       } else {
         await api.post('/coordinator/justifications/bulk', {
@@ -280,7 +411,7 @@ export default function CoordinatorJustificationsScreen() {
         showAlert({
           type: 'success',
           title: t('dashboard.success', 'Éxito'),
-          message: `Se registraron y aprobaron ${selectedStudents.length} justificaciones masivas correctamente`
+          message: t('coordinatorJustifications.bulkSuccess', 'Se registraron y aprobaron las justificaciones masivas correctamente')
         });
       }
 
@@ -311,8 +442,8 @@ export default function CoordinatorJustificationsScreen() {
 
         showAlert({
           type: 'info',
-          title: 'Guardado Offline 🕒',
-          message: 'Sin conexión a internet. La justificación quedó en cola de salida y se enviará automáticamente al reconectar.'
+          title: t('coordinatorJustifications.offlineSaved', 'Guardado Offline'),
+          message: t('coordinatorJustifications.offlineSavedDesc', 'Sin conexión a internet. La justificación quedó en cola de salida y se enviará automáticamente al reconectar.')
         });
 
         setSelectedStudent(null);
@@ -604,19 +735,23 @@ export default function CoordinatorJustificationsScreen() {
       <View style={{ marginBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           {timeMatch && (
-            <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Clock size={12} color="#0284c7" />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#0284c7' }}>{timeMatch[1]}</Text>
+            <View style={{ backgroundColor: isDark ? 'rgba(2, 132, 199, 0.2)' : '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Clock size={12} color={isDark ? '#38bdf8' : '#0284c7'} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: isDark ? '#38bdf8' : '#0284c7' }}>{timeMatch[1]}</Text>
             </View>
           )}
           {isFullDay && (
-            <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Calendar size={12} color="#475569" />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>Día Completo</Text>
+            <View style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color={isDark ? '#cbd5e1' : '#475569'} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: isDark ? '#cbd5e1' : '#475569' }}>
+                {t('coordinatorJustifications.fullDay', 'Día Completo')}
+              </Text>
             </View>
           )}
         </View>
-        <Text style={styles.reasonText}><Text style={styles.boldText}>Motivo:</Text> {cleanReason || rawReason}</Text>
+        <Text style={styles.reasonText}>
+          <Text style={styles.boldText}>{t('coordinatorJustifications.reason', 'Motivo')}:</Text> {cleanReason || rawReason}
+        </Text>
       </View>
     );
   };
@@ -690,80 +825,16 @@ export default function CoordinatorJustificationsScreen() {
               <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes pendientes.')}</Text>
             </View>
           ) : (
-            pendingRequests.map(req => (
-              <View key={req.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View>
-                    <Text style={styles.studentName}>{req.profiles?.full_name}</Text>
-                    <Text style={styles.studentCode}>{req.profiles?.institutional_code}</Text>
-                  </View>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>{t('dashboard.pending', 'Pendiente')}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.cardBody}>
-                  {renderReasonContent(req.reason)}
-                  <Text style={styles.dateText}><Text style={styles.boldText}>{t('justifications.date', 'Fecha')}:</Text> {formatDate(req.absence_date)}</Text>
-                  
-                  {req.evidence_url ? (
-                    <TouchableOpacity style={styles.evidenceBtn} onPress={() => openEvidence(req.evidence_url)}>
-                      <ExternalLink size={16} color={Colors.primaryLight} />
-                      <Text style={styles.evidenceBtnText}>{t('coordinatorJustifications.viewEvidence', 'Ver Evidencia')}</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.noEvidenceText}>{t('coordinatorJustifications.noEvidence', 'Sin evidencia adjunta')}</Text>
-                  )}
-                </View>
-                
-                <View style={styles.cardActions}>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.approveBtn]}
-                    onPress={() => openProcessModal(req, 'approved')}
-                  >
-                    <CheckCircle size={18} color="#FFF" />
-                    <Text style={styles.actionBtnText}>{t('coordinatorJustifications.approve', 'Aprobar')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.actionBtn, styles.rejectBtn]}
-                    onPress={() => openProcessModal(req, 'rejected')}
-                  >
-                    <XCircle size={18} color="#FFF" />
-                    <Text style={styles.actionBtnText}>{t('coordinatorJustifications.reject', 'Rechazar')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))
+            pendingRequests.map(req => renderJustificationCard(req))
           )}
           
-          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('coordinatorJustifications.history', 'Historial')}</Text>
+          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('coordinatorJustifications.history', 'Historial')} ({historyRequests.length})</Text>
           {historyRequests.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>{t('coordinatorJustifications.noHistory', 'No hay historial de solicitudes.')}</Text>
             </View>
           ) : (
-            historyRequests.map(req => (
-              <View key={req.id} style={[styles.card, { opacity: 0.8 }]}>
-                <View style={styles.cardHeader}>
-                  <View>
-                    <Text style={styles.studentName}>{req.profiles?.full_name}</Text>
-                    <Text style={styles.studentCode}>{req.profiles?.institutional_code}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, req.status === 'approved' ? styles.badgeApproved : styles.badgeRejected]}>
-                    <Text style={[styles.statusText, req.status === 'approved' ? styles.textApproved : styles.textRejected]}>
-                      {req.status === 'approved' ? t('coordinatorJustifications.approved', 'Aprobada') : t('coordinatorJustifications.rejected', 'Rechazada')}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.cardBody}>
-                  {renderReasonContent(req.reason)}
-                  <Text style={styles.dateText}><Text style={styles.boldText}>{t('justifications.date', 'Fecha')}:</Text> {formatDate(req.absence_date)}</Text>
-                  {req.coordinator_message ? (
-                    <Text style={styles.obsText}><Text style={styles.boldText}>{t('coordinatorJustifications.observation', 'Observación')}:</Text> {req.coordinator_message}</Text>
-                  ) : null}
-                </View>
-              </View>
-            ))
+            historyRequests.map(req => renderJustificationCard(req))
           )}
 
           {page < totalPages && (
@@ -1474,7 +1545,12 @@ export default function CoordinatorJustificationsScreen() {
   );
 }
 
-const createStyles = (Colors) => StyleSheet.create({
+const createStyles = (Colors, theme) => {
+  const isDark = theme === 'dark';
+  const cardBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+  const bodyBg = isDark ? '#18181B' : '#FFFFFF';
+
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   header: {
@@ -1537,35 +1613,172 @@ const createStyles = (Colors) => StyleSheet.create({
     borderRadius: BorderRadius.lg 
   },
   emptyText: { color: Colors.text.muted },
+
+  // 2-TONE CARD STYLES
   card: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    backgroundColor: bodyBg,
+    borderRadius: BorderRadius.xl,
+    marginBottom: 16,
+    overflow: 'hidden',
     ...Shadows.card,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.md },
-  studentName: { fontSize: Typography.size.lg, fontWeight: 'bold', color: Colors.primary },
-  studentCode: { fontSize: Typography.size.xs, color: Colors.text.muted, marginTop: 2 },
-  statusBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: BorderRadius.full },
-  statusText: { color: '#d97706', fontSize: Typography.size.xs, fontWeight: 'bold' },
-  badgeApproved: { backgroundColor: '#d1fae5' },
-  textApproved: { color: '#059669' },
-  badgeRejected: { backgroundColor: '#fee2e2' },
-  textRejected: { color: '#dc2626' },
-  cardBody: { marginBottom: Spacing.md },
-  reasonText: { fontSize: Typography.size.md, color: Colors.text.secondary, marginBottom: 4 },
-  dateText: { fontSize: Typography.size.md, color: Colors.text.secondary, marginBottom: 8 },
-  obsText: { fontSize: Typography.size.sm, color: Colors.text.muted, marginTop: 4, fontStyle: 'italic' },
-  boldText: { fontWeight: 'bold' },
-  evidenceBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  evidenceBtnText: { color: Colors.primaryLight, marginLeft: 4, fontSize: Typography.size.sm, fontWeight: 'bold' },
-  noEvidenceText: { color: Colors.text.muted, fontSize: Typography.size.xs, fontStyle: 'italic' },
-  cardActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  actionBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 12, borderRadius: BorderRadius.md },
-  approveBtn: { backgroundColor: Colors.status.approved },
-  rejectBtn: { backgroundColor: Colors.status.rejected },
-  actionBtnText: { color: '#FFF', fontWeight: 'bold', marginLeft: 6 },
+  cardPendingBorder: {
+    borderStyle: 'dashed',
+    borderWidth: 1.5,
+    borderColor: isDark ? '#F59E0B' : '#D97706',
+  },
+  cardSolidBorder: {
+    borderStyle: 'solid',
+    borderWidth: 1.5,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : '#000000',
+  },
+
+  // HEADER SUPERIOR (TIPO BANNER DE COLOR)
+  cardHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: cardBorder,
+  },
+  headerPending: {
+    backgroundColor: isDark ? 'rgba(234, 179, 8, 0.18)' : '#FEF3C7',
+  },
+  headerApproved: {
+    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.18)' : '#D1FAE5',
+  },
+  headerRejected: {
+    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FFE4E6',
+  },
+
+  studentName: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  namePending: {
+    color: isDark ? '#FDE047' : '#92400E',
+  },
+  nameApproved: {
+    color: isDark ? '#6EE7B7' : '#065F46',
+  },
+  nameRejected: {
+    color: isDark ? '#FCA5A5' : '#9F1239',
+  },
+  studentCode: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
+    marginTop: 2,
+    marginBottom: 6,
+  },
+
+  // PILL / BADGE DE ESTADO
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  badgePending: {
+    backgroundColor: isDark ? 'rgba(234, 179, 8, 0.3)' : '#FDE68A',
+  },
+  badgeApproved: {
+    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+  },
+  badgeRejected: {
+    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECDD3',
+  },
+
+  statusText: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  statusTextPending: {
+    color: isDark ? '#FEF08A' : '#78350F',
+  },
+  statusTextApproved: {
+    color: isDark ? '#A7F3D0' : '#064E3B',
+  },
+  statusTextRejected: {
+    color: isDark ? '#FECDD3' : '#881337',
+  },
+
+  // CUERPO DE LA TARJETA (TABLA HORIZONTAL LIMPIA)
+  cardBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    width: 125, // Separación horizontal generosa
+    fontSize: 13,
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: isDark ? '#F1F5F9' : '#1E293B',
+    lineHeight: 18,
+  },
+
+  // BOTÓN DE EVIDENCIA
+  evidenceBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  evidenceBtnText: {
+    color: isDark ? '#93C5FD' : '#2563EB',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // ACCIONES
+  cardActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  actionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 38,
+    borderRadius: BorderRadius.lg,
+  },
+  rejectBtn: {
+    borderWidth: 1,
+    borderColor: isDark ? '#3F3F46' : '#18181B',
+    backgroundColor: '#18181B',
+  },
+  rejectBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: Typography.size.sm,
+  },
+  approveBtn: {
+    backgroundColor: Colors.primary,
+  },
+  approveBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: Typography.size.sm,
+  },
   
   // Create Form Styles
   formContainer: { backgroundColor: Colors.card, borderRadius: BorderRadius.lg, padding: Spacing.lg, ...Shadows.card },
@@ -1674,7 +1887,11 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   submitBtn: { padding: 16, borderRadius: BorderRadius.lg, alignItems: 'center' },
   submitApprove: { backgroundColor: Colors.primary },
-  submitReject: { backgroundColor: Colors.status.rejected },
+  submitReject: { 
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: isDark ? '#3F3F46' : '#18181B',
+  },
   submitBtnText: { color: '#FFF', fontSize: Typography.size.lg, fontWeight: 'bold' },
   datePickerBtn: {
     flexDirection: 'row',
@@ -1914,4 +2131,5 @@ const createStyles = (Colors) => StyleSheet.create({
     alignItems: 'center',
   },
 });
+};
 

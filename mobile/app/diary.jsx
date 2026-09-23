@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useLocalSearchParams } from 'expo-router';
 import api from '../src/utils/api';
 import { supabase } from '../src/utils/supabase';
-import { AlertCircle, Calendar, CheckCircle } from 'lucide-react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import TrafficLightCard from '../src/components/TrafficLightCard';
@@ -17,6 +17,21 @@ export default function DiaryScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(1);
   const { studentId, isCoordinatorView } = useLocalSearchParams();
+
+  // Estado para controlar qué acordeones de conducta están abiertos
+  const [expandedCategories, setExpandedCategories] = useState({
+    Positivo: true,
+    Leve: true,
+    Grave: true,
+    'Muy Grave': true
+  });
+
+  const toggleCategory = (catKey) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [catKey]: !prev[catKey]
+    }));
+  };
 
   useEffect(() => {
     fetchDiary();
@@ -94,17 +109,54 @@ export default function DiaryScreen() {
     }
   };
 
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'Positivo': return { bg: theme === 'dark' ? 'rgba(46, 204, 113, 0.1)' : '#eafaf1', text: '#2ecc71', border: 'rgba(46, 204, 113, 0.2)' };
-      case 'Leve': return { bg: theme === 'dark' ? 'rgba(243, 156, 18, 0.1)' : '#fef9ec', text: '#f39c12', border: 'rgba(243, 156, 18, 0.2)' };
-      case 'Grave': return { bg: theme === 'dark' ? 'rgba(231, 76, 60, 0.1)' : '#fdf0ef', text: '#e74c3c', border: 'rgba(231, 76, 60, 0.2)' };
-      case 'Muy Grave': return { bg: theme === 'dark' ? 'rgba(142, 68, 173, 0.1)' : 'rgba(11, 25, 86, 0.1)', text: theme === 'dark' ? '#8E44AD' : '#0B1956', border: theme === 'dark' ? 'rgba(142, 68, 173, 0.2)' : 'rgba(11, 25, 86, 0.2)' };
-      default: return { bg: Colors.background, text: Colors.text.muted, border: Colors.gray[200] };
-    }
-  };
-
   const absences = diaryData.attendance.filter(a => a.status === 'absent' || a.status === 'justified');
+
+  // Agrupación de conductas por categoría
+  const conductByCategory = React.useMemo(() => {
+    const map = {
+      Positivo: [],
+      Leve: [],
+      Grave: [],
+      'Muy Grave': []
+    };
+    (diaryData.conduct || []).forEach(record => {
+      const cat = record.conduct_codes?.category || 'Leve';
+      if (!map[cat]) map[cat] = [];
+      map[cat].push(record);
+    });
+    return map;
+  }, [diaryData.conduct]);
+
+  const categories = [
+    { 
+      key: 'Positivo', 
+      label: t('semaforo.positives', 'Positivo'), 
+      pillColor: '#0284C7',
+      badgeBg: theme === 'dark' ? 'rgba(2, 132, 199, 0.2)' : '#E0F2FE',
+      badgeText: theme === 'dark' ? '#7DD3FC' : '#0369A1'
+    },
+    { 
+      key: 'Leve', 
+      label: t('semaforo.leves', 'Leve'), 
+      pillColor: theme === 'dark' ? '#A1A1AA' : '#18181B',
+      badgeBg: theme === 'dark' ? '#27272A' : '#F4F4F5',
+      badgeText: theme === 'dark' ? '#E4E4E7' : '#18181B'
+    },
+    { 
+      key: 'Grave', 
+      label: t('semaforo.graves', 'Grave'), 
+      pillColor: '#BE185D',
+      badgeBg: theme === 'dark' ? 'rgba(190, 24, 93, 0.2)' : '#FCE7F3',
+      badgeText: theme === 'dark' ? '#F472B6' : '#9D174D'
+    },
+    { 
+      key: 'Muy Grave', 
+      label: t('semaforo.muyGraves', 'Muy Grave'), 
+      pillColor: theme === 'dark' ? '#71717A' : '#18181B',
+      badgeBg: theme === 'dark' ? '#27272A' : '#18181B',
+      badgeText: theme === 'dark' ? '#F4F4F5' : '#FFFFFF'
+    },
+  ];
 
   if (loading && diaryData.conduct.length === 0) {
     return (
@@ -147,136 +199,197 @@ export default function DiaryScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Semáforo de Conducta (4 Colores) */}
+        {/* Semáforo de Conducta */}
         <TrafficLightCard 
           conductRecords={diaryData.conduct} 
           attendanceRecords={diaryData.attendance} 
         />
 
-        {/* Conduct Section */}
+        {/* Conduct Section - Secciones independientes en estilo acordeón */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
-            <AlertCircle color="#f5a623" size={20} />
-            <Text style={styles.sectionTitle}>{t('dashboard.conductRecord')}</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.conductRecord', 'Historial de Conducta')}</Text>
           </View>
-          
+
           {diaryData.conduct.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>{t('dashboard.noConductRecords')}</Text>
+              <Text style={styles.emptyText}>{t('dashboard.noConductRecords', 'No hay registros de conducta en este periodo')}</Text>
             </View>
           ) : (
-            diaryData.conduct.map(record => {
-              const colors = getCategoryColor(record.conduct_codes?.category);
+            categories.map(cat => {
+              const records = conductByCategory[cat.key] || [];
+              const count = records.length;
+              const isOpen = expandedCategories[cat.key];
+
               return (
-                <View key={record.id} style={[styles.recordCard, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-                  <View style={styles.recordHeader}>
-                    <Text style={[styles.recordName, { color: theme === 'dark' ? '#FFF' : '#333' }]}>{record.conduct_codes?.name}</Text>
-                    <View style={styles.badge}>
-                      <Text style={[styles.badgeText, { color: colors.text }]}>{record.conduct_codes?.category}</Text>
-                    </View>
-                  </View>
-                  {record.observation && <Text style={styles.recordObs}>{record.observation}</Text>}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 6 }}>
-                    <Text style={styles.recordDate}>{formatLocalDate(record.created_at)}</Text>
-                    {record.teacher?.full_name ? (
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.text }}>
-                        {record.teacher.role === 'coordinator' ? '🏛️ Coord: ' : '👨‍🏫 Docente: '}
-                        {record.teacher.full_name}
+                <View key={cat.key} style={[styles.accordionContainer, { borderColor: theme === 'dark' ? '#27272A' : '#E4E4E7' }]}>
+                  {/* Cabecera táctil del acordeón */}
+                  <TouchableOpacity 
+                    style={[
+                      styles.accordionHeader, 
+                      { backgroundColor: theme === 'dark' ? '#18181B' : '#F8FAFC' },
+                      isOpen && styles.accordionHeaderOpen
+                    ]}
+                    onPress={() => toggleCategory(cat.key)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.accordionHeaderLeft}>
+                      <Text style={[styles.accordionTitle, { color: theme === 'dark' ? '#FFFFFF' : Colors.text.primary }]}>
+                        {cat.label}
                       </Text>
-                    ) : null}
-                  </View>
+                    </View>
+
+                    {isOpen ? (
+                      <ChevronUp size={18} color={theme === 'dark' ? '#A1A1AA' : '#64748B'} />
+                    ) : (
+                      <ChevronDown size={18} color={theme === 'dark' ? '#A1A1AA' : '#64748B'} />
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Contenido desplegable del acordeón */}
+                  {isOpen && (
+                    <View style={styles.accordionBody}>
+                      {count === 0 ? (
+                        <View style={styles.accordionEmpty}>
+                          <Text style={styles.accordionEmptyText}>
+                            Sin registros de {cat.label.toLowerCase()}
+                          </Text>
+                        </View>
+                      ) : (
+                        records.map((record, index) => {
+                          const isLast = index === records.length - 1;
+                          return (
+                            <View 
+                              key={record.id} 
+                              style={[
+                                styles.cleanRecordItem, 
+                                !isLast && styles.grayDivider
+                              ]}
+                            >
+                              <View style={styles.cleanRecordHeader}>
+                                <Text style={[styles.cleanRecordName, { color: theme === 'dark' ? '#FFFFFF' : Colors.text.primary }]}>
+                                  {record.conduct_codes?.name}
+                                </Text>
+                                <View style={[styles.categoryPill, { backgroundColor: cat.badgeBg }]}>
+                                  <Text style={[styles.categoryPillText, { color: cat.badgeText }]}>
+                                    {cat.label}
+                                  </Text>
+                                </View>
+                              </View>
+
+                              {record.observation ? (
+                                <Text style={styles.cleanRecordObs}>{record.observation}</Text>
+                              ) : null}
+
+                              {record.teacher?.full_name ? (
+                                <Text style={styles.cleanRecordTeacherUnderObs}>
+                                  {record.teacher.role === 'coordinator' ? 'Coord: ' : 'Docente: '}
+                                  {record.teacher.full_name}
+                                </Text>
+                              ) : null}
+
+                              <View style={styles.cleanRecordFooter}>
+                                <Text style={styles.cleanRecordDate}>
+                                  {formatLocalDate(record.created_at)}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  )}
                 </View>
               );
             })
           )}
         </View>
 
-        {/* Attendance Section */}
+        {/* Attendance Section - Sin iconos y separadas por línea negra */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
-            <Calendar color="#f5a623" size={20} />
-            <Text style={styles.sectionTitle}>{t('dashboard.attendanceRecord')}</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.attendanceRecord', 'Registro de Asistencia')}</Text>
           </View>
 
           {absences.length === 0 ? (
             <View style={[styles.emptyCard, { alignItems: 'center' }]}>
-              <View style={styles.goodIcon}>
-                <CheckCircle color="#2ecc71" size={24} />
-              </View>
-              <Text style={[styles.emptyText, { textAlign: 'center' }]}>{t('dashboard.excellentAttendance')}</Text>
+              <Text style={[styles.emptyText, { textAlign: 'center' }]}>
+                {t('dashboard.excellentAttendance', 'Sin ausencias registradas en este periodo')}
+              </Text>
             </View>
           ) : (
-            absences.map(att => {
-              const isJustified = att.status === 'justified';
-              const rawMsg = att.coordinator_message || '';
-              const timeMatch = rawMsg.match(/\[HORARIO:\s*([^\]]+)\]/i);
-              const isFullDay = rawMsg.includes('[JORNADA COMPLETA]') || att.subjects?.name === 'Día completo';
-              const cleanMsg = rawMsg
-                .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
-                .replace(/\[JORNADA COMPLETA\]/gi, '')
-                .trim();
+            <View style={[styles.attendanceListContainer, { borderColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+              {absences.map((att, index) => {
+                const isJustified = att.status === 'justified';
+                const rawMsg = att.coordinator_message || '';
+                const timeMatch = rawMsg.match(/\[HORARIO:\s*([^\]]+)\]/i);
+                const isFullDay = rawMsg.includes('[JORNADA COMPLETA]') || att.subjects?.name === 'Día completo';
+                const cleanMsg = rawMsg
+                  .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
+                  .replace(/\[JORNADA COMPLETA\]/gi, '')
+                  .trim();
+                const isLast = index === absences.length - 1;
 
-              return (
-                <View key={att.id} style={[styles.absenceCard, isJustified && { backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : '#f0fdf4', borderColor: '#bbf7d0', borderWidth: 1 }]}>
-                  <View style={[styles.absenceIcon, isJustified && { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-                    {isJustified ? (
-                      <CheckCircle color="#10b981" size={18} />
-                    ) : (
-                      <Calendar color="#e74c3c" size={18} />
-                    )}
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    {/* Header Row: Fecha a la izquierda y Pill a la derecha */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={styles.absenceDate}>{formatLocalDate(att.date)}</Text>
-                      <View style={{ 
-                        backgroundColor: isJustified ? '#dcfce7' : '#fee2e2',
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                        borderRadius: 12
-                      }}>
+                return (
+                  <View 
+                    key={att.id} 
+                    style={[
+                      styles.cleanAbsenceItem, 
+                      !isLast && styles.blackDivider
+                    ]}
+                  >
+                    <View style={styles.cleanAbsenceHeader}>
+                      <Text style={[styles.absenceDate, { color: theme === 'dark' ? '#FFFFFF' : Colors.text.primary }]}>
+                        {formatLocalDate(att.date)}
+                      </Text>
+                      <View style={[
+                        styles.absenceStatusPill, 
+                        { backgroundColor: isJustified ? (theme === 'dark' ? 'rgba(16, 185, 129, 0.2)' : '#DCFCE7') : (theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2') }
+                      ]}>
                         <Text style={{ 
                           fontSize: 10.5, 
-                          fontWeight: 'bold', 
-                          color: isJustified ? '#166534' : '#991b1b'
+                          fontWeight: '800', 
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.4,
+                          color: isJustified ? (theme === 'dark' ? '#6EE7B7' : '#166534') : (theme === 'dark' ? '#FCA5A5' : '#991B1B')
                         }}>
                           {isJustified ? 'Justificada' : 'Inasistencia'}
                         </Text>
                       </View>
                     </View>
 
-                    {/* Scope tags row: Horario o Día completo */}
+                    {/* Scope tags: Horario o Día completo sin emojis */}
                     {(timeMatch || isFullDay) && (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 6 }}>
                         {timeMatch && (
                           <View style={{
-                            backgroundColor: '#e0f2fe',
-                            paddingHorizontal: 7,
-                            paddingVertical: 2,
-                            borderRadius: 8
+                            backgroundColor: theme === 'dark' ? '#1E293B' : '#E0F2FE',
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6
                           }}>
                             <Text style={{
-                              fontSize: 10,
-                              fontWeight: '600',
-                              color: '#0284c7'
+                              fontSize: 10.5,
+                              fontWeight: '700',
+                              color: theme === 'dark' ? '#38BDF8' : '#0284C7'
                             }}>
-                              🕒 {timeMatch[1]}
+                              {timeMatch[1]}
                             </Text>
                           </View>
                         )}
                         {isFullDay && (
                           <View style={{
-                            backgroundColor: '#f1f5f9',
-                            paddingHorizontal: 7,
-                            paddingVertical: 2,
-                            borderRadius: 8
+                            backgroundColor: theme === 'dark' ? '#27272A' : '#F1F5F9',
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6
                           }}>
                             <Text style={{
-                              fontSize: 10,
-                              fontWeight: '600',
-                              color: '#475569'
+                              fontSize: 10.5,
+                              fontWeight: '700',
+                              color: theme === 'dark' ? '#D4D4D8' : '#475569'
                             }}>
-                              📅 Día completo
+                              Día completo
                             </Text>
                           </View>
                         )}
@@ -289,14 +402,14 @@ export default function DiaryScreen() {
                     </Text>
 
                     {isJustified && cleanMsg ? (
-                      <Text style={{ fontSize: 11, color: Colors.text.muted, marginTop: 3, fontStyle: 'italic' }}>
+                      <Text style={{ fontSize: 11.5, color: Colors.text.muted, marginTop: 4, fontStyle: 'italic' }}>
                         Nota: {cleanMsg}
                       </Text>
                     ) : null}
                   </View>
-                </View>
-              );
-            })
+                );
+              })}
+            </View>
           )}
         </View>
       </View>
@@ -314,17 +427,15 @@ const createStyles = (Colors, theme) => {
     alignItems: 'center',
     marginTop: -10,
     zIndex: 10,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   periodSelector: {
     flexDirection: 'row',
     backgroundColor: theme === 'dark' ? Colors.card : Colors.primary,
     borderRadius: 25,
     padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
     borderWidth: theme === 'dark' ? 1 : 0,
     borderColor: Colors.gray[200],
   },
@@ -346,19 +457,17 @@ const createStyles = (Colors, theme) => {
   },
   content: {
     padding: 20,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   section: {
     backgroundColor: Colors.card,
     borderRadius: 24,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    borderWidth: theme === 'dark' ? 1 : 0,
-    borderColor: Colors.gray[100],
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? Colors.gray[200] : 'rgba(0,0,0,0.06)',
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -380,89 +489,155 @@ const createStyles = (Colors, theme) => {
     color: Colors.text.muted,
     fontWeight: '500',
   },
-  recordCard: {
-    padding: 16,
+
+  // Acordeones de Conducta
+  accordionContainer: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.gray[200],
     marginBottom: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.card,
   },
-  recordHeader: {
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  accordionHeaderOpen: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme === 'dark' ? '#27272A' : '#F1F5F9',
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  accordionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  countBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  accordionBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  accordionEmpty: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  accordionEmptyText: {
+    fontSize: 12,
+    color: Colors.text.muted,
+    fontStyle: 'italic',
+  },
+
+  // Items de conducta limpios (sin fondo de color, divididos por franja gris)
+  cleanRecordItem: {
+    paddingVertical: 14,
+  },
+  grayDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme === 'dark' ? '#27272A' : '#E4E4E7',
+  },
+  cleanRecordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  recordName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
+  cleanRecordName: {
+    fontSize: 15,
+    fontWeight: '700',
     flex: 1,
     marginRight: 10,
   },
-  badge: {
-    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
+  categoryPill: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
   },
-  badgeText: {
+  categoryPillText: {
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '800',
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  recordObs: {
+  cleanRecordObs: {
+    fontSize: 13.5,
     color: Colors.text.secondary,
-    fontSize: 14,
-    marginBottom: 10,
+    lineHeight: 18,
+    marginBottom: 6,
   },
-  recordDate: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: Colors.text.muted,
-    opacity: 0.8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  cleanRecordTeacherUnderObs: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme === 'dark' ? '#E4E4E7' : '#334155',
+    marginBottom: 6,
   },
-  goodIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: theme === 'dark' ? 'rgba(46, 204, 113, 0.15)' : '#eafaf1',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  absenceCard: {
+  cleanRecordFooter: {
     flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    backgroundColor: Colors.background,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  absenceIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: theme === 'dark' ? 'rgba(231, 76, 60, 0.15)' : '#fdf0ef',
-    borderRadius: 12,
-    justifyContent: 'center',
+  cleanRecordDate: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Registro de Asistencia limpio (sin iconos, divididos por línea negra)
+  attendanceListContainer: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    backgroundColor: Colors.card,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+  },
+  cleanAbsenceItem: {
+    paddingVertical: 14,
+  },
+  blackDivider: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: theme === 'dark' ? '#27272A' : '#18181B',
+  },
+  cleanAbsenceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 6,
   },
   absenceDate: {
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    fontSize: 16,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  absenceStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   absenceLabel: {
-    fontSize: 12,
-    color: Colors.text.muted,
-    textTransform: 'uppercase',
+    fontSize: 13,
+    color: Colors.text.primary,
     fontWeight: '600',
-    marginTop: 2,
   },
   });
 };

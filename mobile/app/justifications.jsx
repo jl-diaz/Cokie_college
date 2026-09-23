@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import api from '../src/utils/api';
-import { FileText, Calendar, Plus, X, Upload, CheckCircle, Clock, XCircle, ChevronDown } from 'lucide-react-native';
+import { FileText, Calendar, Plus, X, Upload, CheckCircle, Clock, XCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useLocalSearchParams } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 import DatePickerSelector from '../src/components/DatePickerSelector';
 
 import { useAlert } from '../src/context/AlertContext';
+
+const VerificacionCheck = ({ size = 14, color = '#FFFFFF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path d="M20.29297 5.29297l-11.29297 11.29297l-4.29297-4.29297l-1.41406 1.41406l5.70703 5.70703l12.70703-12.70703z" fill={color} />
+  </Svg>
+);
 
 const SCHOOL_HOURS = [
   '07:00 AM',
@@ -48,12 +56,27 @@ export default function JustificationsScreen() {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
+  const params = useLocalSearchParams();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [justifications, setJustifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedResponses, setExpandedResponses] = useState({});
+
+  const toggleResponse = (id) => {
+    setExpandedResponses(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  useEffect(() => {
+    if (params?.create === 'true' || params?.create === true) {
+      setModalVisible(true);
+    }
+  }, [params?.create]);
 
   const formatLocalDate = (dateStr) => {
     if (!dateStr) return '';
@@ -277,9 +300,27 @@ export default function JustificationsScreen() {
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'approved': return { color: Colors.status.approved, bg: '#f0fdf4', icon: CheckCircle, label: t('dashboard.approved', 'Aprobada') };
-      case 'rejected': return { color: Colors.status.rejected, bg: '#fef2f2', icon: XCircle, label: t('dashboard.rejected', 'Rechazada') };
-      default: return { color: Colors.status.pending, bg: '#fffbeb', icon: Clock, label: t('dashboard.pending', 'Pendiente') };
+      case 'approved': 
+        return { 
+          color: '#FFFFFF', 
+          bg: '#10b981', 
+          isApproved: true, 
+          label: t('dashboard.approved', 'Aprobada') 
+        };
+      case 'rejected': 
+        return { 
+          color: theme === 'dark' ? '#f87171' : Colors.status.rejected, 
+          bg: theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2', 
+          icon: XCircle, 
+          label: t('dashboard.rejected', 'Rechazada') 
+        };
+      default: 
+        return { 
+          color: theme === 'dark' ? '#fbbf24' : Colors.status.pending, 
+          bg: theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : '#fffbeb', 
+          icon: Clock, 
+          label: t('dashboard.pending', 'Pendiente') 
+        };
     }
   };
 
@@ -292,43 +333,83 @@ export default function JustificationsScreen() {
       .replace(/\[HORARIO:\s*[^\]]+\]/gi, '')
       .replace(/\[JORNADA COMPLETA\]/gi, '')
       .trim();
+    const isExpanded = !!expandedResponses[item.id];
 
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={styles.dateInfo}>
-            <Calendar size={16} color={Colors.text.muted} />
-            <Text style={styles.dateText}>{formatLocalDate(item.absence_date)}</Text>
+          <View style={styles.headerLeftCol}>
+            <View style={styles.dateInfo}>
+              <Calendar size={16} color={Colors.text.muted} />
+              <Text style={styles.dateText}>{formatLocalDate(item.absence_date)}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+              {status.isApproved ? (
+                <VerificacionCheck size={14} color="#FFFFFF" />
+              ) : (
+                <StatusIcon size={14} color={status.color} />
+              )}
+              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+            </View>
           </View>
-          <View style={styles.badgesWrapper}>
+
+          <View style={styles.headerRightCol}>
             {timeMatch && (
-              <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Clock size={12} color="#0284c7" />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#0284c7' }}>{timeMatch[1]}</Text>
+              <View style={[
+                styles.periodBadge, 
+                { backgroundColor: theme === 'dark' ? 'rgba(2, 132, 199, 0.2)' : '#e0f2fe' }
+              ]}>
+                <Clock size={12} color={theme === 'dark' ? '#38bdf8' : '#0284c7'} />
+                <Text style={[
+                  styles.periodBadgeText, 
+                  { color: theme === 'dark' ? '#38bdf8' : '#0284c7' }
+                ]}>
+                  {timeMatch[1]}
+                </Text>
               </View>
             )}
             {isFullDay && (
-              <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Calendar size={12} color="#475569" />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>Día completo</Text>
+              <View style={[
+                styles.periodBadge, 
+                { backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9' }
+              ]}>
+                <Calendar size={12} color={theme === 'dark' ? '#cbd5e1' : '#475569'} />
+                <Text style={[
+                  styles.periodBadgeText, 
+                  { color: theme === 'dark' ? '#cbd5e1' : '#475569' }
+                ]}>
+                  Día completo
+                </Text>
               </View>
             )}
-            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-              <StatusIcon size={14} color={status.color} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-            </View>
           </View>
         </View>
         
         <Text style={styles.reasonLabel}>{t('dashboard.reason', 'Motivo')}:</Text>
         <Text style={styles.reasonText}>{cleanReason || item.reason}</Text>
         
-        {item.coordinator_message && (
-          <View style={styles.obsContainer}>
-            <Text style={styles.obsLabel}>{t('dashboard.coordinatorResponse', 'Respuesta de Coordinación')}:</Text>
-            <Text style={styles.obsText}>{item.coordinator_message}</Text>
+        {item.coordinator_message ? (
+          <View style={{ marginTop: 4 }}>
+            <View style={styles.blackDivider} />
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => toggleResponse(item.id)}
+              style={styles.obsHeaderBtn}
+            >
+              <Text style={styles.obsLabel}>{t('dashboard.coordinatorResponse', 'Respuesta de Coordinación')}:</Text>
+              {isExpanded ? (
+                <ChevronUp size={18} color={theme === 'dark' ? '#FFFFFF' : Colors.text.primary} />
+              ) : (
+                <ChevronDown size={18} color={theme === 'dark' ? '#FFFFFF' : Colors.text.primary} />
+              )}
+            </TouchableOpacity>
+            {isExpanded && (
+              <View style={styles.obsContainer}>
+                <Text style={styles.obsText}>{item.coordinator_message}</Text>
+              </View>
+            )}
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
@@ -643,56 +724,94 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   emptyText: { color: Colors.text.muted, textAlign: 'center', fontSize: 16 },
   card: {
     backgroundColor: Colors.card,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    borderWidth: theme === 'dark' ? 1 : 0,
-    borderColor: Colors.gray[100],
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: 8,
     marginBottom: 16,
   },
-  dateInfo: { flexDirection: 'row', alignItems: 'center', flexShrink: 0, marginTop: 4 },
+  headerLeftCol: {
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  headerRightCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    marginLeft: 12,
+  },
+  dateInfo: { flexDirection: 'row', alignItems: 'center' },
   dateText: { marginLeft: 8, fontWeight: 'bold', color: Colors.text.primary, fontSize: 16 },
-  badgesWrapper: {
+  periodBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
-    gap: 6,
-    flex: 1,
-    flexShrink: 1,
+    gap: 4,
+  },
+  periodBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 20,
-    flexShrink: 0,
-    maxWidth: '100%',
+    alignSelf: 'flex-start',
   },
   statusText: { fontSize: 12, fontWeight: 'bold', marginLeft: 6 },
-  reasonLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.muted, textTransform: 'uppercase', marginBottom: 4 },
-  reasonText: { fontSize: 16, color: Colors.text.primary, marginBottom: 16 },
-  obsContainer: {
-    backgroundColor: Colors.gray[50],
-    padding: 16,
-    borderRadius: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primaryLight,
+  reasonLabel: { 
+    fontSize: 15, 
+    fontWeight: '700', 
+    color: Colors.text.primary, 
+    textTransform: 'none', 
+    marginBottom: 6 
   },
-  obsLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.primary, marginBottom: 4 },
-  obsText: { fontSize: 14, color: Colors.text.secondary, fontStyle: 'italic' },
+  reasonText: { 
+    fontSize: 13, 
+    lineHeight: 18, 
+    color: theme === 'dark' ? '#D4D4D8' : Colors.text.secondary, 
+    marginBottom: 12 
+  },
+  blackDivider: {
+    height: 1.5,
+    backgroundColor: theme === 'dark' ? '#52525B' : '#000000',
+    marginVertical: 10,
+  },
+  obsHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  obsContainer: {
+    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : Colors.gray[50],
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  obsLabel: { 
+    fontSize: 13, 
+    fontWeight: '700', 
+    color: theme === 'dark' ? '#FFFFFF' : (Colors.primary || '#18181B'),
+  },
+  obsText: { 
+    fontSize: 14, 
+    color: theme === 'dark' ? '#FFFFFF' : Colors.text.secondary, 
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {

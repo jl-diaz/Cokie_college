@@ -1003,7 +1003,7 @@ const coordinatorController = {
     getGradeTickets: async (req, res) => {
         try {
             const { level } = req.user;
-            const { page = 1, limit = 50 } = req.query;
+            const { status, page = 1, limit = 50 } = req.query;
             const pageNum = parseInt(page) || 1;
             const limitNum = parseInt(limit) || 50;
             const from = (pageNum - 1) * limitNum;
@@ -1021,6 +1021,10 @@ const coordinatorController = {
                     )
                 `, { count: 'exact' })
                 .order('created_at', { ascending: false });
+
+            if (status) {
+                query = query.eq('status', status);
+            }
 
             if (level) {
                 query = query.eq('level', level);

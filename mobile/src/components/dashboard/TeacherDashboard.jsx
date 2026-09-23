@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { 
+  Clock, 
+  Users, 
+  Calendar, 
+  ClipboardCheck, 
+  Award, 
+  Bell, 
+  BookOpen 
+} from 'lucide-react-native';
 import api from '../../utils/api';
 import { 
-  BentoCard, 
   LiveClassWidget, 
-  StatWidget, 
-  QuickActionBtn, 
+  BentoStatCard, 
+  ActionCard, 
   RecentMessagesWidget 
 } from './DashboardShared';
 
@@ -30,14 +38,17 @@ export default function TeacherDashboard({ isDark = false }) {
         api.get('/chat/conversations')
       ]);
 
-      if (schedRes.status === 'fulfilled' && Array.isArray(schedRes.value.data)) {
-        setSchedules(schedRes.value.data);
+      if (schedRes.status === 'fulfilled' && schedRes.value.data) {
+        const sd = schedRes.value.data;
+        setSchedules(Array.isArray(sd) ? sd : (sd.data || []));
       }
-      if (classRes.status === 'fulfilled' && Array.isArray(classRes.value.data)) {
-        setClassrooms(classRes.value.data);
+      if (classRes.status === 'fulfilled' && classRes.value.data) {
+        const cd = classRes.value.data;
+        setClassrooms(Array.isArray(cd) ? cd : (cd.data || []));
       }
-      if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
-        setConversations(chatRes.value.data);
+      if (chatRes.status === 'fulfilled' && chatRes.value.data) {
+        const chd = chatRes.value.data;
+        setConversations(Array.isArray(chd) ? chd : (chd.data || []));
       }
     } catch (err) {
       console.warn('Error loading teacher dashboard:', err);
@@ -82,63 +93,62 @@ export default function TeacherDashboard({ isDark = false }) {
         schedules={schedules} 
         isDark={isDark} 
         onPressClass={() => router.push('/class')} 
+        placeholderIcon={BookOpen}
       />
 
-      {/* 2. Métricas Reales de la Jornada (Bento Minimalista) */}
+      {/* 2. Métricas Bento: Clases de hoy (Amarillo) y Salones asignados (Lavanda) */}
       <View style={styles.statsRow}>
-        <StatWidget 
-          title="Clases de hoy"
+        <BentoStatCard 
+          tag="Clases de hoy"
           value={todayClassesCount > 0 ? `${todayClassesCount}` : '0'}
           subtitle={todayClassesCount > 0 ? 'Horas programadas' : 'Sin clases hoy'}
+          variant="yellow"
           isDark={isDark}
-          color="#0EA5E9"
           onPress={() => router.push('/schedule')}
         />
 
-        <StatWidget 
-          title="Salones asignados"
+        <BentoStatCard 
+          tag="Salones"
           value={uniqueSectionsCount > 0 ? `${uniqueSectionsCount}` : `${classrooms.length > 0 ? classrooms.length : '0'}`}
           subtitle="Secciones a cargo"
+          variant="lavender"
           isDark={isDark}
-          color="#EC4899"
+          fallbackIcon={Users}
           onPress={() => router.push('/class')}
         />
       </View>
 
-      {/* 3. Mensajes Recientes de CokieChat (Ancho Completo sin overflow) */}
+      {/* 3. Mensajes Recientes de CokieChat */}
       <RecentMessagesWidget 
         conversations={conversations} 
         isDark={isDark} 
         onPressChat={() => router.push('/chat')} 
       />
+      <View style={styles.actionRowFlex}>
+        <View style={{ flex: 1 }}>
+          <ActionCard 
+            title="Mi horario"
+            isDark={isDark}
+            fallbackIcon={Calendar}
+            iconColor="#FFFFFF"
+            slotBgColor={isDark ? '#27272A' : '#18181B'}
+            borderColor="black"
+            onPress={() => router.push('/schedule')}
+          />
+        </View>
 
-      {/* 4. Herramientas Rápidas del Docente (Funcionales) */}
-      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Herramientas docentes</Text>
-      
-      <QuickActionBtn 
-        title="Pasar Asistencia / Clase Activa"
-        subtitle="Control de asistencia y méritos disciplinarios"
-        isDark={isDark}
-        onPress={() => router.push('/class')}
-      />
-      <QuickActionBtn 
-        title="Calificaciones y Evaluaciones"
-        subtitle="Ingresar notas de tareas, proyectos y exámenes"
-        isDark={isDark}
-        onPress={() => router.push('/teacher-grades')}
-      />
-      <QuickActionBtn 
-        title="Mi Horario Semanal"
-        subtitle="Ver distribución de materias de la semana"
-        isDark={isDark}
-        onPress={() => router.push('/schedule')}
-      />
-      <QuickActionBtn 
-        title="Avisos Institucionales"
-        subtitle="Comunicados oficiales de dirección y coordinación"
-        isDark={isDark}
-        onPress={() => router.push('/announcements')}
-      />
+        <View style={{ flex: 1 }}>
+          <ActionCard 
+            title="Avisos"
+            isDark={isDark}
+            fallbackIcon={Bell}
+            iconColor="#FFFFFF"
+            slotBgColor={isDark ? '#27272A' : '#18181B'}
+            borderColor="black"
+            onPress={() => router.push('/announcements')}
+          />
+        </View>
+      </View>
     </View>
   );
 }
@@ -159,9 +169,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  textLight: {
-    color: '#FFFFFF',
-  },
   textMuted: {
     color: '#94A3B8',
   },
@@ -170,13 +177,17 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 12,
   },
+  actionRowFlex: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
+    fontWeight: '800',
+    color: '#ffffff',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 4,
+    marginTop: 6,
     marginBottom: 10,
     marginLeft: 2,
   },

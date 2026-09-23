@@ -158,9 +158,10 @@ export default function BottomModal({ visible, onClose, children }) {
     <Modal
       transparent
       visible={showModal}
-      animationType="none"
+      animationType="fade"
       onRequestClose={handleClose}
       statusBarTranslucent
+      navigationBarTranslucent
     >
       <View 
         style={styles.overlayContainer}
@@ -197,6 +198,7 @@ export default function BottomModal({ visible, onClose, children }) {
             }
           ]} 
           onStartShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => true}
         >
           {children}
         </Animated.View>
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   panelWrapper: {
     width: '100%',

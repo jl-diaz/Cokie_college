@@ -16,7 +16,8 @@ import {
   useWindowDimensions,
   StatusBar,
   Keyboard,
-  BackHandler
+  BackHandler,
+  Animated
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -59,6 +60,49 @@ import { enqueueOutbox, subscribeOutbox, startOutboxAutoFlush } from '../src/uti
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 
+// Animación de burbuja emergente para mensajes enviados
+const AnimatedMessageBubble = React.memo(({ children, style }) => {
+  const scale = useRef(new Animated.Value(0.72)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(8)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 5.5,
+        tension: 110,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.spring(translateY, {
+        toValue: 0,
+        friction: 6,
+        tension: 90,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          opacity,
+          transform: [{ scale }, { translateY }],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+});
+
 export default function ChatScreen() {
   const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
@@ -71,6 +115,7 @@ export default function ChatScreen() {
   const { setIsTabBarHidden } = useTabBar();
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const inputElevationAnim = useRef(new Animated.Value(0)).current;
 
   // Estados de Conversaciones
   const [conversations, setConversations] = useState([]);
@@ -100,23 +145,54 @@ export default function ChatScreen() {
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
   const [creatingGroup, setCreatingGroup] = useState(false);
 
+  // Modal Información de Grupo
+  const [groupInfoModalVisible, setGroupInfoModalVisible] = useState(false);
+  const [groupParticipants, setGroupParticipants] = useState([]);
+  const [loadingGroupInfo, setLoadingGroupInfo] = useState(false);
+
   // Adjuntos
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // Escuchar teclado para scroll y ajustes de padding
+  const triggerInputLift = () => {
+    Animated.sequence([
+      Animated.spring(inputElevationAnim, {
+        toValue: -14,
+        friction: 5,
+        tension: 90,
+        useNativeDriver: true,
+      }),
+      Animated.spring(inputElevationAnim, {
+        toValue: -6,
+        friction: 6,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // Escuchar teclado para scroll y ajustes de elevación y padding
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => {
         setIsKeyboardVisible(true);
+        triggerInputLift();
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setIsKeyboardVisible(false)
+      () => {
+        setIsKeyboardVisible(false);
+        Animated.spring(inputElevationAnim, {
+          toValue: 0,
+          friction: 7,
+          tension: 80,
+          useNativeDriver: true,
+        }).start();
+      }
     );
     return () => {
       showSub.remove();
@@ -129,6 +205,10 @@ export default function ChatScreen() {
     const onBackPress = () => {
       if (previewImage) {
         setPreviewImage(null);
+        return true;
+      }
+      if (groupInfoModalVisible) {
+        setGroupInfoModalVisible(false);
         return true;
       }
       if (attachmentModalVisible) {
@@ -148,13 +228,15 @@ export default function ChatScreen() {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => sub.remove();
-  }, [activeConv, attachmentModalVisible, newChatModalVisible, previewImage]);
+  }, [activeConv, attachmentModalVisible, newChatModalVisible, groupInfoModalVisible, previewImage]);
 
   // Cerrar modales automáticamente cuando se sale de una conversación o cambia la conversación activa
   useEffect(() => {
     if (!activeConv) {
       setAttachmentModalVisible(false);
       setPreviewImage(null);
+      setGroupInfoModalVisible(false);
+      setGroupParticipants([]);
     }
     setIsTabBarHidden(!!activeConv);
     return () => setIsTabBarHidden(false);
@@ -585,6 +667,153 @@ export default function ChatScreen() {
     }
   };
 
+  // 6. Obtener participantes e información completa del Grupo
+  const fetchGroupParticipants = async (convId) => {
+    if (!convId) return;
+    setLoadingGroupInfo(true);
+    try {
+      // 1. Obtener lista de participantes (user_id y rol en el grupo)
+      let parts = (activeParticipants && activeParticipants.length > 0) ? activeParticipants : [];
+      if (parts.length === 0) {
+        try {
+          const res = await api.get(`/chat/conversations/${convId}/messages`);
+          parts = res.data?.participants || [];
+          if (parts.length > 0) {
+            setActiveParticipants(parts);
+          }
+        } catch (apiErr) {
+          console.warn('Error fetching participants from API:', apiErr?.message);
+        }
+      }
+
+      if (!parts || parts.length === 0) {
+        setGroupParticipants([]);
+        return;
+      }
+
+      const userIds = parts.map(p => p.user_id).filter(Boolean);
+      const profMap = {};
+
+      // Fuente A: Extraer perfiles ya conocidos desde los mensajes de la conversación
+      (messages || []).forEach(m => {
+        if (m.sender_id && m.sender && m.sender.full_name) {
+          profMap[m.sender_id] = {
+            id: m.sender_id,
+            full_name: m.sender.full_name,
+            role: m.sender.role,
+            level: m.sender.level,
+            grade: m.sender.grade,
+            section: m.sender.section,
+            institutional_code: m.sender.institutional_code
+          };
+        }
+      });
+
+      // Fuente B: Extraer perfiles desde la lista de usuarios ya cargada en memoria
+      (usersList || []).forEach(u => {
+        if (u.id && u.full_name) {
+          profMap[u.id] = { ...u };
+        }
+      });
+
+      // Fuente C: Consultar perfiles en Supabase con las columnas reales existentes (sin avatar_url)
+      if (userIds.length > 0) {
+        try {
+          const { data, error: profErr } = await supabase
+            .from('profiles')
+            .select('id, full_name, role, level, grade, section, institutional_code')
+            .in('id', userIds);
+          if (!profErr && Array.isArray(data)) {
+            data.forEach(pf => {
+              if (pf && pf.id) {
+                profMap[pf.id] = { ...profMap[pf.id], ...pf };
+              }
+            });
+          } else if (profErr) {
+            console.warn('Supabase profiles query error:', profErr?.message);
+          }
+        } catch (e) {
+          console.warn('Error querying Supabase profiles:', e?.message);
+        }
+      }
+
+      // Fuente D: Si aún faltan integrantes por identificar, consultar el endpoint seguro de usuarios del chat
+      const missingUserIds = userIds.filter(id => !profMap[id] || !profMap[id].full_name);
+      if (missingUserIds.length > 0) {
+        try {
+          const res = await api.get('/chat/users');
+          const allChatUsers = Array.isArray(res.data) ? res.data : [];
+          allChatUsers.forEach(u => {
+            if (u.id && u.full_name) {
+              profMap[u.id] = { ...profMap[u.id], ...u };
+            }
+          });
+        } catch (uErr) {
+          console.warn('Fallback users endpoint error:', uErr?.message);
+        }
+      }
+
+      // Fuente E: Perfil del usuario actual autenticado
+      if (user?.id) {
+        const myName = profile?.full_name || user?.user_metadata?.full_name || user?.email;
+        profMap[user.id] = {
+          id: user.id,
+          full_name: myName,
+          role: profile?.role,
+          level: profile?.level,
+          grade: profile?.grade,
+          section: profile?.section,
+          institutional_code: profile?.institutional_code,
+          ...profMap[user.id]
+        };
+      }
+
+      // 3. Combinar participantes con perfiles identificados
+      const combined = parts.map(p => {
+        const prof = profMap[p.user_id] || {};
+        const isCurrent = p.user_id === user?.id;
+        const currentFullName = isCurrent ? (profile?.full_name || user?.user_metadata?.full_name) : null;
+        
+        // Determinar nombre legible real
+        const resolvedName = prof.full_name || currentFullName || (isCurrent ? t('chat.you', 'Tú') : 'Usuario');
+        const resolvedRole = prof.role || (isCurrent ? profile?.role : null);
+
+        return {
+          user_id: p.user_id,
+          group_role: p.role, // 'admin' | 'member'
+          full_name: resolvedName,
+          profile_role: resolvedRole,
+          level: prof.level || (isCurrent ? profile?.level : null),
+          grade: prof.grade || (isCurrent ? profile?.grade : null),
+          section: prof.section || (isCurrent ? profile?.section : null),
+          institutional_code: prof.institutional_code || (isCurrent ? profile?.institutional_code : null),
+          is_current_user: isCurrent,
+        };
+      });
+
+      // Ordenar: Usuario actual primero, luego administradores de grupo, luego alfabético
+      combined.sort((a, b) => {
+        if (a.is_current_user) return -1;
+        if (b.is_current_user) return 1;
+        if (a.group_role === 'admin' && b.group_role !== 'admin') return -1;
+        if (b.group_role === 'admin' && a.group_role !== 'admin') return 1;
+        return (a.full_name || '').localeCompare(b.full_name || '');
+      });
+
+      setGroupParticipants(combined);
+    } catch (err) {
+      console.warn('Error fetching group participants:', err?.message);
+    } finally {
+      setLoadingGroupInfo(false);
+    }
+  };
+
+  const openGroupInfoModal = () => {
+    if (!activeConv?.id) return;
+    setGroupInfoModalVisible(true);
+    fetchGroupParticipants(activeConv.id);
+  };
+
   // Adjuntar Imagen desde Galería o Cámara
   const pickImage = async (useCamera = false) => {
     setAttachmentModalVisible(false);
@@ -868,7 +1097,7 @@ export default function ChatScreen() {
                   {item.avatar_url ? (
                     <Image source={{ uri: item.avatar_url }} style={styles.avatarImg} />
                   ) : (
-                    <View style={[styles.avatarPlaceholder, item.is_group && { backgroundColor: '#10b981' }]}>
+                    <View style={[styles.avatarPlaceholder, item.is_group && { backgroundColor: isDark ? Colors.primary : '#18181B' }]}>
                       {item.is_group ? (
                         <Users size={20} color="#FFF" />
                       ) : (
@@ -878,7 +1107,6 @@ export default function ChatScreen() {
                       )}
                     </View>
                   )}
-                  <View style={styles.onlineDot} />
                 </View>
 
                 {/* Contenido Central */}
@@ -946,54 +1174,111 @@ export default function ChatScreen() {
           {/* Cabecera del Chat Activo: Específica para Desktop y Móvil */}
           {isDesktop ? (
             <View style={styles.chatHeaderDesktop}>
-              <View style={styles.desktopHeaderAvatarWrapper}>
-                {activeConv.avatar_url ? (
-                  <Image source={{ uri: activeConv.avatar_url }} style={styles.desktopHeaderAvatarImg} />
-                ) : (
-                  <View style={styles.desktopHeaderAvatarPlaceholder}>
-                    <Text style={styles.desktopHeaderAvatarInitial}>
-                      {(activeConv.title || 'U').charAt(0).toUpperCase()}
+              {activeConv.is_group ? (
+                <TouchableOpacity
+                  style={styles.chatHeaderTouchable}
+                  activeOpacity={0.7}
+                  onPress={openGroupInfoModal}
+                >
+                  <View style={styles.desktopHeaderAvatarWrapper}>
+                    {activeConv.avatar_url ? (
+                      <Image source={{ uri: activeConv.avatar_url }} style={styles.desktopHeaderAvatarImg} />
+                    ) : (
+                      <View style={styles.desktopHeaderAvatarPlaceholder}>
+                        <Text style={styles.desktopHeaderAvatarInitial}>
+                          {(activeConv.title || 'G').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.desktopHeaderInfo}>
+                    <Text style={styles.desktopHeaderName} numberOfLines={1}>
+                      {activeConv.title || activeConv.name}
+                    </Text>
+                    <Text style={styles.desktopHeaderStatusAction}>
+                      {t('chat.viewGroupInfo', 'Ver información del grupo')}
                     </Text>
                   </View>
-                )}
-                <View style={styles.desktopOnlineDot} />
-              </View>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.chatHeaderStatic}>
+                  <View style={styles.desktopHeaderAvatarWrapper}>
+                    {activeConv.avatar_url ? (
+                      <Image source={{ uri: activeConv.avatar_url }} style={styles.desktopHeaderAvatarImg} />
+                    ) : (
+                      <View style={styles.desktopHeaderAvatarPlaceholder}>
+                        <Text style={styles.desktopHeaderAvatarInitial}>
+                          {(activeConv.title || 'U').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
-              <View style={styles.desktopHeaderInfo}>
-                <Text style={styles.desktopHeaderName} numberOfLines={1}>
-                  {activeConv.title || activeConv.name}
-                </Text>
-                <Text style={styles.desktopHeaderStatus}>
-                  {activeConv.is_group 
-                    ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
-                    : (activeConv.recipient_level || (activeConv.recipient_role === 'coordinator' ? t('chat.roles.coordinator', 'Coordinadora Académica') : (activeConv.recipient_role === 'teacher' ? t('chat.roles.teacher', 'Docente') : t('chat.roles.student', 'Estudiante'))))}
-                </Text>
-              </View>
+                  <View style={styles.desktopHeaderInfo}>
+                    <Text style={styles.desktopHeaderName} numberOfLines={1}>
+                      {activeConv.title || activeConv.name}
+                    </Text>
+                    <Text style={styles.desktopHeaderStatus}>
+                      {activeConv.recipient_level || (activeConv.recipient_role === 'coordinator' ? t('chat.roles.coordinator', 'Coordinadora Académica') : (activeConv.recipient_role === 'teacher' ? t('chat.roles.teacher', 'Docente') : t('chat.roles.student', 'Estudiante')))}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.chatHeaderMobile}>
-              <View style={styles.headerAvatarContainerLeft}>
-                {activeConv.avatar_url ? (
-                  <Image source={{ uri: activeConv.avatar_url }} style={styles.headerAvatarImg} />
-                ) : (
-                  <View style={styles.headerAvatarPlaceholder}>
-                    <Text style={styles.headerAvatarInitial}>
-                      {(activeConv.title || 'U').charAt(0).toUpperCase()}
+              {activeConv.is_group ? (
+                <TouchableOpacity
+                  style={styles.chatHeaderTouchable}
+                  activeOpacity={0.7}
+                  onPress={openGroupInfoModal}
+                >
+                  <View style={styles.headerAvatarContainerLeft}>
+                    {activeConv.avatar_url ? (
+                      <Image source={{ uri: activeConv.avatar_url }} style={styles.headerAvatarImg} />
+                    ) : (
+                      <View style={styles.headerAvatarPlaceholder}>
+                        <Text style={styles.headerAvatarInitial}>
+                          {(activeConv.title || 'G').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.chatHeaderInfo}>
+                    <Text style={styles.chatHeaderName} numberOfLines={1}>
+                      {activeConv.title || activeConv.name}
+                    </Text>
+                    <Text style={styles.chatHeaderStatusActionMobile}>
+                      {t('chat.viewGroupInfo', 'Ver información del grupo')}
                     </Text>
                   </View>
-                )}
-              </View>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.chatHeaderStatic}>
+                  <View style={styles.headerAvatarContainerLeft}>
+                    {activeConv.avatar_url ? (
+                      <Image source={{ uri: activeConv.avatar_url }} style={styles.headerAvatarImg} />
+                    ) : (
+                      <View style={styles.headerAvatarPlaceholder}>
+                        <Text style={styles.headerAvatarInitial}>
+                          {(activeConv.title || 'U').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
-              <View style={styles.chatHeaderInfo}>
-                <Text style={styles.chatHeaderName} numberOfLines={1}>
-                  {activeConv.title || activeConv.name}
-                </Text>
-                <Text style={styles.chatHeaderStatus}>
-                  {activeConv.is_group 
-                    ? t('chat.participantsCount', { count: activeConv.participants_count || '', defaultValue: `${activeConv.participants_count || 'Varios'} participantes` }) 
-                    : t('chat.online', 'En linea')}
-                </Text>
-              </View>
+                  <View style={styles.chatHeaderInfo}>
+                    <Text style={styles.chatHeaderName} numberOfLines={1}>
+                      {activeConv.title || activeConv.name}
+                    </Text>
+                    <Text style={styles.chatHeaderStatus}>
+                      {t('chat.online', 'En linea')}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
@@ -1039,55 +1324,57 @@ export default function ChatScreen() {
                       </View>
                     )}
 
-                    <View style={[
-                      styles.messageBubble, 
-                      isMine ? styles.bubbleOutgoing : styles.bubbleIncoming
-                    ]}>
-                      {/* Remitente si es grupo */}
-                      {activeConv.is_group && !isMine && item.sender && (
-                        <Text style={styles.groupSenderName}>{item.sender.full_name}</Text>
-                      )}
+                    {isMine ? (
+                      <AnimatedMessageBubble
+                        style={[
+                          styles.messageBubble, 
+                          styles.bubbleOutgoing
+                        ]}
+                      >
+                        {/* Remitente si es grupo */}
+                        {activeConv.is_group && !isMine && item.sender && (
+                          <Text style={styles.groupSenderName}>{item.sender.full_name}</Text>
+                        )}
 
-                      {/* Imagen Adjunta */}
-                      {item.type === 'image' && item.attachment_url && (
-                        <TouchableOpacity onPress={() => setPreviewImage(item.attachment_url)} activeOpacity={0.9}>
-                          <Image source={{ uri: item.attachment_url }} style={styles.bubbleImage} resizeMode="cover" />
-                        </TouchableOpacity>
-                      )}
+                        {/* Imagen Adjunta */}
+                        {item.type === 'image' && item.attachment_url && (
+                          <TouchableOpacity onPress={() => setPreviewImage(item.attachment_url)} activeOpacity={0.9}>
+                            <Image source={{ uri: item.attachment_url }} style={styles.bubbleImage} resizeMode="cover" />
+                          </TouchableOpacity>
+                        )}
 
-                      {/* Documento Adjunto */}
-                      {item.type === 'document' && item.attachment_url && (
-                        <TouchableOpacity
-                          style={styles.bubbleDocumentCard}
-                          onPress={() => openDocument(item.attachment_url, item.attachment_name)}
-                          activeOpacity={0.8}
-                        >
-                          <FileText size={28} color={isMine ? '#93c5fd' : Colors.primary} />
-                          <View style={{ flex: 1, marginLeft: 10 }}>
-                            <Text style={[styles.docNameText, isMine && { color: '#FFF' }]} numberOfLines={1}>
-                              {item.attachment_name || 'Documento adjunto'}
-                            </Text>
-                            <Text style={[styles.docSizeText, isMine && { color: '#cbd5e1' }]}>
-                              {t('chat.openOrDownload', 'Tocar para abrir o descargar')}
-                            </Text>
-                          </View>
-                          <Download size={18} color={isMine ? '#FFF' : Colors.primary} />
-                        </TouchableOpacity>
-                      )}
+                        {/* Documento Adjunto */}
+                        {item.type === 'document' && item.attachment_url && (
+                          <TouchableOpacity
+                            style={styles.bubbleDocumentCard}
+                            onPress={() => openDocument(item.attachment_url, item.attachment_name)}
+                            activeOpacity={0.8}
+                          >
+                            <FileText size={28} color="#93c5fd" />
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                              <Text style={[styles.docNameText, { color: '#FFF' }]} numberOfLines={1}>
+                                {item.attachment_name || 'Documento adjunto'}
+                              </Text>
+                              <Text style={[styles.docSizeText, { color: '#cbd5e1' }]}>
+                                {t('chat.openOrDownload', 'Tocar para abrir o descargar')}
+                              </Text>
+                            </View>
+                            <Download size={18} color="#FFF" />
+                          </TouchableOpacity>
+                        )}
 
-                      {/* Texto */}
-                      {item.content ? (
-                        <Text style={[styles.messageContentText, isMine ? styles.textOutgoing : styles.textIncoming]}>
-                          {item.content}
-                        </Text>
-                      ) : null}
+                        {/* Texto */}
+                        {item.content ? (
+                          <Text style={[styles.messageContentText, styles.textOutgoing]}>
+                            {item.content}
+                          </Text>
+                        ) : null}
 
-                      {/* Hora y Estado de Entrega / Doble Check Azul */}
-                      <View style={styles.timeAndStatusRow}>
-                        <Text style={[styles.messageTime, isMine ? styles.timeOutgoing : styles.timeIncoming]}>
-                          {formatTime(item.created_at)}
-                        </Text>
-                        {isMine && (
+                        {/* Hora y Estado de Entrega / Doble Check Azul */}
+                        <View style={styles.timeAndStatusRow}>
+                          <Text style={[styles.messageTime, styles.timeOutgoing]}>
+                            {formatTime(item.created_at)}
+                          </Text>
                           <View style={styles.statusIndicatorWrapper}>
                             {item.status === 'pending' ? (
                               <Clock size={12} color={isDark ? 'rgba(255,255,255,0.7)' : '#cbd5e1'} />
@@ -1097,9 +1384,60 @@ export default function ChatScreen() {
                               <Check size={13} color={isDark ? 'rgba(255,255,255,0.7)' : '#cbd5e1'} />
                             )}
                           </View>
+                        </View>
+                      </AnimatedMessageBubble>
+                    ) : (
+                      <View style={[
+                        styles.messageBubble, 
+                        styles.bubbleIncoming
+                      ]}>
+                        {/* Remitente si es grupo */}
+                        {activeConv.is_group && item.sender && (
+                          <Text style={styles.groupSenderName}>{item.sender.full_name}</Text>
                         )}
+
+                        {/* Imagen Adjunta */}
+                        {item.type === 'image' && item.attachment_url && (
+                          <TouchableOpacity onPress={() => setPreviewImage(item.attachment_url)} activeOpacity={0.9}>
+                            <Image source={{ uri: item.attachment_url }} style={styles.bubbleImage} resizeMode="cover" />
+                          </TouchableOpacity>
+                        )}
+
+                        {/* Documento Adjunto */}
+                        {item.type === 'document' && item.attachment_url && (
+                          <TouchableOpacity
+                            style={styles.bubbleDocumentCard}
+                            onPress={() => openDocument(item.attachment_url, item.attachment_name)}
+                            activeOpacity={0.8}
+                          >
+                            <FileText size={28} color={Colors.primary} />
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                              <Text style={styles.docNameText} numberOfLines={1}>
+                                {item.attachment_name || 'Documento adjunto'}
+                              </Text>
+                              <Text style={styles.docSizeText}>
+                                {t('chat.openOrDownload', 'Tocar para abrir o descargar')}
+                              </Text>
+                            </View>
+                            <Download size={18} color={Colors.primary} />
+                          </TouchableOpacity>
+                        )}
+
+                        {/* Texto */}
+                        {item.content ? (
+                          <Text style={[styles.messageContentText, styles.textIncoming]}>
+                            {item.content}
+                          </Text>
+                        ) : null}
+
+                        {/* Hora */}
+                        <View style={styles.timeAndStatusRow}>
+                          <Text style={[styles.messageTime, styles.timeIncoming]}>
+                            {formatTime(item.created_at)}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
+                    )}
                   </View>
                 );
               }}
@@ -1148,10 +1486,18 @@ export default function ChatScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={[
+            <Animated.View style={[
               styles.mobileChatInputBar,
               {
-                paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 10) : 10
+                paddingBottom: isKeyboardVisible 
+                  ? (Platform.OS === 'ios' ? 14 : 10) 
+                  : Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16) + 8,
+                transform: [{ translateY: inputElevationAnim }],
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: isKeyboardVisible ? -3 : 0 },
+                shadowOpacity: isKeyboardVisible ? 0.12 : 0,
+                shadowRadius: 6,
+                elevation: isKeyboardVisible ? 6 : 0,
               }
             ]}>
               <View style={styles.mobileInputPill}>
@@ -1161,6 +1507,7 @@ export default function ChatScreen() {
                   placeholderTextColor={isDark ? Colors.text.muted : '#94a3b8'}
                   value={messageText}
                   onChangeText={setMessageText}
+                  onFocus={triggerInputLift}
                   onSubmitEditing={() => handleSendMessage()}
                 />
                 <TouchableOpacity
@@ -1187,7 +1534,7 @@ export default function ChatScreen() {
                   <Send size={18} color="#FFF" style={{ marginLeft: 2 }} />
                 )}
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
         </View>
       </View>
@@ -1396,10 +1743,161 @@ export default function ChatScreen() {
     </Modal>
   );
 
+  // ==========================================
+  // MODAL INFORMACIÓN DEL GRUPO (ESTILO WHATSAPP)
+  // ==========================================
+  const renderGroupInfoModal = () => {
+    if (!activeConv || !activeConv.is_group) return null;
+
+    const groupTitle = activeConv.title || activeConv.name || 'Grupo';
+    const initialLetter = groupTitle.trim().charAt(0).toUpperCase() || 'G';
+    const totalCount = groupParticipants.length || activeConv.participants_count || 0;
+
+    return (
+      <BottomModal visible={groupInfoModalVisible} onClose={() => setGroupInfoModalVisible(false)}>
+        <View style={styles.groupInfoModalContent}>
+          {/* Header del Modal */}
+          <View style={styles.groupInfoModalHeader}>
+            <Text style={styles.groupInfoModalTitle}>
+              {t('chat.groupInfoTitle', 'Información del grupo')}
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setGroupInfoModalVisible(false)}
+              style={styles.groupInfoCloseBtn}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={20} color={isDark ? Colors.text.primary : '#334155'} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Hero Section: Avatar con Letra Inicial Grande y Nombre */}
+          <View style={styles.groupInfoHeroCard}>
+            <View style={styles.groupInfoLargeAvatarContainer}>
+              {activeConv.avatar_url ? (
+                <Image source={{ uri: activeConv.avatar_url }} style={styles.groupInfoLargeAvatarImg} />
+              ) : (
+                <View style={styles.groupInfoLargeAvatar}>
+                  <Text style={styles.groupInfoLargeAvatarText}>{initialLetter}</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.groupInfoHeroName} numberOfLines={2}>
+              {groupTitle}
+            </Text>
+            <Text style={styles.groupInfoHeroSub}>
+              {t('chat.participantsCount', { count: totalCount, defaultValue: `${totalCount} participantes` })}
+            </Text>
+          </View>
+
+          {/* Lista de Participantes */}
+          <View style={styles.groupMembersSection}>
+            <View style={styles.groupMembersSectionHeader}>
+              <Text style={styles.groupMembersSectionTitle}>
+                {t('chat.groupMembersTitle', 'Participantes')}
+              </Text>
+              <View style={styles.groupMembersCountPill}>
+                <Text style={styles.groupMembersCountPillText}>{totalCount}</Text>
+              </View>
+            </View>
+
+            {loadingGroupInfo ? (
+              <View style={styles.groupInfoLoadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.groupInfoLoadingText}>
+                  {t('chat.loadingMembers', 'Cargando participantes...')}
+                </Text>
+              </View>
+            ) : groupParticipants.length === 0 ? (
+              <View style={styles.groupInfoEmptyContainer}>
+                <Text style={styles.groupInfoEmptyText}>
+                  {t('chat.noMembers', 'No se encontraron integrantes')}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView 
+                style={styles.groupMembersScrollView} 
+                contentContainerStyle={styles.groupMembersScrollContent}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
+                bounces={true}
+                overScrollMode="always"
+              >
+                {groupParticipants.map((member, index) => {
+                  const memberInitial = (member.full_name || 'U').trim().charAt(0).toUpperCase();
+                  const isLast = index === groupParticipants.length - 1;
+
+                  // Traducir rol institucional
+                  let roleText = '';
+                  if (member.profile_role === 'teacher') {
+                    roleText = t('chat.roles.teacher', 'Docente');
+                  } else if (member.profile_role === 'coordinator') {
+                    roleText = t('chat.roles.coordinator', 'Coordinador/a');
+                  } else if (member.profile_role === 'admin') {
+                    roleText = t('chat.roles.admin', 'Administrador');
+                  } else if (member.grade && member.section) {
+                    roleText = `${member.grade} "${member.section}"`;
+                  } else if (member.profile_role === 'student') {
+                    roleText = t('chat.roles.student', 'Estudiante');
+                  }
+
+                  return (
+                    <View key={member.user_id || index}>
+                      <View style={styles.groupMemberRow}>
+                        {/* Avatar con fondo mate */}
+                        {member.avatar_url ? (
+                          <Image source={{ uri: member.avatar_url }} style={styles.memberAvatarImg} />
+                        ) : (
+                          <View style={styles.memberAvatarPlaceholder}>
+                            <Text style={styles.memberAvatarText}>{memberInitial}</Text>
+                          </View>
+                        )}
+
+                        {/* Datos del Usuario */}
+                        <View style={styles.memberInfoCol}>
+                          <View style={styles.memberNameRow}>
+                            <Text style={styles.memberNameText} numberOfLines={1}>
+                              {member.full_name}
+                              {member.is_current_user ? ` (${t('chat.you', 'Tú')})` : ''}
+                            </Text>
+                            {member.group_role === 'admin' && (
+                              <View style={styles.groupAdminBadge}>
+                                <Text style={styles.groupAdminBadgeText}>
+                                  {t('chat.groupAdminBadge', 'Admin del grupo')}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+
+                          {(roleText || member.institutional_code) ? (
+                            <Text style={styles.memberRoleSubtitle} numberOfLines={1}>
+                              {[roleText, member.institutional_code].filter(Boolean).join(' · ')}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                      {!isLast && <View style={styles.memberRowDivider} />}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </BottomModal>
+    );
+  };
+
   const handleChatBack = () => {
     Keyboard.dismiss();
     if (previewImage) {
       setPreviewImage(null);
+      return;
+    }
+    if (groupInfoModalVisible) {
+      setGroupInfoModalVisible(false);
       return;
     }
     if (attachmentModalVisible) {
@@ -1476,6 +1974,7 @@ export default function ChatScreen() {
       {renderNewChatModal()}
       {renderAttachmentModal()}
       {renderImagePreviewModal()}
+      {renderGroupInfoModal()}
     </View>
   );
 }
@@ -1496,8 +1995,8 @@ const createStyles = (Colors, theme, isDesktop) => {
     desktopSidebar: {
       width: 380,
       borderRightWidth: 1,
-      borderRightColor: isDark ? Colors.gray[200] : '#e2e8f0',
-      backgroundColor: isDark ? Colors.card : '#FFF',
+      borderRightColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+      backgroundColor: isDark ? Colors.background : '#FFF',
     },
     desktopChatPane: {
       flex: 1,
@@ -1521,17 +2020,17 @@ const createStyles = (Colors, theme, isDesktop) => {
     },
     convListContainer: {
       flex: 1,
-      backgroundColor: isDark ? Colors.card : '#FFF',
+      backgroundColor: isDark ? Colors.background : '#FFF',
     },
     convListHeader: {
-      backgroundColor: isDark ? Colors.card : (Colors.headerC || '#0B1956'),
+      backgroundColor: isDark ? Colors.background : (Colors.headerC || '#0B1956'),
       paddingHorizontal: 20,
       paddingTop: isDesktop ? 16 : 12,
       paddingBottom: 16,
       borderBottomLeftRadius: isDesktop ? 0 : 24,
       borderBottomRightRadius: isDesktop ? 0 : 24,
       borderBottomWidth: isDark ? 1 : 0,
-      borderBottomColor: isDark ? Colors.gray[200] : 'transparent',
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       marginTop: -1,
     },
     convListHeaderTop: {
@@ -1571,10 +2070,10 @@ const createStyles = (Colors, theme, isDesktop) => {
 
     // Pestañas de Filtro
     filterTabsWrapper: {
-      backgroundColor: isDark ? Colors.card : '#FFF',
+      backgroundColor: isDark ? Colors.background : '#FFF',
       paddingVertical: 12,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? Colors.gray[200] : '#f1f5f9',
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
     },
     filterTabsScroll: {
       paddingHorizontal: 16,
@@ -1584,9 +2083,9 @@ const createStyles = (Colors, theme, isDesktop) => {
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
-      backgroundColor: isDark ? Colors.gray[100] : '#FFF',
+      backgroundColor: isDark ? '#1C1C1E' : '#FFF',
       borderWidth: 1,
-      borderColor: isDark ? Colors.gray[200] : '#cbd5e1',
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
     },
     filterPillActive: {
       backgroundColor: Colors.primary,
@@ -1609,8 +2108,8 @@ const createStyles = (Colors, theme, isDesktop) => {
       paddingHorizontal: 16,
       paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? Colors.gray[100] : '#f1f5f9',
-      backgroundColor: isDark ? Colors.card : '#FFF',
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+      backgroundColor: isDark ? Colors.background : '#FFF',
     },
     convItemActive: {
       backgroundColor: isDark ? `${Colors.primary}25` : '#fae8ff',
@@ -1638,17 +2137,6 @@ const createStyles = (Colors, theme, isDesktop) => {
       color: '#FFF',
       fontSize: 18,
       fontWeight: 'bold',
-    },
-    onlineDot: {
-      position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: '#22c55e',
-      borderWidth: 2,
-      borderColor: isDark ? Colors.card : '#FFF',
     },
     convDetails: {
       flex: 1,
@@ -1725,11 +2213,11 @@ const createStyles = (Colors, theme, isDesktop) => {
     chatHeaderDesktop: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? Colors.card : '#FFFFFF',
+      backgroundColor: isDark ? Colors.background : '#FFFFFF',
       paddingHorizontal: 20,
       paddingVertical: 14,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? Colors.gray[200] : '#e2e8f0',
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
     },
     desktopHeaderAvatarWrapper: {
       position: 'relative',
@@ -1753,17 +2241,6 @@ const createStyles = (Colors, theme, isDesktop) => {
       fontSize: 16,
       fontWeight: 'bold',
     },
-    desktopOnlineDot: {
-      position: 'absolute',
-      bottom: 0,
-      right: 0,
-      width: 12,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: '#22c55e',
-      borderWidth: 2,
-      borderColor: isDark ? Colors.card : '#FFF',
-    },
     desktopHeaderInfo: {
       flex: 1,
     },
@@ -1779,12 +2256,12 @@ const createStyles = (Colors, theme, isDesktop) => {
     chatHeaderMobile: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? Colors.card : (Colors.headerC || '#0B1956'),
+      backgroundColor: isDark ? Colors.background : (Colors.headerC || '#0B1956'),
       paddingHorizontal: 16,
       paddingTop: 8,
       paddingBottom: 14,
       borderBottomWidth: isDark ? 1 : 0,
-      borderBottomColor: isDark ? Colors.gray[200] : 'transparent',
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
     },
     headerAvatarContainerLeft: {
       marginRight: 12,
@@ -1962,9 +2439,9 @@ const createStyles = (Colors, theme, isDesktop) => {
       alignItems: 'center',
       paddingHorizontal: 20,
       paddingVertical: 14,
-      backgroundColor: isDark ? Colors.card : '#FFFFFF',
+      backgroundColor: isDark ? Colors.background : '#FFFFFF',
       borderTopWidth: 1,
-      borderTopColor: isDark ? Colors.gray[200] : '#e2e8f0',
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
     },
     desktopClipBtn: {
       padding: 8,
@@ -1974,12 +2451,12 @@ const createStyles = (Colors, theme, isDesktop) => {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? Colors.gray[100] : '#f1f5f9',
+      backgroundColor: isDark ? '#1C1C1E' : '#f1f5f9',
       borderRadius: 24,
       paddingHorizontal: 16,
       height: 44,
       borderWidth: 1,
-      borderColor: isDark ? Colors.gray[200] : '#e2e8f0',
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0',
       marginRight: 10,
     },
     desktopChatTextInput: {
@@ -1992,15 +2469,15 @@ const createStyles = (Colors, theme, isDesktop) => {
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 12,
-      backgroundColor: isDark ? Colors.card : '#FFFFFF',
+      backgroundColor: isDark ? Colors.background : '#FFFFFF',
       borderTopWidth: 1,
-      borderTopColor: isDark ? Colors.gray[200] : '#f1f5f9',
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
     },
     mobileInputPill: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDark ? Colors.gray[100] : '#f1f3f5',
+      backgroundColor: isDark ? '#1C1C1E' : '#f1f3f5',
       borderRadius: 24,
       paddingHorizontal: 14,
       height: 44,
@@ -2083,7 +2560,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     // Modal Nuevo Chat
     newChatModalContent: {
       padding: 20,
-      backgroundColor: Colors.card,
+      backgroundColor: isDark ? Colors.background : Colors.card,
     },
     newChatModalHeader: {
       flexDirection: 'row',
@@ -2217,7 +2694,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     attachmentModalContent: {
       padding: 20,
       paddingBottom: 28,
-      backgroundColor: Colors.card,
+      backgroundColor: isDark ? Colors.background : Colors.card,
     },
     attachmentModalHeader: {
       flexDirection: 'row',
@@ -2282,6 +2759,214 @@ const createStyles = (Colors, theme, isDesktop) => {
     previewFullImg: {
       width: '94%',
       height: '80%',
+    },
+
+    // Modal Información del Grupo (WhatsApp Style)
+    groupInfoModalContent: {
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 24,
+      backgroundColor: isDark ? Colors.background : Colors.card,
+    },
+    groupInfoModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    groupInfoModalTitle: {
+      fontSize: 17,
+      fontWeight: 'bold',
+      color: isDark ? Colors.text.primary : '#0B1956',
+    },
+    groupInfoCloseBtn: {
+      padding: 6,
+      borderRadius: 20,
+      backgroundColor: isDark ? Colors.gray[200] : '#f1f5f9',
+    },
+    groupInfoHeroCard: {
+      alignItems: 'center',
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? Colors.gray[200] : '#f1f5f9',
+    },
+    groupInfoLargeAvatarContainer: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      overflow: 'hidden',
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    groupInfoLargeAvatar: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#18181B', // Mate oscuro sobrio
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    groupInfoLargeAvatarImg: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 38,
+    },
+    groupInfoLargeAvatarText: {
+      fontSize: 34,
+      fontWeight: '800',
+      color: '#FFFFFF',
+    },
+    groupInfoHeroName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: isDark ? Colors.text.primary : '#0f172a',
+      textAlign: 'center',
+      paddingHorizontal: 12,
+    },
+    groupInfoHeroSub: {
+      fontSize: 13,
+      color: Colors.text.muted,
+      marginTop: 4,
+    },
+    groupMembersSection: {
+      marginTop: 14,
+      flexShrink: 1,
+    },
+    groupMembersSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      paddingHorizontal: 2,
+    },
+    groupMembersSectionTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      color: isDark ? Colors.text.secondary : '#64748b',
+    },
+    groupMembersCountPill: {
+      backgroundColor: isDark ? Colors.gray[200] : '#e2e8f0',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    groupMembersCountPillText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: isDark ? Colors.text.primary : '#334155',
+    },
+    groupMembersScrollView: {
+      maxHeight: 320,
+    },
+    groupMembersScrollContent: {
+      paddingBottom: 24,
+    },
+    groupInfoLoadingContainer: {
+      paddingVertical: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    groupInfoLoadingText: {
+      marginTop: 10,
+      fontSize: 13,
+      color: Colors.text.muted,
+    },
+    groupInfoEmptyContainer: {
+      paddingVertical: 24,
+      alignItems: 'center',
+    },
+    groupInfoEmptyText: {
+      fontSize: 13,
+      color: Colors.text.muted,
+    },
+    groupMemberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    memberAvatarPlaceholder: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: '#27272A', // Mate oscuro elegante
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    memberAvatarImg: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      marginRight: 12,
+    },
+    memberAvatarText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    memberInfoCol: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    memberNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    memberNameText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: isDark ? Colors.text.primary : '#0f172a',
+      flex: 1,
+      marginRight: 8,
+    },
+    groupAdminBadge: {
+      backgroundColor: isDark ? `${Colors.primary}20` : `${Colors.primary}15`,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: Colors.primary,
+    },
+    groupAdminBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: isDark ? (Colors.primaryLight || Colors.primary) : Colors.primary,
+    },
+    memberRoleSubtitle: {
+      fontSize: 12,
+      color: Colors.text.muted,
+      marginTop: 2,
+    },
+    memberRowDivider: {
+      height: 1,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+      marginLeft: 54,
+    },
+    chatHeaderTouchable: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    chatHeaderStatic: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    chatHeaderStatusActionMobile: {
+      fontSize: 12,
+      color: isDark ? Colors.primary : '#93c5fd',
+      fontWeight: '600',
+    },
+    desktopHeaderStatusAction: {
+      fontSize: 12,
+      color: Colors.primary,
+      fontWeight: '600',
     },
   });
 };

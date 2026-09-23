@@ -76,7 +76,7 @@ function LayoutInner() {
   const isWeb = Platform.OS === 'web';
 
   const renderHeaderLeftBtn = (routeName) => {
-    if (routeName === 'index' || routeName === '(auth)/login' || routeName === 'home') return null;
+    if (routeName === 'index' || routeName === '(auth)/login' || routeName === 'home' || routeName === 'lunch' || routeName === 'modules') return null;
     return (
       <TouchableOpacity
         onPress={() => {
@@ -254,11 +254,25 @@ function LayoutInner() {
           <Stack.Screen name="events" options={{ title: ('') }} />
           <Stack.Screen name="announcements" options={{ title: ('') }} />
           <Stack.Screen name="cafetin" options={{ title: ('') }} />
-          <Stack.Screen name="lunch" options={{ title: ('') }} />
+          <Stack.Screen 
+            name="lunch" 
+            options={{ 
+              title: (''),
+              headerLeft: () => null,
+              unstable_headerLeftItems: () => [],
+            }} 
+          />
           <Stack.Screen name="interpreter" options={{ title: ('') }} />
           <Stack.Screen name="subject-hours" options={{ title: ('') }} />
           <Stack.Screen name="academic-periods" options={{ title: ('') }} />
-          <Stack.Screen name="modules" options={{ title: ('') }} />
+          <Stack.Screen 
+            name="modules" 
+            options={{ 
+              title: (''),
+              headerLeft: () => null,
+              unstable_headerLeftItems: () => [],
+            }} 
+          />
           <Stack.Screen name="chat" options={{ title: ('') }} />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />

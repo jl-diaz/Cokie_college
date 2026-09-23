@@ -314,7 +314,7 @@ export default function EventsScreen() {
     switch (lvl) {
       case 'Primaria': return '#3b82f6';
       case 'Tercer Ciclo': return '#8b5cf6';
-      default: return '#10b981';
+      default: return Colors.primary;
     }
   };
 

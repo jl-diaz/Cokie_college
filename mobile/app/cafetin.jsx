@@ -50,6 +50,7 @@ const { width } = Dimensions.get('window');
 export default function CafetinScreen() {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
+  const isDark = theme === 'dark';
   const { profile } = useAuth();
   const { showAlert, showConfirm } = useAlert();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
@@ -866,7 +867,9 @@ export default function CafetinScreen() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
+const createStyles = (Colors, theme) => {
+  const isDark = theme === 'dark';
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -986,12 +989,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10b981',
+    backgroundColor: Colors.primary,
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 10,
     marginBottom: 40,
-    shadowColor: '#10b981',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1221,7 +1224,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10b981',
+    backgroundColor: Colors.primary,
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 16,
@@ -1304,10 +1307,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: Colors.gray[200],
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: isDark ? '#3F3F46' : '#18181B',
   },
   cancelBtnText: {
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   saveBtn: {
@@ -1322,3 +1327,4 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: '700',
   }
 });
+};

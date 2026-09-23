@@ -34,8 +34,45 @@ export default function AnnouncementsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
   const canCreateAnnouncement = profile?.role === 'super_admin' || profile?.role === 'coordinator';
+
+  // Opciones de categoría en pills evaluando el rol del usuario
+  const filterOptions = useMemo(() => {
+    const userRole = profile?.role;
+    const options = [{ id: 'all', label: t('common.all', 'Todos') }];
+
+    if (userRole === 'super_admin' || userRole === 'coordinator') {
+      options.push(
+        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
+        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') },
+        { id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') }
+      );
+    } else if (userRole === 'teacher') {
+      options.push(
+        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
+        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') }
+      );
+    } else if (userRole === 'student') {
+      options.push(
+        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
+        { id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') }
+      );
+    } else {
+      const uniqueTargets = Array.from(new Set(announcements.map(a => a.target_role).filter(Boolean)));
+      if (uniqueTargets.includes('both')) options.push({ id: 'both', label: t('announcements.targetBothShort', 'Generales') });
+      if (uniqueTargets.includes('teachers')) options.push({ id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') });
+      if (uniqueTargets.includes('students')) options.push({ id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') });
+    }
+
+    return options;
+  }, [profile?.role, announcements, t]);
+
+  const filteredAnnouncements = useMemo(() => {
+    if (selectedFilter === 'all') return announcements;
+    return announcements.filter(item => item.target_role === selectedFilter);
+  }, [announcements, selectedFilter]);
 
   const TARGET_OPTIONS = useMemo(() => [
     { id: 'both', label: t('announcements.targetBoth', 'Ambos (Maestros y Alumnos)'), icon: Users },
@@ -160,7 +197,7 @@ export default function AnnouncementsScreen() {
     switch (target) {
       case 'teachers': return { label: t('announcements.targetTeachers', 'Maestros'), bg: '#3b82f615', color: '#3b82f6' };
       case 'students': return { label: t('announcements.targetStudents', 'Alumnos'), bg: '#8b5cf615', color: '#8b5cf6' };
-      default: return { label: t('announcements.targetBoth', 'Todos'), bg: '#10b98115', color: '#10b981' };
+      default: return { label: t('announcements.targetBoth', 'Todos'), bg: `${Colors.primary}18`, color: Colors.primary };
     }
   };
 
@@ -171,6 +208,37 @@ export default function AnnouncementsScreen() {
         subtitle={t('titles.announcementsSubtitle', 'Comunicados oficiales de coordinación')}
       />
 
+      {/* Pills de categorías evaluando el rol */}
+      <View style={styles.filterPillsWrapper}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.filterPillsContainer}
+        >
+          {filterOptions.map((opt) => {
+            const isSelected = selectedFilter === opt.id;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                style={[
+                  styles.filterPill,
+                  isSelected && styles.filterPillActive
+                ]}
+                onPress={() => setSelectedFilter(opt.id)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.filterPillText,
+                  isSelected && styles.filterPillTextActive
+                ]}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
@@ -178,14 +246,22 @@ export default function AnnouncementsScreen() {
       >
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
-        ) : announcements.length === 0 ? (
+        ) : filteredAnnouncements.length === 0 ? (
           <View style={styles.emptyCard}>
             <Bell size={48} color={Colors.text.muted} style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyTitle}>{t('announcements.noAnnouncements', 'Sin avisos por el momento')}</Text>
-            <Text style={styles.emptyText}>{t('announcements.noAnnouncementsSub', 'Los avisos o comunicados importantes se mostrarán aquí.')}</Text>
+            <Text style={styles.emptyTitle}>
+              {announcements.length === 0 
+                ? t('announcements.noAnnouncements', 'Sin avisos por el momento')
+                : t('announcements.noAnnouncementsFilter', 'No hay avisos en esta categoría')}
+            </Text>
+            <Text style={styles.emptyText}>
+              {announcements.length === 0 
+                ? t('announcements.noAnnouncementsSub', 'Los avisos o comunicados importantes se mostrarán aquí.')
+                : t('announcements.noAnnouncementsFilterSub', 'Intenta seleccionando otra categoría o la opción "Todos".')}
+            </Text>
           </View>
         ) : (
-          announcements.map((item) => {
+          filteredAnnouncements.map((item) => {
             const badge = getTargetBadge(item.target_role);
             return (
               <View key={item.id} style={styles.card}>
@@ -316,23 +392,50 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     marginTop: 20,
-    borderWidth: 1,
-    borderColor: Colors.gray[200] || '#e2e8f0',
+    borderWidth: 1.5,
+    borderColor: '#000000',
   },
   emptyTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.primary },
   emptyText: { fontSize: 13, color: Colors.text.muted, marginTop: 4, textAlign: 'center' },
+  filterPillsWrapper: {
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
+  },
+  filterPillsContainer: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: theme === 'dark' ? '#1C1C1E' : '#FFFFFF',
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : '#CBD5E1',
+  },
+  filterPillActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme === 'dark' ? Colors.text.secondary : '#475569',
+  },
+  filterPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
   card: {
     backgroundColor: Colors.card,
     borderRadius: 20,
     padding: 18,
     marginBottom: 14,
-    borderWidth: 1,
-    borderColor: Colors.gray[200] || '#e2e8f0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    elevation: 0,
+    shadowOpacity: 0,
   },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   targetBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
@@ -386,7 +489,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   targetOptionSelected: {
     borderColor: Colors.primary,
-    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+    backgroundColor: theme === 'dark' ? `${Colors.primary}20` : '#eff6ff',
   },
   targetOptionText: { fontSize: 13, color: Colors.text.primary },
   targetOptionTextSelected: { fontWeight: 'bold', color: Colors.primary },

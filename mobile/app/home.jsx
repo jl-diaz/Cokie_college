@@ -17,6 +17,8 @@ import { Grid, Sparkles, User, ShieldAlert } from 'lucide-react-native';
 import TeacherDashboard from '../src/components/dashboard/TeacherDashboard';
 import StudentDashboard from '../src/components/dashboard/StudentDashboard';
 import CoordinatorDashboard from '../src/components/dashboard/CoordinatorDashboard';
+import AdminDashboard from '../src/components/dashboard/AdminDashboard';
+import CafetinDashboard from '../src/components/dashboard/CafetinDashboard';
 
 export default function HomeScreen() {
   const { profile } = useAuth();
@@ -65,6 +67,22 @@ export default function HomeScreen() {
     return profile?.level || (profile?.role === 'teacher' ? 'Tercer ciclo' : 'Institución');
   }, [profile]);
 
+  const clickCount = React.useRef(0);
+  const clickTimeout = React.useRef(null);
+
+  const handleRoleClick = () => {
+    clickCount.current += 1;
+    if (clickCount.current >= 5) {
+      clickCount.current = 0;
+      router.push('/easter-egg');
+    }
+    
+    if (clickTimeout.current) clearTimeout(clickTimeout.current);
+    clickTimeout.current = setTimeout(() => {
+      clickCount.current = 0;
+    }, 1200);
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: isDark ? Colors.background : '#F8FAFC' }]}>
       <ScrollView
@@ -75,15 +93,15 @@ export default function HomeScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh} 
-            tintColor="#EC4899" 
-            colors={['#EC4899', '#0B1956']} 
+            tintColor={isDark ? Colors.primary : '#F7D8FF'} 
+            colors={isDark ? [Colors.primary, '#18181B'] : ['#F7D8FF', '#0B1956']} 
           />
         }
       >
         {/* 1. Header Dinámico estilo Imagen 1 */}
-        <View style={[styles.headerContainer, { backgroundColor: isDark ? '#111827' : (Colors.headerC || '#0B1956') }]}>
+        <View style={[styles.headerContainer, { backgroundColor: isDark ? '#121212' : (Colors.headerC || '#0B1956') }]}>
           <Text style={styles.greetingTitle}>
-            ¡Hola <Text style={styles.nameHighlight}>{firstName}</Text>!
+            ¡Hola <Text style={[styles.nameHighlight, isDark && { color: Colors.primaryLight || Colors.primary }]}>{firstName}</Text>!
           </Text>
 
           <View style={styles.subtitleWrapper}>
@@ -98,13 +116,15 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.badgeRow}>
-            <View style={styles.rolePill}>
-              <Text style={styles.rolePillText}>{roleLabel}</Text>
-            </View>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleRoleClick}>
+              <View style={[styles.rolePill, isDark && { backgroundColor: Colors.primary }]}>
+                <Text style={[styles.rolePillText, isDark && { color: '#FFFFFF' }]}>{roleLabel}</Text>
+              </View>
+            </TouchableOpacity>
 
             {levelOrGradeLabel ? (
-              <View style={styles.levelPill}>
-                <Text style={styles.levelPillText}>{levelOrGradeLabel}</Text>
+              <View style={[styles.levelPill, isDark && { backgroundColor: 'transparent', borderColor: Colors.primaryLight || Colors.primary }]}>
+                <Text style={[styles.levelPillText, isDark && { color: '#FFFFFF' }]}>{levelOrGradeLabel}</Text>
               </View>
             ) : null}
           </View>
@@ -124,11 +144,24 @@ export default function HomeScreen() {
             <CoordinatorDashboard isDark={isDark} />
           )}
 
-          {/* Fallback para Administrador / Cafetín u otros roles */}
-          {profile?.role !== 'teacher' && profile?.role !== 'student' && profile?.role !== 'coordinator' && (
+          {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
+            <AdminDashboard isDark={isDark} />
+          )}
+
+          {profile?.role === 'cafetin' && (
+            <CafetinDashboard isDark={isDark} />
+          )}
+
+          {/* Fallback para otros roles no contemplados */}
+          {profile?.role !== 'teacher' && 
+           profile?.role !== 'student' && 
+           profile?.role !== 'coordinator' && 
+           profile?.role !== 'super_admin' && 
+           profile?.role !== 'admin' && 
+           profile?.role !== 'cafetin' && (
             <View style={styles.fallbackContainer}>
               <View style={[styles.fallbackCard, isDark && styles.fallbackCardDark]}>
-                <Sparkles size={28} color="#EC4899" />
+                <Sparkles size={28} color={isDark ? (Colors.primaryLight || Colors.primary) : '#F7D8FF'} />
                 <Text style={[styles.fallbackTitle, isDark && styles.textLight]}>
                   Bienvenido al Panel Central
                 </Text>
@@ -136,7 +169,7 @@ export default function HomeScreen() {
                   Tienes acceso a los módulos institucionales y herramientas avanzadas de Cokie College.
                 </Text>
                 <TouchableOpacity 
-                  style={styles.fallbackBtn}
+                  style={[styles.fallbackBtn, isDark && { backgroundColor: Colors.primary }]}
                   onPress={() => router.push('/modules')}
                   activeOpacity={0.8}
                 >
@@ -169,10 +202,10 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   greetingTitle: {
     fontSize: 30,
@@ -181,7 +214,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   nameHighlight: {
-    color: '#EC4899', // Rosa Cokie
+    color: '#F7D8FF', // Rosa Cokie
   },
   subtitleWrapper: {
     alignSelf: 'flex-start',
@@ -194,20 +227,14 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     letterSpacing: 0.2,
   },
-  subtitleUnderline: {
-    height: 2,
-    backgroundColor: '#38BDF8', // Cyan/Sky accent
-    width: '100%',
-    marginTop: 4,
-    borderRadius: 1,
-  },
+ 
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   rolePill: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7D8FF',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 14,
@@ -218,17 +245,17 @@ const styles = StyleSheet.create({
     color: '#0B1956',
   },
   levelPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: '#F7D8FF',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: '#F7D8FF',
   },
   levelPillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#0B1956',
   },
   dashboardBody: {
     flex: 1,
@@ -247,10 +274,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1,
   },
   fallbackCardDark: {
     backgroundColor: '#18181B',

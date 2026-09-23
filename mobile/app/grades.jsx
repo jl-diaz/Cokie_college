@@ -127,6 +127,13 @@ export default function GradesScreen() {
 
   const getGradeColor = (average) => {
     const num = parseFloat(average);
+    if (theme === 'dark') {
+      return { 
+        bg: 'rgba(255, 255, 255, 0.06)', 
+        border: 'rgba(255, 255, 255, 0.12)', 
+        text: Colors.text.secondary || '#CBD5E0' 
+      };
+    }
     if (num >= 8) return { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' };
     if (num >= 6) return { bg: '#fefce8', border: '#fde68a', text: '#854d0e' };
     return { bg: '#fef2f2', border: '#fecaca', text: '#991b1b' };
@@ -203,7 +210,7 @@ export default function GradesScreen() {
       <View style={styles.content}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconBox}>
-            <Award size={32} color={Colors.primary} />
+            <Award size={32} color={theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary} />
           </View>
           <View style={styles.summaryInfo}>
             <Text style={styles.summaryLabel}>{t('dashboard.partialGlobalAverage')}</Text>
@@ -231,7 +238,7 @@ export default function GradesScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.subjectTitleRow}>
-                    <Book size={20} color={Colors.primary} />
+                    <Book size={20} color={theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary} />
                     <Text style={styles.subjectName}>{subject}</Text>
                   </View>
                   <View style={styles.subjectStatsRow}>
@@ -313,7 +320,7 @@ const createStyles = (Colors, theme) => {
   },
   periodSelector: {
     flexDirection: 'row',
-    backgroundColor: theme === 'dark' ? Colors.background : '#0B1956',
+    backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
     borderRadius: 25,
     padding: 6,
     shadowColor: '#000',
@@ -330,7 +337,7 @@ const createStyles = (Colors, theme) => {
     borderRadius: 20,
   },
   periodBtnActive: {
-    backgroundColor: theme === 'dark' ? Colors.card : '#FFF',
+    backgroundColor: theme === 'dark' ? Colors.primary : '#FFF',
   },
   periodText: {
     color: theme === 'dark' ? Colors.text.muted : 'rgba(255,255,255,0.7)',
@@ -338,7 +345,7 @@ const createStyles = (Colors, theme) => {
     fontSize: 12,
   },
   periodTextActive: {
-    color: theme === 'dark' ? Colors.primary : '#0B1956',
+    color: theme === 'dark' ? '#FFFFFF' : '#0B1956',
   },
   content: {
     padding: 20,
@@ -381,12 +388,12 @@ const createStyles = (Colors, theme) => {
   summaryValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary,
     marginBottom: 16,
     marginLeft: 4,
   },
@@ -434,7 +441,7 @@ const createStyles = (Colors, theme) => {
   subjectName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary,
     marginLeft: 12,
   },
   subjectStatsRow: {
@@ -488,7 +495,7 @@ const createStyles = (Colors, theme) => {
   },
   cellBold: {
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: theme === 'dark' ? (Colors.text.secondary || '#CBD5E0') : Colors.primary,
   },
   progressContainer: {
     marginTop: 16,

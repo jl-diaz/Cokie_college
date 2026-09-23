@@ -13,10 +13,10 @@ import { useAuth } from '../src/context/AuthContext';
 
 export default function StudentsScreen() {
   const { t } = useTranslation();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
   const { profile } = useAuth();
-  const styles = React.useMemo(() => createStyles(Colors), [Colors]);
+  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -152,8 +152,8 @@ export default function StudentsScreen() {
               onPress={() => navigateTo('/schedule', { student_id: selectedStudent?.id, student_name: selectedStudent?.full_name, isCoordinatorView: 'true' })}
               style={styles.actionButton}
             >
-              <View style={[styles.actionIcon, { backgroundColor: Colors.primaryLight }]}>
-                <Calendar color="#FFF" size={20} />
+              <View style={[styles.actionIcon, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                <Calendar color="#FFFFFF" size={20} />
               </View>
               <Text style={styles.actionText}>{t('classrooms.viewSchedule', 'Ver Horario de Clases')}</Text>
             </TouchableOpacity>
@@ -162,8 +162,8 @@ export default function StudentsScreen() {
               onPress={() => navigateTo('/diary', { studentId: selectedStudent?.id, isCoordinatorView: 'true' })}
               style={styles.actionButton}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#8b5cf6' }]}>
-                <ClipboardList color="#FFF" size={20} />
+              <View style={[styles.actionIcon, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                <ClipboardList color="#FFFFFF" size={20} />
               </View>
               <Text style={styles.actionText}>{t('titles.diary', 'Ver Diario Pedagógico')}</Text>
             </TouchableOpacity>
@@ -179,8 +179,8 @@ export default function StudentsScreen() {
               })}
               style={styles.actionButton}
             >
-              <View style={[styles.actionIcon, { backgroundColor: Colors.status.approved }]}>
-                <BookOpen color="#FFF" size={20} />
+              <View style={[styles.actionIcon, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                <BookOpen color="#FFFFFF" size={20} />
               </View>
               <Text style={styles.actionText}>{t('titles.gradesSubtitleCoordinator', 'Ver Notas del Estudiante')}</Text>
             </TouchableOpacity>
@@ -191,7 +191,7 @@ export default function StudentsScreen() {
   );
 }
 
-const createStyles = (Colors) => StyleSheet.create({
+const createStyles = (Colors, theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     backgroundColor: Colors.primary,
@@ -225,12 +225,12 @@ const createStyles = (Colors) => StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.gray[100],
+    backgroundColor: theme === 'dark' ? '#27272A' : '#18181B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: Spacing.lg,
   },
-  avatarText: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },
+  avatarText: { fontSize: Typography.size.xl, fontWeight: 'bold', color: '#FFFFFF' },
   info: { flex: 1 },
   name: { fontSize: Typography.size.md, fontWeight: 'bold', color: Colors.primary, marginBottom: 2 },
   code: { fontSize: Typography.size.xs, fontWeight: 'bold', color: Colors.text.muted, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' },

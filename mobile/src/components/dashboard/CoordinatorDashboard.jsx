@@ -1,53 +1,73 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
-import api from '../../utils/api';
 import { 
-  BentoCard, 
-  StatWidget, 
-  QuickActionBtn, 
+  FileText, 
+  Award, 
+  Users, 
+  Calendar, 
+  Layers, 
+  Bell, 
+  Clock 
+} from 'lucide-react-native';
+import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
+import { 
+  BentoStatCard, 
+  WideBannerCard, 
+  ActionCard, 
   RecentMessagesWidget 
 } from './DashboardShared';
 
 export default function CoordinatorDashboard({ isDark = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [justifications, setJustifications] = useState([]);
-  const [gradeTickets, setGradeTickets] = useState([]);
+  const [pendingJustificationsCount, setPendingJustificationsCount] = useState(0);
+  const [pendingTicketsCount, setPendingTicketsCount] = useState(0);
   const [classrooms, setClassrooms] = useState([]);
   const [students, setStudents] = useState([]);
   const [conversations, setConversations] = useState([]);
 
-  useEffect(() => {
-    fetchCoordinatorData();
-  }, []);
-
   const fetchCoordinatorData = async () => {
     try {
-      setLoading(true);
       const [justRes, ticketRes, classRes, studRes, chatRes] = await Promise.allSettled([
-        api.get('/coordinator/justifications'),
-        api.get('/coordinator/grade-tickets'),
+        api.get('/coordinator/justifications', { params: { status: 'pending', limit: 100 } }),
+        api.get('/coordinator/grade-tickets', { params: { status: 'pending', limit: 100 } }),
         api.get('/coordinator/classrooms'),
         api.get('/coordinator/students'),
         api.get('/chat/conversations')
       ]);
 
-      if (justRes.status === 'fulfilled' && Array.isArray(justRes.value.data)) {
-        setJustifications(justRes.value.data);
+      if (justRes.status === 'fulfilled' && justRes.value.data) {
+        const jd = justRes.value.data;
+        if (typeof jd.total === 'number') {
+          setPendingJustificationsCount(jd.total);
+        } else {
+          const list = Array.isArray(jd) ? jd : (jd.data || []);
+          setPendingJustificationsCount(list.filter(j => j.status === 'pending').length);
+        }
       }
-      if (ticketRes.status === 'fulfilled' && Array.isArray(ticketRes.value.data)) {
-        setGradeTickets(ticketRes.value.data);
+      if (ticketRes.status === 'fulfilled' && ticketRes.value.data) {
+        const td = ticketRes.value.data;
+        if (typeof td.total === 'number') {
+          setPendingTicketsCount(td.total);
+        } else {
+          const list = Array.isArray(td) ? td : (td.data || []);
+          setPendingTicketsCount(list.filter(t => t.status === 'pending').length);
+        }
       }
-      if (classRes.status === 'fulfilled' && Array.isArray(classRes.value.data)) {
-        setClassrooms(classRes.value.data);
+      if (classRes.status === 'fulfilled' && classRes.value.data) {
+        const cd = classRes.value.data;
+        setClassrooms(Array.isArray(cd) ? cd : (cd.data || []));
       }
-      if (studRes.status === 'fulfilled' && Array.isArray(studRes.value.data)) {
-        setStudents(studRes.value.data);
+      if (studRes.status === 'fulfilled' && studRes.value.data) {
+        const sd = studRes.value.data;
+        setStudents(Array.isArray(sd) ? sd : (sd.data || []));
       }
-      if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
-        setConversations(chatRes.value.data);
+      if (chatRes.status === 'fulfilled' && chatRes.value.data) {
+        const chd = chatRes.value.data;
+        setConversations(Array.isArray(chd) ? chd : (chd.data || []));
       }
     } catch (err) {
       console.warn('Error loading coordinator dashboard:', err);
@@ -56,13 +76,9 @@ export default function CoordinatorDashboard({ isDark = false }) {
     }
   };
 
-  const pendingJustifications = useMemo(() => {
-    return justifications.filter(j => j.status === 'pending').length;
-  }, [justifications]);
-
-  const pendingTickets = useMemo(() => {
-    return gradeTickets.filter(t => t.status === 'pending').length;
-  }, [gradeTickets]);
+  useEffect(() => {
+    fetchCoordinatorData();
+  }, []);
 
   if (loading) {
     return (
@@ -77,104 +93,88 @@ export default function CoordinatorDashboard({ isDark = false }) {
 
   return (
     <View style={styles.container}>
-      {/* 1. KPIs Críticos de Revisión */}
+      {/* 1. KPIs Críticos: Justificaciones y Tickets de Notas */}
       <View style={styles.statsRow}>
-        <BentoCard 
-          style={[styles.urgentCard, isDark && styles.cardDark]}
+        <BentoStatCard 
+          tag={t('menu.justifications', 'Justificaciones')}
+          value={`${pendingJustificationsCount}`}
+          subtitle={pendingJustificationsCount > 0 ? t('coordinatorJustifications.pendingRequests', 'Solicitudes pendientes') : t('common.upToDate', 'Al día')}
+          variant="yellow"
+          isDark={isDark}
+          fallbackIcon={FileText}
           onPress={() => router.push('/coordinator-justifications')}
-        >
-          <View style={styles.urgentHeader}>
-            <Text style={[styles.cardTag, isDark && styles.textMuted]}>Justificaciones</Text>
-            <Text style={[styles.statusTag, { color: pendingJustifications > 0 ? '#F59E0B' : '#10B981' }]}>
-              {pendingJustifications > 0 ? 'Revisar' : 'Al día'}
-            </Text>
-          </View>
-          <Text style={[styles.bigStatNum, isDark && styles.textLight]}>
-            {pendingJustifications}
-          </Text>
-          <Text style={[styles.statLabel, isDark && styles.textMuted]}>
-            Solicitudes de inasistencia
-          </Text>
-        </BentoCard>
+        />
 
-        <BentoCard 
-          style={[styles.urgentCard, isDark && styles.cardDark]}
+        <BentoStatCard 
+          tag={t('menu.grade_tickets', 'Tickets Notas')}
+          value={`${pendingTicketsCount}`}
+          subtitle={pendingTicketsCount > 0 ? t('coordinatorTickets.pendingApproval', 'Por autorizar') : t('common.upToDate', 'Al día')}
+          variant="lavender"
+          isDark={isDark}
+          fallbackIcon={Award}
           onPress={() => router.push('/coordinator-tickets')}
-        >
-          <View style={styles.urgentHeader}>
-            <Text style={[styles.cardTag, isDark && styles.textMuted]}>Tickets Notas</Text>
-            <Text style={[styles.statusTag, { color: pendingTickets > 0 ? '#EC4899' : '#10B981' }]}>
-              {pendingTickets > 0 ? 'Pendientes' : 'Al día'}
-            </Text>
-          </View>
-          <Text style={[styles.bigStatNum, isDark && styles.textLight]}>
-            {pendingTickets}
-          </Text>
-          <Text style={[styles.statLabel, isDark && styles.textMuted]}>
-            Extensiones solicitadas
-          </Text>
-        </BentoCard>
+        />
       </View>
 
-      {/* 2. Población Escolar (Minimalista) */}
-      <BentoCard 
-        style={[styles.populationCard, isDark && styles.cardDark]}
-        onPress={() => router.push('/classrooms')}
-      >
-        <Text style={[styles.cardTag, isDark && styles.textMuted, { marginBottom: 8 }]}>Población del Ciclo</Text>
-        <View style={styles.populationRow}>
-          <View style={styles.popItem}>
-            <Text style={[styles.popNum, isDark && styles.textLight]}>
-              {classrooms.length > 0 ? classrooms.length : '12'}
-            </Text>
-            <Text style={[styles.popLabel, isDark && styles.textMuted]}>Salones</Text>
-          </View>
+      {/* 2. Población Escolar (Dos Bloques: Alumnos y Salones) */}
+      <View style={styles.statsRow}>
+        <BentoStatCard 
+          tag={t('users.tabStudents', 'Alumnos')}
+          value={students.length > 0 ? `${students.length}` : '340'}
+          subtitle={t('coordinatorDashboard.levelOnly', 'Solo en su nivel')}
+          variant="black"
+          isDark={isDark}
+          fallbackIcon={Users}
+          onPress={() => router.push('/coordinator-students')}
+        />
+        
+        <BentoStatCard 
+          tag={t('menu.classrooms', 'Salones')}
+          value={classrooms.length > 0 ? `${classrooms.length}` : '12'}
+          subtitle={t('coordinatorDashboard.sectionsAssigned', 'Secciones a cargo')}
+          variant="navy"
+          isDark={isDark}
+          fallbackIcon={Layers}
+          onPress={() => router.push('/classrooms')}
+        />
+      </View>
 
-          <View style={styles.popDivider} />
-
-          <View style={styles.popItem}>
-            <Text style={[styles.popNum, isDark && styles.textLight]}>
-              {students.length > 0 ? students.length : '340'}
-            </Text>
-            <Text style={[styles.popLabel, isDark && styles.textMuted]}>Estudiantes</Text>
-          </View>
-        </View>
-      </BentoCard>
-
-      {/* 3. Mensajes Recientes (Ancho Completo sin overflow) */}
+      {/* 3. Mensajes Recientes de CokieChat */}
       <RecentMessagesWidget 
-        conversations={conversations} 
         isDark={isDark} 
         onPressChat={() => router.push('/chat')} 
       />
 
-      {/* 4. Accesos Rápidos de Coordinación */}
-      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Gestión institucional</Text>
+      {/* 4. Accesos de Gestión Institucional */}
+      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>
+        {t('dashboard.institutionalManagement', 'Gestión institucional')}
+      </Text>
       
-      <QuickActionBtn 
-        title="Gestión de Salones y Reportes"
-        subtitle="Listado de estudiantes y descargas"
-        isDark={isDark}
-        onPress={() => router.push('/classrooms')}
-      />
-      <QuickActionBtn 
-        title="Asignación y Horarios"
-        subtitle="Generador y horarios docentes"
-        isDark={isDark}
-        onPress={() => router.push('/assign')}
-      />
-      <QuickActionBtn 
-        title="Directorio de Estudiantes"
-        subtitle="Expedientes y búsqueda de alumnos"
-        isDark={isDark}
-        onPress={() => router.push('/students')}
-      />
-      <QuickActionBtn 
-        title="Avisos Institucionales"
-        subtitle="Publicar comunicados a la comunidad"
-        isDark={isDark}
-        onPress={() => router.push('/announcements')}
-      />
+      <View style={styles.actionRowFlex}>
+        <View style={{ flex: 1 }}>
+          <ActionCard 
+            title={t('menu.mySchedule', 'Mi horario')}
+            isDark={isDark}
+            fallbackIcon={Calendar}
+            iconColor="#FFFFFF"
+            slotBgColor={isDark ? '#27272A' : '#18181B'}
+            borderColor={isDark ? 'rgba(255,255,255,0.08)' : 'black'}
+            onPress={() => router.push('/schedule')}
+          />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <ActionCard 
+            title="Avisos"
+            isDark={isDark}
+            fallbackIcon={Bell}
+            iconColor="#FFFFFF"
+            slotBgColor={isDark ? '#27272A' : '#18181B'}
+            borderColor={isDark ? 'rgba(255,255,255,0.08)' : 'black'}
+            onPress={() => router.push('/announcements')}
+          />
+        </View>
+      </View>
     </View>
   );
 }
@@ -195,90 +195,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  textLight: {
-    color: '#FFFFFF',
-  },
   textMuted: {
     color: '#94A3B8',
   },
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  cardDark: {
-    backgroundColor: '#18181B',
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  urgentCard: {
-    flex: 1,
-    padding: 14,
-    minHeight: 105,
-    justifyContent: 'space-between',
-  },
-  urgentHeader: {
+  actionRowFlex: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardTag: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  statusTag: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  bigStatNum: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#1E293B',
-    letterSpacing: -0.5,
-    marginVertical: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  populationCard: {
-    padding: 14,
-    marginBottom: 10,
-  },
-  populationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 4,
-  },
-  popItem: {
-    alignItems: 'center',
-  },
-  popNum: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  popLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  popDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    gap: 10,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#64748B',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 4,
-    marginBottom: 10,
+    letterSpacing: 0.6,
+    marginTop: 8,
+    marginBottom: 12,
     marginLeft: 2,
   },
 });

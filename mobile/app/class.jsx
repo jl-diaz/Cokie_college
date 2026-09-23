@@ -13,7 +13,8 @@ import {
   Platform, 
   TouchableWithoutFeedback, 
   Keyboard,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import api from '../src/utils/api';
@@ -22,6 +23,7 @@ import {
   Check, 
   X, 
   ShieldAlert, 
+  AlertTriangle,
   Award, 
   FileText, 
   ChevronDown, 
@@ -619,39 +621,7 @@ export default function ClassScreen() {
             </View>
           )}
 
-          {/* Stats Bar & Quick Actions */}
-          <View style={styles.statsBar}>
-            <View style={styles.statsChips}>
-              <View style={[styles.statChip, styles.statChipPresent]}>
-                <Check size={14} color="#166534" style={{ marginRight: 4 }} />
-                <Text style={styles.statTextPresent}>{attendanceStats.presentCount} Presentes</Text>
-              </View>
-              <View style={[styles.statChip, styles.statChipAbsent]}>
-                <X size={14} color="#991b1b" style={{ marginRight: 4 }} />
-                <Text style={styles.statTextAbsent}>{attendanceStats.absentCount} Ausentes</Text>
-              </View>
-            </View>
-
-            <View style={styles.quickActionsRow}>
-              <TouchableOpacity 
-                style={[styles.quickBtn, styles.quickBtnPresent]} 
-                onPress={() => markAllStatus('present')}
-              >
-                <CheckCheck size={16} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={styles.quickBtnText}>{t('class.allPresentBtn', 'Todos Asiste')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.quickBtn, styles.quickBtnAbsent]} 
-                onPress={() => markAllStatus('absent')}
-              >
-                <UserX size={16} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={styles.quickBtnText}>{t('class.allAbsentBtn', 'Todos Falta')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Search Bar */}
+          {/* 1. Barra de Búsqueda */}
           <View style={styles.searchContainer}>
             <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
             <TextInput
@@ -666,6 +636,54 @@ export default function ClassScreen() {
                 <X size={18} color={Colors.text.muted} />
               </TouchableOpacity>
             )}
+          </View>
+
+          {/* 2. Tarjetas de Asistencia (Presentes y Ausentes) */}
+          <View style={styles.statsCardsRow}>
+            {/* Tarjeta Presentes */}
+            <View style={[styles.statCard, styles.statCardPresent]}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statCardTagPresent}>
+                  {t('class.present', 'Presentes')}
+                </Text>
+                
+              </View>
+              <Text style={styles.statCardBigNumPresent}>
+                {attendanceStats.presentCount}
+              </Text>
+             
+            </View>
+
+            {/* Tarjeta Ausentes */}
+            <View style={[styles.statCard, styles.statCardAbsent]}>
+              <View style={styles.statCardHeader}>
+                <Text style={styles.statCardTagAbsent}>
+                  {t('class.absent', 'Ausentes')}
+                </Text>
+              </View>
+              <Text style={styles.statCardBigNumAbsent}>
+                {attendanceStats.absentCount}
+              </Text>
+            
+            </View>
+          </View>
+
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity 
+              style={[styles.quickBtn, styles.quickBtnPresent]} 
+              onPress={() => markAllStatus('present')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.quickBtnText}>{t('class.allPresentBtn', 'Todos Asiste')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.quickBtn, styles.quickBtnAbsent]} 
+              onPress={() => markAllStatus('absent')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.quickBtnText}>{t('class.allAbsentBtn', 'Todos Falta')}</Text>
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -713,11 +731,19 @@ export default function ClassScreen() {
                       )}
                     </TouchableOpacity>
 
+                    {/* Espacio / Ranura para icono o imagen personalizada de reporte de conducta */}
                     <TouchableOpacity 
                       style={styles.conductBtn}
                       onPress={() => handleOpenConductModal(item)}
+                      activeOpacity={0.7}
                     >
-                      <ShieldAlert size={18} color="#d97706" />
+                      <View style={styles.conductIconSlot}>
+                        <Image 
+                          source={require('../assets/advertencia.png')} 
+                          style={styles.conductCustomImg} 
+                          resizeMode="contain" 
+                        />
+                      </View>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -765,10 +791,7 @@ export default function ClassScreen() {
       <BottomModal visible={conductModalVisible} onClose={() => setConductModalVisible(false)}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ShieldAlert size={22} color={Colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>{t('class.reportConduct', 'Reportar Conducta')}</Text>
-              </View>
+              <Text style={styles.modalTitle}>{t('class.reportConduct', 'Reportar Conducta')}</Text>
               <TouchableOpacity onPress={() => setConductModalVisible(false)} style={styles.closeHeaderBtn}>
                 <X size={22} color={Colors.primary} />
               </TouchableOpacity>
@@ -993,46 +1016,6 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: Colors.text.muted, textAlign: 'center', fontSize: Typography.size.sm },
 
-  // Stats & Quick Actions Bar
-  statsBar: {
-    backgroundColor: Colors.card,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200] || '#e2e8f0',
-  },
-  statsChips: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: Spacing.sm,
-  },
-  statChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  statChipPresent: { backgroundColor: '#dcfce7' },
-  statChipAbsent: { backgroundColor: '#fee2e2' },
-  statTextPresent: { fontSize: 11, fontWeight: Typography.weight.bold, color: '#166534' },
-  statTextAbsent: { fontSize: 11, fontWeight: Typography.weight.bold, color: '#991b1b' },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  quickBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: BorderRadius.lg,
-  },
-  quickBtnPresent: { backgroundColor: '#16a34a' },
-  quickBtnAbsent: { backgroundColor: '#dc2626' },
-  quickBtnText: { color: '#FFF', fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
-
   // Search Bar
   searchContainer: {
     flexDirection: 'row',
@@ -1048,6 +1031,110 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderColor: Colors.gray[200] || '#e2e8f0',
   },
   searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+
+  // Stats Cards Row (Presentes & Ausentes)
+  statsCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: BorderRadius.xl,
+    padding: 12,
+    borderWidth: 1,
+    ...Shadows.card,
+  },
+  statCardPresent: {
+    backgroundColor: theme === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#F0FDF4',
+    borderColor: theme === 'dark' ? 'rgba(22, 163, 74, 0.35)' : '#BBF7D0',
+  },
+  statCardAbsent: {
+    backgroundColor: theme === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#FEF2F2',
+    borderColor: theme === 'dark' ? 'rgba(220, 38, 38, 0.35)' : '#FECACA',
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  statCardTagPresent: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#166534',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statCardTagAbsent: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#991b1b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statCardIconCirclePresent: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statCardIconCircleAbsent: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statCardBigNumPresent: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#166534',
+    letterSpacing: -0.5,
+  },
+  statCardBigNumAbsent: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#991b1b',
+    letterSpacing: -0.5,
+  },
+  statCardSubtextPresent: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#86efac' : '#15803d',
+    marginTop: 2,
+  },
+  statCardSubtextAbsent: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#fca5a5' : '#b91c1c',
+    marginTop: 2,
+  },
+
+  // Quick Action Buttons Row
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xs,
+  },
+  quickBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 38,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.card,
+  },
+  quickBtnPresent: { backgroundColor: '#16a34a' },
+  quickBtnAbsent: { backgroundColor: '#dc2626' },
+  quickBtnText: { color: '#FFF', fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
 
   // Student Card Items
   studentsList: { padding: Spacing.lg, paddingBottom: 90 },
@@ -1084,16 +1171,28 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     paddingVertical: 7,
     borderRadius: BorderRadius.lg,
   },
-  statusBadgePresent: { backgroundColor: '#16a34a' },
+  statusBadgePresent: { backgroundColor: '#0ea5e9' },
   statusBadgeAbsent: { backgroundColor: '#dc2626' },
   statusBadgeText: { color: '#FFF', fontSize: 12, fontWeight: Typography.weight.bold },
 
   conductBtn: {
-    padding: 8,
+    width: 38,
+    height: 38,
     borderRadius: BorderRadius.lg,
-    backgroundColor: '#fffbeb',
+    backgroundColor: '#18181B',
     borderWidth: 1,
-    borderColor: '#fef3c7',
+    borderColor: theme === 'dark' ? '#3F3F46' : '#18181B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  conductIconSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  conductCustomImg: {
+    width: 22,
+    height: 22,
   },
   footer: {
     position: 'absolute',
@@ -1147,16 +1246,33 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     maxHeight: Platform.OS === 'web' ? 520 : Math.min(Dimensions.get('window').height * 0.68, 520),
   },
   studentBannerCard: {
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+    padding: 16,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.gray[200],
+    borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : Colors.gray[200],
   },
-  studentLabelTitle: { fontSize: 11, fontWeight: '700', color: Colors.text.muted, textTransform: 'uppercase' },
-  studentNameHighlight: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: Colors.primary, marginTop: 2 },
-  studentCodeHighlight: { fontSize: Typography.size.xs, color: Colors.text.secondary },
+  studentLabelTitle: { 
+    fontSize: 12, 
+    fontWeight: '800', 
+    color: Colors.text.muted, 
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  studentNameHighlight: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: Colors.text.primary, 
+    lineHeight: 24,
+    marginBottom: 4,
+  },
+  studentCodeHighlight: { 
+    fontSize: 13, 
+    fontWeight: '600',
+    color: Colors.text.muted 
+  },
   formGroup: { marginBottom: Spacing.lg },
   label: { fontSize: 11, fontWeight: '700', color: Colors.text.muted, marginBottom: 6, textTransform: 'uppercase' },
   dropdownTrigger: {

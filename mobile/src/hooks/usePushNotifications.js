@@ -1,21 +1,38 @@
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-} catch (e) {
-  console.warn('Notification handler setup warning:', e);
+// In Expo SDK 53+, remote push notifications were removed from Expo Go on Android.
+// To prevent the entire app from crashing in Expo Go, we only load expo-notifications
+// when not running inside Expo Go on Android, and guard with try-catch.
+let Notifications = null;
+const isExpoGo =
+  Constants?.appOwnership === 'expo' ||
+  Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+if (!(isExpoGo && Platform.OS === 'android')) {
+  try {
+    Notifications = require('expo-notifications');
+  } catch (err) {
+    console.warn('expo-notifications is not available in this environment:', err?.message);
+  }
+}
+
+if (Notifications?.setNotificationHandler) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch (e) {
+    console.warn('Notification handler setup warning:', e);
+  }
 }
 
 export function usePushNotifications() {
@@ -26,6 +43,10 @@ export function usePushNotifications() {
   const { profile } = useAuth();
 
   useEffect(() => {
+    if (!Notifications) {
+      return;
+    }
+
     let isMounted = true;
 
     registerForPushNotificationsAsync().then(token => {
@@ -34,18 +55,26 @@ export function usePushNotifications() {
       }
     });
 
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
-    });
+    try {
+      if (typeof Notifications.addNotificationReceivedListener === 'function') {
+        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+          setNotification(notification);
+        });
+      }
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification response received:', response);
-    });
+      if (typeof Notifications.addNotificationResponseReceivedListener === 'function') {
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+          console.log('Notification response received:', response);
+        });
+      }
+    } catch (err) {
+      console.warn('Error attaching notification listeners:', err);
+    }
 
     return () => {
       isMounted = false;
-      notificationListener.current?.remove();
-      responseListener.current?.remove();
+      notificationListener.current?.remove?.();
+      responseListener.current?.remove?.();
     };
   }, []);
 
@@ -79,6 +108,10 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync() {
+  if (!Notifications) {
+    return null;
+  }
+
   let token = null;
 
   if (!Device.isDevice) {

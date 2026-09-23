@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { ShieldAlert, ShieldCheck, Award, AlertTriangle, Sparkles, CheckCircle2, AlertOctagon } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useAnimatedNumber } from './dashboard/DashboardShared';
 
 /**
- * Traffic Light (Semáforo) Component - Premium Design:
+ * Traffic Light (Semáforo) Component - Rediseñado
  * - Azul: >= 6 positive codes AND <= 1 leve code AND <= 2 unjustified absences.
  * - Verde: Default standing
  * - Amarillo: >= 1 grave code OR >= 6 leve codes
@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 export default function TrafficLightCard({ conductRecords = [], attendanceRecords = [] }) {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
+  const isDark = theme === 'dark';
 
   // Calculate counts
   let countPositivo = 0;
@@ -28,6 +29,11 @@ export default function TrafficLightCard({ conductRecords = [], attendanceRecord
     else if (category === 'Grave') countGrave++;
     else if (category === 'Muy Grave') countMuyGrave++;
   });
+
+  const animPositivo = useAnimatedNumber(countPositivo, 900);
+  const animLeve = useAnimatedNumber(countLeve, 900);
+  const animGrave = useAnimatedNumber(countGrave, 900);
+  const animMuyGrave = useAnimatedNumber(countMuyGrave, 900);
 
   const unjustifiedAbsences = attendanceRecords.filter(a => a.status === 'absent').length;
   const totalConductPoints = (countGrave * 6) + countLeve;
@@ -47,52 +53,31 @@ export default function TrafficLightCard({ conductRecords = [], attendanceRecord
   const config = {
     azul: {
       color: '#3B82F6',
-      bgGrad: theme === 'dark' ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
-      borderColor: 'rgba(59, 130, 246, 0.35)',
-      glowColor: '#3B82F6',
-      badgeBg: '#DBEAFE',
-      badgeText: '#1E40AF',
+      badgeBg: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE',
+      badgeText: isDark ? '#93C5FD' : '#1E40AF',
       title: t('semaforo.azulTitle', 'Sobresaliente'),
-      subtitle: t('semaforo.azulDesc', 'Conducta ejemplar acumulada. ¡Excelente trabajo!'),
-      icon: Award,
     },
     verde: {
       color: '#10B981',
-      bgGrad: theme === 'dark' ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5',
-      borderColor: 'rgba(16, 185, 129, 0.35)',
-      glowColor: '#10B981',
-      badgeBg: '#D1FAE5',
-      badgeText: '#065F46',
+      badgeBg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5',
+      badgeText: isDark ? '#6EE7B7' : '#065F46',
       title: t('semaforo.verdeTitle', 'Normal'),
-      subtitle: t('semaforo.verdeDesc', 'Estado conductual adecuado dentro de la norma.'),
-      icon: ShieldCheck,
     },
     amarillo: {
       color: '#F59E0B',
-      bgGrad: theme === 'dark' ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
-      borderColor: 'rgba(245, 158, 11, 0.35)',
-      glowColor: '#F59E0B',
-      badgeBg: '#FEF3C7',
-      badgeText: '#92400E',
+      badgeBg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+      badgeText: isDark ? '#FCD34D' : '#92400E',
       title: t('semaforo.amarilloTitle', 'Precaución'),
-      subtitle: t('semaforo.amarilloDesc', 'Atención requerida por faltas acumuladas.'),
-      icon: AlertTriangle,
     },
     rojo: {
       color: '#EF4444',
-      bgGrad: theme === 'dark' ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
-      borderColor: 'rgba(239, 68, 68, 0.35)',
-      glowColor: '#EF4444',
-      badgeBg: '#FEE2E2',
-      badgeText: '#991B1B',
+      badgeBg: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2',
+      badgeText: isDark ? '#FCA5A5' : '#991B1B',
       title: t('semaforo.rojoTitle', 'Alerta Crítica'),
-      subtitle: t('semaforo.rojoDesc', 'Se ha superado el umbral reglamentario de faltas.'),
-      icon: ShieldAlert,
     },
   };
 
   const activeConfig = config[statusKey];
-  const IconComponent = activeConfig.icon;
 
   const bulbs = [
     { key: 'azul', label: 'Azul', color: '#3B82F6' },
@@ -102,103 +87,106 @@ export default function TrafficLightCard({ conductRecords = [], attendanceRecord
   ];
 
   return (
-    <View 
-      style={[
-        styles.cardContainer, 
-        { 
-          backgroundColor: theme === 'dark' ? Colors.card : activeConfig.bgGrad, 
-          borderColor: activeConfig.borderColor 
-        }
-      ]}
-    >
-      {/* Top Header Row */}
-      <View style={styles.headerRow}>
-        <View style={styles.titleWrapper}>
-          <View style={[styles.iconAvatar, { backgroundColor: activeConfig.color + '20' }]}>
-            <IconComponent size={22} color={activeConfig.color} />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={[styles.cardHeaderTitle, { color: theme === 'dark' ? '#FFF' : Colors.text.primary }]}>
-              {t('semaforo.cardTitle', 'Semáforo Disciplinario')}
-            </Text>
-            <Text style={[styles.cardHeaderSubtitle, { color: Colors.text.secondary }]} numberOfLines={1}>
-              {activeConfig.subtitle}
+    <View style={styles.outerWrapper}>
+      {/* 1. Bloque Semáforo (sin sombras) */}
+      <View 
+        style={[
+          styles.cardContainer, 
+          { 
+            backgroundColor: isDark ? '#18181B' : '#FFFFFF', 
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' 
+          }
+        ]}
+      >
+        {/* Top Header Row */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.cardHeaderTitle, { color: isDark ? '#FFF' : Colors.text.primary }]}>
+            {t('semaforo.cardTitle', 'Semáforo de Conducta')}
+          </Text>
+
+          <View style={[styles.statusBadge, { backgroundColor: activeConfig.badgeBg }]}>
+            <Text style={[styles.statusBadgeText, { color: activeConfig.badgeText }]}>
+              {activeConfig.title}
             </Text>
           </View>
         </View>
 
-        <View style={[styles.statusBadge, { backgroundColor: activeConfig.badgeBg }]}>
-          <Text style={[styles.statusBadgeText, { color: activeConfig.badgeText }]}>
-            {activeConfig.title}
+        {/* Traffic Light Housing Bar - Negro Mate sin sombras */}
+        <View style={styles.trafficLightHousing}>
+          <View style={styles.bulbsRow}>
+            {bulbs.map((b) => {
+              const isActive = statusKey === b.key;
+              return (
+                <View key={b.key} style={styles.bulbItem}>
+                  <View
+                    style={[
+                      styles.bulbCircle,
+                      {
+                        backgroundColor: b.color,
+                        opacity: isActive ? 1 : 0.22,
+                        transform: [{ scale: isActive ? 1.25 : 1 }],
+                        borderWidth: 0,
+                      }
+                    ]}
+                  />
+                  <Text 
+                    style={[
+                      styles.bulbLabel, 
+                      { 
+                        color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+                        fontWeight: isActive ? '800' : '500',
+                      }
+                    ]}
+                  >
+                    {b.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      {/* 2. Grid de Cards Rectangulares de Conteo FUERA del bloque de semáforo */}
+      <View style={styles.counterGrid}>
+        {/* 1. Positivo - Celeste */}
+        <View style={[styles.counterCard, styles.cardPositivo]}>
+          <Text style={[styles.counterCategoryLabel, { color: '#0369A1' }]}>
+            {t('semaforo.positives', 'Positivo')}
+          </Text>
+          <Text style={[styles.counterNumber, { color: '#0284C7' }]}>
+            {animPositivo}
           </Text>
         </View>
-      </View>
 
-      {/* Traffic Light Housing Bar */}
-      <View style={[styles.trafficLightHousing, { backgroundColor: theme === 'dark' ? '#18181B' : '#0B1956' }]}>
-        <View style={styles.bulbsRow}>
-          {bulbs.map((b) => {
-            const isActive = statusKey === b.key;
-            return (
-              <View key={b.key} style={styles.bulbItem}>
-                <View
-                  style={[
-                    styles.bulbCircle,
-                    {
-                      backgroundColor: b.color,
-                      opacity: isActive ? 1 : 0.22,
-                      shadowColor: isActive ? b.color : 'transparent',
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: isActive ? 0.9 : 0,
-                      shadowRadius: isActive ? 10 : 0,
-                      elevation: isActive ? 8 : 0,
-                      transform: [{ scale: isActive ? 1.25 : 1 }],
-                      borderWidth: isActive ? 2.5 : 0,
-                      borderColor: '#FFFFFF',
-                    }
-                  ]}
-                />
-                <Text 
-                  style={[
-                    styles.bulbLabel, 
-                    { 
-                      color: isActive ? b.color : 'rgba(255,255,255,0.4)',
-                      fontWeight: isActive ? '800' : '500',
-                    }
-                  ]}
-                >
-                  {b.label}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Stat Chips Row */}
-      <View style={styles.statsRow}>
-        <View style={[styles.statChip, { backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF' }]}>
-          <Sparkles size={12} color="#3B82F6" style={{ marginRight: 4 }} />
-          <Text style={[styles.statValue, { color: '#3B82F6' }]}>{countPositivo}</Text>
-          <Text style={[styles.statLabel, { color: Colors.text.secondary }]}>{t('semaforo.positives', 'Positivos')}</Text>
+        {/* 2. Leves - Blanco con borde negro */}
+        <View style={[styles.counterCard, styles.cardLeves, isDark && styles.cardLevesDark]}>
+          <Text style={[styles.counterCategoryLabel, { color: isDark ? '#E4E4E7' : '#18181B' }]}>
+            {t('semaforo.leves', 'Leves')}
+          </Text>
+          <Text style={[styles.counterNumber, { color: isDark ? '#FFFFFF' : '#18181B' }]}>
+            {animLeve}
+          </Text>
         </View>
 
-        <View style={[styles.statChip, { backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#FFFBEB' }]}>
-          <AlertTriangle size={12} color="#F59E0B" style={{ marginRight: 4 }} />
-          <Text style={[styles.statValue, { color: '#F59E0B' }]}>{countLeve}</Text>
-          <Text style={[styles.statLabel, { color: Colors.text.secondary }]}>{t('semaforo.leves', 'Leves')}</Text>
+        {/* 3. Graves - Rosado */}
+        <View style={[styles.counterCard, styles.cardGraves]}>
+          <Text style={[styles.counterCategoryLabel, { color: '#9D174D' }]}>
+            {t('semaforo.graves', 'Graves')}
+          </Text>
+          <Text style={[styles.counterNumber, { color: '#BE185D' }]}>
+            {animGrave}
+          </Text>
         </View>
 
-        <View style={[styles.statChip, { backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2' }]}>
-          <AlertOctagon size={12} color="#EF4444" style={{ marginRight: 4 }} />
-          <Text style={[styles.statValue, { color: '#EF4444' }]}>{countGrave}</Text>
-          <Text style={[styles.statLabel, { color: Colors.text.secondary }]}>{t('semaforo.graves', 'Graves')}</Text>
-        </View>
-
-        <View style={[styles.statChip, { backgroundColor: theme === 'dark' ? 'rgba(142, 68, 173, 0.1)' : '#F3E8FF' }]}>
-          <ShieldAlert size={12} color="#8E44AD" style={{ marginRight: 4 }} />
-          <Text style={[styles.statValue, { color: '#8E44AD' }]}>{countMuyGrave}</Text>
-          <Text style={[styles.statLabel, { color: Colors.text.secondary }]}>{t('semaforo.muyGraves', 'M. Graves')}</Text>
+        {/* 4. Muy Graves - Negro */}
+        <View style={[styles.counterCard, styles.cardMuyGraves]}>
+          <Text style={[styles.counterCategoryLabel, { color: 'rgba(255,255,255,0.75)' }]}>
+            {t('semaforo.muyGraves', 'Muy Graves')}
+          </Text>
+          <Text style={[styles.counterNumber, { color: '#FFFFFF' }]}>
+            {animMuyGrave}
+          </Text>
         </View>
       </View>
     </View>
@@ -206,52 +194,29 @@ export default function TrafficLightCard({ conductRecords = [], attendanceRecord
 }
 
 const styles = StyleSheet.create({
+  outerWrapper: {
+    marginBottom: 20,
+  },
   cardContainer: {
     borderRadius: 24,
     padding: 18,
-    marginBottom: 20,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    marginBottom: 12,
+    borderWidth: 1,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  titleWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 10,
-  },
-  iconAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
+    marginBottom: 16,
   },
   cardHeaderTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  cardHeaderSubtitle: {
-    fontSize: 11,
-    marginTop: 2,
-  },
   statusBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
   },
   statusBadgeText: {
@@ -260,16 +225,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  // Semáforo negro mate (sin sombras)
   trafficLightHousing: {
+    backgroundColor: '#18181B',
     borderRadius: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   bulbsRow: {
     flexDirection: 'row',
@@ -280,35 +243,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bulbCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginBottom: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginBottom: 6,
   },
   bulbLabel: {
-    fontSize: 10,
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  statsRow: {
+  // Grid de conteo 2x2
+  counterGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
+    gap: 10,
   },
-  statChip: {
-    flexDirection: 'row',
+  counterCard: {
+    width: '48%',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    justifyContent: 'center',
   },
-  statValue: {
-    fontSize: 13,
+  counterCategoryLabel: {
+    fontSize: 12,
     fontWeight: '800',
-    marginRight: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+  counterNumber: {
+    fontSize: 26,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  // Estilos específicos de cada card
+  cardPositivo: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  cardLeves: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#18181B',
+  },
+  cardLevesDark: {
+    backgroundColor: '#27272A',
+    borderColor: '#52525B',
+  },
+  cardGraves: {
+    backgroundColor: '#FCE7F3',
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+  },
+  cardMuyGraves: {
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
 });

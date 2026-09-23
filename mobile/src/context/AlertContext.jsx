@@ -85,37 +85,24 @@ export const AlertProvider = ({ children }) => {
   const getIcon = () => {
     switch (config.type) {
       case 'success':
-        return <CheckCircle2 size={36} color="#10b981" />;
+        return <CheckCircle2 size={36} color="#FFFFFF" />;
       case 'error':
       case 'danger':
-        return config.cancelText ? <Trash2 size={36} color="#ef4444" /> : <XCircle size={36} color="#ef4444" />;
+        return config.cancelText ? <Trash2 size={36} color="#FFFFFF" /> : <XCircle size={36} color="#FFFFFF" />;
       case 'warning':
-        return <AlertTriangle size={36} color="#f59e0b" />;
+        return <AlertTriangle size={36} color="#FFFFFF" />;
       default:
-        return <Info size={36} color="#3b82f6" />;
+        return <Info size={36} color="#FFFFFF" />;
     }
   };
 
   const getIconBg = () => {
-    switch (config.type) {
-      case 'success':
-        return theme === 'dark' ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5';
-      case 'error':
-      case 'danger':
-        return theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2';
-      case 'warning':
-        return theme === 'dark' ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb';
-      default:
-        return theme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff';
-    }
+    return theme === 'dark' ? '#27272A' : '#18181B';
   };
 
   const getConfirmBtnColor = () => {
     if (config.type === 'danger' || config.type === 'error') {
       return '#ef4444';
-    }
-    if (config.type === 'success') {
-      return '#10b981';
     }
     return Colors.primary;
   };
@@ -240,12 +227,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: theme === 'dark' ? Colors.background : '#F1F5F9',
+    backgroundColor: '#18181B',
     borderWidth: 1,
-    borderColor: Colors.gray[200],
+    borderColor: theme === 'dark' ? '#3F3F46' : '#18181B',
   },
   cancelButtonText: {
-    color: Colors.text.primary,
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
   },

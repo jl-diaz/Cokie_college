@@ -12,7 +12,8 @@ import {
   KeyboardAvoidingView, 
   Platform,
   Modal,
-  ScrollView 
+  ScrollView,
+  Image
 } from 'react-native';
 import api from '../src/utils/api';
 import {  Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck , ArrowLeft, X } from 'lucide-react-native';
@@ -26,9 +27,9 @@ import BottomModal from '../src/components/BottomModal';
 export default function TeacherGradesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { colors: Colors } = useTheme();
+  const { colors: Colors, theme } = useTheme();
   const { showAlert, showConfirm } = useAlert();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   
   const [schedules, setSchedules] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -48,6 +49,9 @@ export default function TeacherGradesScreen() {
   const [ticketReason, setTicketReason] = useState('');
   const [selectedDays, setSelectedDays] = useState(1); // 1, 3, or 7
   const [submittingTicket, setSubmittingTicket] = useState(false);
+
+  // Icono/imagen personalizado para el botón Guardar Notas (ej: require('../assets/icono.png') o { uri: '...' })
+  const [saveBtnIconSource, setSaveBtnIconSource] = useState(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -417,12 +421,22 @@ export default function TeacherGradesScreen() {
         ListEmptyComponent={!loading && <Text style={styles.emptyText}>{t('class.noStudentsInClass', 'No hay estudiantes en esta clase.')}</Text>}
         ListFooterComponent={
           students.length > 0 && canSubmitGrades && (
-            <TouchableOpacity style={styles.saveBtn} onPress={saveChanges} disabled={saving}>
+            <TouchableOpacity style={styles.saveBtn} onPress={saveChanges} disabled={saving} activeOpacity={0.85}>
               {saving ? (
-                <ActivityIndicator color={Colors.text.inverse} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <CheckCircle color={Colors.text.inverse} size={20} style={{ marginRight: 8 }} />
+                  <View style={styles.saveBtnIconSlot}>
+                    {saveBtnIconSource ? (
+                      <Image 
+                        source={typeof saveBtnIconSource === 'string' ? { uri: saveBtnIconSource } : saveBtnIconSource} 
+                        style={styles.saveBtnCustomImg} 
+                        resizeMode="contain" 
+                      />
+                    ) : (
+                      <CheckCircle color="#FFFFFF" size={20} />
+                    )}
+                  </View>
                   <Text style={styles.saveBtnText}>{t('teacherGrades.saveGrades', 'Guardar Notas')}</Text>
                 </>
               )}
@@ -559,9 +573,9 @@ export default function TeacherGradesScreen() {
                   canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
                   !canSubmitGrades && styles.textExpired
                 ]}>
-                  {canSubmitGrades && currentPeriodInfo.is_extended && t('teacherGrades.extendedPeriod', '🟢 PLAZO EXTENDIDO APROBADO')}
-                  {canSubmitGrades && !currentPeriodInfo.is_extended && t('teacherGrades.timeRemaining', '⏱️ TIEMPO RESTANTE DE INGRESO')}
-                  {!canSubmitGrades && t('teacherGrades.periodClosed', '🔴 INGRESO DE NOTAS CERRADO')}
+                  {canSubmitGrades && currentPeriodInfo.is_extended && t('teacherGrades.extendedPeriod', 'PLAZO EXTENDIDO APROBADO')}
+                  {canSubmitGrades && !currentPeriodInfo.is_extended && t('teacherGrades.timeRemaining', 'TIEMPO RESTANTE DE INGRESO')}
+                  {!canSubmitGrades && t('teacherGrades.periodClosed', 'INGRESO DE NOTAS CERRADO')}
                 </Text>
                 
                 {countdownText && (
@@ -683,7 +697,9 @@ export default function TeacherGradesScreen() {
   );
 }
 
-const createStyles = (Colors) => StyleSheet.create({
+const createStyles = (Colors, theme) => {
+  const isDark = theme === 'dark';
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   topControlContainer: {
@@ -723,16 +739,16 @@ const createStyles = (Colors) => StyleSheet.create({
     ...Shadows.card,
   },
   timerCardActive: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#bfdbfe',
+    backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+    borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
   },
   timerCardExtended: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#bbf7d0',
+    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4',
+    borderColor: isDark ? 'rgba(34, 197, 94, 0.35)' : '#bbf7d0',
   },
   timerCardExpired: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+    borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
   },
   timerRow: {
     flexDirection: 'row',
@@ -748,14 +764,14 @@ const createStyles = (Colors) => StyleSheet.create({
     fontWeight: Typography.weight.bold,
     marginTop: 2,
   },
-  textActive: { color: '#1e40af' },
-  textExtended: { color: '#166534' },
-  textExpired: { color: '#991b1b' },
+  textActive: { color: isDark ? '#93c5fd' : '#1e40af' },
+  textExtended: { color: isDark ? '#86efac' : '#166534' },
+  textExpired: { color: isDark ? '#fca5a5' : '#991b1b' },
   
   ticketSection: {
     marginTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.08)',
+    borderTopColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
     paddingTop: Spacing.md,
   },
   createTicketBtn: {
@@ -774,20 +790,20 @@ const createStyles = (Colors) => StyleSheet.create({
   pendingTicketNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fffbeb',
+    backgroundColor: isDark ? 'rgba(234, 179, 8, 0.15)' : '#fffbeb',
     padding: Spacing.sm,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: isDark ? 'rgba(234, 179, 8, 0.35)' : '#fde68a',
   },
   pendingTicketTitle: {
     fontSize: 11,
     fontWeight: Typography.weight.bold,
-    color: '#b45309',
+    color: isDark ? '#fde047' : '#b45309',
   },
   pendingTicketText: {
     fontSize: Typography.size.xs,
-    color: '#78350f',
+    color: isDark ? '#fef08a' : '#78350f',
   },
 
   content: { padding: Spacing.lg, paddingTop: Spacing.xs },
@@ -827,7 +843,7 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   studentIndex: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: Colors.text.muted, width: 24 },
   studentInfo: { flex: 1 },
-  studentName: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: Colors.primary },
+  studentName: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: isDark ? (Colors.text.secondary || '#CBD5E0') : Colors.primary },
   studentCode: { fontSize: Typography.size.xs, color: Colors.text.muted },
   gradeInput: {
     width: 60,
@@ -837,7 +853,7 @@ const createStyles = (Colors) => StyleSheet.create({
     textAlign: 'center',
     fontSize: Typography.size.lg,
     fontWeight: Typography.weight.bold,
-    color: Colors.primary,
+    color: isDark ? (Colors.text.secondary || '#CBD5E0') : Colors.primary,
     borderWidth: 1,
     borderColor: Colors.gray[200] || '#e2e8f0',
   },
@@ -850,16 +866,33 @@ const createStyles = (Colors) => StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   saveBtn: {
-    backgroundColor: Colors.status.approved,
+    backgroundColor: Colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
     borderRadius: BorderRadius.lg,
     marginTop: Spacing.xl,
-    ...Shadows.elevated,
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
-  saveBtnText: { color: Colors.text.inverse, fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
+  saveBtnIconSlot: {
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtnCustomImg: {
+    width: 20,
+    height: 20,
+  },
+  saveBtnText: { 
+    color: '#FFFFFF', 
+    fontSize: Typography.size.lg, 
+    fontWeight: Typography.weight.bold 
+  },
 
   // Modal Styles
   modalOverlay: {
@@ -900,9 +933,9 @@ const createStyles = (Colors) => StyleSheet.create({
     marginBottom: 6,
   },
   textArea: {
-    backgroundColor: Colors.gray[50] || '#f8fafc',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f8fafc',
     borderWidth: 1,
-    borderColor: Colors.gray[200] || '#e2e8f0',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : (Colors.gray[200] || '#e2e8f0'),
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     fontSize: Typography.size.sm,
@@ -922,8 +955,8 @@ const createStyles = (Colors) => StyleSheet.create({
     alignItems: 'center',
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.gray[300] || '#cbd5e1',
-    backgroundColor: Colors.gray[50] || '#f8fafc',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : (Colors.gray[300] || '#cbd5e1'),
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : (Colors.gray[50] || '#f8fafc'),
   },
   dayOptionBtnActive: {
     backgroundColor: Colors.primary,
@@ -932,7 +965,7 @@ const createStyles = (Colors) => StyleSheet.create({
   dayOptionText: {
     fontSize: Typography.size.xs,
     fontWeight: Typography.weight.bold,
-    color: Colors.text.primary,
+    color: isDark ? '#E2E8F0' : Colors.text.primary,
   },
   dayOptionTextActive: {
     color: '#FFF',
@@ -946,6 +979,9 @@ const createStyles = (Colors) => StyleSheet.create({
     marginBottom: 8,
   },
   cancelModalBtn: {
+    backgroundColor: '#18181B',
+    borderWidth: 1,
+    borderColor: isDark ? '#3F3F46' : '#18181B',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: BorderRadius.lg,
@@ -953,7 +989,7 @@ const createStyles = (Colors) => StyleSheet.create({
     alignItems: 'center',
   },
   cancelModalBtnText: {
-    color: Colors.text.muted,
+    color: '#FFFFFF',
     fontWeight: Typography.weight.bold,
   },
   submitModalBtn: {
@@ -970,3 +1006,4 @@ const createStyles = (Colors) => StyleSheet.create({
     fontSize: Typography.size.sm,
   }
 });
+};

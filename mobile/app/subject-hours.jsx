@@ -305,9 +305,7 @@ export default function SubjectHoursScreen() {
   const progressPercent = Math.min(100, Math.round((totalAllocatedHours / MAX_WEEKLY_HOURS) * 100));
   const progressColor = isOverCapacity 
     ? '#EF4444' 
-    : isAtFullCapacity 
-      ? '#10B981' 
-      : Colors.primary;
+    : Colors.primary;
 
   const renderSubjectCard = ({ item }) => {
     const isUpdating = updatingId === item.id;
@@ -318,8 +316,8 @@ export default function SubjectHoursScreen() {
     return (
       <View style={styles.card}>
         <View style={styles.cardLeft}>
-          <View style={[styles.subjectIconWrapper, { backgroundColor: Colors.primary + '14' }]}>
-            <BookOpen size={20} color={Colors.primary} />
+          <View style={[styles.subjectIconWrapper, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+            <BookOpen size={20} color="#FFFFFF" />
           </View>
           <View style={styles.subjectInfo}>
             <Text style={styles.subjectName}>{item.name}</Text>
@@ -439,7 +437,7 @@ export default function SubjectHoursScreen() {
             styles.capacityStatusBadge,
             { backgroundColor: progressColor + '18' }
           ]}>
-            {isAtFullCapacity && <CheckCircle2 size={12} color="#10B981" style={{ marginRight: 4 }} />}
+            {isAtFullCapacity && <CheckCircle2 size={12} color={Colors.primary} style={{ marginRight: 4 }} />}
             {isOverCapacity && <AlertTriangle size={12} color="#EF4444" style={{ marginRight: 4 }} />}
             <Text style={[styles.remainingHoursText, { color: progressColor }]}>
               {isAtFullCapacity

@@ -20,10 +20,11 @@ import {
   X, 
   CheckCircle, 
   Clock, 
-  AlertTriangle,
   ArrowRight,
   ShieldAlert,
-  Info
+  Sparkles,
+  CalendarDays,
+  Layers
 } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
 import { useTheme } from '../src/context/ThemeContext';
@@ -38,6 +39,7 @@ export default function AcademicPeriodsScreen() {
   const { colors: Colors, theme } = useTheme();
   const { showAlert, showConfirm } = useAlert();
   const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
+  const isDark = theme === 'dark';
 
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +69,7 @@ export default function AcademicPeriodsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: error.response?.data?.error || 'No se pudieron cargar los periodos académicos'
+        message: error.response?.data?.error || t('academicPeriods.loadError', 'No se pudieron cargar los periodos académicos')
       });
     } finally {
       setLoading(false);
@@ -80,7 +82,7 @@ export default function AcademicPeriodsScreen() {
     fetchPeriods();
   };
 
-  // Determinar el periodo activo según la fecha actual
+  // Determinar la fecha de hoy en formato YYYY-MM-DD
   const todayStr = useMemo(() => {
     const d = new Date();
     const y = d.getFullYear();
@@ -89,9 +91,16 @@ export default function AcademicPeriodsScreen() {
     return `${y}-${m}-${day}`;
   }, []);
 
+  // Determinar el periodo activo según la fecha actual
   const activePeriod = useMemo(() => {
     return periods.find(p => todayStr >= p.start_date && todayStr <= p.end_date);
   }, [periods, todayStr]);
+
+  // Próximo periodo más cercano si no hay activo actualmente
+  const nextUpcomingPeriod = useMemo(() => {
+    if (activePeriod) return null;
+    return periods.find(p => p.start_date > todayStr);
+  }, [periods, todayStr, activePeriod]);
 
   // Formato de fecha localizado para tarjetas
   const formatDisplayDate = (dateStr) => {
@@ -134,7 +143,6 @@ export default function AcademicPeriodsScreen() {
       return { isValid: false, reason: null, message: '' };
     }
 
-    // Regla 1: Fin no puede ser antes de inicio
     if (endDate < startDate) {
       return {
         isValid: false,
@@ -143,14 +151,10 @@ export default function AcademicPeriodsScreen() {
       };
     }
 
-    // Regla 2: 2 periodos no pueden coincidir / solaparse
     const conflict = periods.find(p => {
-      // Ignorar el periodo que se está editando
       if (editingPeriod && p.period_number === editingPeriod.period_number) {
         return false;
       }
-      // Condición de solapamiento entre intervalos cerrados:
-      // startDate <= p.end_date && endDate >= p.start_date
       return startDate <= p.end_date && endDate >= p.start_date;
     });
 
@@ -172,11 +176,9 @@ export default function AcademicPeriodsScreen() {
 
   const handleOpenCreateModal = () => {
     setEditingPeriod(null);
-    // Sugerir siguiente número de periodo
     const maxPeriodNum = periods.reduce((max, p) => Math.max(max, p.period_number || 0), 0);
     setPeriodNumber(maxPeriodNum + 1);
 
-    // Sugerir fecha de inicio contigua al último periodo si existe
     let suggestedStart = todayStr;
     if (periods.length > 0) {
       const lastPeriod = periods[periods.length - 1];
@@ -193,7 +195,6 @@ export default function AcademicPeriodsScreen() {
     }
 
     setStartDate(suggestedStart);
-    // Sugerir fecha fin a 2 meses
     try {
       const s = new Date(suggestedStart + 'T12:00:00');
       s.setMonth(s.getMonth() + 2);
@@ -223,7 +224,7 @@ export default function AcademicPeriodsScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
-        message: 'Por favor completa las fechas de inicio y fin del periodo'
+        message: t('academicPeriods.fillDatesWarning', 'Por favor completa las fechas de inicio y fin del periodo')
       });
       return;
     }
@@ -231,7 +232,7 @@ export default function AcademicPeriodsScreen() {
     if (!validationState.isValid) {
       showAlert({
         type: 'warning',
-        title: 'Fechas Inválidas',
+        title: t('academicPeriods.invalidDates', 'Fechas Inválidas'),
         message: validationState.message
       });
       return;
@@ -272,7 +273,7 @@ export default function AcademicPeriodsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: error.response?.data?.error || 'No se pudo guardar el periodo'
+        message: error.response?.data?.error || t('academicPeriods.saveError', 'No se pudo guardar el periodo')
       });
     } finally {
       setSaving(false);
@@ -299,24 +300,30 @@ export default function AcademicPeriodsScreen() {
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
-            message: error.response?.data?.error || 'No se pudo eliminar el periodo'
+            message: error.response?.data?.error || t('academicPeriods.deleteError', 'No se pudo eliminar el periodo')
           });
         }
       }
     });
   };
 
-  // Renderizar cada periodo
+  // Renderizar cada periodo en estilo Bento / Minimalista no lineal
   const renderPeriodCard = ({ item }) => {
     const isCurrent = todayStr >= item.start_date && todayStr <= item.end_date;
     const isUpcoming = todayStr < item.start_date;
     const isFinished = todayStr > item.end_date;
 
     const statusBadgeColor = isCurrent
-      ? '#10B981'
+      ? Colors.primary
       : isUpcoming
         ? '#3B82F6'
-        : '#64748B';
+        : (isDark ? '#94A3B8' : '#64748B');
+
+    const statusBg = isCurrent
+      ? (isDark ? `${Colors.primary}25` : `${Colors.primary}15`)
+      : isUpcoming
+        ? (isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF')
+        : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9');
 
     const statusText = isCurrent
       ? t('academicPeriods.statusActive', 'En curso')
@@ -327,78 +334,83 @@ export default function AcademicPeriodsScreen() {
     const duration = calculateDuration(item.start_date, item.end_date);
 
     return (
-      <View style={[styles.card, isCurrent && styles.cardActive]}>
+      <View style={[styles.periodCard, isCurrent && styles.periodCardActive]}>
+        {/* Header de la Tarjeta */}
         <View style={styles.cardHeader}>
-          <View style={styles.periodNumberRow}>
-            <View style={[styles.numberBadge, { backgroundColor: isCurrent ? '#10B981' : Colors.primary }]}>
-              <Text style={styles.numberBadgeText}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={[
+              styles.numberBadge, 
+              { backgroundColor: isCurrent ? Colors.primary : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9') }
+            ]}>
+              <Text style={[
+                styles.numberBadgeText, 
+                { color: isCurrent ? '#FFFFFF' : (isDark ? '#F1F5F9' : Colors.text.primary) }
+              ]}>
                 {item.period_number}
               </Text>
             </View>
-            <Text style={styles.periodTitle}>
-              {t('academicPeriods.periodCardTitle', { number: item.period_number })}
-            </Text>
+            <View>
+              <Text style={styles.periodTitle}>
+                {t('academicPeriods.periodCardTitle', { number: item.period_number })}
+              </Text>
+              <Text style={styles.periodDurationSub}>
+                {t('academicPeriods.duration', { days: duration.days, weeks: duration.weeks })}
+              </Text>
+            </View>
           </View>
 
-          <View style={[styles.statusBadge, { backgroundColor: statusBadgeColor + '18' }]}>
-            <Text style={[styles.statusBadgeText, { color: statusBadgeColor }]}>
-              {statusText}
-            </Text>
+          <View style={styles.cardHeaderRight}>
+            <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
+              {isCurrent && <View style={styles.liveIndicatorDot} />}
+              <Text style={[styles.statusPillText, { color: statusBadgeColor }]}>
+                {statusText}
+              </Text>
+            </View>
+
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                onPress={() => handleOpenEditModal(item)}
+                style={styles.iconBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Edit2 size={15} color={Colors.primary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleDelete(item)}
+                style={[styles.iconBtn, styles.deleteIconBtn]}
+                activeOpacity={0.7}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Trash2 size={15} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* Rango de fechas */}
-        <View style={styles.dateRangeBox}>
-          <View style={styles.dateCol}>
-            <Text style={styles.dateColLabel}>
+        {/* Fila Horizontal de Fechas: Limpia, Minimalista y sin duplicados */}
+        <View style={styles.dateTrack}>
+          <View style={styles.dateSegment}>
+            <Text style={styles.dateTrackLabel}>
               {t('academicPeriods.startDate', 'Fecha de Inicio')}
             </Text>
-            <Text style={styles.dateColValue}>
+            <Text style={styles.dateTrackValue}>
               {formatDisplayDate(item.start_date)}
             </Text>
-            <Text style={styles.dateColRaw}>{item.start_date}</Text>
           </View>
 
-          <View style={styles.arrowCol}>
-            <ArrowRight size={18} color={Colors.text.muted} />
+          <View style={styles.dateArrowBox}>
+            <ArrowRight size={14} color={Colors.text.muted} />
           </View>
 
-          <View style={styles.dateCol}>
-            <Text style={styles.dateColLabel}>
+          <View style={[styles.dateSegment, { alignItems: 'flex-end' }]}>
+            <Text style={styles.dateTrackLabel}>
               {t('academicPeriods.endDate', 'Fecha de Fin')}
             </Text>
-            <Text style={styles.dateColValue}>
+            <Text style={styles.dateTrackValue}>
               {formatDisplayDate(item.end_date)}
             </Text>
-            <Text style={styles.dateColRaw}>{item.end_date}</Text>
-          </View>
-        </View>
-
-        {/* Footer de la tarjeta con duración y acciones */}
-        <View style={styles.cardFooter}>
-          <View style={styles.durationInfo}>
-            <Clock size={14} color={Colors.text.muted} style={{ marginRight: 6 }} />
-            <Text style={styles.durationText}>
-              {t('academicPeriods.duration', { days: duration.days, weeks: duration.weeks })}
-            </Text>
-          </View>
-
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              onPress={() => handleOpenEditModal(item)}
-              style={styles.actionBtn}
-              activeOpacity={0.7}
-            >
-              <Edit2 size={16} color={Colors.primary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => handleDelete(item)}
-              style={styles.actionBtn}
-              activeOpacity={0.7}
-            >
-              <Trash2 size={16} color="#EF4444" />
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -408,11 +420,10 @@ export default function AcademicPeriodsScreen() {
   return (
     <View style={styles.container}>
       <PageHeader
-        title={t('titles.academicPeriods', 'Periodos Académicos')}
+        title={t('academicPeriods.title', 'Periodos Académicos')}
         subtitle={t('titles.academicPeriodsSubtitle', 'Gestión de fechas de inicio y fin de periodos')}
       />
 
-      {/* Listado de Periodos */}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -429,41 +440,82 @@ export default function AcademicPeriodsScreen() {
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
-              {/* Tarjeta Informativa de Normativa de Periodos */}
-              <View style={styles.noticeCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <Info size={18} color={Colors.primary} style={{ marginTop: 2, marginRight: 8 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.noticeTitle}>
-                      {t('academicPeriods.calendarView', 'Calendario Escolar')}
-                    </Text>
-                    <Text style={styles.noticeText}>
-                      {t('academicPeriods.guidelinesNotice', 'Configura los intervalos lectivos. Cada periodo debe ser cronológicamente consecutivo y sin solapamiento de fechas con ningún otro periodo escolar.')}
-                    </Text>
-                    {activePeriod && (
-                      <View style={styles.activePeriodPill}>
-                        <CheckCircle size={13} color="#10B981" style={{ marginTop: 2, marginRight: 6 }} />
-                        <Text style={styles.activePeriodPillText}>
-                          Periodo actual en curso: Periodo {activePeriod.period_number} ({formatDisplayDate(activePeriod.start_date)} - {formatDisplayDate(activePeriod.end_date)})
+              {/* HERO SPOTLIGHT BENTO CARD: Resumen de estado actual del ciclo escolar */}
+              <View style={styles.heroCard}>
+                <View style={styles.heroCardTop}>
+                  <View style={styles.heroBadgeRow}>
+                    <View style={[
+                      styles.heroStatusBadge, 
+                      { backgroundColor: activePeriod ? (isDark ? `${Colors.primary}25` : `${Colors.primary}15`) : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9') }
+                    ]}>
+                      <View style={[
+                        styles.liveIndicatorDot, 
+                        { backgroundColor: activePeriod ? Colors.primary : (isDark ? '#64748B' : '#94A3B8') }
+                      ]} />
+                      <Text style={[
+                        styles.heroStatusText, 
+                        { color: activePeriod ? Colors.primary : (isDark ? '#94A3B8' : '#64748B') }
+                      ]}>
+                        {activePeriod 
+                          ? t('academicPeriods.activePeriodBadge', 'Periodo Activo') 
+                          : t('academicPeriods.noActivePeriod', 'Sin periodo en curso')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.heroTitle}>
+                    {activePeriod 
+                      ? t('academicPeriods.periodCardTitle', { number: activePeriod.period_number })
+                      : t('academicPeriods.calendarView', 'Calendario Escolar')}
+                  </Text>
+                </View>
+
+                {activePeriod ? (
+                  <View style={styles.heroInfoBlock}>
+                    <View style={styles.heroDateRow}>
+                      <CalendarDays size={16} color={Colors.primary} style={{ marginRight: 8 }} />
+                      <Text style={styles.heroDateText}>
+                        {formatDisplayDate(activePeriod.start_date)} — {formatDisplayDate(activePeriod.end_date)}
+                      </Text>
+                    </View>
+                    <View style={styles.heroMetaPills}>
+                      <View style={styles.metaPill}>
+                        <Clock size={12} color={Colors.text.muted} style={{ marginRight: 4 }} />
+                        <Text style={styles.metaPillText}>
+                          {calculateDuration(activePeriod.start_date, activePeriod.end_date).days} días lectivos
                         </Text>
                       </View>
-                    )}
+                      <View style={styles.metaPill}>
+                        <Layers size={12} color={Colors.text.muted} style={{ marginRight: 4 }} />
+                        <Text style={styles.metaPillText}>
+                          {calculateDuration(activePeriod.start_date, activePeriod.end_date).weeks} semanas
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
+                ) : (
+                  <Text style={styles.heroSubtitle}>
+                    {nextUpcomingPeriod 
+                      ? `${t('academicPeriods.statusUpcoming', 'Próximo')}: ${t('academicPeriods.periodCardTitle', { number: nextUpcomingPeriod.period_number })} (${formatDisplayDate(nextUpcomingPeriod.start_date)})`
+                      : t('academicPeriods.guidelinesNotice', 'Configura los intervalos lectivos. Cada periodo debe ser cronológicamente consecutivo y sin solapamiento.')}
+                  </Text>
+                )}
               </View>
 
-              {/* Botón de Agregar Periodo */}
-              <View style={styles.topActionsRow}>
-                <Text style={styles.sectionHeading}>
-                  Periodos Registrados ({periods.length})
-                </Text>
+              {/* Barra de Título de Sección y Botón de Acción Principal */}
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>
+                    {t('academicPeriods.registeredPeriodsCount', { count: periods.length, defaultValue: `Periodos del Ciclo (${periods.length})` })}
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  style={styles.addBtn}
+                  style={styles.addPeriodBtn}
                   onPress={handleOpenCreateModal}
                   activeOpacity={0.8}
                 >
-                  <Plus size={18} color="#FFFFFF" />
-                  <Text style={styles.addBtnText}>
+                  <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+                  <Text style={styles.addPeriodBtnText}>
                     {t('academicPeriods.addPeriod', 'Nuevo Periodo')}
                   </Text>
                 </TouchableOpacity>
@@ -472,10 +524,22 @@ export default function AcademicPeriodsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <CalendarIcon size={48} color={Colors.text.muted} style={{ opacity: 0.5, marginBottom: 12 }} />
+              <View style={styles.emptyIconCircle}>
+                <CalendarIcon size={32} color={Colors.text.muted} />
+              </View>
               <Text style={styles.emptyText}>
                 {t('academicPeriods.emptyList', 'No hay periodos académicos registrados.')}
               </Text>
+              <TouchableOpacity
+                style={[styles.addPeriodBtn, { alignSelf: 'center', marginTop: 14 }]}
+                onPress={handleOpenCreateModal}
+                activeOpacity={0.8}
+              >
+                <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+                <Text style={styles.addPeriodBtnText}>
+                  {t('academicPeriods.addPeriod', 'Nuevo Periodo')}
+                </Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -508,6 +572,7 @@ export default function AcademicPeriodsScreen() {
               }} 
               style={styles.closeBtn}
               activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <X size={20} color={Colors.text.primary} />
             </TouchableOpacity>
@@ -540,7 +605,7 @@ export default function AcademicPeriodsScreen() {
               </View>
             )}
 
-            {/* Selector Bonito de Fecha de Inicio Multiplataforma */}
+            {/* Selector de Fecha de Inicio Multiplataforma */}
             <DatePickerSelector
               label={t('academicPeriods.startDate', 'Fecha de Inicio *')}
               value={startDate}
@@ -550,7 +615,7 @@ export default function AcademicPeriodsScreen() {
               onToggle={(open) => setActivePicker(open ? 'start' : null)}
             />
 
-            {/* Selector Bonito de Fecha de Fin Multiplataforma */}
+            {/* Selector de Fecha de Fin Multiplataforma */}
             <DatePickerSelector
               label={t('academicPeriods.endDate', 'Fecha de Fin *')}
               value={endDate}
@@ -560,7 +625,7 @@ export default function AcademicPeriodsScreen() {
               onToggle={(open) => setActivePicker(open ? 'end' : null)}
             />
 
-            {/* Banner de Validación en Tiempo Real */}
+            {/* Banner de Validación en Tiempo Real con Soporte Modo Oscuro */}
             {!validationState.isValid && validationState.message ? (
               <View style={styles.validationErrorBanner}>
                 <ShieldAlert size={18} color="#EF4444" style={{ marginTop: 2, marginRight: 8 }} />
@@ -573,15 +638,18 @@ export default function AcademicPeriodsScreen() {
             {/* Resumen de duración calculada si es válido */}
             {validationState.isValid && startDate && endDate ? (
               <View style={styles.validSummaryBox}>
-                <CheckCircle size={16} color="#10B981" style={{ marginRight: 6 }} />
+                <CheckCircle size={16} color={Colors.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.validSummaryText}>
-                  Rango válido: {calculateDuration(startDate, endDate).days} días de clases lectivas (sin colisiones).
+                  {t('academicPeriods.validRangeSummary', { 
+                    days: calculateDuration(startDate, endDate).days,
+                    defaultValue: `Rango válido de ${calculateDuration(startDate, endDate).days} días lectivos sin colisiones.`
+                  })}
                 </Text>
               </View>
             ) : null}
           </ScrollView>
 
-          {/* Footer Fijo: Botón de Guardar / Crear siempre visible y accesible */}
+          {/* Footer Fijo: Botón de Guardar / Crear */}
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={[
@@ -613,97 +681,136 @@ const createStyles = (Colors, theme) => {
   const isDark = theme === 'dark';
   const cardBg = Colors.card;
   const textColor = Colors.text.primary;
+  const subtextColor = Colors.text.secondary;
+  const mutedColor = Colors.text.muted;
   const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+  const surfaceMuted = isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC';
 
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: Colors.background,
     },
-    noticeCard: {
-      marginHorizontal: Spacing.lg,
-      marginTop: Spacing.md,
-      marginBottom: Spacing.xs,
-      padding: 14,
-      borderRadius: BorderRadius.lg,
-      backgroundColor: cardBg,
-      borderWidth: 1,
-      borderColor,
-      ...Shadows.card,
-    },
-    noticeTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: textColor,
-      marginBottom: 3,
-    },
-    noticeText: {
-      fontSize: 12,
-      color: Colors.text.secondary,
-      lineHeight: 16,
-    },
-    activePeriodPill: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginTop: 8,
-      backgroundColor: '#10B98114',
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: BorderRadius.md,
-      maxWidth: '100%',
-      alignSelf: 'flex-start',
-    },
-    activePeriodPillText: {
-      fontSize: 11,
-      color: '#10B981',
-      fontWeight: '700',
-      flex: 1,
-      flexWrap: 'wrap',
-      lineHeight: 16,
-    },
-    topActionsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: Spacing.lg,
-      marginVertical: Spacing.md,
-    },
-    sectionHeading: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: Colors.text.secondary,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    addBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Colors.primary,
-      paddingHorizontal: 14,
-      height: 40,
-      borderRadius: BorderRadius.md,
-      gap: 6,
-      ...Shadows.card,
-    },
-    addBtnText: {
-      color: '#FFFFFF',
-      fontSize: 13,
-      fontWeight: '700',
-    },
     listContent: {
       paddingHorizontal: Spacing.lg,
       paddingBottom: 40,
     },
-    card: {
+    // HERO BENTO SPOTLIGHT CARD
+    heroCard: {
       backgroundColor: cardBg,
-      borderRadius: BorderRadius.lg,
+      borderRadius: BorderRadius.xl,
       padding: 16,
-      marginBottom: 12,
-      borderWidth: 1.5,
+      marginTop: Spacing.md,
+      marginBottom: Spacing.lg,
+      borderWidth: 1,
       borderColor,
       ...Shadows.card,
     },
-    cardActive: {
+    heroCardTop: {
+      marginBottom: 10,
+    },
+    heroBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    heroStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: BorderRadius.full,
+      gap: 6,
+    },
+    heroStatusText: {
+      fontSize: 11,
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    heroTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: textColor,
+      letterSpacing: -0.3,
+    },
+    heroSubtitle: {
+      fontSize: 12,
+      color: subtextColor,
+      lineHeight: 18,
+    },
+    heroInfoBlock: {
+      marginTop: 2,
+    },
+    heroDateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    heroDateText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: textColor,
+    },
+    heroMetaPills: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    metaPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: surfaceMuted,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: BorderRadius.sm,
+      borderWidth: 1,
+      borderColor,
+    },
+    metaPillText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: subtextColor,
+    },
+    // SECTION HEADER & ACTION BUTTON
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.md,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: textColor,
+      letterSpacing: -0.2,
+    },
+    addPeriodBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.primary,
+      paddingHorizontal: 14,
+      height: 38,
+      borderRadius: BorderRadius.full,
+      gap: 6,
+      ...Shadows.card,
+    },
+    addPeriodBtnText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    // PERIOD BENTO CARDS
+    periodCard: {
+      backgroundColor: cardBg,
+      borderRadius: BorderRadius.lg,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor,
+      ...Shadows.card,
+    },
+    periodCardActive: {
       borderColor: '#10B981',
     },
     cardHeader: {
@@ -712,98 +819,107 @@ const createStyles = (Colors, theme) => {
       justifyContent: 'space-between',
       marginBottom: 12,
     },
-    periodNumberRow: {
+    cardHeaderLeft: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
+      flex: 1,
     },
     numberBadge: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
     },
     numberBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '800',
     },
     periodTitle: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '800',
       color: textColor,
+      lineHeight: 18,
     },
-    statusBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+    periodDurationSub: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: mutedColor,
+      marginTop: 1,
+    },
+    cardHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       borderRadius: BorderRadius.full,
+      gap: 5,
     },
-    statusBadgeText: {
-      fontSize: 12,
+    statusPillText: {
+      fontSize: 11,
       fontWeight: '700',
     },
-    dateRangeBox: {
+    liveIndicatorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#10B981',
+    },
+    actionButtonsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginLeft: 2,
+    },
+    iconBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: surfaceMuted,
+    },
+    deleteIconBtn: {
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2',
+    },
+    // HORIZONTAL DATE TRACK
+    dateTrack: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
+      backgroundColor: surfaceMuted,
       borderRadius: BorderRadius.md,
-      padding: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       borderWidth: 1,
       borderColor,
-      marginBottom: 12,
     },
-    dateCol: {
+    dateSegment: {
       flex: 1,
     },
-    dateColLabel: {
-      fontSize: 11,
-      color: Colors.text.muted,
+    dateTrackLabel: {
+      fontSize: 10,
       fontWeight: '600',
-      marginBottom: 2,
+      color: mutedColor,
       textTransform: 'uppercase',
+      letterSpacing: 0.3,
+      marginBottom: 2,
     },
-    dateColValue: {
-      fontSize: 14,
+    dateTrackValue: {
+      fontSize: 13,
       fontWeight: '700',
       color: textColor,
     },
-    dateColRaw: {
-      fontSize: 10,
-      color: Colors.text.muted,
-      marginTop: 1,
+    dateArrowBox: {
+      paddingHorizontal: 8,
     },
-    arrowCol: {
-      paddingHorizontal: 10,
-    },
-    cardFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingTop: 8,
-      borderTopWidth: 1,
-      borderTopColor: borderColor,
-    },
-    durationInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    durationText: {
-      fontSize: 12,
-      color: Colors.text.secondary,
-      fontWeight: '500',
-    },
-    cardActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    actionBtn: {
-      padding: 8,
-      borderRadius: BorderRadius.sm,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
-    },
+    // EMPTY & LOADING STATES
     centerContainer: {
       flex: 1,
       alignItems: 'center',
@@ -812,14 +928,25 @@ const createStyles = (Colors, theme) => {
     emptyContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 50,
+      paddingVertical: 48,
+    },
+    emptyIconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor,
     },
     emptyText: {
-      fontSize: 14,
-      color: Colors.text.muted,
+      fontSize: 13,
+      color: mutedColor,
       textAlign: 'center',
     },
-    // Modal
+    // MODAL
     modalContent: {
       paddingHorizontal: 20,
       paddingTop: 16,
@@ -828,34 +955,28 @@ const createStyles = (Colors, theme) => {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
-      marginBottom: 10,
-    },
-    modalScrollView: {
-      flexGrow: 0,
-      flexShrink: 1,
-      maxHeight: 280,
-    },
-    modalScrollContent: {
-      paddingBottom: 6,
-    },
-    modalFooter: {
-      paddingTop: 12,
-      paddingBottom: 4,
-      borderTopWidth: 1,
-      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      marginBottom: 12,
     },
     modalTitle: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: '800',
       color: textColor,
     },
     modalSubtitle: {
       fontSize: 12,
-      color: Colors.text.muted,
+      color: mutedColor,
       marginTop: 2,
     },
     closeBtn: {
       padding: 4,
+    },
+    modalScrollView: {
+      flexGrow: 0,
+      flexShrink: 1,
+      maxHeight: 300,
+    },
+    modalScrollContent: {
+      paddingBottom: 8,
     },
     inputLabel: {
       fontSize: 13,
@@ -864,8 +985,8 @@ const createStyles = (Colors, theme) => {
       marginBottom: 6,
     },
     textInput: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-      borderWidth: 1.2,
+      backgroundColor: surfaceMuted,
+      borderWidth: 1,
       borderColor,
       borderRadius: BorderRadius.md,
       paddingHorizontal: 12,
@@ -876,16 +997,16 @@ const createStyles = (Colors, theme) => {
     validationErrorBanner: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      backgroundColor: '#FEF2F2',
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
       borderRadius: BorderRadius.md,
       padding: 12,
       borderWidth: 1,
-      borderColor: '#FCA5A5',
+      borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#FCA5A5',
       marginBottom: 14,
     },
     validationErrorText: {
       fontSize: 12,
-      color: '#B91C1C',
+      color: isDark ? '#FCA5A5' : '#B91C1C',
       flex: 1,
       lineHeight: 16,
       fontWeight: '600',
@@ -893,23 +1014,29 @@ const createStyles = (Colors, theme) => {
     validSummaryBox: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#F0FDF4',
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#F0FDF4',
       borderRadius: BorderRadius.md,
       padding: 10,
       borderWidth: 1,
-      borderColor: '#86EFAC',
+      borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#86EFAC',
       marginBottom: 14,
     },
     validSummaryText: {
       fontSize: 12,
-      color: '#15803D',
+      color: isDark ? '#6EE7B7' : '#15803D',
       fontWeight: '600',
       flex: 1,
     },
+    modalFooter: {
+      paddingTop: 12,
+      paddingBottom: 4,
+      borderTopWidth: 1,
+      borderTopColor: borderColor,
+    },
     submitBtn: {
       backgroundColor: Colors.primary,
-      borderRadius: BorderRadius.md,
-      paddingVertical: 14,
+      borderRadius: BorderRadius.full,
+      paddingVertical: 13,
       alignItems: 'center',
       justifyContent: 'center',
       ...Shadows.card,
@@ -919,7 +1046,7 @@ const createStyles = (Colors, theme) => {
     },
     submitBtnText: {
       color: '#FFFFFF',
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '700',
     },
   });

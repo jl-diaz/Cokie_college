@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
-import { X, Bell, CheckCheck, Trash2, Info, AlertTriangle, CheckCircle } from 'lucide-react-native';
+import { X, Bell, CheckCheck, Trash2 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
@@ -10,6 +11,7 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const { t } = useTranslation();
   const { colors, theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [notificationsList, setNotificationsList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +55,20 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
     }
   }, [visible]);
 
+  const formatDateOnly = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
+  };
+
   const fetchNotifications = async () => {
     setLoading(true);
     try {
@@ -63,7 +79,7 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
         title: n.title,
         body: n.body,
         unread: !n.read,
-        time: new Date(n.created_at).toLocaleString()
+        date: formatDateOnly(n.created_at)
       })));
       if (onReadChange) {
         const unread = data.filter(n => !n.read).length;
@@ -112,13 +128,10 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
     }
   };
 
-  const getIcon = (type, title = '') => {
-    if (type === 'success') return <CheckCircle size={18} color="#2ecc71" />;
-    if (type === 'warning' || title.includes('Conducta') || title.includes('⚠️')) return <AlertTriangle size={18} color="#f39c12" />;
-    return <Info size={18} color={colors.primary} />;
-  };
-
   if (!showModal) return null;
+
+  const isDark = theme === 'dark';
+  const bottomPadding = Math.max(insets.bottom, 24) + 16;
 
   return (
     <Modal
@@ -131,29 +144,40 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
     >
       <View style={styles.overlayContainer}>
         <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-        <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }], backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
+        <Animated.View 
+          style={[
+            styles.panel, 
+            { 
+              transform: [{ translateY: slideAnim }], 
+              backgroundColor: isDark ? '#18181B' : '#F8FAFC',
+              paddingBottom: bottomPadding,
+            }
+          ]}
+        >
+          {/* Header del Modal */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Bell size={22} color={colors.primary} style={{ marginRight: 8 }} />
-              <Text style={[styles.headerTitle, { color: theme === 'dark' ? '#FFF' : '#0B1956' }]}>
-                {t('notifications.title', 'Centro de Notificaciones')}
+              <Bell size={20} color={colors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#0B1956' }]}>
+                {t('notifications.title', 'Notificaciones')}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color={theme === 'dark' ? '#AAA' : '#666'} />
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
+              <X size={20} color={isDark ? '#AAA' : '#666'} />
             </TouchableOpacity>
           </View>
 
+          {/* Acciones de Limpiar y Marcar Leídas */}
           {notificationsList.length > 0 && (
             <View style={styles.actionRow}>
-              <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.actionBtn}>
+              <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.actionBtn} activeOpacity={0.7}>
                 <CheckCheck size={16} color={colors.primary} />
                 <Text style={[styles.actionBtnText, { color: colors.primary }]}>
                   {t('notifications.markRead', 'Marcar leídas')}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleClearAll} style={styles.actionBtn}>
+              <TouchableOpacity onPress={handleClearAll} style={styles.actionBtn} activeOpacity={0.7}>
                 <Trash2 size={16} color="#e74c3c" />
                 <Text style={[styles.actionBtnText, { color: '#e74c3c' }]}>
                   {t('notifications.clear', 'Limpiar')}
@@ -162,11 +186,16 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
             </View>
           )}
 
-          <ScrollView style={styles.notifList} showsVerticalScrollIndicator={false}>
+          {/* Lista de Notificaciones con Cards Minimalistas */}
+          <ScrollView 
+            style={styles.notifList} 
+            contentContainerStyle={styles.notifListContent}
+            showsVerticalScrollIndicator={false}
+          >
             {notificationsList.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Bell size={40} color={theme === 'dark' ? '#555' : '#CCC'} style={{ marginBottom: 12 }} />
-                <Text style={[styles.emptyText, { color: theme === 'dark' ? '#888' : '#999' }]}>
+                <Bell size={40} color={isDark ? '#4B5563' : '#CBD5E1'} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyText, { color: isDark ? '#9CA3AF' : '#64748B' }]}>
                   {t('notifications.empty', 'No tienes notificaciones pendientes')}
                 </Text>
               </View>
@@ -175,30 +204,26 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
                 <View
                   key={item.id}
                   style={[
-                    styles.notifItem,
+                    styles.notifCard,
                     {
-                      backgroundColor: theme === 'dark' ? '#2A2A2A' : '#F5F7FA',
-                      borderColor: item.unread ? colors.primary : 'transparent',
+                      backgroundColor: isDark ? '#27272A' : '#FFFFFF',
                     }
                   ]}
                 >
-                  <View style={styles.iconContainer}>
-                    {getIcon(item.type, item.title)}
-                  </View>
-                  <View style={styles.notifContent}>
-                    <View style={styles.titleRow}>
-                      <Text style={[styles.notifTitle, { color: theme === 'dark' ? '#FFF' : '#333' }]}>
-                        {item.title}
-                      </Text>
-                      {item.unread && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-                    </View>
-                    <Text style={[styles.notifBody, { color: theme === 'dark' ? '#AAA' : '#666' }]}>
-                      {item.body}
-                    </Text>
-                    <Text style={[styles.notifTime, { color: theme === 'dark' ? '#777' : '#999' }]}>
-                      {item.time}
-                    </Text>
-                  </View>
+                  {/* Título */}
+                  <Text style={[styles.notifTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
+                    {item.title}
+                  </Text>
+
+                  {/* Descripción */}
+                  <Text style={[styles.notifBody, { color: isDark ? '#A1A1AA' : '#475569' }]}>
+                    {item.body}
+                  </Text>
+
+                  {/* Fecha sin hora */}
+                  <Text style={[styles.notifDate, { color: isDark ? '#71717A' : '#94A3B8' }]}>
+                    {item.date}
+                  </Text>
                 </View>
               ))
             )}
@@ -220,37 +245,40 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   panel: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 22,
     maxHeight: '85%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    elevation: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 20,
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 16,
+    marginBottom: 14,
     gap: 16,
   },
   actionBtn: {
@@ -263,52 +291,43 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   notifList: {
-    maxHeight: 350,
+    maxHeight: Math.min(SCREEN_HEIGHT * 0.58, 440),
+  },
+  notifListContent: {
+    paddingBottom: 24, // Espacio para que la última tarjeta no choque con los bordes
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 48,
   },
   emptyText: {
     fontSize: 14,
+    fontWeight: '500',
   },
-  notifItem: {
-    flexDirection: 'row',
-    padding: 14,
-    borderRadius: 16,
-    marginBottom: 10,
-    borderLeftWidth: 3,
-  },
-  iconContainer: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  notifContent: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+  // Card Minimalista tipo Instagram: más grande, plana y sin sombra
+  notifCard: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 18,
+    marginBottom: 12,
+    borderWidth: 0,
   },
   notifTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    fontSize: 16.5,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: -0.3,
+    lineHeight: 22,
   },
   notifBody: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 6,
+    fontSize: 14.5,
+    lineHeight: 21,
+    marginBottom: 10,
   },
-  notifTime: {
-    fontSize: 10,
+  notifDate: {
+    fontSize: 12.5,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });

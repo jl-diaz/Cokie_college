@@ -159,7 +159,7 @@ export default function ClassroomsScreen() {
         <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder={t('classrooms.filterPlaceholder', 'Filtrar por grado o sección (ej. 9, A)...')}
+          placeholder={t('classrooms.filterPlaceholder', 'Filtrar por grado o sección')}
           placeholderTextColor={Colors.text.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -232,7 +232,7 @@ export default function ClassroomsScreen() {
                 <Text style={styles.modalTitle}>
                   {selectedClassroom?.grade}º Grado — Sección '{selectedClassroom?.section}'
                 </Text>
-                <Text style={styles.modalSubtitle}>{t('classrooms.optionsAvailable', 'Opciones y acciones disponibles')}</Text>
+                
               </View>
               <TouchableOpacity 
                 style={styles.closeBtn} 
@@ -241,10 +241,13 @@ export default function ClassroomsScreen() {
                 <X size={22} color={Colors.primary} />
               </TouchableOpacity>
             </View>
-
+            <Text style={[styles.modalSubtitle, { marginBottom: Spacing.md }]}>
+              {t('classrooms.optionsAvailable', 'Opciones y acciones disponibles')}
+            </Text>
             <TouchableOpacity onPress={navigateToStudents} style={styles.actionItem} activeOpacity={0.8}>
-              <View style={[styles.actionIconBox, { backgroundColor: Colors.primary }]}>
-                <Users color="#FFF" size={20} />
+              
+              <View style={[styles.actionIconBox, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                <Users color="#FFFFFF" size={20} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionText}>{t('classrooms.studentList', 'Lista de Estudiantes y Asistencia')}</Text>
@@ -254,8 +257,8 @@ export default function ClassroomsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={navigateToSchedule} style={styles.actionItem} activeOpacity={0.8}>
-              <View style={[styles.actionIconBox, { backgroundColor: '#0284c7' }]}>
-                <Calendar color="#FFF" size={20} />
+              <View style={[styles.actionIconBox, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                <Calendar color="#FFFFFF" size={20} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionText}>{t('classrooms.viewSchedule', 'Ver Horario de Clases')}</Text>
@@ -268,8 +271,8 @@ export default function ClassroomsScreen() {
               <>
                 {!showPeriodSelector ? (
                   <TouchableOpacity onPress={() => setShowPeriodSelector(true)} style={styles.actionItem} activeOpacity={0.8}>
-                    <View style={[styles.actionIconBox, { backgroundColor: '#10b981' }]}>
-                      <BookOpen color="#FFF" size={20} />
+                    <View style={[styles.actionIconBox, { backgroundColor: theme === 'dark' ? '#27272A' : '#18181B' }]}>
+                      <BookOpen color="#FFFFFF" size={20} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.actionText}>{t('classrooms.downloadZip', 'Descargar Boletines (ZIP)')}</Text>
@@ -346,7 +349,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     width: 48, 
     height: 48, 
     borderRadius: BorderRadius.lg, 
-    backgroundColor: Colors.primary, 
+    backgroundColor: theme === 'dark' ? '#27272A' : '#18181B', 
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: Spacing.md 
@@ -396,8 +399,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderBottomColor: Colors.gray[200] || '#f1f5f9',
     paddingBottom: Spacing.md,
   },
-  modalTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: Colors.primary },
-  modalSubtitle: { fontSize: Typography.size.xs, color: Colors.text.muted, marginTop: 2 },
+  modalTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.extraBold, color: Colors.primary},
+  modalSubtitle: { fontSize: Typography.size.md, color: Colors.text.muted, marginTop: 2 },
   closeBtn: { padding: 4 },
 
   actionItem: { 
