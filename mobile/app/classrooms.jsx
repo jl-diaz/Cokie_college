@@ -327,7 +327,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderColor: Colors.gray[200] || '#e2e8f0',
     ...Shadows.card,
   },
-  searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
 
   scrollContent: { padding: Spacing.lg, paddingBottom: 40 },
   emptyContainer: { padding: 40, alignItems: 'center' },

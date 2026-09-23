@@ -938,7 +938,7 @@ const createStyles = (Colors, theme) => {
     borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : (Colors.gray[200] || '#e2e8f0'),
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    fontSize: Typography.size.sm,
+    fontSize: 16,
     color: Colors.text.primary,
     textAlignVertical: 'top',
     minHeight: 80,

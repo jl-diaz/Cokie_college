@@ -1860,7 +1860,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     color: Colors.text.primary,
     backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
     marginBottom: 12,
-    fontSize: 14,
+    fontSize: 16,
   },
   typeRow: {
     flexDirection: 'row',
@@ -1930,7 +1930,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   searchBarInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.text.primary,
   },
   emptySearchContainer: {
@@ -2076,7 +2076,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     color: Colors.text.primary,
-    fontSize: 14,
+    fontSize: 16,
   },
   testResultBox: {
     flexDirection: 'row',

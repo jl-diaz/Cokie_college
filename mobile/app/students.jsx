@@ -209,7 +209,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     height: 48,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
   listContent: { padding: Spacing.xl },
   card: {

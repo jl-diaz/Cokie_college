@@ -18,14 +18,16 @@
 
 /* PANELS */
 .hs-panel {
-  width: 145vw;
+  min-width: max(145vw, max-content);
+  width: max-content;
   height: 100vh;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.8rem;
-  padding: 0 5vw;
+  gap: 2rem;
+  padding: 0 max(6vw, 4rem);
+  box-sizing: border-box;
   position: relative;
   background-color: #0b1957;
 }
@@ -33,6 +35,7 @@
 /* PANEL INTRO MINIMALISTA CON LETRA DESTACADA */
 .hs-panel--intro {
   width: 100vw;
+  min-width: 100vw;
 }
 
 .hs-intro-minimal {
@@ -54,9 +57,12 @@
 
 /* ENCABEZADOS DE NIVELES */
 .hs-level-header {
-  flex: 0 0 260px;
+  flex: 0 0 auto;
+  min-width: 240px;
+  max-width: 300px;
   position: relative;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .hs-level-title {
@@ -71,7 +77,9 @@
 
 /* SECCIÓN CLUBES DEPORTES */
 .hs-panel--clubes {
-  width: 185vw;
+  min-width: max(185vw, max-content);
+  width: max-content;
+  padding: 0 max(6vw, 4rem);
 }
 
 /* FILA DE IMÁGENES DE NIVELES Y CLUBES EN ESCRITORIO */
@@ -215,3 +223,33 @@
     border-radius: 16px;
   }
 }
+
+/* ================= ADAPTACIÓN PARA MONITORES VERTICALES / PIVOT (min-width: 769px y orientación portrait) ================= */
+@media (min-width: 769px) and (orientation: portrait) {
+  .hs-panel {
+    min-width: max(165vw, max-content);
+    padding: 0 8vw;
+    gap: 2.5rem;
+  }
+
+  .hs-panel--clubes {
+    min-width: max(220vw, max-content);
+    padding: 0 8vw;
+  }
+
+  .hs-level-header {
+    min-width: 260px;
+    max-width: 320px;
+  }
+
+  .hs-img-card {
+    width: 380px;
+    height: 280px;
+  }
+
+  .hs-img-card-png {
+    width: 360px;
+    height: 280px;
+  }
+}
+

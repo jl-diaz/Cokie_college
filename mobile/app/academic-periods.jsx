@@ -609,6 +609,7 @@ export default function AcademicPeriodsScreen() {
             <DatePickerSelector
               label={t('academicPeriods.startDate', 'Fecha de Inicio *')}
               value={startDate}
+              maxDate={endDate || undefined}
               onChange={(d) => setStartDate(d)}
               placeholder={t('academicPeriods.selectStartDate', 'Seleccionar fecha de inicio')}
               isOpen={activePicker === 'start'}
@@ -619,6 +620,8 @@ export default function AcademicPeriodsScreen() {
             <DatePickerSelector
               label={t('academicPeriods.endDate', 'Fecha de Fin *')}
               value={endDate}
+              minDate={startDate || undefined}
+              error={validationState.reason === 'end_before_start' ? validationState.message : undefined}
               onChange={(d) => setEndDate(d)}
               placeholder={t('academicPeriods.selectEndDate', 'Seleccionar fecha de fin')}
               isOpen={activePicker === 'end'}
@@ -991,7 +994,7 @@ const createStyles = (Colors, theme) => {
       borderRadius: BorderRadius.md,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      fontSize: 14,
+      fontSize: 16,
       color: textColor,
     },
     validationErrorBanner: {

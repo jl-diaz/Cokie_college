@@ -854,7 +854,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
     borderRadius: 12,
     paddingHorizontal: 14,
-    fontSize: 15,
+    fontSize: 16,
     color: theme === 'dark' ? '#ffffff' : '#0f172a',
     backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
     marginBottom: 14,

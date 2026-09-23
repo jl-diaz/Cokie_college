@@ -615,7 +615,7 @@ const createStyles = (Colors, theme) => {
       borderColor: cardBorder,
       borderRadius: BorderRadius.lg,
       padding: Spacing.md,
-      fontSize: Typography.size.sm,
+      fontSize: 16,
       color: Colors.text.primary,
       textAlignVertical: 'top',
       minHeight: 90,

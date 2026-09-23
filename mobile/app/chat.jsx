@@ -1461,7 +1461,7 @@ export default function ChatScreen() {
               <TouchableOpacity
                 style={styles.desktopClipBtn}
                 onPress={() => {
-                  Keyboard.dismiss();
+                  if (Platform.OS !== 'web') Keyboard.dismiss();
                   setAttachmentModalVisible(true);
                 }}
                 activeOpacity={0.7}
@@ -1518,13 +1518,13 @@ export default function ChatScreen() {
                   placeholderTextColor={isDark ? Colors.text.muted : '#94a3b8'}
                   value={messageText}
                   onChangeText={setMessageText}
-                  onFocus={triggerInputLift}
+                  onFocus={Platform.OS !== 'web' ? triggerInputLift : undefined}
                   onSubmitEditing={() => handleSendMessage()}
                 />
                 <TouchableOpacity
                   style={styles.mobileClipBtn}
                   onPress={() => {
-                    Keyboard.dismiss();
+                    if (Platform.OS !== 'web') Keyboard.dismiss();
                     setAttachmentModalVisible(true);
                   }}
                   activeOpacity={0.7}
@@ -1902,7 +1902,7 @@ export default function ChatScreen() {
   };
 
   const handleChatBack = () => {
-    Keyboard.dismiss();
+    if (Platform.OS !== 'web') Keyboard.dismiss();
     if (previewImage) {
       setPreviewImage(null);
       return;
@@ -2057,7 +2057,12 @@ const createStyles = (Colors, theme, isDesktop) => {
       fontSize: 26,
       fontWeight: 'bold',
       color: isDark ? Colors.text.primary : '#FFFFFF',
-      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+      fontFamily: Platform.select({
+        ios: 'System',
+        android: 'sans-serif-medium',
+        web: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        default: 'System',
+      }),
     },
     plusBtn: {
       width: 36,
@@ -2079,7 +2084,7 @@ const createStyles = (Colors, theme, isDesktop) => {
       flex: 1,
       marginLeft: 8,
       color: isDark ? Colors.text.primary : '#FFFFFF',
-      fontSize: 14,
+      fontSize: 16,
     },
 
     // Pestañas de Filtro
@@ -2222,7 +2227,9 @@ const createStyles = (Colors, theme, isDesktop) => {
     // Vista de Conversación Activa
     chatPaneContainer: {
       flex: 1,
-      backgroundColor: isDark ? Colors.background : (Colors.headerC || '#0B1956'),
+      backgroundColor: isDesktop 
+        ? (isDark ? Colors.background : '#FFFFFF') 
+        : (isDark ? Colors.background : (Colors.headerC || '#0B1956')),
     },
     chatHeaderDesktop: {
       flexDirection: 'row',
@@ -2323,8 +2330,8 @@ const createStyles = (Colors, theme, isDesktop) => {
     chatBodyCard: {
       flex: 1,
       backgroundColor: isDark ? Colors.background : '#FFFFFF',
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
+      borderTopLeftRadius: isDesktop ? 0 : 28,
+      borderTopRightRadius: isDesktop ? 0 : 28,
       overflow: 'hidden',
     },
     messagesListContent: {
@@ -2499,7 +2506,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     },
     mobileChatTextInput: {
       flex: 1,
-      fontSize: 14,
+      fontSize: 16,
       color: isDark ? Colors.text.primary : '#1e293b',
     },
     mobileClipBtn: {
@@ -2631,7 +2638,7 @@ const createStyles = (Colors, theme, isDesktop) => {
       borderColor: isDark ? Colors.gray[200] : '#cbd5e1',
       borderRadius: 10,
       padding: 10,
-      fontSize: 14,
+      fontSize: 16,
       color: isDark ? Colors.text.primary : '#1e293b',
     },
     groupMembersCounter: {
@@ -2652,7 +2659,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     contactSearchInput: {
       flex: 1,
       marginLeft: 8,
-      fontSize: 13,
+      fontSize: 16,
       color: isDark ? Colors.text.primary : '#1e293b',
     },
     contactItem: {

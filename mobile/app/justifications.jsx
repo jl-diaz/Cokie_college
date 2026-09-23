@@ -91,6 +91,12 @@ export default function JustificationsScreen() {
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const getTodayLocalString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
+  const [dateError, setDateError] = useState('');
   const [formData, setFormData] = useState({
     date: '',
     reason: '',
@@ -102,6 +108,12 @@ export default function JustificationsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState(null); // 'start' | 'end'
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (modalVisible) {
+      setDateError('');
+    }
+  }, [modalVisible]);
 
   useEffect(() => {
     fetchJustifications();
@@ -216,6 +228,9 @@ export default function JustificationsScreen() {
 
   const handleSubmit = async () => {
     if (!formData.date || !formData.reason) {
+      if (!formData.date) {
+        setDateError(t('justifications.dateRequired', 'Por favor selecciona una fecha válida.'));
+      }
       showAlert({
         type: 'warning',
         title: t('dashboard.error', 'Campos Requeridos'),
@@ -224,9 +239,9 @@ export default function JustificationsScreen() {
       return;
     }
 
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const todayStr = getTodayLocalString();
     if (formData.date > todayStr) {
+      setDateError('La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.');
       showAlert({
         type: 'warning',
         title: 'Fecha Inválida',
@@ -562,10 +577,11 @@ export default function JustificationsScreen() {
                     <DatePickerSelector
                       label={`${t('justifications.dateLabel', 'Fecha de Inasistencia')} *`}
                       value={formData.date}
+                      error={dateError}
                       onChange={(dateStr) => {
-                        const today = new Date();
-                        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                        const todayStr = getTodayLocalString();
                         if (dateStr > todayStr) {
+                          setDateError('Solo se permiten justificaciones hasta la fecha actual.');
                           showAlert({
                             type: 'warning',
                             title: 'Fecha Inválida',
@@ -573,9 +589,10 @@ export default function JustificationsScreen() {
                           });
                           return;
                         }
+                        setDateError('');
                         setFormData(prev => ({ ...prev, date: dateStr }));
                       }}
-                      maxDate={new Date().toISOString().split('T')[0]}
+                      maxDate={getTodayLocalString()}
                       placeholder={t('justifications.selectDate', 'Seleccionar fecha')}
                     />
 

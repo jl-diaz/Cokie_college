@@ -112,10 +112,16 @@ export default function EventsScreen() {
 
   const isManagementAllowed = profile?.role === 'super_admin' || profile?.role === 'coordinator';
 
+  const getTodayLocalString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eventDate, setEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [eventDate, setEventDate] = useState(getTodayLocalString());
+  const [dateError, setDateError] = useState('');
   const [startTime, setStartTime] = useState('08:00 AM');
   const [endTime, setEndTime] = useState('10:00 AM');
   const [timePickerTarget, setTimePickerTarget] = useState(null); // 'start' | 'end'
@@ -166,7 +172,8 @@ export default function EventsScreen() {
     setEditingEvent(null);
     setTitle('');
     setDescription('');
-    setEventDate(new Date().toISOString().split('T')[0]);
+    setEventDate(getTodayLocalString());
+    setDateError('');
     setStartTime('08:00 AM');
     setEndTime('10:00 AM');
     setSelectedLevel(profile?.role === 'coordinator' ? (profile?.level || 'Todos') : 'Todos');
@@ -179,6 +186,7 @@ export default function EventsScreen() {
     setTitle(event.title || '');
     setDescription(event.description || '');
     setEventDate(event.event_date || '');
+    setDateError('');
     setStartTime(to12Hour(event.start_time));
     setEndTime(to12Hour(event.end_time));
     setSelectedLevel(event.level || 'Todos');
@@ -216,6 +224,9 @@ export default function EventsScreen() {
 
   const handleSubmit = async () => {
     if (!title.trim() || !eventDate.trim() || !startTime.trim() || !endTime.trim()) {
+      if (!eventDate.trim()) {
+        setDateError(t('events.dateRequired', 'Por favor selecciona la fecha del evento.'));
+      }
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
@@ -477,7 +488,11 @@ export default function EventsScreen() {
                   <DatePickerSelector
                     label={`${t('events.dateLabel', 'Fecha del Evento')} *`}
                     value={eventDate}
-                    onChange={(dateStr) => setEventDate(dateStr)}
+                    error={dateError}
+                    onChange={(dateStr) => {
+                      setDateError('');
+                      setEventDate(dateStr);
+                    }}
                     placeholder="Seleccionar fecha..."
                   />
 
@@ -751,7 +766,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.text.primary,
     marginBottom: 16,
   },

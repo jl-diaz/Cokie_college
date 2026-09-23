@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { 
   Modal, 
   View, 
@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Animated, 
-  TouchableWithoutFeedback 
+  TouchableWithoutFeedback,
+  Platform
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
@@ -107,58 +108,76 @@ export const AlertProvider = ({ children }) => {
     return Colors.primary;
   };
 
+  useEffect(() => {
+    if (Platform.OS === 'web' && visible) {
+      const timer = setTimeout(() => {
+        const bodyDivs = document.querySelectorAll('body > div');
+        if (bodyDivs.length > 0) {
+          const lastDiv = bodyDivs[bodyDivs.length - 1];
+          if (lastDiv) {
+            lastDiv.style.zIndex = '999999';
+            lastDiv.style.position = 'relative';
+          }
+        }
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
+
   const styles = createStyles(Colors, theme);
 
   return (
     <AlertContext.Provider value={{ showAlert, showConfirm, hideAlert }}>
       {children}
 
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={hideAlert}
-        statusBarTranslucent
-        navigationBarTranslucent
-      >
-        <TouchableWithoutFeedback onPress={hideAlert}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.alertCard}>
-                <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
-                  {getIcon()}
-                </View>
+      {visible && (
+        <Modal
+          visible={visible}
+          transparent
+          animationType="fade"
+          onRequestClose={hideAlert}
+          statusBarTranslucent
+          navigationBarTranslucent
+        >
+          <TouchableWithoutFeedback onPress={hideAlert}>
+            <View style={styles.overlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.alertCard}>
+                  <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
+                    {getIcon()}
+                  </View>
 
-                {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
-                {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
+                  {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
+                  {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
 
-                <View style={styles.buttonRow}>
-                  {config.cancelText ? (
+                  <View style={styles.buttonRow}>
+                    {config.cancelText ? (
+                      <TouchableOpacity
+                        style={[styles.button, styles.cancelButton]}
+                        onPress={handleCancel}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+
                     <TouchableOpacity
-                      style={[styles.button, styles.cancelButton]}
-                      onPress={handleCancel}
-                      activeOpacity={0.8}
+                      style={[
+                        styles.button,
+                        { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
+                      ]}
+                      onPress={handleConfirm}
+                      activeOpacity={0.85}
                     >
-                      <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                      <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
                     </TouchableOpacity>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.button,
-                      { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
-                    ]}
-                    onPress={handleConfirm}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
-                  </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
     </AlertContext.Provider>
   );
 };
@@ -172,8 +191,17 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 999999,
+    elevation: 999999,
+    ...(Platform.OS === 'web' && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+    }),
   },
   alertCard: {
     width: '100%',

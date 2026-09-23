@@ -474,7 +474,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.text.primary,
     marginBottom: 16,
   },

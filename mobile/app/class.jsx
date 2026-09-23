@@ -382,7 +382,7 @@ export default function ClassScreen() {
 
       // Cerramos el modal primero y ocultamos el teclado
       setConductModalVisible(false);
-      Keyboard.dismiss();
+      if (Platform.OS !== 'web') Keyboard.dismiss();
       hapticSuccess();
 
       // Mostramos la alerta de éxito tras desmontar el BottomModal para evitar bloqueo nativo de Modals en Android
@@ -1030,7 +1030,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.gray[200] || '#e2e8f0',
   },
-  searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
 
   // Stats Cards Row (Presentes & Ausentes)
   statsCardsRow: {
@@ -1309,7 +1309,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   codeSearchInput: {
     flex: 1,
-    fontSize: Typography.size.xs,
+    fontSize: 16,
     color: Colors.text.primary,
     paddingVertical: 0,
   },

@@ -283,7 +283,7 @@ const createStyles = (colors, theme) => StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.gray[200],
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text.primary,
     fontWeight: '600',
   },

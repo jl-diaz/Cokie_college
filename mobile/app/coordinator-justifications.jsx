@@ -76,8 +76,13 @@ export default function CoordinatorJustificationsScreen() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [gradeFilter, setGradeFilter] = useState('');
-  const [sectionFilter, setSectionFilter] = useState('');
   const [absenceDate, setAbsenceDate] = useState('');
+  const [dateError, setDateError] = useState('');
+
+  const getTodayLocalString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
   const [absenceScope, setAbsenceScope] = useState('full_day'); // 'full_day' | 'hourly'
   const [startTime, setStartTime] = useState('07:00 AM');
   const [endTime, setEndTime] = useState('09:30 AM');
@@ -354,6 +359,9 @@ export default function CoordinatorJustificationsScreen() {
   const createJustification = async () => {
     if (creationMode === 'individual') {
       if (!selectedStudent || !absenceDate || !reason.trim()) {
+        if (!absenceDate) {
+          setDateError(t('justifications.dateRequired', 'Por favor selecciona la fecha de inasistencia.'));
+        }
         showAlert({
           type: 'warning',
           title: t('dashboard.error', 'Error'),
@@ -363,6 +371,9 @@ export default function CoordinatorJustificationsScreen() {
       }
     } else {
       if (selectedStudents.length === 0 || !absenceDate || !reason.trim()) {
+        if (!absenceDate) {
+          setDateError(t('justifications.dateRequired', 'Por favor selecciona la fecha de inasistencia.'));
+        }
         showAlert({
           type: 'warning',
           title: t('dashboard.error', 'Error'),
@@ -370,6 +381,17 @@ export default function CoordinatorJustificationsScreen() {
         });
         return;
       }
+    }
+
+    const todayStr = getTodayLocalString();
+    if (absenceDate > todayStr) {
+      setDateError(t('justifications.invalidDateDesc', 'Solo se permiten justificaciones hasta la fecha actual.'));
+      showAlert({
+        type: 'warning',
+        title: t('justifications.invalidDate', 'Fecha Inválida'),
+        message: t('justifications.invalidDateDesc', 'Solo se permiten justificaciones hasta la fecha actual.')
+      });
+      return;
     }
 
     if (absenceScope === 'hourly') {
@@ -418,6 +440,7 @@ export default function CoordinatorJustificationsScreen() {
       setSelectedStudent(null);
       setSelectedStudents([]);
       setAbsenceDate('');
+      setDateError('');
       setAbsenceScope('full_day');
       setStartTime('07:00 AM');
       setEndTime('09:30 AM');
@@ -449,6 +472,7 @@ export default function CoordinatorJustificationsScreen() {
         setSelectedStudent(null);
         setSelectedStudents([]);
         setAbsenceDate('');
+        setDateError('');
         setAbsenceScope('full_day');
         setStartTime('07:00 AM');
         setEndTime('09:30 AM');
@@ -1112,7 +1136,20 @@ export default function CoordinatorJustificationsScreen() {
               <DatePickerSelector
                 label={t('justifications.absenceDate', 'Fecha de Ausencia / Actividad *')}
                 value={absenceDate}
+                error={dateError}
+                maxDate={getTodayLocalString()}
                 onChange={(dateStr) => {
+                  const todayStr = getTodayLocalString();
+                  if (dateStr > todayStr) {
+                    setDateError(t('justifications.invalidDateDesc', 'Solo se permiten justificaciones hasta la fecha actual.'));
+                    showAlert({
+                      type: 'warning',
+                      title: t('justifications.invalidDate', 'Fecha Inválida'),
+                      message: t('justifications.invalidDateDesc', 'Solo se permiten justificaciones hasta la fecha actual.')
+                    });
+                    return;
+                  }
+                  setDateError('');
                   setAbsenceDate(dateStr);
                 }}
                 placeholder={t('dashboard.selectDate', 'Seleccionar fecha')}
@@ -1883,7 +1920,7 @@ const createStyles = (Colors, theme) => {
     borderWidth: 1.5,
     borderColor: Colors.gray[300] || '#D1D5DB',
     padding: 12,
-    fontSize: Typography.size.sm,
+    fontSize: 16,
     color: Colors.text.primary,
   },
   submitBtn: { padding: 16, borderRadius: BorderRadius.lg, alignItems: 'center' },

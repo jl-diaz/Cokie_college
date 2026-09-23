@@ -28,6 +28,11 @@ export default function BottomModal({ visible, onClose, children }) {
   }, []);
 
   const screenHeight = windowDimensions.height;
+  const screenHeightRef = useRef(screenHeight);
+  useEffect(() => {
+    screenHeightRef.current = screenHeight;
+  }, [screenHeight]);
+
   const slideAnim = useRef(new Animated.Value(screenHeight)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -83,10 +88,13 @@ export default function BottomModal({ visible, onClose, children }) {
   }, [visible]);
 
   useEffect(() => {
+    const currentHeight = screenHeightRef.current || screenHeight;
     if (visible) {
-      Keyboard.dismiss();
+      if (Platform.OS !== 'web') {
+        Keyboard.dismiss();
+      }
       setShowModal(true);
-      slideAnim.setValue(screenHeight);
+      slideAnim.setValue(currentHeight);
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -101,7 +109,9 @@ export default function BottomModal({ visible, onClose, children }) {
         })
       ]).start();
     } else {
-      Keyboard.dismiss();
+      if (Platform.OS !== 'web') {
+        Keyboard.dismiss();
+      }
       let finishedCalled = false;
       const finish = () => {
         if (!finishedCalled) {
@@ -119,7 +129,7 @@ export default function BottomModal({ visible, onClose, children }) {
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
-          toValue: screenHeight,
+          toValue: currentHeight,
           duration: 200,
           useNativeDriver: true,
         })
@@ -129,7 +139,7 @@ export default function BottomModal({ visible, onClose, children }) {
       const timer = setTimeout(finish, 230);
       return () => clearTimeout(timer);
     }
-  }, [visible, screenHeight]);
+  }, [visible]);
 
   if (!showModal) return null;
 
@@ -150,7 +160,9 @@ export default function BottomModal({ visible, onClose, children }) {
       : (screenHeight - topSafe);
 
   const handleClose = () => {
-    Keyboard.dismiss();
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
     if (onClose) onClose();
   };
 
@@ -197,7 +209,7 @@ export default function BottomModal({ visible, onClose, children }) {
               borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
             }
           ]} 
-          onStartShouldSetResponder={() => true}
+          onStartShouldSetResponder={() => Platform.OS !== 'web'}
           onResponderTerminationRequest={() => true}
         >
           {children}

@@ -804,7 +804,7 @@ const createStyles = (Colors, theme) => {
     },
     searchInput: {
       flex: 1,
-      fontSize: 14,
+      fontSize: 16,
       color: textColor,
       paddingVertical: 0,
     },
@@ -1030,7 +1030,7 @@ const createStyles = (Colors, theme) => {
       borderRadius: BorderRadius.md,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      fontSize: 14,
+      fontSize: 16,
       color: textColor,
     },
     formStepperRow: {

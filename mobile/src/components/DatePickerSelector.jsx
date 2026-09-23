@@ -125,7 +125,22 @@ export default function DatePickerSelector({
   }
 
   const isDark = theme === 'dark';
-  const borderColor = error 
+
+  // Validación automática en tiempo real de minDate y maxDate
+  const autoValidationError = React.useMemo(() => {
+    if (!value) return null;
+    if (maxDate && value > maxDate) {
+      return t('datePicker.maxDateError', `La fecha no puede ser posterior a ${formatDisplayDate(maxDate) || maxDate}.`);
+    }
+    if (minDate && value < minDate) {
+      return t('datePicker.minDateError', `La fecha no puede ser anterior a ${formatDisplayDate(minDate) || minDate}.`);
+    }
+    return null;
+  }, [value, maxDate, minDate, t]);
+
+  const effectiveError = error || autoValidationError;
+
+  const borderColor = effectiveError 
     ? '#EF4444' 
     : isDark 
       ? 'rgba(255, 255, 255, 0.15)' 
@@ -155,8 +170,8 @@ export default function DatePickerSelector({
           ]}
         >
           <View style={styles.contentRow}>
-            <View style={[styles.iconWrapper, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#EFF6FF' }]}>
-              <CalendarIcon size={18} color={error ? '#EF4444' : colors.primary} />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : (effectiveError ? '#FEF2F2' : '#EFF6FF') }]}>
+              <CalendarIcon size={18} color={effectiveError ? '#EF4444' : colors.primary} />
             </View>
             <View style={styles.textContainer}>
               <Text 
@@ -207,6 +222,9 @@ export default function DatePickerSelector({
                 opacity: 0,
                 cursor: 'pointer',
                 zIndex: 10,
+                fontSize: '16px',
+                WebkitAppearance: 'none',
+                boxSizing: 'border-box',
                 colorScheme: isDark ? 'dark' : 'light',
               }}
             />
@@ -318,10 +336,10 @@ export default function DatePickerSelector({
         </>
       )}
 
-      {error ? (
+      {effectiveError ? (
         <View style={styles.errorRow}>
           <AlertCircle size={13} color="#EF4444" style={{ marginRight: 4 }} />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>{effectiveError}</Text>
         </View>
       ) : null}
     </View>

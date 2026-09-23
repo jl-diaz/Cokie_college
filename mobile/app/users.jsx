@@ -750,7 +750,7 @@ const createStyles = (Colors) => StyleSheet.create({
     marginBottom: 16,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
   tabsScroll: {
     marginHorizontal: -16,
     marginTop: 4,
@@ -867,7 +867,7 @@ const createStyles = (Colors) => StyleSheet.create({
     height: 50,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  input: { flex: 1, fontSize: 16, color: Colors.text.primary },
   dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',

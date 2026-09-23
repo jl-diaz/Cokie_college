@@ -406,7 +406,7 @@ const createStyles = (Colors) => StyleSheet.create({
     marginBottom: 12,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: Typography.size.sm, color: Colors.text.primary },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
   tabsScroll: {
     marginHorizontal: -16,
     marginTop: 4,
@@ -496,7 +496,7 @@ const createStyles = (Colors) => StyleSheet.create({
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: 16,
-    fontSize: Typography.size.sm,
+    fontSize: 16,
     color: Colors.text.primary,
   },
   textArea: { height: 80, textAlignVertical: 'top' },

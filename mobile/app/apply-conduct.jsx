@@ -257,7 +257,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.text.primary,
   },
   codeBadge: {
@@ -295,7 +295,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: 16,
     padding: 16,
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.text.primary,
     textAlignVertical: 'top',
     minHeight: 100,

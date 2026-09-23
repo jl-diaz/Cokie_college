@@ -1149,7 +1149,7 @@ const createStyles = (Colors, theme) => {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 13,
+    fontSize: 16,
     color: Colors.text.primary,
   },
   searchButton: {
@@ -1269,7 +1269,7 @@ const createStyles = (Colors, theme) => {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.text.primary,
     marginBottom: 14,
   },

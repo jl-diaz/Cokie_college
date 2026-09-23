@@ -29,6 +29,7 @@ export default function HomeScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const isDark = theme === 'dark';
+  const headerBg = isDark ? (Colors.headerC || '#1E1E1E') : (Colors.headerC || '#0B1956');
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -86,20 +87,38 @@ export default function HomeScreen() {
   return (
     <View style={[styles.root, { backgroundColor: isDark ? Colors.background : '#F8FAFC' }]}>
       <ScrollView
-        style={styles.scrollView}
+        style={[
+          styles.scrollView,
+          Platform.OS === 'web' && { overscrollBehaviorY: 'contain' }
+        ]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={true}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh} 
             tintColor={isDark ? Colors.primary : '#F7D8FF'} 
             colors={isDark ? [Colors.primary, '#18181B'] : ['#F7D8FF', '#0B1956']} 
+            progressBackgroundColor={headerBg}
+            style={{ backgroundColor: headerBg }}
           />
         }
       >
+        {/* Capa superior continua para overscroll y pull-to-refresh: elimina el espacio blanco al hacer scroll */}
+        <View 
+          style={{
+            position: 'absolute',
+            top: -1000,
+            left: 0,
+            right: 0,
+            height: 1000,
+            backgroundColor: headerBg,
+          }} 
+        />
+
         {/* 1. Header Dinámico estilo Imagen 1 */}
-        <View style={[styles.headerContainer, { backgroundColor: isDark ? '#121212' : (Colors.headerC || '#0B1956') }]}>
+        <View style={[styles.headerContainer, { backgroundColor: headerBg }]}>
           <Text style={styles.greetingTitle}>
             ¡Hola <Text style={[styles.nameHighlight, isDark && { color: Colors.primaryLight || Colors.primary }]}>{firstName}</Text>!
           </Text>
