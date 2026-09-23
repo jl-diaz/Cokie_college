@@ -85,7 +85,7 @@ export default function CoordinatorDashboard({ isDark = false }) {
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando panel de coordinación...
+          {t('dashboard.loadingCoordinator', 'Cargando panel de coordinación...')}
         </Text>
       </View>
     );
@@ -165,7 +165,7 @@ export default function CoordinatorDashboard({ isDark = false }) {
 
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Avisos"
+            title={t('menu.announcements', 'Avisos')}
             isDark={isDark}
             fallbackIcon={Bell}
             iconColor="#FFFFFF"

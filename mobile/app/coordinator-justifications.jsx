@@ -322,7 +322,7 @@ export default function CoordinatorJustificationsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudo procesar la solicitud.'
+        message: t('coordinatorJustifications.processRequestError', 'No se pudo procesar la solicitud.')
       });
     } finally {
       setProcessing(false);

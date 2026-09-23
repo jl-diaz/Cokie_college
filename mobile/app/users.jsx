@@ -226,8 +226,13 @@ export default function UsersScreen() {
         if (resData.email_sent === false) {
           showAlert({
             type: 'warning',
-            title: 'Usuario Creado (Aviso de Correo)',
-            message: `Usuario creado con éxito.\nCódigo: ${resData.institutional_code || ''}\nContraseña temporal: ${resData.temp_password || ''}\n\nNota: No se pudo enviar el correo con credenciales (${resData.email_error || 'revisa la contraseña de aplicación de correo'}). Asegúrate de entregar estas credenciales.`
+            title: t('users.userCreatedTitle', 'Usuario Creado (Aviso de Correo)'),
+            message: t('users.userCreatedEmailNotice', {
+              code: resData.institutional_code || '',
+              pass: resData.temp_password || '',
+              err: resData.email_error || 'revisa la contraseña de aplicación de correo',
+              defaultValue: `Usuario creado con éxito.\nCódigo: ${resData.institutional_code || ''}\nContraseña temporal: ${resData.temp_password || ''}\n\nNota: No se pudo enviar el correo con credenciales (${resData.email_error || 'revisa la contraseña de aplicación de correo'}). Asegúrate de entregar estas credenciales.`
+            })
           });
         } else {
           showAlert({
@@ -258,7 +263,7 @@ export default function UsersScreen() {
       showAlert({
         type: 'success',
         title: t('dashboard.success', '¡Activado!'),
-        message: 'Usuario reactivado correctamente.'
+        message: t('users.userReactivatedSuccess', 'Usuario reactivado correctamente.')
       });
       setPage(1);
       fetchUsers(1, true);
@@ -544,8 +549,8 @@ export default function UsersScreen() {
                     if (editingUser?.id === currentProfile?.id) {
                       showAlert({
                         type: 'info',
-                        title: 'Rol Protegido',
-                        message: 'No puedes modificar tu propio rol de administrador.'
+                        title: t('users.protectedRoleTitle', 'Rol Protegido'),
+                        message: t('users.cannotModifyOwnAdminRole', 'No puedes modificar tu propio rol de administrador.')
                       });
                       return;
                     }

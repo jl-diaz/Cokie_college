@@ -183,7 +183,7 @@ export default function GestureStudioScreen() {
 
   const handleCreateGesture = async () => {
     if (!newGestureName.trim()) {
-      alert('Por favor ingresa un nombre para el gesto.');
+      Alert.alert(t('common.error', 'Error'), t('gestureStudio.enterGestureNamePrompt', 'Por favor ingresa un nombre para el gesto.'));
       return;
     }
     setCreating(true);
@@ -206,7 +206,7 @@ export default function GestureStudioScreen() {
         fetchGestures();
       }
     } catch (e) {
-      alert('Error al registrar el gesto.');
+      Alert.alert(t('common.error', 'Error'), t('gestureStudio.registerGestureError', 'Error al registrar el gesto.'));
     } finally {
       setCreating(false);
     }
@@ -214,16 +214,16 @@ export default function GestureStudioScreen() {
 
   const handleDeleteGesture = async (id, name) => {
     if (Platform.OS === 'web') {
-      if (window.confirm(`¿Estás seguro de eliminar el gesto "${name}" y todas sus muestras grabadas?`)) {
+      if (window.confirm(t('gestureStudio.deleteGestureConfirm', { name, defaultValue: `¿Estás seguro de eliminar el gesto "${name}" y todas sus muestras grabadas?` }))) {
         await executeDelete(id);
       }
     } else {
       Alert.alert(
-        'Eliminar Gesto',
-        `¿Estás seguro de eliminar "${name}" y sus grabaciones?`,
+        t('gestureStudio.deleteGestureTitle', 'Eliminar Gesto'),
+        t('gestureStudio.deleteGestureConfirm', { name, defaultValue: `¿Estás seguro de eliminar "${name}" y sus grabaciones?` }),
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Eliminar', style: 'destructive', onPress: () => executeDelete(id) }
+          { text: t('gestureStudio.cancelBtn', 'Cancelar'), style: 'cancel' },
+          { text: t('gestureStudio.deleteBtn', 'Eliminar'), style: 'destructive', onPress: () => executeDelete(id) }
         ]
       );
     }
@@ -265,13 +265,13 @@ export default function GestureStudioScreen() {
 
       if (res.ok) {
         const json = await res.json();
-        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (Heap: ${json.free_heap || 'OK'})` });
+        setTestResult({ success: true, message: t('gestureStudio.connectedToDevice', { device: json.device || 'CokieLens', heap: json.free_heap || 'OK', defaultValue: `Conectado a ${json.device || 'CokieLens'} (Heap: ${json.free_heap || 'OK'})` }) });
         setGlassesConnected(true);
       } else {
-        setTestResult({ success: false, message: 'Respuesta inválida del dispositivo' });
+        setTestResult({ success: false, message: t('gestureStudio.invalidDeviceResponse', 'Respuesta inválida del dispositivo') });
       }
     } catch (e) {
-      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que esté en la misma red Wi-Fi.' });
+      setTestResult({ success: false, message: t('gestureStudio.connectionFailedCheckWifi', 'No se pudo conectar. Verifica que esté en la misma red Wi-Fi.') });
     } finally {
       setIsTestingConnection(false);
     }
@@ -280,7 +280,10 @@ export default function GestureStudioScreen() {
   // ── CAPTURA FOTOGRÁFICA PARA SEÑAS ESTÁTICAS ─────────────────────────────
   const handleCaptureStaticPhoto = async () => {
     if (!selectedGestureId) {
-      Alert.alert('Selección requerida', 'Selecciona un gesto primero en la barra superior.');
+      Alert.alert(
+        t('gestureStudio.selectionRequiredTitle', 'Selección requerida'),
+        t('gestureStudio.selectionRequiredDesc', 'Selecciona un gesto primero en la barra superior.')
+      );
       return;
     }
 
@@ -290,7 +293,10 @@ export default function GestureStudioScreen() {
     }
 
     if (recorderSource === 'phone' && !cameraRef.current) {
-      Alert.alert('Cámara no lista', 'La cámara aún se está inicializando. Intenta en un momento.');
+      Alert.alert(
+        t('gestureStudio.cameraNotReadyTitle', 'Cámara no lista'),
+        t('gestureStudio.cameraNotReadyDesc', 'La cámara aún se está inicializando. Intenta en un momento.')
+      );
       return;
     }
 
@@ -311,7 +317,10 @@ export default function GestureStudioScreen() {
         imageBase64 = photo?.base64;
       } else {
         if (!liveFrameUri) {
-          Alert.alert('Sin señal', 'No se ha recibido señal de video de los lentes CokieLens.');
+          Alert.alert(
+            t('gestureStudio.noSignalTitle', 'Sin señal'),
+            t('gestureStudio.noSignalDesc', 'No se ha recibido señal de video de los lentes CokieLens.')
+          );
           setRecordingState('idle');
           return;
         }
@@ -319,7 +328,10 @@ export default function GestureStudioScreen() {
       }
 
       if (!imageBase64) {
-        Alert.alert('Error', 'No se pudo capturar la foto.');
+        Alert.alert(
+          t('gestureStudio.captureErrorTitle', 'Error'),
+          t('gestureStudio.captureErrorDesc', 'No se pudo capturar la foto.')
+        );
         setRecordingState('idle');
         return;
       }
@@ -332,7 +344,10 @@ export default function GestureStudioScreen() {
       });
 
       if (!extractRes.ok) {
-        Alert.alert('Error de servidor', 'No se pudo procesar la foto con el servidor.');
+        Alert.alert(
+          t('gestureStudio.serverErrorTitle', 'Error de servidor'),
+          t('gestureStudio.serverProcessErrorDesc', 'No se pudo procesar la foto con el servidor.')
+        );
         setRecordingState('idle');
         return;
       }
@@ -342,8 +357,8 @@ export default function GestureStudioScreen() {
 
       if (!hasHand) {
         Alert.alert(
-          'Mano no detectada',
-          'No se detectaron manos visibles en la foto. Coloca tu mano fija frente a la cámara mostrando la seña con buena luz e inténtalo de nuevo.'
+          t('gestureStudio.handNotDetectedTitle', 'Mano no detectada'),
+          t('gestureStudio.handNotDetectedDesc', 'No se detectaron manos visibles en la foto. Coloca tu mano fija frente a la cámara mostrando la seña con buena luz e inténtalo de nuevo.')
         );
         setRecordingState('idle');
         return;
@@ -363,15 +378,21 @@ export default function GestureStudioScreen() {
       if (saveRes.ok) {
         await fetchGestures();
         Alert.alert(
-          '¡Foto Guardada!',
-          `Muestra fotográfica guardada con éxito para la seña estática "${selectedGesture?.name_es || selectedGesture?.name}".`
+          t('gestureStudio.photoSavedTitle', '¡Foto Guardada!'),
+          t('gestureStudio.photoSavedDesc', 'Muestra guardada correctamente.')
         );
       } else {
-        Alert.alert('Error', 'No se pudo guardar la muestra en el servidor.');
+        Alert.alert(
+          t('gestureStudio.captureErrorTitle', 'Error'),
+          t('gestureStudio.saveSampleErrorDesc', 'No se pudo guardar la muestra en el servidor.')
+        );
       }
     } catch (err) {
       console.warn('Error capturando foto:', err);
-      Alert.alert('Error', 'Hubo un fallo de conexión al procesar la foto.');
+      Alert.alert(
+        t('gestureStudio.captureErrorTitle', 'Error'),
+        t('gestureStudio.connectionErrorDesc', 'Hubo un fallo de conexión al procesar la foto.')
+      );
     } finally {
       setRecordingState('idle');
     }
@@ -509,7 +530,10 @@ export default function GestureStudioScreen() {
   // ── INICIAR GRABACIÓN GUIADA CON CUENTA REGRESIVA (MOVIMIENTO) ────────────────
   const startGuidedRecording = () => {
     if (!selectedGestureId) {
-      Alert.alert('Selección requerida', 'Selecciona un gesto primero en la barra superior.');
+      Alert.alert(
+        t('gestureStudio.selectionRequiredTitle', 'Selección requerida'),
+        t('gestureStudio.selectionRequiredDesc', 'Selecciona un gesto primero en la barra superior.')
+      );
       return;
     }
 
@@ -550,8 +574,8 @@ export default function GestureStudioScreen() {
       const frames = recordedFramesRef.current;
       if (frames.length < 4) {
         Alert.alert(
-          'Muestras insuficientes',
-          'No se detectaron suficientes movimientos de manos en la cámara (mínimo 4 cuadros). Asegúrate de colocarte frente a la cámara mostrando torso y manos con buena luz.'
+          t('gestureStudio.insufficientSamplesTitle', 'Muestras insuficientes'),
+          t('gestureStudio.insufficientSamplesDesc', 'No se detectaron suficientes movimientos de manos en la cámara (mínimo 4 cuadros). Asegúrate de colocarte frente a la cámara mostrando torso y manos con buena luz.')
         );
         setRecordingState('idle');
         return;
@@ -569,14 +593,20 @@ export default function GestureStudioScreen() {
       if (res.ok) {
         await fetchGestures();
         Alert.alert(
-          '¡Muestra Guardada!',
+          t('gestureStudio.sampleSavedTitle', '¡Muestra Guardada!'),
           `Se registraron ${frames.length} fotogramas de movimiento para "${selectedGesture?.name_es || selectedGesture?.name}".`
         );
       } else {
-        Alert.alert('Error', 'Error al guardar la muestra en el servidor.');
+        Alert.alert(
+          t('gestureStudio.captureErrorTitle', 'Error'),
+          t('gestureStudio.saveSampleErrorDesc', 'Error al guardar la muestra en el servidor.')
+        );
       }
     } catch (e) {
-      Alert.alert('Error', 'Error de conexión con el servidor.');
+      Alert.alert(
+        t('gestureStudio.captureErrorTitle', 'Error'),
+        t('gestureStudio.connectionErrorDesc', 'Error de conexión con el servidor.')
+      );
     } finally {
       setRecordingState('idle');
       recordedFramesRef.current = [];
@@ -626,7 +656,7 @@ export default function GestureStudioScreen() {
         >
           <BookOpen size={16} color={activeTab === 'dialect' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'dialect' && styles.tabTextActive]}>
-            Dialecto Escolar
+            {t('gestureStudio.tabDialect', 'Dialecto Escolar')}
           </Text>
         </TouchableOpacity>
 
@@ -636,7 +666,7 @@ export default function GestureStudioScreen() {
         >
           <Video size={16} color={activeTab === 'recorder' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'recorder' && styles.tabTextActive]}>
-            Grabador en Vivo
+            {t('gestureStudio.tabRecorder', 'Grabador en Vivo')}
           </Text>
         </TouchableOpacity>
 
@@ -646,7 +676,7 @@ export default function GestureStudioScreen() {
         >
           <Sparkles size={16} color={activeTab === 'training' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'training' && styles.tabTextActive]}>
-            Entrenamiento IA
+            {t('gestureStudio.tabTraining', 'Entrenamiento IA')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -657,30 +687,30 @@ export default function GestureStudioScreen() {
           <View style={styles.topStatsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statNum}>{gestures.length}</Text>
-              <Text style={styles.statLabel}>Gestos en Dialecto</Text>
+              <Text style={styles.statLabel}>{t('gestureStudio.gesturesInDialect', 'Gestos en Dialecto')}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statNum}>
                 {gestures.reduce((acc, curr) => acc + (curr.sample_count || 0), 0)}
               </Text>
-              <Text style={styles.statLabel}>Muestras Grabadas</Text>
+              <Text style={styles.statLabel}>{t('gestureStudio.recordedSamples', 'Muestras Grabadas')}</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={[styles.statNum, { color: eligibleGestures.length >= 2 ? '#10b981' : '#f59e0b' }]}>
                 {eligibleGestures.length}
               </Text>
-              <Text style={styles.statLabel}>Listos para IA</Text>
+              <Text style={styles.statLabel}>{t('gestureStudio.readyForAi', 'Listos para IA')}</Text>
             </View>
           </View>
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Señas y Movimientos Corporales</Text>
+            <Text style={styles.sectionTitle}>{t('gestureStudio.gesturesAndMovements', 'Señas y Movimientos Corporales')}</Text>
             <TouchableOpacity 
               style={styles.newGestureBtn}
               onPress={() => setIsNewModalOpen(true)}
             >
               <Plus size={16} color="#FFF" style={{ marginRight: 4 }} />
-              <Text style={styles.newGestureBtnText}>Nuevo Gesto</Text>
+              <Text style={styles.newGestureBtnText}>{t('gestureStudio.newGestureBtn', 'Nuevo Gesto')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -689,7 +719,7 @@ export default function GestureStudioScreen() {
             <Search size={18} color="#94a3b8" style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchBarInput}
-              placeholder="Buscar seña o movimiento..."
+              placeholder={t('gestureStudio.searchPlaceholder', 'Buscar seña por nombre...')}
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -709,11 +739,11 @@ export default function GestureStudioScreen() {
             <View style={styles.emptySearchContainer}>
               <Search size={32} color="#64748b" style={{ marginBottom: 8 }} />
               <Text style={styles.emptySearchText}>
-                {searchQuery ? `No se encontraron señas para "${searchQuery}"` : 'No hay señas registradas en el dialecto.'}
+                {searchQuery ? `No se encontraron señas para "${searchQuery}"` : t('gestureStudio.noGesturesFound', 'No se encontraron gestos.')}
               </Text>
               {searchQuery ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
-                  <Text style={styles.clearSearchBtnText}>Limpiar búsqueda</Text>
+                  <Text style={styles.clearSearchBtnText}>{t('gestureStudio.clearSearch', 'Limpiar búsqueda')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -733,12 +763,12 @@ export default function GestureStudioScreen() {
                     <View style={styles.tagsRow}>
                       <View style={[styles.badge, item.type === 'movement' ? styles.badgeMovement : styles.badgeStatic]}>
                         <Text style={styles.badgeText}>
-                          {item.type === 'movement' ? 'Movimiento Dinámico' : 'Seña Estática'}
+                          {item.type === 'movement' ? t('gestureStudio.dynamicMovementMode', 'Movimiento Dinámico') : t('gestureStudio.staticGestureMode', 'Seña Estática')}
                         </Text>
                       </View>
                       <View style={styles.sampleBadge}>
                         <Text style={styles.sampleBadgeText}>
-                          {item.sample_count || 0} muestras
+                          {item.sample_count || 0} {t('gestureStudio.samples', 'muestras')}
                         </Text>
                       </View>
                     </View>
@@ -776,7 +806,7 @@ export default function GestureStudioScreen() {
                       styles.cardActionBtnText,
                       item.type === 'static' && { color: '#059669' }
                     ]}>
-                      {item.type === 'static' ? 'Capturar Foto' : 'Grabar Movimiento'}
+                      {item.type === 'static' ? t('gestureStudio.capturePhotoAction', 'Capturar Foto') : t('gestureStudio.recordMovementAction', 'Grabar Movimiento')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -804,7 +834,7 @@ export default function GestureStudioScreen() {
               >
                 <Smartphone size={15} color={recorderSource === 'phone' ? '#FFF' : Colors.text.secondary} />
                 <Text style={[styles.sourceSegmentTxt, recorderSource === 'phone' && styles.sourceSegmentTxtActive]}>
-                  Teléfono
+                  {t('interpreter.sourcePhoneTab', 'Teléfono')}
                 </Text>
               </TouchableOpacity>
 
@@ -817,7 +847,7 @@ export default function GestureStudioScreen() {
               >
                 <Glasses size={15} color={recorderSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
                 <Text style={[styles.sourceSegmentTxt, recorderSource === 'glasses' && styles.sourceSegmentTxtActive]}>
-                  Lentes
+                  {t('interpreter.sourceGlassesTab', 'Lentes')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -835,7 +865,7 @@ export default function GestureStudioScreen() {
 
           {/* Barra de selección de gesto a grabar */}
           <View style={styles.gestureSelectorBar}>
-            <Text style={styles.selectorLabel}>Grabando para:</Text>
+            <Text style={styles.selectorLabel}>{t('gestureStudio.recordingFor', 'Grabando para:')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
               {gestures.map((g) => {
                 const isItemStatic = g.type === 'static';
@@ -873,14 +903,14 @@ export default function GestureStudioScreen() {
                 <>
                   <Camera size={14} color="#10b981" />
                   <Text style={styles.gestureModeTextStatic}>
-                    Seña Estática (Modo Foto) — {selectedGesture.name_es || selectedGesture.name}
+                    {t('gestureStudio.staticGestureMode', 'Seña Estática (Modo Foto)')} — {selectedGesture.name_es || selectedGesture.name}
                   </Text>
                 </>
               ) : (
                 <>
                   <Video size={14} color="#38bdf8" />
                   <Text style={styles.gestureModeTextMovement}>
-                    Movimiento Dinámico (Modo Grabación) — {selectedGesture.name_es || selectedGesture.name}
+                    {t('gestureStudio.dynamicMovementMode', 'Movimiento Dinámico (Modo Grabación)')} — {selectedGesture.name_es || selectedGesture.name}
                   </Text>
                 </>
               )}
@@ -893,9 +923,9 @@ export default function GestureStudioScreen() {
               !permission?.granted ? (
                 <View style={styles.noSignalBox}>
                   <Smartphone size={40} color="#64748b" style={{ marginBottom: 12 }} />
-                  <Text style={styles.noSignalText}>Se requiere acceso a la cámara del teléfono para capturar señas.</Text>
+                  <Text style={styles.noSignalText}>{t('gestureStudio.cameraPermissionRequired', 'Se requiere acceso a la cámara del teléfono para capturar señas.')}</Text>
                   <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
-                    <Text style={styles.permissionBtnText}>Conceder Permiso</Text>
+                    <Text style={styles.permissionBtnText}>{t('gestureStudio.grantPermissionBtn', 'Conceder Permiso')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -922,13 +952,13 @@ export default function GestureStudioScreen() {
               ) : (
                 <View style={styles.noSignalBox}>
                   <Glasses size={40} color="#64748b" style={{ marginBottom: 12 }} />
-                  <Text style={styles.noSignalText}>Conectando con cámara de los lentes en {esp32Ip}...</Text>
+                  <Text style={styles.noSignalText}>{t('gestureStudio.connectingGlassesStream', { ip: esp32Ip, defaultValue: `Conectando con cámara de los lentes en ${esp32Ip}...` })}</Text>
                   <TouchableOpacity 
                     style={styles.retrySettingsBtn}
                     onPress={() => setIsConfigModalVisible(true)}
                   >
                     <Settings size={14} color="#38bdf8" style={{ marginRight: 6 }} />
-                    <Text style={styles.retrySettingsBtnText}>Configurar IP</Text>
+                    <Text style={styles.retrySettingsBtnText}>{t('gestureStudio.configureIpBtn', 'Configurar IP')}</Text>
                   </TouchableOpacity>
                 </View>
               )
@@ -939,7 +969,7 @@ export default function GestureStudioScreen() {
               <View style={styles.staticModeBanner}>
                 <Camera size={14} color="#10b981" style={{ marginRight: 6 }} />
                 <Text style={styles.staticModeBannerText}>
-                  Mantén la seña fija frente a la cámara y presiona "Tomar Foto"
+                  {t('gestureStudio.staticInstructions', 'Mantén la seña fija frente a la cámara y presiona "Tomar Foto"')}
                 </Text>
               </View>
             )}
@@ -948,7 +978,7 @@ export default function GestureStudioScreen() {
             {recordingState === 'countdown' && (
               <View style={styles.countdownOverlay}>
                 <Text style={styles.countdownNumber}>{countdown}</Text>
-                <Text style={styles.countdownPrompt}>¡Prepárate para realizar el movimiento!</Text>
+                <Text style={styles.countdownPrompt}>{t('gestureStudio.prepareMovement', '¡Prepárate para realizar el movimiento!')}</Text>
               </View>
             )}
 
@@ -957,13 +987,13 @@ export default function GestureStudioScreen() {
               <View style={styles.recordingOverlay}>
                 <View style={styles.recordingHeader}>
                   <View style={styles.redRecordingDot} />
-                  <Text style={styles.recordingTitle}>GRABANDO MOVIMIENTO ({TARGET_MOVEMENT_FRAMES} CUADROS)</Text>
+                  <Text style={styles.recordingTitle}>{t('gestureStudio.recordingMovementFrames', { count: TARGET_MOVEMENT_FRAMES, defaultValue: `GRABANDO MOVIMIENTO (${TARGET_MOVEMENT_FRAMES} CUADROS)` })}</Text>
                 </View>
-                <Text style={styles.recordingSubtitle}>¡Haz el movimiento con brazos y manos ahora!</Text>
+                <Text style={styles.recordingSubtitle}>{t('gestureStudio.makeMovementNow', '¡Haz el movimiento con brazos y manos ahora!')}</Text>
                 <View style={styles.progressBarBg}>
                   <View style={[styles.progressBarFill, { width: `${recordingProgress}%` }]} />
                 </View>
-                <Text style={styles.progressCounter}>{recordedFramesRef.current.length} / {TARGET_MOVEMENT_FRAMES} fotogramas</Text>
+                <Text style={styles.progressCounter}>{t('gestureStudio.framesCount', { count: recordedFramesRef.current.length, target: TARGET_MOVEMENT_FRAMES, defaultValue: `${recordedFramesRef.current.length} / ${TARGET_MOVEMENT_FRAMES} fotogramas` })}</Text>
               </View>
             )}
 
@@ -972,7 +1002,7 @@ export default function GestureStudioScreen() {
               <View style={styles.countdownOverlay}>
                 <ActivityIndicator size="large" color="#38bdf8" />
                 <Text style={styles.countdownPrompt}>
-                  {selectedGesture?.type === 'static' ? 'Procesando mano y guardando foto...' : 'Procesando y guardando muestra...'}
+                  {selectedGesture?.type === 'static' ? t('gestureStudio.processingPhoto', 'Procesando mano y guardando foto...') : t('gestureStudio.processingSample', 'Procesando y guardando muestra...')}
                 </Text>
               </View>
             )}
@@ -991,7 +1021,7 @@ export default function GestureStudioScreen() {
               >
                 <Camera size={20} color="#FFF" style={{ marginRight: 8 }} />
                 <Text style={styles.recordButtonText}>
-                  {recordingState === 'saving' ? 'Procesando Foto...' : 'Tomar Foto de la Seña'}
+                  {recordingState === 'saving' ? t('gestureStudio.processingPhotoBtn', 'Procesando Foto...') : t('gestureStudio.takingPhoto', 'Tomar Foto de la Seña')}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -1005,17 +1035,17 @@ export default function GestureStudioScreen() {
               >
                 <View style={styles.recordInnerCircle} />
                 <Text style={styles.recordButtonText}>
-                  {recordingState === 'idle' ? `Iniciar Grabación (${TARGET_MOVEMENT_FRAMES} cuadros)` : 'Grabando...'}
+                  {recordingState === 'idle' ? t('gestureStudio.startRecordingMovement', { count: TARGET_MOVEMENT_FRAMES, defaultValue: `Iniciar Grabación (${TARGET_MOVEMENT_FRAMES} cuadros)` }) : t('gestureStudio.recording', 'Grabando...')}
                 </Text>
               </TouchableOpacity>
             )}
 
             <Text style={styles.recorderHint}>
               {selectedGesture?.type === 'static'
-                ? 'Coloca tu mano fija frente a la cámara mostrando la seña y presiona Tomar Foto.'
+                ? t('gestureStudio.staticHint', 'Coloca tu mano fija frente a la cámara mostrando la seña y presiona Tomar Foto.')
                 : recorderSource === 'phone'
-                  ? 'Colócate frente a la cámara del teléfono mostrando torso, brazos y manos.'
-                  : 'Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.'}
+                  ? t('gestureStudio.phoneMovementHint', 'Colócate frente a la cámara del teléfono mostrando torso, brazos y manos.')
+                  : t('gestureStudio.glassesMovementHint', 'Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.')}
             </Text>
           </View>
         </View>
@@ -1026,10 +1056,9 @@ export default function GestureStudioScreen() {
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           <View style={styles.trainingHeroCard}>
             <Sparkles size={36} color="#38bdf8" style={{ marginBottom: 10 }} />
-            <Text style={styles.trainingHeroTitle}>Entrenamiento en 1 Clic</Text>
+            <Text style={styles.trainingHeroTitle}>{t('gestureStudio.trainingOneClick', 'Entrenamiento en 1 Clic')}</Text>
             <Text style={styles.trainingHeroDesc}>
-              Entrena la red neuronal profunda con todas las señas y movimientos grabados.
-              La IA aprende los vectores espacio-temporales y se recarga en caliente sin reiniciar.
+              {t('gestureStudio.trainingDesc', 'Entrena la red neuronal profunda con todas las señas y movimientos grabados. La IA aprende los vectores espacio-temporales y se recarga en caliente sin reiniciar.')}
             </Text>
 
             <TouchableOpacity
@@ -1046,7 +1075,7 @@ export default function GestureStudioScreen() {
                 <Play size={18} color="#FFF" style={{ marginRight: 8 }} />
               )}
               <Text style={styles.startTrainBtnText}>
-                {trainingStatus === 'training' ? 'Entrenando Red Neuronal...' : 'Iniciar Entrenamiento'}
+                {trainingStatus === 'training' ? t('gestureStudio.trainingNeuralNetwork', 'Entrenando Red Neuronal...') : t('gestureStudio.startTrainingBtn', 'Iniciar Entrenamiento')}
               </Text>
             </TouchableOpacity>
 
@@ -1054,7 +1083,7 @@ export default function GestureStudioScreen() {
               <View style={styles.warningNotice}>
                 <AlertTriangle size={16} color="#f59e0b" style={{ marginRight: 6 }} />
                 <Text style={styles.warningNoticeText}>
-                  Se necesitan al menos 2 gestos con 2 o más muestras grabadas para poder entrenar.
+                  {t('gestureStudio.needMinGestures', 'Se necesitan al menos 2 gestos con 2 o más muestras grabadas para poder entrenar.')}
                 </Text>
               </View>
             )}
@@ -1064,7 +1093,7 @@ export default function GestureStudioScreen() {
           {trainingStatus === 'training' && (
             <View style={styles.progressCard}>
               <View style={styles.progressCardHeader}>
-                <Text style={styles.progressCardTitle}>Progreso de Entrenamiento</Text>
+                <Text style={styles.progressCardTitle}>{t('gestureStudio.trainingProgressTitle', 'Progreso de Entrenamiento')}</Text>
                 <Text style={styles.progressCardPercent}>{trainingProgress.percent}%</Text>
               </View>
 
@@ -1074,15 +1103,15 @@ export default function GestureStudioScreen() {
 
               <View style={styles.trainingMetricsRow}>
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Época</Text>
+                  <Text style={styles.metricLabel}>{t('gestureStudio.epoch', 'Época')}</Text>
                   <Text style={styles.metricVal}>{trainingProgress.epoch} / {trainingProgress.total_epochs}</Text>
                 </View>
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Pérdida (Loss)</Text>
+                  <Text style={styles.metricLabel}>{t('gestureStudio.loss', 'Pérdida (Loss)')}</Text>
                   <Text style={styles.metricVal}>{trainingProgress.loss}</Text>
                 </View>
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Precisión (Accuracy)</Text>
+                  <Text style={styles.metricLabel}>{t('gestureStudio.accuracy', 'Precisión (Accuracy)')}</Text>
                   <Text style={[styles.metricVal, { color: '#10b981' }]}>{trainingProgress.accuracy}%</Text>
                 </View>
               </View>
@@ -1093,17 +1122,16 @@ export default function GestureStudioScreen() {
           {trainingStatus === 'completed' && trainingResult && (
             <View style={styles.successCard}>
               <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
-              <Text style={styles.successTitle}>¡Entrenamiento Exitoso!</Text>
+              <Text style={styles.successTitle}>{t('gestureStudio.successfulTraining', '¡Entrenamiento Exitoso!')}</Text>
               <Text style={styles.successDesc}>
-                La red neuronal alcanzó una precisión del {trainingResult.accuracy}% con {trainingResult.total_samples} muestras.
-                El modelo ya fue recargado en memoria y está listo para interpretar.
+                {t('gestureStudio.trainingSuccessDesc', { accuracy: trainingResult.accuracy, samples: trainingResult.total_samples, defaultValue: `La red neuronal alcanzó una precisión del ${trainingResult.accuracy}% con ${trainingResult.total_samples} muestras. El modelo ya fue recargado en memoria y está listo para interpretar.` })}
               </Text>
 
               <TouchableOpacity
                 style={styles.testInterpreterBtn}
                 onPress={() => router.push('/interpreter')}
               >
-                <Text style={styles.testInterpreterBtnText}>Probar en el Intérprete</Text>
+                <Text style={styles.testInterpreterBtnText}>{t('gestureStudio.testInInterpreter', 'Probar en el Intérprete')}</Text>
                 <ChevronRight size={16} color="#FFF" />
               </TouchableOpacity>
             </View>
@@ -1129,30 +1157,30 @@ export default function GestureStudioScreen() {
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: 16 }}
               >
-                <Text style={styles.modalTitle}>Agregar Gesto al Dialecto</Text>
+                <Text style={styles.modalTitle}>{t('gestureStudio.manageDialect', 'Agregar Gesto al Dialecto')}</Text>
                 <Text style={styles.modalSubtitle}>
-                  Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.
+                  {t('gestureStudio.manageDialectDesc', 'Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.')}
                 </Text>
 
-                <Text style={styles.fieldLabel}>Nombre en Español *</Text>
+                <Text style={styles.fieldLabel}>{t('gestureStudio.modalNewNameEsLabel', 'Nombre en Español *')}</Text>
                 <TextInput
                   style={styles.textInput}
                   value={newGestureName}
                   onChangeText={setNewGestureName}
-                  placeholder="Ej: Puerta, Permiso para ir al baño"
+                  placeholder={t('gestureStudio.nameEsPlaceholder', 'Ej: Puerta, Permiso para ir al baño')}
                   placeholderTextColor="#94a3b8"
                 />
 
-                <Text style={styles.fieldLabel}>Nombre en Inglés (Traducción TTS / Subtítulos)</Text>
+                <Text style={styles.fieldLabel}>{t('gestureStudio.nameEnLabel', 'Nombre en Inglés (Traducción TTS / Subtítulos)')}</Text>
                 <TextInput
                   style={styles.textInput}
                   value={newGestureNameEn}
                   onChangeText={setNewGestureNameEn}
-                  placeholder="Ej: Door, Excuse me to go to bathroom"
+                  placeholder={t('gestureStudio.nameEnPlaceholder', 'Ej: Door, Excuse me to go to bathroom')}
                   placeholderTextColor="#94a3b8"
                 />
 
-                <Text style={styles.fieldLabel}>Tipo de Expresión</Text>
+                <Text style={styles.fieldLabel}>{t('gestureStudio.expressionType', 'Tipo de Expresión')}</Text>
                 <View style={styles.typeRow}>
                   <TouchableOpacity
                     style={[styles.typeOption, newGestureType === 'movement' && styles.typeOptionActive]}
@@ -1160,7 +1188,7 @@ export default function GestureStudioScreen() {
                   >
                     <Activity size={16} color={newGestureType === 'movement' ? '#38bdf8' : Colors.text.secondary} />
                     <Text style={[styles.typeOptionText, newGestureType === 'movement' && styles.typeOptionTextActive]}>
-                      Movimiento Dinámico
+                      {t('gestureStudio.dynamicMovement', 'Movimiento Dinámico')}
                     </Text>
                   </TouchableOpacity>
 
@@ -1170,17 +1198,17 @@ export default function GestureStudioScreen() {
                   >
                     <Award size={16} color={newGestureType === 'static' ? '#38bdf8' : Colors.text.secondary} />
                     <Text style={[styles.typeOptionText, newGestureType === 'static' && styles.typeOptionTextActive]}>
-                      Seña Estática
+                      {t('gestureStudio.staticGesture', 'Seña Estática')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.fieldLabel}>Instrucciones de Movimiento (Opcional)</Text>
+                <Text style={styles.fieldLabel}>{t('gestureStudio.instructionsOptional', 'Instrucciones de Movimiento (Opcional)')}</Text>
                 <TextInput
                   style={[styles.textInput, { height: 60 }]}
                   value={newGestureDesc}
                   onChangeText={setNewGestureDesc}
-                  placeholder="Ej: Mano derecha en letra B sacudiéndose a la altura del pecho"
+                  placeholder={t('gestureStudio.instructionsPlaceholder', 'Ej: Mano derecha en letra B sacudiéndose a la altura del pecho')}
                   placeholderTextColor="#94a3b8"
                   multiline
                 />
@@ -1190,7 +1218,7 @@ export default function GestureStudioScreen() {
                     style={styles.cancelBtn}
                     onPress={() => setIsNewModalOpen(false)}
                   >
-                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                    <Text style={styles.cancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -1201,7 +1229,7 @@ export default function GestureStudioScreen() {
                     {creating ? (
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
-                      <Text style={styles.confirmBtnText}>Registrar Gesto</Text>
+                      <Text style={styles.confirmBtnText}>{t('gestureStudio.registerGesture', 'Registrar Gesto')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -1227,7 +1255,7 @@ export default function GestureStudioScreen() {
               <View style={styles.modalHeaderRow}>
                 <View style={styles.modalTitleBadge}>
                   <Glasses size={20} color="#38bdf8" style={{ marginRight: 8 }} />
-                  <Text style={styles.modalTitle}>Configurar CokieLens</Text>
+                  <Text style={styles.modalTitle}>{t('gestureStudio.configGlassesModalTitle', 'Configurar CokieLens')}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setIsConfigModalVisible(false)}>
                   <X size={20} color={Colors.text.secondary} />
@@ -1235,10 +1263,10 @@ export default function GestureStudioScreen() {
               </View>
 
               <Text style={styles.modalSubtitle}>
-                Ingresa la dirección IP asignada a los lentes inteligentes en tu red Wi-Fi local para vincular la cámara.
+                {t('gestureStudio.configGlassesModalDesc', 'Ingresa la dirección IP asignada a los lentes inteligentes en tu red Wi-Fi local para vincular la cámara.')}
               </Text>
 
-              <Text style={styles.fieldLabel}>Dirección IP / Hostname</Text>
+              <Text style={styles.fieldLabel}>{t('gestureStudio.ipOrHostname', 'Dirección IP / Hostname')}</Text>
               <View style={styles.ipInputContainer}>
                 <Wifi size={18} color="#94a3b8" style={{ marginRight: 8 }} />
                 <TextInput
@@ -1275,12 +1303,12 @@ export default function GestureStudioScreen() {
                   {isTestingConnection ? (
                     <ActivityIndicator size="small" color="#38bdf8" />
                   ) : (
-                    <Text style={styles.testBtnText}>Probar Conexión</Text>
+                    <Text style={styles.testBtnText}>{t('gestureStudio.testConnectionBtn', 'Probar Conexión')}</Text>
                   )}
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                  <Text style={styles.saveBtnText}>Guardar IP</Text>
+                  <Text style={styles.saveBtnText}>{t('gestureStudio.saveIpBtn', 'Guardar IP')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

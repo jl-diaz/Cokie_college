@@ -127,8 +127,8 @@ export default function CafetinScreen() {
       console.error('Error al cargar datos del menú:', error);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudieron cargar los datos del catálogo y menú del día'
+        title: t('common.error', 'Error'),
+        message: t('cafetin.loadMenuError', 'No se pudieron cargar los datos del catálogo y menú del día')
       });
     } finally {
       setLoadingMenu(false);
@@ -170,8 +170,8 @@ export default function CafetinScreen() {
     if (!newItemName.trim()) {
       showAlert({
         type: 'warning',
-        title: 'Atención',
-        message: 'Por favor ingresa el nombre del alimento'
+        title: t('common.warning', 'Atención'),
+        message: t('cafetin.enterFoodNameWarning', 'Por favor ingresa el nombre del alimento')
       });
       return;
     }
@@ -190,15 +190,15 @@ export default function CafetinScreen() {
       setNewItemDesc('');
       showAlert({
         type: 'success',
-        title: '¡Éxito!',
-        message: 'Alimento añadido al catálogo correctamente'
+        title: t('common.success', '¡Éxito!'),
+        message: t('cafetin.foodAddedSuccess', 'Alimento añadido al catálogo correctamente')
       });
     } catch (error) {
       console.error('Error al agregar ítem:', error);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.error || 'No se pudo agregar el alimento'
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.error || t('cafetin.addFoodError', 'No se pudo agregar el alimento')
       });
     } finally {
       setAddingItem(false);
@@ -221,15 +221,15 @@ export default function CafetinScreen() {
       hapticSuccess();
       showAlert({
         type: 'success',
-        title: '¡Menú Publicado!',
-        message: 'El menú del día ha sido publicado exitosamente para los estudiantes y maestros.'
+        title: t('cafetin.menuPublishedTitle', '¡Menú Publicado!'),
+        message: t('cafetin.menuPublishedMessage', 'El menú del día ha sido publicado exitosamente para los estudiantes y maestros.')
       });
     } catch (error) {
       console.error('Error al publicar menú:', error);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudo publicar el menú del día'
+        title: t('common.error', 'Error'),
+        message: t('cafetin.publishMenuError', 'No se pudo publicar el menú del día')
       });
     } finally {
       setPublishingMenu(false);
@@ -239,10 +239,10 @@ export default function CafetinScreen() {
   const handleDeleteCatalogItem = (itemId, itemName) => {
     showConfirm({
       type: 'danger',
-      title: 'Confirmar eliminación',
-      message: `¿Deseas eliminar "${itemName}" del catálogo?`,
-      confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
+      title: t('common.confirmDelete', 'Confirmar eliminación'),
+      message: t('cafetin.confirmDeleteFood', { name: itemName, defaultValue: `¿Deseas eliminar "${itemName}" del catálogo?` }),
+      confirmText: t('common.delete', 'Eliminar'),
+      cancelText: t('common.cancel', 'Cancelar'),
       onConfirm: async () => {
         try {
           await api.delete(`/cafetin/catalog/${itemId}`);
@@ -250,14 +250,14 @@ export default function CafetinScreen() {
           setPublishedItemIds(publishedItemIds.filter(id => id !== itemId));
           showAlert({
             type: 'success',
-            title: '¡Eliminado!',
-            message: 'Alimento eliminado del catálogo.'
+            title: t('cafetin.itemDeletedTitle', '¡Eliminado!'),
+            message: t('cafetin.itemDeletedMessage', 'Alimento eliminado del catálogo.')
           });
         } catch (error) {
           showAlert({
             type: 'error',
-            title: 'Error',
-            message: 'No se pudo eliminar el ítem'
+            title: t('common.error', 'Error'),
+            message: t('cafetin.deleteItemError', 'No se pudo eliminar el ítem')
           });
         }
       }
@@ -279,16 +279,16 @@ export default function CafetinScreen() {
     if (order.status === 'preparado') {
       showAlert({
         type: 'info',
-        title: 'Información',
-        message: 'El pedido ya se encuentra en estado Preparado'
+        title: t('common.info', 'Información'),
+        message: t('cafetin.orderAlreadyPrepared', 'El pedido ya se encuentra en estado Preparado')
       });
       return;
     }
     if (order.status === 'entregado') {
       showAlert({
         type: 'info',
-        title: 'Información',
-        message: 'El pedido ya fue entregado y finalizado'
+        title: t('common.info', 'Información'),
+        message: t('cafetin.orderAlreadyDelivered', 'El pedido ya fue entregado y finalizado')
       });
       return;
     }
@@ -298,15 +298,15 @@ export default function CafetinScreen() {
       setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'preparado' } : o));
       showAlert({
         type: 'success',
-        title: '¡Pedido Preparado!',
-        message: `El pedido de ${order.user?.full_name || 'Cliente'} ha sido marcado como PREPARADO.`
+        title: t('cafetin.orderPreparedTitle', '¡Pedido Preparado!'),
+        message: t('cafetin.orderPreparedForCustomer', { customer: order.user?.full_name || 'Cliente', defaultValue: `El pedido de ${order.user?.full_name || 'Cliente'} ha sido marcado como PREPARADO.` })
       });
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudo cambiar el estado a preparado'
+        title: t('common.error', 'Error'),
+        message: t('cafetin.prepareOrderError', 'No se pudo cambiar el estado a preparado')
       });
     }
   };
@@ -317,8 +317,8 @@ export default function CafetinScreen() {
     if (!orderIdToQuery) {
       showAlert({
         type: 'warning',
-        title: 'Atención',
-        message: 'Por favor ingresa o escanea el código del pedido'
+        title: t('common.warning', 'Atención'),
+        message: t('cafetin.enterOrderCodeWarning', 'Por favor ingresa o escanea el código del pedido')
       });
       return;
     }
@@ -333,8 +333,8 @@ export default function CafetinScreen() {
       hapticWarning();
       showAlert({
         type: 'error',
-        title: 'Pedido No Encontrado',
-        message: 'El código de pedido escaneado no existe o no corresponde a este cafetín.'
+        title: t('cafetin.orderNotFoundTitle', 'Pedido No Encontrado'),
+        message: t('cafetin.orderNotFoundMessage', 'El código de pedido escaneado no existe o no corresponde a este cafetín.')
       });
     } finally {
       setLoadingScan(false);
@@ -349,8 +349,8 @@ export default function CafetinScreen() {
       hapticSuccess();
       showAlert({
         type: 'success',
-        title: '¡Despacho Exitoso!',
-        message: `El pedido de ${scannedOrder.user?.full_name} por $${Number(scannedOrder.total_price).toFixed(2)} ha sido entregado.`
+        title: t('cafetin.dispatchSuccessTitle', '¡Despacho Exitoso!'),
+        message: t('cafetin.dispatchDeliveredCustomer', { customer: scannedOrder.user?.full_name, total: Number(scannedOrder.total_price).toFixed(2), defaultValue: `El pedido de ${scannedOrder.user?.full_name} por $${Number(scannedOrder.total_price).toFixed(2)} ha sido entregado.` })
       });
       setScannedOrder(null);
       setScannedOrderId('');
@@ -360,8 +360,8 @@ export default function CafetinScreen() {
       hapticWarning();
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudo confirmar la entrega del pedido'
+        title: t('common.error', 'Error'),
+        message: t('cafetin.confirmDeliveryError', 'No se pudo confirmar la entrega del pedido')
       });
     } finally {
       setConfirmingDispatch(false);
@@ -397,7 +397,7 @@ export default function CafetinScreen() {
         >
           <Utensils size={18} color={activeTab === 'menu' ? Colors.primary : Colors.text.secondary} />
           <Text style={[styles.tabButtonText, activeTab === 'menu' && styles.tabButtonTextActive]}>
-            1. Menú
+            {t('cafetin.tabMenu', '1. Menú')}
           </Text>
         </TouchableOpacity>
 
@@ -408,7 +408,7 @@ export default function CafetinScreen() {
         >
           <ShoppingBag size={18} color={activeTab === 'pedidos' ? Colors.primary : Colors.text.secondary} />
           <Text style={[styles.tabButtonText, activeTab === 'pedidos' && styles.tabButtonTextActive]}>
-            2. Pedidos ({orders.filter(o => o.status !== 'entregado').length})
+            {t('cafetin.tabOrders', { count: orders.filter(o => o.status !== 'entregado').length, defaultValue: `2. Pedidos (${orders.filter(o => o.status !== 'entregado').length})` })}
           </Text>
         </TouchableOpacity>
 
@@ -419,7 +419,7 @@ export default function CafetinScreen() {
         >
           <QrCode size={18} color={activeTab === 'qr' ? Colors.primary : Colors.text.secondary} />
           <Text style={[styles.tabButtonText, activeTab === 'qr' && styles.tabButtonTextActive]}>
-            3. Escáner QR
+            {t('cafetin.tabScanner', '3. Escáner QR')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -431,7 +431,7 @@ export default function CafetinScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>{t('cafetin.dailyMenu', 'Menú del Día')}</Text>
               <Text style={styles.sectionSubtitle}>
-                Selecciona los alimentos que tendrás disponibles hoy y presiona Publicar. Se reinicia cada día.
+                {t('cafetin.dailyMenuDesc', 'Selecciona los alimentos que tendrás disponibles hoy y presiona Publicar. Se reinicia cada día.')}
               </Text>
             </View>
             <TouchableOpacity
@@ -527,9 +527,9 @@ export default function CafetinScreen() {
           <View style={[styles.noticeBox, { marginHorizontal: 20, marginTop: 10 }]}>
             <Sparkles size={18} color={Colors.primary} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.noticeTitle}>💡 Doble clic para cambiar estado</Text>
+              <Text style={styles.noticeTitle}>{t('common.doubleClickChangeStatus', '💡 Doble clic para cambiar estado')}</Text>
               <Text style={styles.noticeText}>
-                Presiona dos veces (doble clic) rápido sobre la tarjeta de un pedido para marcarlo como PREPARADO.
+                {t('cafetin.doubleTapNotice', 'Presiona dos veces (doble clic) rápido sobre la tarjeta de un pedido para marcarlo como PREPARADO.')}
               </Text>
             </View>
           </View>
@@ -606,7 +606,7 @@ export default function CafetinScreen() {
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.qrTitle}>{t('cafetin.scanOrEnterQr', 'Escanear o Ingresar Código QR')}</Text>
             <Text style={styles.qrDesc}>
-              Escanea el QR del estudiante o ingresa manualmente el código de la orden.
+              {t('cafetin.qrDesc', 'Escanea el QR del estudiante o ingresa manualmente el código de la orden.')}
             </Text>
 
             {/* BOTÓN GRANDE PARA ABRIR CÁMARA */}
@@ -633,7 +633,7 @@ export default function CafetinScreen() {
             >
               <Camera size={24} color="#FFF" />
               <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>
-                Abrir Cámara para Escanear
+                {t('cafetin.openCameraToScan', 'Abrir Cámara para Escanear')}
               </Text>
             </TouchableOpacity>
 
@@ -721,7 +721,7 @@ export default function CafetinScreen() {
                   <AlertCircle size={28} color="#ef4444" style={{ marginBottom: 8 }} />
                   <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 16 }}>{t('cafetin.attention', '¡ATENCIÓN!')}</Text>
                   <Text style={{ color: '#991b1b', textAlign: 'center', marginTop: 4 }}>
-                    Este pedido ya fue marcado como ENTREGADO anteriormente. No es posible despacharlo de nuevo.
+                    {t('cafetin.alreadyDeliveredDesc', 'Este pedido ya fue marcado como ENTREGADO anteriormente. No es posible despacharlo de nuevo.')}
                   </Text>
                 </View>
               ) : (

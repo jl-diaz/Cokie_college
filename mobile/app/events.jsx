@@ -155,7 +155,7 @@ export default function EventsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los eventos'
+        message: t('events.loadError', 'No se pudieron cargar los eventos')
       });
     } finally {
       setLoading(false);
@@ -212,8 +212,8 @@ export default function EventsScreen() {
       if (endMins <= startMins) {
         showAlert({
           type: 'warning',
-          title: 'Horario Inválido',
-          message: 'La hora fin debe ser posterior a la hora de inicio.'
+          title: t('events.invalidScheduleTitle', 'Horario Inválido'),
+          message: t('events.invalidScheduleMessage', 'La hora fin debe ser posterior a la hora de inicio.')
         });
         return;
       }
@@ -230,7 +230,7 @@ export default function EventsScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
-        message: 'Por favor completa los campos obligatorios (Título, Fecha, Hora Inicio y Fin)'
+        message: t('events.requiredFieldsWarning', 'Por favor completa los campos obligatorios (Título, Fecha, Hora Inicio y Fin)')
       });
       return;
     }
@@ -240,8 +240,8 @@ export default function EventsScreen() {
     if (endMins <= startMins) {
       showAlert({
         type: 'warning',
-        title: 'Horario Inválido',
-        message: 'La hora fin debe ser posterior a la hora de inicio.'
+        title: t('events.invalidScheduleTitle', 'Horario Inválido'),
+        message: t('events.invalidScheduleMessage', 'La hora fin debe ser posterior a la hora de inicio.')
       });
       return;
     }
@@ -314,7 +314,7 @@ export default function EventsScreen() {
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
-            message: 'No se pudo eliminar el evento'
+            message: t('events.deleteError', 'No se pudo eliminar el evento')
           });
         }
       }
@@ -347,7 +347,7 @@ export default function EventsScreen() {
           <View style={styles.emptyCard}>
             <CalendarIcon size={48} color={Colors.text.muted} style={{ marginBottom: 12 }} />
             <Text style={styles.emptyTitle}>{t('events.noEvents', 'No hay eventos programados')}</Text>
-            <Text style={styles.emptyText}>Los eventos que se publiquen aparecerán aquí.</Text>
+            <Text style={styles.emptyText}>{t('events.empty', 'Los eventos que se publiquen aparecerán aquí.')}</Text>
           </View>
         ) : (
           events.map((item) => (
@@ -493,7 +493,7 @@ export default function EventsScreen() {
                       setDateError('');
                       setEventDate(dateStr);
                     }}
-                    placeholder="Seleccionar fecha..."
+                    placeholder={t('events.selectDatePlaceholder', 'Seleccionar fecha...')}
                   />
 
                   <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>

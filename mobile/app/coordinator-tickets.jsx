@@ -93,7 +93,7 @@ export default function CoordinatorTicketsScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Mensaje requerido'),
-        message: 'Por favor ingresa el motivo del rechazo para informar al profesor.'
+        message: t('coordinatorTickets.enterRejectReasonWarning', 'Por favor ingresa el motivo del rechazo para informar al profesor.')
       });
       return;
     }

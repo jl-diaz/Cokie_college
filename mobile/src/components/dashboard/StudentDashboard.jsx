@@ -11,6 +11,7 @@ import {
   GraduationCap 
 } from 'lucide-react-native';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 import { 
   LiveClassWidget, 
   BentoStatCard, 
@@ -22,6 +23,7 @@ import {
 
 export default function StudentDashboard({ isDark = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [activePeriod, setActivePeriod] = useState(4);
   const [schedules, setSchedules] = useState([]);
@@ -118,6 +120,10 @@ export default function StudentDashboard({ isDark = false }) {
     const justified = periodAttendance.filter(a => a.status === 'justified').length;
     const present = periodAttendance.filter(a => a.status === 'present').length;
 
+    const attendanceText = unexcused === 0 
+      ? (justified > 0 ? t(justified > 1 ? 'dashboard.justifiedAbsence_other' : 'dashboard.justifiedAbsence', { count: justified, defaultValue: `${justified} falta${justified > 1 ? 's' : ''} justificada${justified > 1 ? 's' : ''}` }) : t('dashboard.perfectAttendance', 'Asistencia perfecta'))
+      : t(unexcused > 1 ? 'dashboard.unexcusedAbsence_other' : 'dashboard.unexcusedAbsence', { count: unexcused, defaultValue: `${unexcused} falta${unexcused > 1 ? 's' : ''} sin justificar` });
+
     // Si hay toma de lista por clase completa registrada ('present' abundante):
     if (present >= 15) {
       const total = present + unexcused + justified;
@@ -126,9 +132,7 @@ export default function StudentDashboard({ isDark = false }) {
         percentage: `${pct}%`,
         unexcused,
         justified,
-        text: unexcused === 0 
-          ? (justified > 0 ? `${justified} falta${justified > 1 ? 's' : ''} justificada${justified > 1 ? 's' : ''}` : 'Asistencia perfecta')
-          : `${unexcused} falta${unexcused > 1 ? 's' : ''} sin justificar`
+        text: attendanceText
       };
     }
 
@@ -141,18 +145,16 @@ export default function StudentDashboard({ isDark = false }) {
       percentage: `${pct}%`,
       unexcused,
       justified,
-      text: unexcused === 0 
-        ? (justified > 0 ? `${justified} falta${justified > 1 ? 's' : ''} justificada${justified > 1 ? 's' : ''}` : 'Asistencia perfecta')
-        : `${unexcused} falta${unexcused > 1 ? 's' : ''} sin justificar`
+      text: attendanceText
     };
-  }, [diary, activePeriod]);
+  }, [diary, activePeriod, t]);
 
   if (loading) {
     return (
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando tu información...
+          {t('dashboard.loadingStudent', 'Cargando tu información...')}
         </Text>
       </View>
     );
@@ -170,9 +172,9 @@ export default function StudentDashboard({ isDark = false }) {
       {/* 2. Bento Estadísticas: Promedio (Azul Marino) y Asistencia (Rosa Cokie / Lavanda) */}
       <View style={styles.statsRow}>
         <BentoStatCard 
-          tag="Promedio"
+          tag={t('dashboard.average', 'Promedio')}
           value={generalAverage ? generalAverage : '—'}
-          subtitle={generalAverage ? (parseFloat(generalAverage) >= 8.5 ? 'Excelente rendimiento' : `Periodo ${activePeriod}`) : 'Sin notas aún'}
+          subtitle={generalAverage ? (parseFloat(generalAverage) >= 8.5 ? t('dashboard.excellentPerformance', 'Excelente rendimiento') : `${t('dashboard.period', 'Periodo')} ${activePeriod}`) : t('dashboard.noGradesYet', 'Sin notas aún')}
           variant="yellow"
           isDark={isDark}
           fallbackIcon={GraduationCap}
@@ -180,7 +182,7 @@ export default function StudentDashboard({ isDark = false }) {
         />
 
         <BentoStatCard 
-          tag="Asistencia"
+          tag={t('dashboard.attendance', 'Asistencia')}
           value={attendanceStats.percentage}
           subtitle={attendanceStats.text}
           variant="lavender"
@@ -201,7 +203,7 @@ export default function StudentDashboard({ isDark = false }) {
           >
             <UtensilsCrossed size={32} color="#EC4899" style={{ marginBottom: 8 }} />
             <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#FCE7F3' : '#831843' }}>
-              Almuerzo
+              {t('menu.lunch', 'Almuerzo')}
             </Text>
           </BentoCard>
         </View>
@@ -217,7 +219,7 @@ export default function StudentDashboard({ isDark = false }) {
               <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '700', marginTop: -2 }}>+</Text>
             </View>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>
-              Justificación
+              {t('menu.justification', 'Justificación')}
             </Text>
           </BentoCard>
         </View>
@@ -231,11 +233,13 @@ export default function StudentDashboard({ isDark = false }) {
       />
 
       {/* 5. Accesos Frecuentes con Ranuras para Iconos/Imágenes */}
-      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Accesos rápidos</Text>
+      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>
+        {t('dashboard.quickAccess', 'Accesos rápidos')}
+      </Text>
       
       <ActionCard 
-        title="Diario Pedagógico"
-        subtitle="Historial de inasistencias y códigos de conducta"
+        title={t('menu.diary', 'Diario Pedagógico')}
+        subtitle={t('dashboard.diarySubtitle', 'Historial de inasistencias y códigos de conducta')}
         isDark={isDark}
         fallbackIcon={BookOpen}
         iconColor="#FFFFFF"
@@ -247,7 +251,7 @@ export default function StudentDashboard({ isDark = false }) {
       <View style={styles.actionRowFlex}>
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Mi horario"
+            title={t('menu.mySchedule', 'Mi horario')}
             isDark={isDark}
             fallbackIcon={Calendar}
             iconColor="#FFFFFF"
@@ -259,7 +263,7 @@ export default function StudentDashboard({ isDark = false }) {
 
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Avisos"
+            title={t('menu.announcements', 'Avisos')}
             isDark={isDark}
             fallbackIcon={Bell}
             iconColor="#FFFFFF"

@@ -105,8 +105,8 @@ export default function GradesScreen() {
     if (grades.length === 0) {
       showAlert({
         type: 'warning',
-        title: 'Sin calificaciones',
-        message: 'No hay notas registradas en este periodo para generar el boletín.'
+        title: t('grades.noGradesTitle', 'Sin calificaciones'),
+        message: t('grades.noGradesMessage', 'No hay notas registradas en este periodo para generar el boletín.')
       });
       return;
     }
@@ -115,11 +115,11 @@ export default function GradesScreen() {
       await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails || profile);
       showAlert({
         type: 'success',
-        title: 'Boletín Generado',
-        message: 'El boletín se ha generado correctamente.'
+        title: t('grades.reportCardGeneratedTitle', 'Boletín Generado'),
+        message: t('grades.reportCardGeneratedMessage', 'El boletín se ha generado correctamente.')
       });
     } catch (error) {
-      showAlert({ type: 'error', title: 'Error', message: 'No se pudo generar el boletín PDF.' });
+      showAlert({ type: 'error', title: t('common.error', 'Error'), message: t('grades.pdfGenerationError', 'No se pudo generar el boletín PDF.') });
     } finally {
       setLoading(false);
     }
@@ -268,7 +268,9 @@ export default function GradesScreen() {
             activeOpacity={0.8}
           >
             <Book size={20} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Descargar Boletín P{selectedPeriod} (PDF)</Text>
+            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
+              {t('grades.downloadReportCardPdf', { period: selectedPeriod, defaultValue: `Descargar Boletín P${selectedPeriod} (PDF)` })}
+            </Text>
           </TouchableOpacity>
         </View>
       )}

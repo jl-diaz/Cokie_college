@@ -52,7 +52,7 @@ export default function StudentsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudo cargar el listado de estudiantes.'
+        message: t('students.loadStudentsError', 'No se pudo cargar el listado de estudiantes.')
       });
     } finally {
       setLoading(false);
@@ -119,7 +119,7 @@ export default function StudentsScreen() {
                   <View style={styles.detailRow}>
                     <Book size={14} color={Colors.text.muted} style={styles.icon} />
                     <Text style={styles.detailText}>
-                      {item.grade}º Grado - Sección '{item.section || 'A'}'
+                      {t('common.gradeSectionFormat', { grade: item.grade, section: item.section || 'A', defaultValue: `${item.grade}º Grado - Sección '${item.section || 'A'}'` })}
                     </Text>
                   </View>
                 )}

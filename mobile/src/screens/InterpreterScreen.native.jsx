@@ -383,7 +383,7 @@ export default function InterpreterScreenNative() {
           >
             <Smartphone size={15} color={videoSource === 'phone' ? '#FFF' : Colors.text.secondary} />
             <Text style={[styles.segmentTxt, videoSource === 'phone' && styles.segmentTxtActive]}>
-              Teléfono
+              {t('interpreter.sourcePhoneTab', 'Teléfono')}
             </Text>
           </TouchableOpacity>
 
@@ -393,7 +393,7 @@ export default function InterpreterScreenNative() {
           >
             <Glasses size={16} color={videoSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
             <Text style={[styles.segmentTxt, videoSource === 'glasses' && styles.segmentTxtActive]}>
-              Lentes
+              {t('interpreter.sourceGlassesTab', 'Lentes')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -406,7 +406,7 @@ export default function InterpreterScreenNative() {
           >
             <Volume2 size={15} color={audioOutput === 'phone' ? '#FFF' : Colors.text.secondary} />
             <Text style={[styles.segmentTxt, audioOutput === 'phone' && styles.segmentTxtActive]}>
-              Altavoz
+              {t('interpreter.audioSpeakerTab', 'Altavoz')}
             </Text>
           </TouchableOpacity>
 
@@ -416,7 +416,7 @@ export default function InterpreterScreenNative() {
           >
             <Headphones size={15} color={audioOutput === 'glasses' ? '#FFF' : Colors.text.secondary} />
             <Text style={[styles.segmentTxt, audioOutput === 'glasses' && styles.segmentTxtActive]}>
-              Lentes
+              {t('interpreter.audioGlassesTab', 'Lentes')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -465,7 +465,7 @@ export default function InterpreterScreenNative() {
               <View style={styles.glassesPlaceholder}>
                 <ActivityIndicator size="large" color="#38bdf8" />
                 <Text style={styles.glassesPlaceholderText}>
-                  Conectando con Lentes CokieLens en {esp32Ip}...
+                  {t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes CokieLens en ${esp32Ip}...` })}
                 </Text>
               </View>
             )}
@@ -485,7 +485,7 @@ export default function InterpreterScreenNative() {
         <View style={styles.subtitleOverlay}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={18} />
-            <Text style={styles.subtitleHeaderTitle}>TRADUCCIÓN EN TIEMPO REAL</Text>
+            <Text style={styles.subtitleHeaderTitle}>{t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}</Text>
           </View>
 
           {lastTranslation ? (
@@ -494,14 +494,14 @@ export default function InterpreterScreenNative() {
             </Text>
           ) : (
             <Text style={styles.subtitlePlaceholder}>
-              Esperando señas o movimientos...
+              {t('interpreter.waitingGestures', 'Esperando señas o movimientos...')}
             </Text>
           )}
 
           {subtitleHistory.length > 1 && (
             <View style={styles.historyContainer}>
               <Text style={styles.historyText} numberOfLines={1}>
-                Anterior: {subtitleHistory.slice(1).join(' • ')}
+                {t('interpreter.previousSubtitles', { history: subtitleHistory.slice(1).join(' • '), defaultValue: `Anterior: ${subtitleHistory.slice(1).join(' • ')}` })}
               </Text>
             </View>
           )}
@@ -523,11 +523,11 @@ export default function InterpreterScreenNative() {
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>Configurar Lentes CokieLens</Text>
+                <Text style={styles.modalTitle}>{t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}</Text>
               </View>
 
               <Text style={styles.modalHelp}>
-                Ingresa la IP de tu ESP32-CAM o selecciona una opción rápida:
+                {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida:')}
               </Text>
 
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
@@ -546,7 +546,7 @@ export default function InterpreterScreenNative() {
                   activeOpacity={0.7}
                 >
                   <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>192.168.4.1</Text>
-                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>Wi-Fi de Lentes (AP)</Text>
+                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.wifiApLabel', 'Wi-Fi de Lentes (AP)')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -564,7 +564,7 @@ export default function InterpreterScreenNative() {
                   activeOpacity={0.7}
                 >
                   <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>cokielens.local</Text>
-                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>mDNS Local</Text>
+                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.mdnsLocalLabel', 'mDNS Local')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -597,13 +597,13 @@ export default function InterpreterScreenNative() {
                   ) : (
                     <>
                       <Wifi size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-                      <Text style={styles.testBtnText}>Probar Conexión</Text>
+                      <Text style={styles.testBtnText}>{t('interpreter.testConnectionBtn', 'Probar Conexión')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                  <Text style={styles.saveBtnText}>Guardar</Text>
+                  <Text style={styles.saveBtnText}>{t('common.save', 'Guardar')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

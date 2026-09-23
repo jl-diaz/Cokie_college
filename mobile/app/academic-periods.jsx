@@ -482,13 +482,13 @@ export default function AcademicPeriodsScreen() {
                       <View style={styles.metaPill}>
                         <Clock size={12} color={Colors.text.muted} style={{ marginRight: 4 }} />
                         <Text style={styles.metaPillText}>
-                          {calculateDuration(activePeriod.start_date, activePeriod.end_date).days} días lectivos
+                          {t('academicPeriods.schoolDaysCount', { count: calculateDuration(activePeriod.start_date, activePeriod.end_date).days, defaultValue: `${calculateDuration(activePeriod.start_date, activePeriod.end_date).days} días lectivos` })}
                         </Text>
                       </View>
                       <View style={styles.metaPill}>
                         <Layers size={12} color={Colors.text.muted} style={{ marginRight: 4 }} />
                         <Text style={styles.metaPillText}>
-                          {calculateDuration(activePeriod.start_date, activePeriod.end_date).weeks} semanas
+                          {t('academicPeriods.weeksCount', { count: calculateDuration(activePeriod.start_date, activePeriod.end_date).weeks, defaultValue: `${calculateDuration(activePeriod.start_date, activePeriod.end_date).weeks} semanas` })}
                         </Text>
                       </View>
                     </View>

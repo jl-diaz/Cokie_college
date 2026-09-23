@@ -275,7 +275,7 @@ export default function DiaryScreen() {
                       {count === 0 ? (
                         <View style={styles.accordionEmpty}>
                           <Text style={styles.accordionEmptyText}>
-                            Sin registros de {cat.label.toLowerCase()}
+                            {t('diary.noRecordsForCategory', { category: cat.label.toLowerCase(), defaultValue: `Sin registros de ${cat.label.toLowerCase()}` })}
                           </Text>
                         </View>
                       ) : (
@@ -412,7 +412,7 @@ export default function DiaryScreen() {
                               fontWeight: '700',
                               color: theme === 'dark' ? '#D4D4D8' : '#475569'
                             }}>
-                              Día completo
+                              {t('justifications.fullDay', 'Día completo')}
                             </Text>
                           </View>
                         )}
@@ -421,12 +421,12 @@ export default function DiaryScreen() {
 
                     {/* Materias o Día Completo */}
                     <Text style={styles.absenceLabel}>
-                      {isFullDay ? 'Día completo' : (att.subjects?.name || (isJustified ? 'Inasistencia Justificada' : 'Clase'))}
+                      {isFullDay ? t('justifications.fullDay', 'Día completo') : (att.subjects?.name || (isJustified ? t('diary.justifiedAbsence', 'Inasistencia Justificada') : t('diary.class', 'Clase')))}
                     </Text>
 
                     {isJustified && cleanMsg ? (
                       <Text style={{ fontSize: 11.5, color: Colors.text.muted, marginTop: 4, fontStyle: 'italic' }}>
-                        Nota: {cleanMsg}
+                        {t('common.note', 'Nota')}: {cleanMsg}
                       </Text>
                     ) : null}
                   </View>

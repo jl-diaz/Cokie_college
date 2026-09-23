@@ -53,7 +53,7 @@ export default function ApplyConductScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los códigos de conducta'
+        message: t('conduct.loadCodesError', 'No se pudieron cargar los códigos de conducta')
       });
     } finally {
       setLoading(false);
@@ -83,7 +83,7 @@ export default function ApplyConductScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
-        message: 'Debe seleccionar un código de conducta'
+        message: t('conduct.selectCodeWarning', 'Debe seleccionar un código de conducta')
       });
       return;
     }
@@ -106,7 +106,7 @@ export default function ApplyConductScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudo aplicar el código'
+        message: t('conduct.applyCodeError', 'No se pudo aplicar el código')
       });
     } finally {
       setSaving(false);
@@ -141,7 +141,7 @@ export default function ApplyConductScreen() {
               <Search size={18} color={Colors.text.muted} style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar por código (ej. L-01) o texto..."
+                placeholder={t('conduct.searchPlaceholder', 'Buscar por código (ej. L-01) o texto...')}
                 placeholderTextColor={Colors.text.muted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}

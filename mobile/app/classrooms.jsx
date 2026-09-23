@@ -66,8 +66,8 @@ export default function ClassroomsScreen() {
       console.error('Error fetching classrooms:', error);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: 'No se pudieron cargar los salones disponibles.'
+        title: t('common.error', 'Error'),
+        message: t('classrooms.loadError', 'No se pudieron cargar los salones disponibles.')
       });
     } finally {
       setLoading(false);
@@ -116,7 +116,7 @@ export default function ClassroomsScreen() {
       }
       
       if (studentsList.length === 0) {
-        showAlert({ type: 'warning', title: 'Atención', message: 'No hay estudiantes en este salón.' });
+        showAlert({ type: 'warning', title: t('common.warning', 'Atención'), message: t('classrooms.noStudentsInRoom', 'No hay estudiantes en este salón.') });
         setDownloadingZip(false);
         return;
       }
@@ -124,7 +124,7 @@ export default function ClassroomsScreen() {
       await generateClassroomReportsZip(selectedClassroom.id, period, studentsList);
       setActionSheetVisible(false);
     } catch (error) {
-      showAlert({ type: 'error', title: 'Error', message: error.message || 'No se pudo generar el ZIP.' });
+      showAlert({ type: 'error', title: t('common.error', 'Error'), message: error.message || t('classrooms.generateZipError', 'No se pudo generar el ZIP.') });
     } finally {
       setDownloadingZip(false);
     }
@@ -142,16 +142,16 @@ export default function ClassroomsScreen() {
 
   const getClassLevel = (grade) => {
     const g = parseInt(grade, 10);
-    if (g >= 1 && g <= 6) return 'Primaria';
-    if (g >= 7 && g <= 11) return 'Tercer Ciclo';
-    return 'Nivel General';
+    if (g >= 1 && g <= 6) return t('home.primary', 'Primaria');
+    if (g >= 7 && g <= 11) return t('home.secondary', 'Secundaria');
+    return t('home.generalLevel', 'Nivel General');
   };
 
   return (
     <View style={styles.container}>
       <PageHeader 
-        title="Gestión de Salones" 
-        subtitle={profile?.role === 'coordinator' ? 'Monitoreo de salones del nivel asignado' : 'Aulas y grupos académicos a cargo'} 
+        title={t('classrooms.title', 'Gestión de Salones')} 
+        subtitle={profile?.role === 'coordinator' ? t('classrooms.coordinatorSubtitle', 'Monitoreo de salones del nivel asignado') : t('classrooms.teacherSubtitle', 'Aulas y grupos académicos a cargo')} 
       />
 
       {/* Search Input Bar */}
@@ -230,7 +230,7 @@ export default function ClassroomsScreen() {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTitle}>
-                  {selectedClassroom?.grade}º Grado — Sección '{selectedClassroom?.section}'
+                  {t('common.gradeSectionFormat', { grade: selectedClassroom?.grade, section: selectedClassroom?.section, defaultValue: `${selectedClassroom?.grade}º Grado — Sección '${selectedClassroom?.section}'` })}
                 </Text>
                 
               </View>

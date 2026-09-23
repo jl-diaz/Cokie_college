@@ -12,6 +12,7 @@ import {
   BookOpen
 } from 'lucide-react-native';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 import { 
   BentoStatCard, 
   WideBannerCard, 
@@ -21,6 +22,7 @@ import {
 
 export default function AdminDashboard({ isDark = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState({ total: 0, users: [] });
   const [classrooms, setClassrooms] = useState([]);
@@ -84,7 +86,7 @@ export default function AdminDashboard({ isDark = false }) {
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando panel de administración...
+          {t('dashboard.loadingAdmin', 'Cargando panel de administración...')}
         </Text>
       </View>
     );
@@ -94,19 +96,18 @@ export default function AdminDashboard({ isDark = false }) {
     <View style={styles.container}>
       {/* 1. Banner Superior Global */}
       <WideBannerCard 
-        title="Administración Global" 
-        actionLabel="Gestionar plataforma"
+        title={t('dashboard.globalAdmin', 'Administración Global')} 
+        actionLabel={t('dashboard.managePlatform', 'Gestionar plataforma')}
         variant="blue"
         isDark={isDark}
-        
         onPress={() => router.push('/users')}
       />
 
       <View style={styles.statsRow}>
         <BentoStatCard 
-          tag="Usuarios"
+          tag={t('menu.users', 'Usuarios')}
           value={userStats.total > 0 ? `${userStats.total}` : '0'}
-          subtitle="Cuentas registradas"
+          subtitle={t('dashboard.registeredAccounts', 'Cuentas registradas')}
           variant="yellow"
           isDark={isDark}
           fallbackIcon={Users}
@@ -115,9 +116,9 @@ export default function AdminDashboard({ isDark = false }) {
         />
 
         <BentoStatCard 
-          tag="Salones"
+          tag={t('menu.classrooms', 'Salones')}
           value={classrooms.length > 0 ? `${classrooms.length}` : '0'}
-          subtitle="Secciones del ciclo"
+          subtitle={t('dashboard.cycleSections', 'Secciones del ciclo')}
           variant="lavender"
           isDark={isDark}
           fallbackIcon={Layers}
@@ -133,12 +134,14 @@ export default function AdminDashboard({ isDark = false }) {
       />
 
       {/* 4. Accesos Rápidos de Administración */}
-      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Gestión del sistema</Text>
+      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>
+        {t('dashboard.systemManagement', 'Gestión del sistema')}
+      </Text>
 
       {/* 5. Tarjeta Vertical: Gestión de Usuarios */}
       <ActionCard 
-        title="Gestión de Usuarios"
-        subtitle="Crear cuentas, editar perfiles y asignar roles institucionales"
+        title={t('dashboard.userManagement', 'Gestión de Usuarios')}
+        subtitle={t('dashboard.userManagementSub', 'Crear cuentas, editar perfiles y asignar roles institucionales')}
         isDark={isDark}
         fallbackIcon={Users}
         iconColor="#FFFFFF"
@@ -152,7 +155,7 @@ export default function AdminDashboard({ isDark = false }) {
       <View style={styles.actionRowFlex}>
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Módulos"
+            title={t('titles.modules', 'Módulos')}
             isDark={isDark}
             fallbackIcon={Grid}
             iconColor="#FFFFFF"
@@ -164,7 +167,7 @@ export default function AdminDashboard({ isDark = false }) {
 
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Avisos"
+            title={t('menu.announcements', 'Avisos')}
             isDark={isDark}
             fallbackIcon={Bell}
             iconColor="#FFFFFF"

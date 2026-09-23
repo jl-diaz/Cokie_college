@@ -100,7 +100,7 @@ export default function AnnouncementsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los avisos'
+        message: t('announcements.loadError', 'No se pudieron cargar los avisos')
       });
     } finally {
       setLoading(false);
@@ -125,7 +125,7 @@ export default function AnnouncementsScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
-        message: 'Por favor ingresa un título y el mensaje del aviso'
+        message: t('announcements.requiredFields', 'Por favor ingresa un título y el mensaje del aviso')
       });
       return;
     }
@@ -180,7 +180,7 @@ export default function AnnouncementsScreen() {
           showAlert({
             type: 'error',
             title: t('dashboard.error', 'Error'),
-            message: 'No se pudo eliminar el aviso'
+            message: t('announcements.deleteError', 'No se pudo eliminar el aviso')
           });
         }
       }

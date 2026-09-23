@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { ChevronRight, ArrowUpRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Hook para animar números enteros ascendentes
@@ -211,6 +212,7 @@ export function LiveClassWidget({
   placeholderIcon: Icon,
   imageUri
 }) {
+  const { t } = useTranslation();
   const now = new Date();
   const currentDay = now.getDay();
   const isWeekend = currentDay === 0 || currentDay === 6;
@@ -239,14 +241,14 @@ export function LiveClassWidget({
       <BentoCard variant="default" isDark={isDark} style={styles.liveCardEmpty}>
         <View style={styles.emptyClassContent}>
           <Text style={[styles.emptyClassTitle, isDark && styles.textLight]}>
-            {isWeekend ? 'Fin de semana' : 'Sin clases programadas hoy'}
+            {isWeekend ? t('dashboard.weekend', 'Fin de semana') : t('dashboard.noClassesScheduledToday', 'Sin clases programadas hoy')}
           </Text>
           <Text style={[styles.emptyClassSub, isDark && styles.textMuted]}>
-            {isWeekend ? '¡Disfruta tu descanso!' : 'No tienes asignaciones registradas para este día'}
+            {isWeekend ? t('dashboard.enjoyRest', '¡Disfruta tu descanso!') : t('dashboard.noAssignmentsToday', 'No tienes asignaciones registradas para este día')}
           </Text>
         </View>
         <View style={[styles.timePill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}>
-          <Text style={[styles.timePillText, isDark ? styles.textLight : { color: '#64748B' }]}>Libre</Text>
+          <Text style={[styles.timePillText, isDark ? styles.textLight : { color: '#64748B' }]}>{t('dashboard.free', 'Libre')}</Text>
         </View>
       </BentoCard>
     );
@@ -263,7 +265,7 @@ export function LiveClassWidget({
       <View style={styles.liveCardHeader}>
         <View style={styles.livePillRow}>
           <Text style={[styles.liveStatusText, { color: palette.tagText }]}>
-            {currentClass ? 'CLASE EN CURSO' : 'PRÓXIMA CLASE'}
+            {currentClass ? t('dashboard.classInProgress', 'CLASE EN CURSO') : t('dashboard.nextClass', 'PRÓXIMA CLASE')}
           </Text>
         </View>      
       </View>
@@ -272,8 +274,8 @@ export function LiveClassWidget({
       <View style={styles.liveMainBody}>
         <Text style={[styles.liveSubjectTitle, { color: palette.text }]} numberOfLines={1}>
           {currentClass 
-            ? (currentClass.subjects?.name || currentClass.name || 'Clase') 
-            : (nextClass ? (nextClass.subjects?.name || nextClass.name || 'Clase') : 'Jornada completada')}
+            ? (currentClass.subjects?.name || currentClass.name || t('dashboard.class', 'Clase')) 
+            : (nextClass ? (nextClass.subjects?.name || nextClass.name || t('dashboard.class', 'Clase')) : t('dashboard.dayCompleted', 'Jornada completada'))}
         </Text>
 
         <View style={styles.liveDetailsRow}>
@@ -291,7 +293,7 @@ export function LiveClassWidget({
             <Text style={[styles.timeBadgeText, { color: isDark ? (palette.timeColor || palette.scheduleNumColor || palette.text) : '#000000' }]}>
               {currentClass 
                 ? `${formatHour(currentClass.start_time)} - ${formatHour(currentClass.end_time)}`
-                : (nextClass ? `${formatHour(nextClass.start_time)} - ${formatHour(nextClass.end_time)}` : 'Concluido')}
+                : (nextClass ? `${formatHour(nextClass.start_time)} - ${formatHour(nextClass.end_time)}` : t('dashboard.concluded', 'Concluido'))}
             </Text>
           </View>
         </View>
@@ -301,7 +303,7 @@ export function LiveClassWidget({
       {currentClass && nextClass && (
         <View style={[styles.nextClassBar, { borderColor: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(191,219,254,0.7)' }]}>
           <Text style={[styles.nextClassPrefix, { color: palette.subtext }]} numberOfLines={1}>
-            Siguiente:{' '}
+            {t('dashboard.next', 'Siguiente')}:{' '}
             <Text style={{ fontWeight: '700', color: palette.text }}>
               {nextClass.subjects?.name || nextClass.name}
             </Text>
@@ -487,6 +489,7 @@ export function WideBannerCard({
  * Widget de Mensajes Recientes de CokieChat con ranuras de avatar
  */
 export function RecentMessagesWidget({ conversations = [], isDark = false, onPressChat }) {
+  const { t } = useTranslation();
   const incomingConversations = (conversations || []).filter(conv => {
     if (!conv.last_message) return false;
     // Si es un grupo, podríamos basarnos en sender_id no siendo nuestro ID, 
@@ -511,7 +514,7 @@ export function RecentMessagesWidget({ conversations = [], isDark = false, onPre
       onPress={onPressChat}
     >
       <View style={styles.messagesHeader}>
-        <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>Mensajes recientes</Text>
+        <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>{t('dashboard.recentMessages', 'Mensajes recientes')}</Text>
         <View style={styles.openChatPill}>
           <Text style={styles.openChatText}>CokieChat</Text>
           <ArrowUpRight size={13} color="#EC4899" />
@@ -520,14 +523,14 @@ export function RecentMessagesWidget({ conversations = [], isDark = false, onPre
 
       {recent.length === 0 ? (
         <Text style={[styles.emptyMessagesText, isDark && styles.textMuted]}>
-          No tienes mensajes nuevos pendientes en CokieChat
+          {t('dashboard.noNewMessages', 'No tienes mensajes nuevos pendientes en CokieChat')}
         </Text>
       ) : (
         <View style={styles.messagesList}>
           {recent.map((conv, i) => {
-            const name = conv.name || conv.other_participant?.full_name || 'Usuario';
+            const name = conv.name || conv.other_participant?.full_name || t('dashboard.user', 'Usuario');
             const role = conv.other_participant?.role || (conv.is_group ? 'grupo' : 'chat');
-            const snippet = conv.last_message?.content || 'Toca para abrir la conversación...';
+            const snippet = conv.last_message?.content || t('dashboard.tapToOpenChat', 'Toca para abrir la conversación...');
             const initial = (name[0] || 'U').toUpperCase();
 
             return (

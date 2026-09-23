@@ -219,7 +219,7 @@ export default function SubjectHoursScreen() {
       showAlert({
         type: 'warning',
         title: t('dashboard.warning', 'Atención'),
-        message: 'Por favor ingresa el nombre de la materia'
+        message: t('subjectHours.enterSubjectNameWarning', 'Por favor ingresa el nombre de la materia')
       });
       return;
     }
@@ -640,8 +640,12 @@ export default function SubjectHoursScreen() {
               </TouchableOpacity>
 
               <View style={styles.formHoursDisplay}>
-                <Text style={styles.formHoursDisplayText}>{formHours} horas/semana</Text>
-                <Text style={styles.formBlocksDisplayText}>({formHours * 2} bloques de 30 min)</Text>
+                <Text style={styles.formHoursDisplayText}>
+                  {t('subjectHours.hoursPerWeek', { count: formHours, defaultValue: `${formHours} horas/semana` })}
+                </Text>
+                <Text style={styles.formBlocksDisplayText}>
+                  {t('subjectHours.blocksOf30Min', { count: formHours * 2, defaultValue: `(${formHours * 2} bloques de 30 min)` })}
+                </Text>
               </View>
 
               <TouchableOpacity

@@ -219,8 +219,8 @@ export default function LunchScreen() {
           hapticSuccess();
           showAlert({
             type: 'success',
-            title: 'Pedido Cancelado',
-            message: 'Tu pedido ha sido cancelado. Ahora puedes realizar un nuevo encargo.'
+            title: t('lunch.orderCancelledTitle', 'Pedido Cancelado'),
+            message: t('lunch.orderCancelledSuccess', 'Tu pedido ha sido cancelado. Ahora puedes realizar un nuevo encargo.')
           });
           await checkTodayOrderAndFetchCafetines();
         } catch (error) {
@@ -228,8 +228,8 @@ export default function LunchScreen() {
           hapticWarning();
           showAlert({
             type: 'error',
-            title: 'Error',
-            message: error.response?.data?.error || 'No se pudo cancelar el pedido.'
+            title: t('common.error', 'Error'),
+            message: error.response?.data?.error || t('lunch.orderError', 'No se pudo cancelar el pedido.')
           });
         } finally {
           setLoading(false);
@@ -246,8 +246,8 @@ export default function LunchScreen() {
         <View style={styles.topBanner}>
           <View style={styles.bannerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.bannerTitle}>Encargos de almuerzo</Text>
-              <Text style={styles.bannerSubtitle}>Pre-pedido y código QR de retiro</Text>
+              <Text style={styles.bannerTitle}>{t('lunch.title', 'Encargos de almuerzo')}</Text>
+              <Text style={styles.bannerSubtitle}>{t('lunch.subtitle', 'Pre-pedido y código QR de retiro')}</Text>
             </View>
           </View>
         </View>
@@ -266,8 +266,8 @@ export default function LunchScreen() {
         <View style={styles.topBanner}>
           <View style={styles.bannerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.bannerTitle}>Encargos de almuerzo</Text>
-              <Text style={styles.bannerSubtitle}>Pre-pedido y código QR de retiro</Text>
+              <Text style={styles.bannerTitle}>{t('lunch.title', 'Encargos de almuerzo')}</Text>
+              <Text style={styles.bannerSubtitle}>{t('lunch.subtitle', 'Pre-pedido y código QR de retiro')}</Text>
             </View>
           </View>
         </View>
@@ -300,8 +300,8 @@ export default function LunchScreen() {
 
           {/* Card 2: Código QR de retiro */}
           <View style={styles.qrCodeCard}>
-            <Text style={styles.qrCardTitle}>Codigo QR de retiro</Text>
-            <Text style={styles.qrCardSubtitle}>Muestra este código al personal del cafetín</Text>
+            <Text style={styles.qrCardTitle}>{t('lunch.qrCodeTitle', 'Codigo QR de retiro')}</Text>
+            <Text style={styles.qrCardSubtitle}>{t('lunch.qrCodeSub', 'Muestra este código al personal del cafetín')}</Text>
             
             <View style={styles.qrWrapper}>
               <QRCodeDisplay 
@@ -315,32 +315,32 @@ export default function LunchScreen() {
 
           {/* Card 3: Resumen del Almuerzo (Tarjeta suave lavanda/rosa) */}
           <View style={styles.orderSummaryCard}>
-            <Text style={styles.orderSummaryTitle}>Resumen del Almuerzo</Text>
+            <Text style={styles.orderSummaryTitle}>{t('lunch.orderSummary', 'Resumen del Almuerzo')}</Text>
             
             <View style={styles.summaryList}>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>Cafetín: </Text>
+                <Text style={styles.summaryLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
                 {existingOrder.cafetin?.full_name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>Platillo Fuerte: </Text>
+                <Text style={styles.summaryLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
                 {existingOrder.fuerte?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>Acompañamiento 1: </Text>
+                <Text style={styles.summaryLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
                 {existingOrder.acompanamiento1?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>Acompañamiento 2: </Text>
+                <Text style={styles.summaryLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
                 {existingOrder.acompanamiento2?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>Cantidad de Tortillas: </Text>
+                <Text style={styles.summaryLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
                 {existingOrder.tortillas_qty}
               </Text>
               {existingOrder.refresco?.name ? (
                 <Text style={styles.summaryLine}>
-                  <Text style={styles.summaryLineBold}>Refresco (+ $0.25): </Text>
+                  <Text style={styles.summaryLineBold}>{t('lunch.bebida', 'Refresco')} (+ $0.25): </Text>
                   {existingOrder.refresco?.name}
                 </Text>
               ) : null}
@@ -349,7 +349,7 @@ export default function LunchScreen() {
             <View style={styles.summaryDivider} />
 
             <View style={styles.summaryTotalRow}>
-              <Text style={styles.summaryTotalLabel}>Total a pagar:</Text>
+              <Text style={styles.summaryTotalLabel}>{t('lunch.totalToPay', 'Total a pagar')}:</Text>
               <Text style={styles.summaryTotalValue}>
                 ${Number(existingOrder.total_price).toFixed(2)}
               </Text>
@@ -393,7 +393,7 @@ export default function LunchScreen() {
               <ArrowLeft size={24} color={isDark ? Colors.text.primary : '#111827'} />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
-              <Text style={styles.step1Title}>Paso 1. Arma tu almuerzo</Text>
+              <Text style={styles.step1Title}>{t('lunch.step1BuildLunch', 'Paso 1. Arma tu almuerzo')}</Text>
               <Text style={styles.step1CafetinSubtitle}>{selectedCafetin.full_name}</Text>
             </View>
           </View>
@@ -413,14 +413,14 @@ export default function LunchScreen() {
                 style={[styles.modalCancelBtn, { marginTop: 16 }]}
                 onPress={() => setSelectedCafetin(null)}
               >
-                <Text style={styles.modalCancelBtnText}>Elegir otro cafetín</Text>
+                <Text style={styles.modalCancelBtnText}>{t('lunch.chooseAnotherCafetin', 'Elegir otro cafetín')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {/* Card 1: Platillo Fuerte */}
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoCardTitle}>Platillo fuerte</Text>
+                <Text style={styles.bentoCardTitle}>{t('lunch.chooseFuerte', 'Platillo fuerte')}</Text>
                 {dailyMenu.fuertes.map(item => {
                   const isSelected = selectedFuerte?.id === item.id;
                   return (
@@ -443,7 +443,7 @@ export default function LunchScreen() {
 
               {/* Card 2: Acompañamiento 1 */}
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoCardTitle}>Acompañamiento 1</Text>
+                <Text style={styles.bentoCardTitle}>{t('lunch.chooseAcomp1', 'Acompañamiento 1')}</Text>
                 {dailyMenu.acompanamientos.length === 0 ? (
                   <Text style={styles.noItemsText}>{t('lunch.noAcompsToday', 'No hay acompañamientos disponibles hoy.')}</Text>
                 ) : (
@@ -470,7 +470,7 @@ export default function LunchScreen() {
 
               {/* Card 3: Acompañamiento 2 */}
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoCardTitle}>Acompañamiento 2</Text>
+                <Text style={styles.bentoCardTitle}>{t('lunch.chooseAcomp2', 'Acompañamiento 2')}</Text>
                 {dailyMenu.acompanamientos.length === 0 ? (
                   <Text style={styles.noItemsText}>{t('lunch.noAcompsToday', 'No hay acompañamientos disponibles hoy.')}</Text>
                 ) : (
@@ -497,10 +497,12 @@ export default function LunchScreen() {
 
               {/* Card 4: Cantidad de tortillas */}
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoCardTitle}>Cantidad de tortillas</Text>
+                <Text style={styles.bentoCardTitle}>{t('lunch.tortillas', 'Cantidad de tortillas')}</Text>
                 {[1, 2, 0].map(qty => {
                   const isSelected = tortillasQty === qty;
-                  const label = qty === 1 ? '1 tortilla' : `${qty} tortillas`;
+                  const label = qty === 1 
+                    ? t('lunch.tortillaSingle', '1 tortilla') 
+                    : t('lunch.tortillasPlural', '{{count}} tortillas', { count: qty });
                   return (
                     <TouchableOpacity
                       key={qty}
@@ -533,7 +535,7 @@ export default function LunchScreen() {
                     {selectedRefresco === null && <View style={styles.radioDot} />}
                   </View>
                   <Text style={[styles.radioItemText, selectedRefresco === null && styles.radioItemTextSelected]}>
-                    Sin refresco
+                    {t('lunch.noDrink', 'Sin refresco')}
                   </Text>
                 </TouchableOpacity>
 
@@ -560,7 +562,7 @@ export default function LunchScreen() {
               {/* Barra inferior: Total a pagar y Finalizar pedido */}
               <View style={styles.bottomTotalBar}>
                 <View>
-                  <Text style={styles.bottomTotalLabel}>Total a pagar:</Text>
+                  <Text style={styles.bottomTotalLabel}>{t('lunch.totalToPay', 'Total a pagar')}:</Text>
                   <Text style={styles.bottomTotalAmount}>${calculatedTotal.toFixed(2)}</Text>
                 </View>
                 <TouchableOpacity
@@ -568,7 +570,7 @@ export default function LunchScreen() {
                   onPress={handleOpenConfirmModal}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.finalizeOrderBtnText}>Finalizar pedido</Text>
+                  <Text style={styles.finalizeOrderBtnText}>{t('lunch.finalizeOrder', 'Finalizar pedido')}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -584,33 +586,33 @@ export default function LunchScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalDialog}>
-              <Text style={styles.modalTitle}>Confirmar pedido de almuerzo</Text>
+              <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
               
               {/* Recuadro con bordes y la lista detallada */}
               <View style={styles.modalInnerBox}>
                 <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>Cafetín: </Text>
+                  <Text style={styles.modalLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
                   {selectedCafetin?.full_name}
                 </Text>
                 <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>Platillo Fuerte: </Text>
+                  <Text style={styles.modalLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
                   {selectedFuerte?.name}
                 </Text>
                 <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>Acompañamiento 1: </Text>
+                  <Text style={styles.modalLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
                   {selectedAcomp1?.name}
                 </Text>
                 <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>Acompañamiento 2: </Text>
+                  <Text style={styles.modalLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
                   {selectedAcomp2?.name}
                 </Text>
                 <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>Cantidad de Tortillas: </Text>
+                  <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
                   {tortillasQty}
                 </Text>
                 {selectedRefresco && (
                   <Text style={styles.modalLine}>
-                    <Text style={styles.modalLineBold}>Refresco: </Text>
+                    <Text style={styles.modalLineBold}>{t('lunch.bebida', 'Refresco')}: </Text>
                     {selectedRefresco.name}
                   </Text>
                 )}
@@ -619,7 +621,7 @@ export default function LunchScreen() {
               {/* Banner azul: Se pagará en el momento del retiro */}
               <View style={styles.modalBlueBanner}>
                 <Text style={styles.modalBlueBannerText}>
-                  Se pagará en el momento del retiro: ${calculatedTotal.toFixed(2)}
+                  {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: calculatedTotal.toFixed(2) })}
                 </Text>
               </View>
 
@@ -630,7 +632,7 @@ export default function LunchScreen() {
                   onPress={() => setConfirmModalVisible(false)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                  <Text style={styles.modalCancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -642,7 +644,7 @@ export default function LunchScreen() {
                   {submittingOrder ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.modalConfirmBtnText}>Guardar</Text>
+                    <Text style={styles.modalConfirmBtnText}>{t('lunch.confirmBtn', 'Guardar')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -659,8 +661,8 @@ export default function LunchScreen() {
       <View style={styles.topBanner}>
         <View style={styles.bannerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.bannerTitle}>Encargos de almuerzo</Text>
-            <Text style={styles.bannerSubtitle}>Pre-pedido y código QR de retiro</Text>
+            <Text style={styles.bannerTitle}>{t('lunch.title', 'Encargos de almuerzo')}</Text>
+            <Text style={styles.bannerSubtitle}>{t('lunch.subtitle', 'Pre-pedido y código QR de retiro')}</Text>
           </View>
         </View>
       </View>
@@ -673,12 +675,12 @@ export default function LunchScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); checkTodayOrderAndFetchCafetines(); }} />
         }
       >
-        <Text style={styles.sectionHeaderTitle}>¿Quieres algo delicioso?</Text>
+        <Text style={styles.sectionHeaderTitle}>{t('lunch.wantSomethingDelicious', '¿Quieres algo delicioso?')}</Text>
 
         {cafetines.length === 0 ? (
           <View style={styles.emptyCard}>
             <Store size={36} color={Colors.text.muted} />
-            <Text style={styles.emptyText}>No hay cafetines disponibles en este momento.</Text>
+            <Text style={styles.emptyText}>{t('lunch.noCafetinesAvailable', 'No hay cafetines disponibles en este momento.')}</Text>
           </View>
         ) : (
           <View style={styles.cafetinesGrid}>

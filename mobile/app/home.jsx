@@ -39,34 +39,35 @@ export default function HomeScreen() {
     }, 800);
   }, []);
 
-  const firstName = profile?.full_name?.split(' ')[0] || (profile?.role === 'student' ? 'Estudiante' : 'Usuario');
+  const firstName = profile?.full_name?.split(' ')[0] || (profile?.role === 'student' ? t('dashboard.student', 'Estudiante') : t('dashboard.user', 'Usuario'));
 
   const roleLabel = React.useMemo(() => {
     switch (profile?.role) {
       case 'teacher':
-        return 'Profesor';
+        return t('roles.teacher', 'Profesor');
       case 'student':
-        return 'Estudiante';
+        return t('roles.student', 'Estudiante');
       case 'coordinator':
-        return 'Coordinador';
+        return t('roles.coordinator', 'Coordinador');
       case 'super_admin':
-        return 'Administrador';
+      case 'admin':
+        return t('roles.admin', 'Administrador');
       case 'cafetin':
-        return 'Cafetín';
+        return t('roles.cafetin', 'Cafetín');
       default:
-        return profile?.role?.replace('_', ' ') || 'Usuario';
+        return profile?.role?.replace('_', ' ') || t('dashboard.user', 'Usuario');
     }
-  }, [profile?.role]);
+  }, [profile?.role, t]);
 
   const levelOrGradeLabel = React.useMemo(() => {
     if (profile?.role === 'student') {
       if (profile?.grade && profile?.section) {
         return `${profile.grade}º "${profile.section}"`;
       }
-      return profile?.level || 'Educación Básica';
+      return profile?.level || t('home.basicEducation', 'Educación Básica');
     }
-    return profile?.level || (profile?.role === 'teacher' ? 'Tercer ciclo' : 'Institución');
-  }, [profile]);
+    return profile?.level || (profile?.role === 'teacher' ? t('home.thirdCycle', 'Tercer ciclo') : t('home.institution', 'Institución'));
+  }, [profile, t]);
 
   const clickCount = React.useRef(0);
   const clickTimeout = React.useRef(null);
@@ -120,16 +121,16 @@ export default function HomeScreen() {
         {/* 1. Header Dinámico estilo Imagen 1 */}
         <View style={[styles.headerContainer, { backgroundColor: headerBg }]}>
           <Text style={styles.greetingTitle}>
-            ¡Hola <Text style={[styles.nameHighlight, isDark && { color: Colors.primaryLight || Colors.primary }]}>{firstName}</Text>!
+            {t('home.greeting', '¡Hola')} <Text style={[styles.nameHighlight, isDark && { color: Colors.primaryLight || Colors.primary }]}>{firstName}</Text>!
           </Text>
 
           <View style={styles.subtitleWrapper}>
             <Text style={styles.subtitleText}>
               {profile?.role === 'student' 
-                ? '¿Qué pendientes tienes hoy?' 
+                ? t('home.subtitleStudent', '¿Qué pendientes tienes hoy?')
                 : (profile?.role === 'teacher' 
-                  ? '¿Qué clases tienes hoy?' 
-                  : 'Gestión y coordinación del día')}
+                  ? t('home.subtitleTeacher', '¿Qué clases tienes hoy?')
+                  : t('home.subtitleCoordinator', 'Gestión y coordinación del día'))}
             </Text>
             <View style={styles.subtitleUnderline} />
           </View>
@@ -182,10 +183,10 @@ export default function HomeScreen() {
               <View style={[styles.fallbackCard, isDark && styles.fallbackCardDark]}>
                 <Sparkles size={28} color={isDark ? (Colors.primaryLight || Colors.primary) : '#F7D8FF'} />
                 <Text style={[styles.fallbackTitle, isDark && styles.textLight]}>
-                  Bienvenido al Panel Central
+                  {t('home.fallbackTitle', 'Bienvenido al Panel Central')}
                 </Text>
                 <Text style={[styles.fallbackDesc, isDark && styles.textMuted]}>
-                  Tienes acceso a los módulos institucionales y herramientas avanzadas de Cokie College.
+                  {t('home.fallbackDesc', 'Tienes acceso a los módulos institucionales y herramientas avanzadas de Cokie College.')}
                 </Text>
                 <TouchableOpacity 
                   style={[styles.fallbackBtn, isDark && { backgroundColor: Colors.primary }]}
@@ -193,7 +194,7 @@ export default function HomeScreen() {
                   activeOpacity={0.8}
                 >
                   <Grid size={16} color="#FFFFFF" />
-                  <Text style={styles.fallbackBtnText}>Ver Módulos Disponibles</Text>
+                  <Text style={styles.fallbackBtnText}>{t('home.fallbackBtn', 'Ver Módulos Disponibles')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

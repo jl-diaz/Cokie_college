@@ -87,7 +87,7 @@ export default function TeacherGradesScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar las clases o actividades.'
+        message: t('teacherGrades.loadClassesActivitiesError', 'No se pudieron cargar las clases o actividades.')
       });
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function TeacherGradesScreen() {
     const diff = deadline.getTime() - now.getTime();
 
     if (diff <= 0) {
-      return 'Plazo finalizado';
+      return t('teacherGrades.deadlineEnded', 'Plazo finalizado');
     }
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -147,7 +147,7 @@ export default function TeacherGradesScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los estudiantes'
+        message: t('teacherGrades.loadStudentsError', 'No se pudieron cargar los estudiantes')
       });
     } finally {
       setLoading(false);
@@ -165,8 +165,8 @@ export default function TeacherGradesScreen() {
     if (!canSubmitGrades) {
       showAlert({
         type: 'warning',
-        title: t('dashboard.error', 'Plazo Vencido'),
-        message: 'El periodo de ingreso de notas ha finalizado. No se pueden guardar calificaciones.'
+        title: t('teacherGrades.expiredPeriod', 'Plazo Vencido'),
+        message: t('teacherGrades.gradingPeriodEndedWarning', 'El periodo de ingreso de notas ha finalizado. No se pueden guardar calificaciones.')
       });
       return;
     }
@@ -178,7 +178,7 @@ export default function TeacherGradesScreen() {
         showAlert({
           type: 'error',
           title: t('dashboard.error', 'Error de Validación'),
-          message: `La nota para ${s.full_name} (${s.grade}) debe estar entre 0.00 y 10.00.`
+          message: t('teacherGrades.gradeRangeError', { name: s.full_name, grade: s.grade, defaultValue: `La nota para ${s.full_name} (${s.grade}) debe estar entre 0.00 y 10.00.` })
         });
         return;
       }
@@ -196,14 +196,14 @@ export default function TeacherGradesScreen() {
       showAlert({
         type: 'success',
         title: t('dashboard.success', '¡Notas Guardadas!'),
-        message: 'Calificaciones registradas correctamente en el sistema.'
+        message: t('teacherGrades.gradesSavedSuccess', 'Calificaciones registradas correctamente en el sistema.')
       });
     } catch (error) {
       console.error(error);
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: error.response?.data?.error || 'No se pudieron guardar las notas'
+        message: error.response?.data?.error || t('teacherGrades.saveGradesError', 'No se pudieron guardar las notas')
       });
     } finally {
       setSaving(false);
@@ -214,33 +214,33 @@ export default function TeacherGradesScreen() {
     if (!canSubmitGrades) {
       showAlert({
         type: 'warning',
-        title: 'Plazo Vencido',
-        message: 'El periodo de ingreso de notas ha finalizado.'
+        title: t('teacherGrades.expiredPeriod', 'Plazo Vencido'),
+        message: t('teacherGrades.periodEndedWarningShort', 'El periodo de ingreso de notas ha finalizado.')
       });
       return;
     }
 
     showConfirm({
       type: 'danger',
-      title: 'Eliminar Nota',
-      message: '¿Estás seguro de que deseas eliminar esta nota?',
-      confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
+      title: t('teacherGrades.deleteGradeTitle', 'Eliminar Nota'),
+      message: t('teacherGrades.deleteGradeConfirm', '¿Estás seguro de que deseas eliminar esta nota?'),
+      confirmText: t('common.delete', 'Eliminar'),
+      cancelText: t('common.cancel', 'Cancelar'),
       onConfirm: async () => {
         try {
           await api.delete(`/teacher/grades/${gradeId}`);
           setStudents(students.map(s => s.grade_id === gradeId ? { ...s, grade: 0, grade_id: null } : s));
           showAlert({
             type: 'success',
-            title: '¡Eliminada!',
-            message: 'Nota eliminada correctamente'
+            title: t('teacherGrades.gradeDeletedTitle', '¡Eliminada!'),
+            message: t('teacherGrades.gradeDeletedMessage', 'Nota eliminada correctamente')
           });
         } catch (error) {
           console.error(error);
           showAlert({
             type: 'error',
-            title: 'Error',
-            message: error.response?.data?.error || 'No se pudo eliminar la nota'
+            title: t('common.error', 'Error'),
+            message: error.response?.data?.error || t('teacherGrades.deleteGradeError', 'No se pudo eliminar la nota')
           });
         }
       }
@@ -251,8 +251,8 @@ export default function TeacherGradesScreen() {
     if (!ticketReason.trim()) {
       showAlert({
         type: 'warning',
-        title: 'Campo Requerido',
-        message: 'Por favor ingresa una justificación o razón para el tiempo extra.'
+        title: t('common.requiredField', 'Campo Requerido'),
+        message: t('teacherGrades.reasonRequiredWarning', 'Por favor ingresa una justificación o razón para el tiempo extra.')
       });
       return;
     }
@@ -269,8 +269,8 @@ export default function TeacherGradesScreen() {
       setTicketReason('');
       showAlert({
         type: 'success',
-        title: 'Ticket Enviado',
-        message: 'Tu solicitud de días extra ha sido enviada al coordinador de tu nivel. Recibirás una notificación cuando sea procesada.'
+        title: t('teacherGrades.ticketSentTitle', 'Ticket Enviado'),
+        message: t('teacherGrades.ticketSentSuccess', 'Tu solicitud de días extra ha sido enviada al coordinador de tu nivel. Recibirás una notificación cuando sea procesada.')
       });
       fetchInitialData();
     } catch (error) {
@@ -278,8 +278,8 @@ export default function TeacherGradesScreen() {
       setTicketModalVisible(false);
       showAlert({
         type: 'error',
-        title: 'Error',
-        message: error.response?.data?.error || 'No se pudo crear el ticket de extensión.'
+        title: t('common.error', 'Error'),
+        message: error.response?.data?.error || t('teacherGrades.createTicketError', 'No se pudo crear el ticket de extensión.')
       });
     } finally {
       setSubmittingTicket(false);

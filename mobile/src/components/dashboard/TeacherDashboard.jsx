@@ -11,6 +11,7 @@ import {
   BookOpen 
 } from 'lucide-react-native';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 import { 
   LiveClassWidget, 
   BentoStatCard, 
@@ -20,6 +21,7 @@ import {
 
 export default function TeacherDashboard({ isDark = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
@@ -80,7 +82,7 @@ export default function TeacherDashboard({ isDark = false }) {
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando tu jornada...
+          {t('dashboard.loadingTeacher', 'Cargando tu jornada...')}
         </Text>
       </View>
     );
@@ -99,18 +101,18 @@ export default function TeacherDashboard({ isDark = false }) {
       {/* 2. Métricas Bento: Clases de hoy (Amarillo) y Salones asignados (Lavanda) */}
       <View style={styles.statsRow}>
         <BentoStatCard 
-          tag="Clases de hoy"
+          tag={t('dashboard.todayClasses', 'Clases de hoy')}
           value={todayClassesCount > 0 ? `${todayClassesCount}` : '0'}
-          subtitle={todayClassesCount > 0 ? 'Horas programadas' : 'Sin clases hoy'}
+          subtitle={todayClassesCount > 0 ? t('dashboard.scheduledHours', 'Horas programadas') : t('dashboard.noClassesToday', 'Sin clases hoy')}
           variant="yellow"
           isDark={isDark}
           onPress={() => router.push('/schedule')}
         />
 
         <BentoStatCard 
-          tag="Salones"
+          tag={t('dashboard.classrooms', 'Salones')}
           value={uniqueSectionsCount > 0 ? `${uniqueSectionsCount}` : `${classrooms.length > 0 ? classrooms.length : '0'}`}
-          subtitle="Secciones a cargo"
+          subtitle={t('dashboard.sectionsAssigned', 'Secciones a cargo')}
           variant="lavender"
           isDark={isDark}
           fallbackIcon={Users}
@@ -127,7 +129,7 @@ export default function TeacherDashboard({ isDark = false }) {
       <View style={styles.actionRowFlex}>
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Mi horario"
+            title={t('menu.mySchedule', 'Mi horario')}
             isDark={isDark}
             fallbackIcon={Calendar}
             iconColor="#FFFFFF"
@@ -139,7 +141,7 @@ export default function TeacherDashboard({ isDark = false }) {
 
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Avisos"
+            title={t('menu.announcements', 'Avisos')}
             isDark={isDark}
             fallbackIcon={Bell}
             iconColor="#FFFFFF"

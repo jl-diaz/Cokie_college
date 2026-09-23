@@ -33,7 +33,7 @@ export default function CoordinatorTeachersScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudieron cargar los maestros.'
+        message: t('coordinator.loadTeachersError', 'No se pudieron cargar los maestros.')
       });
     } finally {
       setLoading(false);

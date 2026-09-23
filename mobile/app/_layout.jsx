@@ -17,6 +17,7 @@ import CustomDrawer from '../src/components/CustomDrawer';
 import DarkColorModal from '../src/components/DarkColorModal';
 import NotificationsModal from '../src/components/NotificationsModal';
 import TabBar from '../src/components/TabBar';
+import { TabBarProvider, useTabBar, TAB_SCREEN_NAMES } from '../src/context/TabBarContext';
 import api from '../src/utils/api';
 
 function LayoutInner() {
@@ -30,6 +31,28 @@ function LayoutInner() {
   const rootNavigationState = useRootNavigationState();
   const segments = useSegments();
   const { user, loading: authLoading } = useAuth();
+  const { tabAnimation } = useTabBar();
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const styleId = 'tab-directional-animations';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          @keyframes tabSlideFromRight {
+            0% { transform: translateX(24px); opacity: 0.92; }
+            100% { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes tabSlideFromLeft {
+            0% { transform: translateX(-24px); opacity: 0.92; }
+            100% { transform: translateX(0); opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!rootNavigationState?.key) return;
@@ -183,46 +206,50 @@ function LayoutInner() {
     <>
       <StatusBar style="light" />
       <Stack
-          screenOptions={({ route }) => ({
-            headerBackVisible: false,
-            headerStyle: {
-              backgroundColor: colors.headerC,
-              ...(Platform.OS === 'web' && { 
-                  height: 60,
-              })
-            },
-            headerShadowVisible: false,
-            headerTintColor: '#FFFFFF',
-            headerTitleAlign: 'center',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-              fontSize: 16,
-            },
-            headerLeft: () => renderHeaderLeftBtn(route.name),
-            headerRight: () => renderHeaderRightCapsule(route.name),
-            unstable_headerLeftItems: () => {
-              const el = renderHeaderLeftBtn(route.name);
-              if (!el) return [];
-              return [
-                {
-                  type: 'custom',
-                  hidesSharedBackground: true,
-                  element: el,
-                },
-              ];
-            },
-            unstable_headerRightItems: () => {
-              const el = renderHeaderRightCapsule(route.name);
-              if (!el) return [];
-              return [
-                {
-                  type: 'custom',
-                  hidesSharedBackground: true,
-                  element: el,
-                },
-              ];
-            },
-          })}
+          screenOptions={({ route }) => {
+            const isTab = TAB_SCREEN_NAMES.includes(route.name);
+            return {
+              animation: isTab ? tabAnimation : 'slide_from_right',
+              headerBackVisible: false,
+              headerStyle: {
+                backgroundColor: colors.headerC,
+                ...(Platform.OS === 'web' && { 
+                    height: 60,
+                })
+              },
+              headerShadowVisible: false,
+              headerTintColor: '#FFFFFF',
+              headerTitleAlign: 'center',
+              headerTitleStyle: {
+                fontWeight: 'bold',
+                fontSize: 16,
+              },
+              headerLeft: () => renderHeaderLeftBtn(route.name),
+              headerRight: () => renderHeaderRightCapsule(route.name),
+              unstable_headerLeftItems: () => {
+                const el = renderHeaderLeftBtn(route.name);
+                if (!el) return [];
+                return [
+                  {
+                    type: 'custom',
+                    hidesSharedBackground: true,
+                    element: el,
+                  },
+                ];
+              },
+              unstable_headerRightItems: () => {
+                const el = renderHeaderRightCapsule(route.name);
+                if (!el) return [];
+                return [
+                  {
+                    type: 'custom',
+                    hidesSharedBackground: true,
+                    element: el,
+                  },
+                ];
+              },
+            };
+          }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
@@ -230,6 +257,7 @@ function LayoutInner() {
             name="home" 
             options={{ 
               title: (''),
+              animation: tabAnimation,
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
@@ -242,6 +270,7 @@ function LayoutInner() {
             name="profile" 
             options={{ 
               title: (''),
+              animation: tabAnimation,
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
@@ -265,6 +294,7 @@ function LayoutInner() {
             name="interpreter" 
             options={{ 
               title: (''),
+              animation: tabAnimation,
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
@@ -275,6 +305,7 @@ function LayoutInner() {
             name="modules" 
             options={{ 
               title: (''),
+              animation: tabAnimation,
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
@@ -283,6 +314,7 @@ function LayoutInner() {
             name="chat" 
             options={{ 
               title: (''),
+              animation: tabAnimation,
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
@@ -305,13 +337,23 @@ function LayoutInner() {
 
   return (
     <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
-      <View style={{ flex: 1 }}>{content}</View>
+      <View 
+        key={Platform.OS === 'web' && showTabBar ? pathname : undefined}
+        style={[
+          { flex: 1 },
+          Platform.OS === 'web' && showTabBar && {
+            animationName: tabAnimation === 'slide_from_left' ? 'tabSlideFromLeft' : 'tabSlideFromRight',
+            animationDuration: '0.2s',
+            animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          }
+        ]}
+      >
+        {content}
+      </View>
       {showTabBar && <TabBar currentRoute={pathname} />}
     </View>
   );
 }
-
-import { TabBarProvider } from '../src/context/TabBarContext';
 
 export default function Layout() {
   return (

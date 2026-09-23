@@ -113,7 +113,7 @@ export default function ModulesScreen() {
       case 'coordinator':
         return [
           lunchModule,
-          { name: t('menu.classrooms', 'Salones'), path: '/classrooms', icon: BookOpen, color: '#0ea5e9', desc: 'Ver salones y descargar reportes', image: IMAGES.hapes },
+          { name: t('menu.classrooms', 'Salones'), path: '/classrooms', icon: BookOpen, color: '#0ea5e9', desc: t('home.classroomsDesc', 'Ver salones y descargar reportes'), image: IMAGES.hapes },
           { name: t('menu.students', 'Estudiantes'), path: '/students', icon: Users, color: '#8b5cf6', desc: t('home.studentsDesc', 'Ver listado de estudiantes'), image: IMAGES.img8 },
           { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText, color: '#ec4899', desc: t('home.gradeTicketsDesc', 'Aprobar extensión de notas'), image: IMAGES.img4 },
           { name: t('menu.assign_classes', 'Asignar Clases'), path: '/assign', icon: BookOpen, color: Colors.primary, desc: t('home.assignDesc', 'Asignar docentes'), image: IMAGES.img3 },
@@ -159,7 +159,7 @@ export default function ModulesScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Modulos</Text>
+        <Text style={styles.headerTitle}>{t('titles.modules', 'Módulos')}</Text>
       </View>
       <ScrollView 
         style={styles.container} 

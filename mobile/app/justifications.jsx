@@ -150,7 +150,7 @@ export default function JustificationsScreen() {
       showAlert({
         type: 'error',
         title: t('dashboard.error', 'Error'),
-        message: 'No se pudo seleccionar el archivo.'
+        message: t('justifications.selectFileError', 'No se pudo seleccionar el archivo.')
       });
     }
   };
@@ -163,8 +163,8 @@ export default function JustificationsScreen() {
       if (selectedDate > today) {
         showAlert({
           type: 'warning',
-          title: 'Fecha Inválida',
-          message: 'Solo se permiten justificaciones hasta la fecha actual.'
+          title: t('justifications.invalidDateTitle', 'Fecha Inválida'),
+          message: t('justifications.maxTodayWarning', 'Solo se permiten justificaciones hasta la fecha actual.')
         });
         return;
       }
@@ -196,8 +196,8 @@ export default function JustificationsScreen() {
       if (endMins <= startMins) {
         showAlert({
           type: 'warning',
-          title: 'Horario Inválido',
-          message: 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).'
+          title: t('justifications.invalidScheduleTitle', 'Horario Inválido'),
+          message: t('justifications.invalidScheduleMessage', 'La hora fin (Hasta) no puede ser anterior ni igual a la hora inicio (Desde).')
         });
         return;
       }
@@ -241,11 +241,11 @@ export default function JustificationsScreen() {
 
     const todayStr = getTodayLocalString();
     if (formData.date > todayStr) {
-      setDateError('La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.');
+      setDateError(t('justifications.noFutureDateError', 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.'));
       showAlert({
         type: 'warning',
-        title: 'Fecha Inválida',
-        message: 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.'
+        title: t('justifications.invalidDateTitle', 'Fecha Inválida'),
+        message: t('justifications.noFutureDateError', 'La fecha de inasistencia no puede ser futura. Solo se permiten fechas hasta el día de hoy.')
       });
       return;
     }
@@ -256,8 +256,8 @@ export default function JustificationsScreen() {
       if (endMins <= startMins) {
         showAlert({
           type: 'warning',
-          title: 'Horario Inválido',
-          message: 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).'
+          title: t('justifications.invalidScheduleTitle', 'Horario Inválido'),
+          message: t('justifications.endTimeAfterStartTime', 'La hora fin (Hasta) debe ser posterior a la hora inicio (Desde).')
         });
         return;
       }
@@ -393,7 +393,7 @@ export default function JustificationsScreen() {
                   styles.periodBadgeText, 
                   { color: theme === 'dark' ? '#cbd5e1' : '#475569' }
                 ]}>
-                  Día completo
+                  {t('justifications.fullDay', 'Día completo')}
                 </Text>
               </View>
             )}
@@ -557,7 +557,7 @@ export default function JustificationsScreen() {
                           activeOpacity={0.8}
                         >
                           <Text style={[styles.scopeBtnText, formData.scope === 'full_day' && styles.scopeBtnTextActive]}>
-                            Día Completo
+                            {t('justifications.fullDay', 'Día Completo')}
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -567,7 +567,7 @@ export default function JustificationsScreen() {
                         >
                           <Clock size={16} color={formData.scope === 'hourly' ? '#FFF' : Colors.text.muted} style={{ marginRight: 6 }} />
                           <Text style={[styles.scopeBtnText, formData.scope === 'hourly' && styles.scopeBtnTextActive]}>
-                            Por Horario
+                            {t('justifications.hourly', 'Por Horario')}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -581,11 +581,11 @@ export default function JustificationsScreen() {
                       onChange={(dateStr) => {
                         const todayStr = getTodayLocalString();
                         if (dateStr > todayStr) {
-                          setDateError('Solo se permiten justificaciones hasta la fecha actual.');
+                          setDateError(t('justifications.maxTodayWarning', 'Solo se permiten justificaciones hasta la fecha actual.'));
                           showAlert({
                             type: 'warning',
-                            title: 'Fecha Inválida',
-                            message: 'Solo se permiten justificaciones hasta la fecha actual.'
+                            title: t('justifications.invalidDateTitle', 'Fecha Inválida'),
+                            message: t('justifications.maxTodayWarning', 'Solo se permiten justificaciones hasta la fecha actual.')
                           });
                           return;
                         }

@@ -209,8 +209,8 @@ export default function ClassScreen() {
       console.error('Error fetching schedules or codes:', error);
       showAlert({
         type: 'error',
-        title: 'Error de Conexión',
-        message: 'No se pudieron cargar los datos de la clase.'
+        title: t('common.connectionError', 'Error de Conexión'),
+        message: t('class.loadClassDataError', 'No se pudieron cargar los datos de la clase.')
       });
     } finally {
       setLoading(false);
@@ -363,8 +363,8 @@ export default function ClassScreen() {
       hapticWarning();
       showAlert({
         type: 'warning',
-        title: 'Campo Requerido',
-        message: 'Selecciona un código de conducta de la lista.'
+        title: t('common.requiredField', 'Campo Requerido'),
+        message: t('class.selectConductCodeWarning', 'Selecciona un código de conducta de la lista.')
       });
       return;
     }
@@ -547,13 +547,13 @@ export default function ClassScreen() {
           ) : (
             <View style={[styles.activeLiveCard, { backgroundColor: theme === 'dark' ? Colors.card : '#f8fafc', borderWidth: 1, borderColor: Colors.gray[200] }]}>
               <View style={styles.liveBadgeRow}>
-                <Text style={[styles.liveBadgeText, { color: Colors.text.muted }]}>ESTADO ACTUAL</Text>
+                <Text style={[styles.liveBadgeText, { color: Colors.text.muted }]}>{t('common.currentStatus', 'ESTADO ACTUAL')}</Text>
               </View>
               <Text style={[styles.liveSubjectTitle, { color: Colors.text.primary, fontSize: 18 }]}>
-                No tienes clase asignada en este momento
+                {t('class.noCurrentClass', 'No tienes clase asignada en este momento')}
               </Text>
               <Text style={[styles.liveSubjectDetail, { color: Colors.text.muted, marginTop: 6 }]}>
-                En el horario actual no hay ninguna clase programada en tu horario docente.
+                {t('class.noCurrentClassSub', 'En el horario actual no hay ninguna clase programada en tu horario docente.')}
               </Text>
             </View>
           )}
@@ -578,7 +578,7 @@ export default function ClassScreen() {
                 </View>
                 <View style={styles.classInfo}>
                   <Text style={styles.className}>{cls.subjects?.name || 'Asignatura'}</Text>
-                  <Text style={styles.classDetail}>{cls.grade}º Grado — Sección '{cls.section}'</Text>
+                  <Text style={styles.classDetail}>{t('common.gradeSectionFormat', { grade: cls.grade, section: cls.section, defaultValue: `${cls.grade}º Grado — Sección '${cls.section}'` })}</Text>
                 </View>
                 <View style={styles.chevronBox}>
                   <ChevronRight size={20} color={Colors.text.muted} />
@@ -778,7 +778,7 @@ export default function ClassScreen() {
               ) : (
                 <View style={{ backgroundColor: theme === 'dark' ? Colors.card : '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.gray[200], alignItems: 'center' }}>
                   <Text style={{ fontSize: 12, color: Colors.text.muted, textAlign: 'center', fontWeight: '600' }}>
-                    Modo Consulta y Reporte de Conducta (La asistencia solo se guarda durante la clase activa en curso)
+                    {t('class.readOnlyConductNotice', 'Modo Consulta y Reporte de Conducta (La asistencia solo se guarda durante la clase activa en curso)')}
                   </Text>
                 </View>
               )}
@@ -846,7 +846,7 @@ export default function ClassScreen() {
                     <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {filteredConductCodes.length === 0 ? (
                         <View style={styles.emptyDropdownResult}>
-                          <Text style={styles.emptyDropdownText}>No se encontraron códigos que coincidan.</Text>
+                          <Text style={styles.emptyDropdownText}>{t('common.noMatchingCodes', 'No se encontraron códigos que coincidan.')}</Text>
                         </View>
                       ) : (
                         filteredConductCodes.map(c => {
@@ -887,7 +887,7 @@ export default function ClassScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Observaciones / Detalle (Opcional)</Text>
+                <Text style={styles.label}>{t('common.observationsOptional', 'Observaciones / Detalle (Opcional)')}</Text>
                 <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                   <FileText size={18} color={Colors.text.muted} style={styles.inputIcon} />
                   <TextInput

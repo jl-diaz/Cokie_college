@@ -32,7 +32,7 @@ export default function TabBar({ currentRoute }) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { isTabBarHidden, unreadChatCount = 0, setUnreadChatCount } = useTabBar();
+  const { isTabBarHidden, unreadChatCount = 0, setUnreadChatCount, navigateTab } = useTabBar();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -197,7 +197,11 @@ export default function TabBar({ currentRoute }) {
               activeOpacity={0.7}
               onPress={() => {
                 if (currentRoute !== tab.route) {
-                  router.push(tab.route);
+                  if (navigateTab) {
+                    navigateTab(tab.route, router, currentRoute);
+                  } else {
+                    router.push(tab.route);
+                  }
                 }
               }}
               style={styles.tabItem}

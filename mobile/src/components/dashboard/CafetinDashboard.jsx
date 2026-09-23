@@ -11,6 +11,7 @@ import {
   Clock 
 } from 'lucide-react-native';
 import api from '../../utils/api';
+import { useTranslation } from 'react-i18next';
 import { 
   BentoStatCard, 
   WideBannerCard, 
@@ -20,6 +21,7 @@ import {
 
 export default function CafetinDashboard({ isDark = false }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
   const [todayMenu, setTodayMenu] = useState([]);
@@ -69,7 +71,7 @@ export default function CafetinDashboard({ isDark = false }) {
       <View style={styles.centerLoading}>
         <ActivityIndicator size="small" color="#EC4899" />
         <Text style={[styles.loadingText, isDark && styles.textMuted]}>
-          Cargando panel de cafetín...
+          {t('dashboard.loadingCafetin', 'Cargando panel de cafetín...')}
         </Text>
       </View>
     );
@@ -79,12 +81,12 @@ export default function CafetinDashboard({ isDark = false }) {
     <View style={styles.container}>
       {/* 1. Banner Superior del Cafetín */}
       <WideBannerCard 
-        tag="Cafetín Escolar"
-        title={todayMenu.length > 0 ? `${todayMenu.length} Platos en Menú Hoy` : "Menú de Almuerzo"}
+        tag={t('dashboard.schoolCafetin', 'Cafetín Escolar')}
+        title={todayMenu.length > 0 ? t('dashboard.menuDishesToday', { count: todayMenu.length, defaultValue: `${todayMenu.length} Platos en Menú Hoy` }) : t('dashboard.lunchMenu', 'Menú de Almuerzo')}
         subtitle={todayMenu.length > 0 
-          ? "Menú del día activo para encargo de estudiantes y docentes" 
-          : "Aún no has publicado el menú del día para hoy"}
-        actionLabel="Configurar menú"
+          ? t('dashboard.menuActiveToday', 'Menú del día activo para encargo de estudiantes y docentes') 
+          : t('dashboard.menuNotPublishedToday', 'Aún no has publicado el menú del día para hoy')}
+        actionLabel={t('dashboard.configureMenu', 'Configurar menú')}
         variant="blue"
         isDark={isDark}
         fallbackIcon={UtensilsCrossed}
@@ -94,9 +96,9 @@ export default function CafetinDashboard({ isDark = false }) {
       {/* 2. Estadísticas Principales: Pedidos (Azul Marino) y Catálogo (Rosa Cokie / Lavanda) */}
       <View style={styles.statsRow}>
         <BentoStatCard 
-          tag="Pedidos Hoy"
+          tag={t('dashboard.ordersToday', 'Pedidos Hoy')}
           value={`${orders.length}`}
-          subtitle={pendingOrdersCount > 0 ? `${pendingOrdersCount} por despachar` : "Todos entregados"}
+          subtitle={pendingOrdersCount > 0 ? t('dashboard.ordersPendingDispatch', { count: pendingOrdersCount, defaultValue: `${pendingOrdersCount} por despachar` }) : t('dashboard.allDelivered', 'Todos entregados')}
           variant="yellow"
           isDark={isDark}
           fallbackIcon={ShoppingBag}
@@ -104,9 +106,9 @@ export default function CafetinDashboard({ isDark = false }) {
         />
 
         <BentoStatCard 
-          tag="Catálogo"
+          tag={t('dashboard.catalog', 'Catálogo')}
           value={`${catalog.length}`}
-          subtitle="Platillos registrados"
+          subtitle={t('dashboard.dishesRegistered', 'Platillos registrados')}
           variant="lavender"
           isDark={isDark}
           fallbackIcon={Utensils}
@@ -122,11 +124,13 @@ export default function CafetinDashboard({ isDark = false }) {
       />
 
       {/* 4. Herramientas del Cafetín */}
-      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>Operaciones del cafetín</Text>
+      <Text style={[styles.sectionTitle, isDark && styles.textMuted]}>
+        {t('dashboard.cafetinOperations', 'Operaciones del cafetín')}
+      </Text>
       
       <ActionCard 
-        title="Escanear QR de Retiro"
-        subtitle="Verificar y confirmar entrega de almuerzo escaneando código"
+        title={t('dashboard.scanQrPickup', 'Escanear QR de Retiro')}
+        subtitle={t('dashboard.scanQrPickupSub', 'Verificar y confirmar entrega de almuerzo escaneando código')}
         isDark={isDark}
         fallbackIcon={QrCode}
         iconColor="#FFFFFF"
@@ -135,8 +139,8 @@ export default function CafetinDashboard({ isDark = false }) {
       />
 
       <ActionCard 
-        title="Publicar Menú Diario"
-        subtitle="Seleccionar platos fuertes, acompañamientos y refresco del día"
+        title={t('dashboard.publishDailyMenu', 'Publicar Menú Diario')}
+        subtitle={t('dashboard.publishDailyMenuSub', 'Seleccionar platos fuertes, acompañamientos y refresco del día')}
         isDark={isDark}
         fallbackIcon={Sparkles}
         iconColor="#FFFFFF"
@@ -148,7 +152,7 @@ export default function CafetinDashboard({ isDark = false }) {
       <View style={styles.actionRowFlex}>
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Pedidos"
+            title={t('dashboard.orders', 'Pedidos')}
             isDark={isDark}
             fallbackIcon={ShoppingBag}
             iconColor="#FFFFFF"
@@ -160,7 +164,7 @@ export default function CafetinDashboard({ isDark = false }) {
 
         <View style={{ flex: 1 }}>
           <ActionCard 
-            title="Avisos"
+            title={t('menu.announcements', 'Avisos')}
             isDark={isDark}
             fallbackIcon={Bell}
             iconColor="#FFFFFF"
