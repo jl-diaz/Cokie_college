@@ -15,8 +15,29 @@ export default function DiaryScreen() {
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [diaryData, setDiaryData] = useState({ conduct: [], attendance: [] });
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState(1);
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
   const { studentId, isCoordinatorView } = useLocalSearchParams();
+
+  useEffect(() => {
+    let resolved = 4;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      if (today >= '2026-08-17' && today <= '2026-10-24') resolved = 4;
+      else if (today >= '2026-06-01' && today <= '2026-08-16') resolved = 3;
+      else if (today >= '2026-03-22' && today <= '2026-05-31') resolved = 2;
+      else resolved = 1;
+    } catch (e) {}
+
+    api.get('/student/active-period')
+      .then(res => {
+        if (res.data?.activePeriod) {
+          setSelectedPeriod(res.data.activePeriod);
+        } else {
+          setSelectedPeriod(resolved);
+        }
+      })
+      .catch(() => setSelectedPeriod(resolved));
+  }, []);
 
   // Estado para controlar qué acordeones de conducta están abiertos
   const [expandedCategories, setExpandedCategories] = useState({
@@ -34,7 +55,9 @@ export default function DiaryScreen() {
   };
 
   useEffect(() => {
-    fetchDiary();
+    if (selectedPeriod !== null) {
+      fetchDiary();
+    }
   }, [selectedPeriod, studentId]);
 
   const formatLocalDate = (dateStr) => {
@@ -158,7 +181,7 @@ export default function DiaryScreen() {
     },
   ];
 
-  if (loading && diaryData.conduct.length === 0) {
+  if ((loading || selectedPeriod === null) && diaryData.conduct.length === 0) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />

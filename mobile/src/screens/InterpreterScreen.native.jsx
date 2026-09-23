@@ -15,7 +15,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useIsFocused, usePathname } from 'expo-router';
 import { 
   Mic, 
   MicOff, 
@@ -37,6 +37,9 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 export default function InterpreterScreenNative() {
+  const pathname = usePathname();
+  const screenFocused = useIsFocused();
+  const isFocused = screenFocused && (pathname === '/interpreter' || pathname.startsWith('/interpreter'));
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
@@ -53,9 +56,9 @@ export default function InterpreterScreenNative() {
   // ── SELECTORES DE FUENTE DE VIDEO Y SALIDA DE AUDIO ───────────────────────
   const [videoSource, setVideoSource] = useState('phone'); // 'phone' | 'glasses'
   const [audioOutput, setAudioOutput] = useState('phone'); // 'phone' | 'glasses'
-  const [esp32Ip, setEsp32Ip] = useState('cokielens.local');
+  const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
-  const [ipInput, setIpInput] = useState('cokielens.local');
+  const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -96,8 +99,17 @@ export default function InterpreterScreenNative() {
     })();
   }, []);
 
-  // Inicializar audio y WebSocket
+  // Al perder el foco, resetear estados y parar locución
   useEffect(() => {
+    if (!isFocused) {
+      setIsCameraReady(false);
+      Speech.stop().catch(() => {});
+    }
+  }, [isFocused]);
+
+  // Configurar audio y solicitar permiso solo si está en pantalla
+  useEffect(() => {
+    if (!isFocused) return;
     (async () => {
       if (!permission) {
         await requestPermission();
@@ -106,12 +118,17 @@ export default function InterpreterScreenNative() {
         await setAudioModeAsync({
           allowsRecording: false,
           playsInSilentMode: true,
-          shouldPlayInBackground: true,
+          shouldPlayInBackground: false,
         });
       } catch (e) {
         console.warn("No se pudo configurar el audio:", e);
       }
     })();
+  }, [isFocused, permission]);
+
+  // Inicializar WebSocket sólo cuando la pantalla esté enfocada
+  useEffect(() => {
+    if (!isFocused) return;
 
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
@@ -176,14 +193,15 @@ export default function InterpreterScreenNative() {
     return () => {
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.disconnect();
+      Speech.stop().catch(() => {});
     };
-  }, []);
+  }, [isFocused, t, i18n.language]);
 
   // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO ────────────────────────────
   useEffect(() => {
     let intervalId;
 
-    if (isActive && videoSource === 'phone' && isCameraReady && hasPermission) {
+    if (isFocused && isActive && videoSource === 'phone' && isCameraReady && hasPermission) {
       intervalId = setInterval(async () => {
         if (!cameraRef.current || isCapturingRef.current) return;
         
@@ -214,15 +232,15 @@ export default function InterpreterScreenNative() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isActive, videoSource, isCameraReady, hasPermission]);
+  }, [isFocused, isActive, videoSource, isCameraReady, hasPermission]);
 
   // ── BUCLE 2: CAPTURA ULTRA RÁPIDA DESDE LENTES COKIELENS (ESP32-CAM) ───────
   // No utiliza takePictureAsync. Consume fotogramas JPEG directamente del ESP32 en 15ms.
   useEffect(() => {
     let intervalId;
 
-    if (isActive && videoSource === 'glasses') {
-      const cleanIp = esp32Ip.replace('http://', '').replace('/', '');
+    if (isFocused && isActive && videoSource === 'glasses') {
+      const cleanIp = esp32Ip.replace('http://', '').replace('/', '').trim();
       const captureUrl = `http://${cleanIp}/capture`;
 
       intervalId = setInterval(async () => {
@@ -231,7 +249,7 @@ export default function InterpreterScreenNative() {
 
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const timeoutId = setTimeout(() => controller.abort(), 1400);
 
           const response = await fetch(captureUrl, { 
             signal: controller.signal,
@@ -243,18 +261,20 @@ export default function InterpreterScreenNative() {
             setGlassesConnected(true);
             const blob = await response.blob();
             
-            // Convertir blob a base64 de manera ultrarrápida
+            // Convertir blob a base64 de manera robusta
             const reader = new FileReader();
-            reader.onloadend = () => {
+            reader.onload = () => {
               const base64Data = reader.result;
-              if (base64Data) {
+              if (typeof base64Data === 'string' && base64Data.length > 50) {
                 setGlassesFrameUri(base64Data);
-                const rawBase64 = base64Data.split(',')[1];
+                const commaIdx = base64Data.indexOf(',');
+                const rawBase64 = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
                 if (rawBase64) {
                   WebSocketService.sendFrame(rawBase64);
                 }
               }
             };
+            reader.onerror = () => {};
             reader.readAsDataURL(blob);
           } else {
             setGlassesConnected(false);
@@ -264,20 +284,20 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 160); // ~6-7 FPS constantes y estables sin acumulación de lag
+      }, 180);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isActive, videoSource, esp32Ip]);
+  }, [isFocused, isActive, videoSource, esp32Ip]);
 
   function toggleCameraType() {
     setFacingMode(current => (current === 'front' ? 'back' : 'front'));
   }
 
   const handleSaveIp = async () => {
-    const clean = ipInput.trim();
+    const clean = ipInput.replace('http://', '').replace('/', '').trim();
     setEsp32Ip(clean);
     await AsyncStorage.setItem('cokielens_ip', clean);
     setIsConfigModalVisible(false);
@@ -287,22 +307,41 @@ export default function InterpreterScreenNative() {
     setIsTestingConnection(true);
     setTestResult(null);
     try {
-      const clean = ipInput.replace('http://', '').replace('/', '').trim();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      let clean = ipInput.replace('http://', '').replace('/', '').trim();
+      if (!clean) clean = '192.168.4.1';
 
-      const res = await fetch(`http://${clean}/status`, { signal: controller.signal });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      let res;
+      try {
+        res = await fetch(`http://${clean}/status`, { signal: controller.signal });
+      } catch (err) {
+        // Fallback automático si cokielens.local falla en Android: intentar con IP AP
+        if (clean === 'cokielens.local') {
+          clean = '192.168.4.1';
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort(), 3000);
+          res = await fetch(`http://${clean}/status`, { signal: retryController.signal });
+          clearTimeout(retryTimeout);
+          setIpInput(clean);
+          setEsp32Ip(clean);
+          await AsyncStorage.setItem('cokielens_ip', clean);
+        } else {
+          throw err;
+        }
+      }
       clearTimeout(timeoutId);
       
-      if (res.ok) {
+      if (res && res.ok) {
         const json = await res.json();
-        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (Heap: ${json.free_heap || 'OK'})` });
+        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (${json.ip || clean})` });
         setGlassesConnected(true);
       } else {
         setTestResult({ success: false, message: 'Respuesta inválida del dispositivo' });
       }
     } catch (e) {
-      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que esté en el mismo Wi-Fi.' });
+      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.' });
     } finally {
       setIsTestingConnection(false);
     }
@@ -397,19 +436,23 @@ export default function InterpreterScreenNative() {
       {/* ── ÁREA DE VIDEO (TELÉFONO O LENTES) ── */}
       <View style={styles.cameraContainer}>
         {videoSource === 'phone' ? (
-          <>
-            <CameraView 
-              ref={cameraRef}
-              style={StyleSheet.absoluteFill} 
-              facing={facingMode}
-              onCameraReady={() => setIsCameraReady(true)}
-              animateShutter={false}
-            />
-            {/* Botón flotante para alternar frontal / trasera */}
-            <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
-              <SwitchCamera color="#fff" size={24} />
-            </TouchableOpacity>
-          </>
+          isFocused ? (
+            <>
+              <CameraView 
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill} 
+                facing={facingMode}
+                onCameraReady={() => setIsCameraReady(true)}
+                animateShutter={false}
+              />
+              {/* Botón flotante para alternar frontal / trasera */}
+              <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+                <SwitchCamera color="#fff" size={24} />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
+          )
         ) : (
           <View style={styles.glassesPreviewContainer}>
             {glassesFrameUri ? (
@@ -484,14 +527,52 @@ export default function InterpreterScreenNative() {
               </View>
 
               <Text style={styles.modalHelp}>
-                Ingresa el nombre mDNS (cokielens.local) o la IP de tu ESP32-CAM:
+                Ingresa la IP de tu ESP32-CAM o selecciona una opción rápida:
               </Text>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <TouchableOpacity 
+                  onPress={() => setIpInput('192.168.4.1')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 7,
+                    paddingHorizontal: 8,
+                    backgroundColor: ipInput === '192.168.4.1' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: ipInput === '192.168.4.1' ? '#38bdf8' : 'transparent',
+                    alignItems: 'center'
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>192.168.4.1</Text>
+                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>Wi-Fi de Lentes (AP)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={() => setIpInput('cokielens.local')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 7,
+                    paddingHorizontal: 8,
+                    backgroundColor: ipInput === 'cokielens.local' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: ipInput === 'cokielens.local' ? '#38bdf8' : 'transparent',
+                    alignItems: 'center'
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>cokielens.local</Text>
+                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>mDNS Local</Text>
+                </TouchableOpacity>
+              </View>
 
               <TextInput
                 style={styles.input}
                 value={ipInput}
                 onChangeText={setIpInput}
-                placeholder="Ej: cokielens.local o 192.168.1.50"
+                placeholder="Ej: 192.168.4.1 o 192.168.1.50"
                 placeholderTextColor="#94a3b8"
                 keyboardType="default"
                 autoCapitalize="none"

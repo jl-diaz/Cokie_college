@@ -7,8 +7,18 @@ const studentController = {
     getGrades: async (req, res) => {
         try {
             const student_id = req.user.id;
-            const { period } = req.query;
+            let { period } = req.query;
             const { grade, section } = req.user;
+
+            if (!period) {
+                try {
+                    period = await getPeriodForDate(new Date());
+                } catch (e) {
+                    period = 4;
+                }
+            } else {
+                period = parseInt(period);
+            }
 
             // Si el alumno no tiene grado o sección, no podemos buscar su horario de materias
             if (!grade || !section) {
@@ -17,7 +27,7 @@ const studentController = {
                     .from('grades')
                     .select('*, subjects(name), evaluation_activities(name, percentage)')
                     .eq('student_id', student_id)
-                    .eq('period', period || 1);
+                    .eq('period', period);
                 
                 if (gradesError) throw gradesError;
                 return res.json(gradesData);
@@ -336,7 +346,15 @@ const studentController = {
     getAverages: async (req, res) => {
         try {
             const student_id = req.user.id;
-            const { period } = req.query;
+            let { period } = req.query;
+
+            if (!period) {
+                try {
+                    period = await getPeriodForDate(new Date());
+                } catch (e) {
+                    period = null;
+                }
+            }
 
             let query = supabaseAdmin
                 .from('student_averages')
@@ -350,7 +368,32 @@ const studentController = {
             const { data, error } = await query;
 
             if (error) throw error;
-            res.json(data);
+
+            const formatted = (data || []).map(item => ({
+                ...item,
+                average: (item.final_average !== null && item.final_average !== undefined)
+                    ? parseFloat(item.final_average)
+                    : null
+            }));
+
+            res.json(formatted);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
+
+    getActivePeriod: async (req, res) => {
+        try {
+            const activePeriod = await getPeriodForDate(new Date());
+            const { data: periods } = await supabaseAdmin
+                .from('academic_periods')
+                .select('*')
+                .order('period_number', { ascending: true });
+
+            res.json({
+                activePeriod: activePeriod || 4,
+                periods: periods || []
+            });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

@@ -75,30 +75,28 @@ function LayoutInner() {
 
   const isWeb = Platform.OS === 'web';
 
+  const ROOT_ROUTES = ['index', '(auth)/login', 'home', 'interpreter', 'chat', 'modules', 'profile'];
+
   const renderHeaderLeftBtn = (routeName) => {
-    if (routeName === 'index' || routeName === '(auth)/login' || routeName === 'home' || routeName === 'lunch' || routeName === 'modules') return null;
+    if (ROOT_ROUTES.includes(routeName)) return null;
     return (
       <TouchableOpacity
         onPress={() => {
           if (router.canGoBack()) {
             router.back();
           } else {
-            router.replace('/home');
+            router.replace('/modules');
           }
         }}
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: 'rgba(0, 0, 0, 0.22)',
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.14)',
+          padding: 6,
           justifyContent: 'center',
           alignItems: 'center',
         }}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         activeOpacity={0.7}
       >
-        <ArrowLeft size={20} color="#FFFFFF" />
+        <ArrowLeft size={24} color="#FFFFFF" />
       </TouchableOpacity>
     );
   };
@@ -186,6 +184,7 @@ function LayoutInner() {
       <StatusBar style="light" />
       <Stack
           screenOptions={({ route }) => ({
+            headerBackVisible: false,
             headerStyle: {
               backgroundColor: colors.headerC,
               ...(Platform.OS === 'web' && { 
@@ -239,7 +238,14 @@ function LayoutInner() {
           <Stack.Screen name="justifications" options={{ title: ('') }} />
           <Stack.Screen name="schedule" options={{ title: ('') }} />
           <Stack.Screen name="grades" options={{ title: ('') }} />
-          <Stack.Screen name="profile" options={{ title: ('') }} />
+          <Stack.Screen 
+            name="profile" 
+            options={{ 
+              title: (''),
+              headerLeft: () => null,
+              unstable_headerLeftItems: () => [],
+            }} 
+          />
           <Stack.Screen name="users" options={{ title: ('') }} />
           <Stack.Screen name="conduct" options={{ title: ('') }} />
           <Stack.Screen name="students" options={{ title: ('') }} />
@@ -254,15 +260,15 @@ function LayoutInner() {
           <Stack.Screen name="events" options={{ title: ('') }} />
           <Stack.Screen name="announcements" options={{ title: ('') }} />
           <Stack.Screen name="cafetin" options={{ title: ('') }} />
+          <Stack.Screen name="lunch" options={{ title: ('') }} />
           <Stack.Screen 
-            name="lunch" 
+            name="interpreter" 
             options={{ 
               title: (''),
               headerLeft: () => null,
               unstable_headerLeftItems: () => [],
             }} 
           />
-          <Stack.Screen name="interpreter" options={{ title: ('') }} />
           <Stack.Screen name="subject-hours" options={{ title: ('') }} />
           <Stack.Screen name="academic-periods" options={{ title: ('') }} />
           <Stack.Screen 
@@ -273,7 +279,14 @@ function LayoutInner() {
               unstable_headerLeftItems: () => [],
             }} 
           />
-          <Stack.Screen name="chat" options={{ title: ('') }} />
+          <Stack.Screen 
+            name="chat" 
+            options={{ 
+              title: (''),
+              headerLeft: () => null,
+              unstable_headerLeftItems: () => [],
+            }} 
+          />
         </Stack>
         <CustomDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
         <NotificationsModal 

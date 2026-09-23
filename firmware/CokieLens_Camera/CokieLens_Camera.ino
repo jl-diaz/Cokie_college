@@ -242,6 +242,16 @@ static esp_err_t wifi_portal_handler(httpd_req_t *req) {
     return httpd_resp_send(req, html.c_str(), html.length());
 }
 
+// ── HANDLER 6: PREFLIGHT CORS (OPTIONS) PARA NAVEGADORES WEB ───────────────
+static esp_err_t options_handler(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    httpd_resp_set_hdr(req, "Access-Control-Max-Age", "86400");
+    return httpd_resp_send(req, "OK", 2);
+}
+
 // ── REGISTRO DE ENDPOINTS HTTP ─────────────────────────────────────────────
 void startCameraServer() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -255,6 +265,11 @@ void startCameraServer() {
     httpd_uri_t portal_get  = { .uri = "/",        .method = HTTP_GET, .handler = wifi_portal_handler,.user_ctx = NULL };
     httpd_uri_t portal_post = { .uri = "/",        .method = HTTP_POST,.handler = wifi_portal_handler,.user_ctx = NULL };
 
+    httpd_uri_t opt_status  = { .uri = "/status",  .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
+    httpd_uri_t opt_capture = { .uri = "/capture", .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
+    httpd_uri_t opt_audio   = { .uri = "/play",    .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
+    httpd_uri_t opt_stream  = { .uri = "/stream",  .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
+
     if (httpd_start(&camera_httpd, &config) == ESP_OK) {
         httpd_register_uri_handler(camera_httpd, &capture_uri);
         httpd_register_uri_handler(camera_httpd, &status_uri);
@@ -262,6 +277,11 @@ void startCameraServer() {
         httpd_register_uri_handler(camera_httpd, &stream_uri);
         httpd_register_uri_handler(camera_httpd, &portal_get);
         httpd_register_uri_handler(camera_httpd, &portal_post);
+
+        httpd_register_uri_handler(camera_httpd, &opt_status);
+        httpd_register_uri_handler(camera_httpd, &opt_capture);
+        httpd_register_uri_handler(camera_httpd, &opt_audio);
+        httpd_register_uri_handler(camera_httpd, &opt_stream);
     }
 }
 

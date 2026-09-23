@@ -14,7 +14,7 @@ import {
   Image,
   KeyboardAvoidingView
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useIsFocused, usePathname } from 'expo-router';
 import {
   Sparkles,
   Plus,
@@ -50,6 +50,9 @@ const { width } = Dimensions.get('window');
 const TARGET_MOVEMENT_FRAMES = 15;
 
 export default function GestureStudioScreen() {
+  const pathname = usePathname();
+  const screenFocused = useIsFocused();
+  const isFocused = screenFocused && pathname.includes('gesture');
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
@@ -896,18 +899,22 @@ export default function GestureStudioScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <>
-                  <CameraView
-                    ref={cameraRef}
-                    style={StyleSheet.absoluteFill}
-                    facing={facingMode}
-                    onCameraReady={() => setIsCameraReady(true)}
-                    animateShutter={false}
-                  />
-                  <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
-                    <SwitchCamera color="#fff" size={22} />
-                  </TouchableOpacity>
-                </>
+                isFocused ? (
+                  <>
+                    <CameraView
+                      ref={cameraRef}
+                      style={StyleSheet.absoluteFill}
+                      facing={facingMode}
+                      onCameraReady={() => setIsCameraReady(true)}
+                      animateShutter={false}
+                    />
+                    <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+                      <SwitchCamera color="#fff" size={22} />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
+                )
               )
             ) : (
               liveFrameUri ? (

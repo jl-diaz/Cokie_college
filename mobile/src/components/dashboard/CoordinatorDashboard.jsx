@@ -120,17 +120,17 @@ export default function CoordinatorDashboard({ isDark = false }) {
       <View style={styles.statsRow}>
         <BentoStatCard 
           tag={t('users.tabStudents', 'Alumnos')}
-          value={students.length > 0 ? `${students.length}` : '340'}
+          value={`${students.length}`}
           subtitle={t('coordinatorDashboard.levelOnly', 'Solo en su nivel')}
           variant="black"
           isDark={isDark}
           fallbackIcon={Users}
-          onPress={() => router.push('/coordinator-students')}
+          onPress={() => router.push('/students')}
         />
         
         <BentoStatCard 
           tag={t('menu.classrooms', 'Salones')}
-          value={classrooms.length > 0 ? `${classrooms.length}` : '12'}
+          value={`${classrooms.length}`}
           subtitle={t('coordinatorDashboard.sectionsAssigned', 'Secciones a cargo')}
           variant="navy"
           isDark={isDark}

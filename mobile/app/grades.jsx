@@ -19,7 +19,8 @@ export default function GradesScreen() {
   const [averages, setAverages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedSubject, setExpandedSubject] = useState(null);
-  const [selectedPeriod, setSelectedPeriod] = useState(1);
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [activeAcademicPeriod, setActiveAcademicPeriod] = useState(4);
   const [studentDetails, setStudentDetails] = useState({});
   const { profile } = useAuth();
   const params = useLocalSearchParams();
@@ -29,10 +30,43 @@ export default function GradesScreen() {
   const { showAlert } = useAlert();
 
   useEffect(() => {
-    fetchGradesAndAverages();
+    fetchActivePeriod();
+  }, []);
+
+  const fetchActivePeriod = async () => {
+    try {
+      const res = await api.get('/student/active-period');
+      if (res.data?.activePeriod) {
+        setActiveAcademicPeriod(res.data.activePeriod);
+        setSelectedPeriod(res.data.activePeriod);
+      } else {
+        fallbackPeriodCalc();
+      }
+    } catch (e) {
+      fallbackPeriodCalc();
+    }
+  };
+
+  const fallbackPeriodCalc = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    let period = 4;
+    if (month <= 3) period = 1;
+    else if (month <= 5) period = 2;
+    else if (month <= 8) period = 3;
+    else period = 4;
+    setActiveAcademicPeriod(period);
+    setSelectedPeriod(period);
+  };
+
+  useEffect(() => {
+    if (selectedPeriod !== null) {
+      fetchGradesAndAverages();
+    }
   }, [selectedPeriod, studentId]);
 
   const fetchGradesAndAverages = async () => {
+    if (selectedPeriod === null) return;
     try {
       setLoading(true);
       let gradesEndpoint = '/student/grades';
@@ -47,7 +81,7 @@ export default function GradesScreen() {
         api.get(gradesEndpoint, { params: { period: selectedPeriod } }),
         api.get(averagesEndpoint, { params: { period: selectedPeriod } })
       ]);
-      setGrades(gradesRes.data);
+      setGrades(gradesRes.data || []);
       setAverages(averagesRes.data || []);
       
       if (isCoordinatorView) {
@@ -112,21 +146,47 @@ export default function GradesScreen() {
     const progress = Object.values(uniqueActivities).reduce((sum, p) => sum + p, 0);
     
     const avg = averages.find(a => a.subjects?.name === subjectName);
-    if (avg) {
+    if (avg && avg.final_average !== null && avg.final_average !== undefined) {
       return {
-        average: parseFloat(avg.final_average || 0).toFixed(2),
-        progress: Math.min(progress, 100)
+        average: parseFloat(avg.final_average).toFixed(2),
+        progress: Math.min(progress, 100),
+        hasGrade: true
+      };
+    }
+
+    if (subjectGrades.length > 0 && progress > 0) {
+      const sum = subjectGrades.reduce((acc, g) => acc + (parseFloat(g.grade || 0) * (parseFloat(g.evaluation_activities?.percentage || g.activities?.percentage || 0) / 100)), 0);
+      const calculated = progress > 0 ? (sum / (progress / 100)).toFixed(2) : "0.00";
+      return {
+        average: calculated,
+        progress: Math.min(progress, 100),
+        hasGrade: true
       };
     }
     
     return {
-      average: "0.00",
-      progress: progress
+      average: "—",
+      progress: progress,
+      hasGrade: false
     };
   };
 
   const getGradeColor = (average) => {
+    if (!average || average === '—') {
+      return { 
+        bg: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', 
+        border: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0', 
+        text: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : '#64748B' 
+      };
+    }
     const num = parseFloat(average);
+    if (isNaN(num)) {
+      return { 
+        bg: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', 
+        border: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0', 
+        text: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : '#64748B' 
+      };
+    }
     if (theme === 'dark') {
       return { 
         bg: 'rgba(255, 255, 255, 0.06)', 
@@ -142,15 +202,21 @@ export default function GradesScreen() {
   const getOverallAverage = () => {
     const subjects = Object.keys(groupedGrades);
     if (subjects.length > 0) {
-      const sum = subjects.reduce((acc, subject) => {
-        return acc + parseFloat(getSubjectAverage(subject).average);
-      }, 0);
-      return (sum / subjects.length).toFixed(2);
+      const evaluatedSubjects = subjects.filter(subject => {
+        const sub = getSubjectAverage(subject);
+        return sub.hasGrade && sub.average !== "—" && !isNaN(parseFloat(sub.average));
+      });
+      if (evaluatedSubjects.length > 0) {
+        const sum = evaluatedSubjects.reduce((acc, subject) => {
+          return acc + parseFloat(getSubjectAverage(subject).average);
+        }, 0);
+        return (sum / evaluatedSubjects.length).toFixed(2);
+      }
     }
-    return "0.00";
+    return "—";
   };
 
-  if (loading) {
+  if (loading || selectedPeriod === null) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -214,7 +280,7 @@ export default function GradesScreen() {
           </View>
           <View style={styles.summaryInfo}>
             <Text style={styles.summaryLabel}>{t('dashboard.partialGlobalAverage')}</Text>
-            <Text style={styles.summaryValue}>{overall} / 10</Text>
+            <Text style={styles.summaryValue}>{overall !== '—' ? `${overall} / 10` : '—'}</Text>
           </View>
         </View>
 

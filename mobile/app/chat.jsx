@@ -112,7 +112,7 @@ export default function ChatScreen() {
   const { user, profile } = useAuth();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
-  const { setIsTabBarHidden } = useTabBar();
+  const { setIsTabBarHidden, setUnreadChatCount } = useTabBar();
 
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const inputElevationAnim = useRef(new Animated.Value(0)).current;
@@ -267,6 +267,10 @@ export default function ChatScreen() {
       if (!silent) setLoadingConversations(true);
       const res = await api.get('/chat/conversations');
       const data = Array.isArray(res.data) ? res.data : [];
+      if (setUnreadChatCount) {
+        const total = data.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+        setUnreadChatCount(total);
+      }
       const decryptedData = data.map(c => ({
         ...c,
         last_message: decryptMessage(c.last_message)
@@ -337,7 +341,14 @@ export default function ChatScreen() {
       })));
 
       // Limpiar conteo no leído de esta conversación en el estado local
-      setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c));
+      setConversations(prev => {
+        const updated = prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c);
+        if (setUnreadChatCount) {
+          const total = updated.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+          setUnreadChatCount(total);
+        }
+        return updated;
+      });
 
       // Marcar como leída de inmediato
       api.post(`/chat/conversations/${convId}/read`).catch(() => {});
@@ -1923,30 +1934,33 @@ export default function ChatScreen() {
       <Stack.Screen
         options={{
           title: '',
-          headerLeft: () => (
+          headerBackVisible: false,
+          headerLeft: (activeConv && !isDesktop) ? () => (
             <TouchableOpacity
               onPress={handleChatBack}
-              style={styles.headerBackBtn}
+              style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
             >
-              <ArrowLeft size={20} color="#FFFFFF" />
+              <ArrowLeft size={24} color="#FFFFFF" />
             </TouchableOpacity>
-          ),
-          unstable_headerLeftItems: () => [
+          ) : () => null,
+          unstable_headerLeftItems: (activeConv && !isDesktop) ? () => [
             {
               type: 'custom',
               hidesSharedBackground: true,
               element: (
                 <TouchableOpacity
                   onPress={handleChatBack}
-                  style={styles.headerBackBtn}
+                  style={{ padding: 6, justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   activeOpacity={0.7}
                 >
-                  <ArrowLeft size={20} color="#FFFFFF" />
+                  <ArrowLeft size={24} color="#FFFFFF" />
                 </TouchableOpacity>
               ),
             },
-          ],
+          ] : () => [],
         }}
       />
       <StatusBar

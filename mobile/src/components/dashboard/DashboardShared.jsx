@@ -6,33 +6,69 @@ import { ChevronRight, ArrowUpRight } from 'lucide-react-native';
  * Hook para animar números enteros ascendentes
  */
 export function useAnimatedNumber(targetValue, duration = 1000) {
-  const [currentValue, setCurrentValue] = useState(0);
+  const [currentValue, setCurrentValue] = useState(targetValue);
 
   useEffect(() => {
-    const target = parseInt(targetValue, 10);
-    if (isNaN(target) || target <= 0) {
-      setCurrentValue(targetValue); // Si no es un número entero válido, devolver tal cual
+    if (targetValue === null || targetValue === undefined || targetValue === '—') {
+      setCurrentValue(targetValue);
       return;
     }
 
-    setCurrentValue(0);
-    const frameRate = 30; 
+    const strVal = String(targetValue).trim();
+    const isDecimal = strVal.includes('.') || strVal.includes(',');
+    const cleanStr = strVal.replace('%', '');
+
+    if (isDecimal) {
+      const targetFloat = parseFloat(cleanStr.replace(',', '.'));
+      if (isNaN(targetFloat) || targetFloat <= 0) {
+        setCurrentValue(targetValue);
+        return;
+      }
+
+      const decimalPlaces = cleanStr.includes('.') ? cleanStr.split('.')[1].length : 1;
+      const frameRate = 30;
+      const totalFrames = Math.round((duration / 1000) * frameRate);
+      let frame = 0;
+      const easeOutQuad = (t) => t * (2 - t);
+
+      const interval = setInterval(() => {
+        frame++;
+        const progress = frame / totalFrames;
+        const easedProgress = easeOutQuad(progress);
+        const nextValue = (targetFloat * easedProgress).toFixed(decimalPlaces);
+        setCurrentValue(strVal.includes('%') ? `${nextValue}%` : nextValue);
+
+        if (frame >= totalFrames) {
+          clearInterval(interval);
+          setCurrentValue(targetValue);
+        }
+      }, 1000 / frameRate);
+
+      return () => clearInterval(interval);
+    }
+
+    const target = parseInt(cleanStr, 10);
+    if (isNaN(target) || target <= 0) {
+      setCurrentValue(targetValue);
+      return;
+    }
+
+    setCurrentValue(strVal.includes('%') ? '0%' : 0);
+    const frameRate = 30;
     const totalFrames = Math.round((duration / 1000) * frameRate);
     let frame = 0;
-
     const easeOutQuad = (t) => t * (2 - t);
 
     const interval = setInterval(() => {
       frame++;
       const progress = frame / totalFrames;
       const easedProgress = easeOutQuad(progress);
-      
       const nextValue = Math.round(target * easedProgress);
-      setCurrentValue(nextValue);
+      setCurrentValue(strVal.includes('%') ? `${nextValue}%` : nextValue);
 
       if (frame >= totalFrames) {
         clearInterval(interval);
-        setCurrentValue(target);
+        setCurrentValue(targetValue);
       }
     }, 1000 / frameRate);
 
@@ -139,7 +175,7 @@ export function BentoCard({
   activeOpacity = 0.8,
   borderColor
 }) {
-  const palette = BENTO_VARIANTS[variant]?.[isDark ? 'dark' : 'light'] || BENTO_VARIANTS.default[isDark ? 'dark' : 'light'];
+  const palette = (BENTO_VARIANTS[variant] || BENTO_VARIANTS.default)[isDark ? 'dark' : 'light'];
 
   const containerStyle = [
     styles.bentoCard,
@@ -294,7 +330,7 @@ export function BentoStatCard({
   borderColor,
   style
 }) {
-  const palette = BENTO_VARIANTS[variant]?.[isDark ? 'dark' : 'light'] || BENTO_VARIANTS.yellow[isDark ? 'dark' : 'light'];
+  const palette = (BENTO_VARIANTS[variant] || BENTO_VARIANTS.yellow)[isDark ? 'dark' : 'light'];
   const animatedValue = useAnimatedNumber(value);
 
   return (
@@ -401,7 +437,7 @@ export function WideBannerCard({
   fallbackIcon: Icon,
   imageUri
 }) {
-  const palette = BENTO_VARIANTS[variant]?.[isDark ? 'dark' : 'light'] || BENTO_VARIANTS.rose[isDark ? 'dark' : 'light'];
+  const palette = (BENTO_VARIANTS[variant] || BENTO_VARIANTS.rose)[isDark ? 'dark' : 'light'];
 
   return (
     <BentoCard

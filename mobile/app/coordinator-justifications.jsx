@@ -1461,7 +1461,8 @@ export default function CoordinatorJustificationsScreen() {
                     >
                       <Image
                         source={{ uri: info.url }}
-                        style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                        resizeMode="contain"
+                        style={{ width: '100%', height: '100%' }}
                         onError={(e) => console.warn('Error cargando imagen de evidencia:', e.nativeEvent?.error)}
                       />
                     </ScrollView>

@@ -66,8 +66,17 @@ export default function AdminDashboard({ isDark = false }) {
 
   const activePeriod = useMemo(() => {
     if (!periods || periods.length === 0) return 'Periodo 1';
-    const active = periods.find(p => p.is_active);
-    return active ? `Periodo ${active.period_number}` : 'Periodo 1';
+    const now = new Date();
+    const active = periods.find(p => {
+      if (p.is_active) return true;
+      if (p.start_date && p.end_date) {
+        const s = new Date(p.start_date);
+        const e = new Date(p.end_date);
+        return now >= s && now <= e;
+      }
+      return false;
+    });
+    return active ? `Periodo ${active.period_number}` : (periods[0] ? `Periodo ${periods[0].period_number}` : 'Periodo 1');
   }, [periods]);
 
   if (loading) {

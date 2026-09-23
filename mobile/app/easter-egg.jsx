@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ImageBackground, Image, Platform, Animated } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../src/utils/supabase';
@@ -85,12 +85,13 @@ export default function EasterEggScreen() {
 
   const birdY = useRef(screenHeight / 2);
   const birdVelocity = useRef(0);
+  const birdAnimY = useRef(new Animated.Value(screenHeight / 2)).current;
+  const birdRotAnim = useRef(new Animated.Value(0)).current;
+
   const obstacles = useRef([]);
+  const [obstacleList, setObstacleList] = useState([]);
   const requestRef = useRef(null);
   const lastTimeRef = useRef(0);
-  
-  // Forzamos renderizado para sincronizar UI con game loop
-  const [, forceRender] = useState({});
 
   const spawnObstacle = (currentWidth, currentHeight) => {
     const currentGap = 220; // Fixed gap to prevent phantom collision zones
@@ -98,18 +99,24 @@ export default function EasterEggScreen() {
     const maxHeight = currentHeight - currentGap - minHeight;
     const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
     
-    obstacles.current.push({
+    const animX = new Animated.Value(currentWidth);
+    const newObs = {
+      id: `${Date.now()}_${Math.random()}`,
       x: currentWidth,
       topHeight: topHeight,
       gap: currentGap,
-      passed: false
-    });
+      passed: false,
+      animX
+    };
+    obstacles.current.push(newObs);
+    setObstacleList([...obstacles.current]);
   };
 
   const jump = () => {
     if (!isPlaying && !isGameOver) {
       setIsPlaying(true);
       obstacles.current = [];
+      setObstacleList([]);
       spawnObstacle(screenWidth, screenHeight);
     }
     if (isGameOver) {
@@ -127,7 +134,10 @@ export default function EasterEggScreen() {
     setNewRecordType(null);
     birdY.current = screenHeight / 2;
     birdVelocity.current = 0;
+    birdAnimY.setValue(screenHeight / 2);
+    birdRotAnim.setValue(0);
     obstacles.current = [];
+    setObstacleList([]);
     lastTimeRef.current = 0;
     spawnObstacle(screenWidth, screenHeight);
     loadRecords();
@@ -147,9 +157,16 @@ export default function EasterEggScreen() {
       birdVelocity.current += GRAVITY * timeScale;
       birdY.current += birdVelocity.current * timeScale;
 
+      birdAnimY.setValue(birdY.current);
+      const rot = Math.min(Math.max(birdVelocity.current * 2.5, -25), 45);
+      birdRotAnim.setValue(rot);
+
+      let needsListUpdate = false;
+
       for (let i = 0; i < obstacles.current.length; i++) {
         let obs = obstacles.current[i];
         obs.x -= OBSTACLE_SPEED * timeScale;
+        obs.animX.setValue(obs.x);
 
         // Collision logic with margin of error
         const hitTop = birdY.current + HITBOX_MARGIN < obs.topHeight;
@@ -174,15 +191,15 @@ export default function EasterEggScreen() {
 
       if (obstacles.current.length > 0 && obstacles.current[0].x < -OBSTACLE_WIDTH) {
         obstacles.current.shift();
+        needsListUpdate = true;
       }
       
       const lastObs = obstacles.current[obstacles.current.length - 1];
       if (lastObs && lastObs.x < screenWidth - 250) {
         spawnObstacle(screenWidth, screenHeight);
+      } else if (needsListUpdate) {
+        setObstacleList([...obstacles.current]);
       }
-
-      // Re-render
-      forceRender({});
     }
     requestRef.current = requestAnimationFrame(gameLoop);
   };
@@ -247,6 +264,7 @@ export default function EasterEggScreen() {
           setGameDimensions({ width, height });
           if (!isPlaying) {
             birdY.current = height / 2;
+            birdAnimY.setValue(height / 2);
           }
         }
       }}
@@ -266,30 +284,49 @@ export default function EasterEggScreen() {
 
         <Text style={styles.scoreText}>{score}</Text>
 
-        {obstacles.current.map((obs, i) => {
+        {obstacleList.map((obs) => {
           const bottomHeight = Math.max(0, screenHeight - obs.topHeight - obs.gap);
           return (
-            <React.Fragment key={i}>
-              <View style={[styles.pipe, styles.pipeTop, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.topHeight }]}>
+            <Animated.View 
+              key={obs.id} 
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: 0,
+                width: OBSTACLE_WIDTH,
+                transform: [{ translateX: obs.animX }],
+                zIndex: 4,
+              }}
+            >
+              <View style={[styles.pipe, styles.pipeTop, { width: OBSTACLE_WIDTH, height: obs.topHeight }]}>
                 <View style={styles.pipeEnergyLine} />
                 <View style={[styles.pipeCap, styles.pipeCapBottomEdge]} />
               </View>
-              <View style={[styles.pipe, styles.pipeBottom, { left: obs.x, width: OBSTACLE_WIDTH, height: bottomHeight, bottom: 0 }]}>
+              <View style={[styles.pipe, styles.pipeBottom, { width: OBSTACLE_WIDTH, height: bottomHeight, bottom: 0 }]}>
                 <View style={styles.pipeEnergyLine} />
                 <View style={[styles.pipeCap, styles.pipeCapTopEdge]} />
               </View>
-            </React.Fragment>
+            </Animated.View>
           );
         })}
 
-        <Image 
+        <Animated.Image 
           source={require('../src/assets/CokieAstronauta.png')} 
           style={[styles.bird, { 
-            top: birdY.current, 
             left: screenWidth / 2 - BIRD_WIDTH / 2, 
             width: BIRD_WIDTH, 
             height: BIRD_HEIGHT,
-            transform: [{ rotate: `${Math.min(Math.max(birdVelocity.current * 2.5, -25), 45)}deg` }]
+            transform: [
+              { translateY: birdAnimY },
+              {
+                rotate: birdRotAnim.interpolate({
+                  inputRange: [-25, 45],
+                  outputRange: ['-25deg', '45deg'],
+                  extrapolate: 'clamp'
+                })
+              }
+            ]
           }]} 
           resizeMode="contain"
         />
@@ -358,7 +395,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
     ...(Platform.OS === 'web' && {
       width: '100vw',
       height: '100vh',
@@ -367,7 +403,8 @@ const styles = StyleSheet.create({
   },
   bird: {
     position: 'absolute',
-    resizeMode: 'contain',
+    top: 0,
+    zIndex: 10,
   },
   pipe: {
     position: 'absolute',

@@ -8,6 +8,7 @@ router.use(authenticate, authorize(['student']));
 
 router.get('/grades', studentController.getGrades);
 router.get('/averages', studentController.getAverages);
+router.get('/active-period', studentController.getActivePeriod);
 router.get('/diary', studentController.getDiary);
 router.post('/justifications', studentController.requestJustification);
 router.get('/justifications', studentController.getJustificationRequests);
