@@ -19,9 +19,22 @@ export default function EasterEggScreen() {
   const [globalRecordHolder, setGlobalRecordHolder] = useState('Anónimo');
   const [newRecordType, setNewRecordType] = useState(null);
 
-  const [gameDimensions, setGameDimensions] = useState({ width: Dimensions.get('window').width, height: Dimensions.get('window').height });
+  const [gameDimensions, setGameDimensions] = useState(() => ({ 
+    width: Dimensions.get('window').width, 
+    height: Dimensions.get('window').height 
+  }));
   const screenWidth = gameDimensions.width;
   const screenHeight = gameDimensions.height;
+
+  // Actualizar dimensiones si la ventana cambia de tamaño (en PC/Web o rotación en móvil)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      if (window.width > 0 && window.height > 0) {
+        setGameDimensions({ width: window.width, height: window.height });
+      }
+    });
+    return () => subscription?.remove();
+  }, []);
 
   // Load initial records (weekly global record and personal record)
   const loadRecords = useCallback(async () => {
@@ -66,9 +79,9 @@ export default function EasterEggScreen() {
   const JUMP = -6.5;
   const OBSTACLE_WIDTH = 70;
   const OBSTACLE_SPEED = 3.5;
-  const BIRD_WIDTH = 55;
-  const BIRD_HEIGHT = 45;
-  const HITBOX_MARGIN = 12;
+  const BIRD_WIDTH = 58;
+  const BIRD_HEIGHT = 56;
+  const HITBOX_MARGIN = 10;
 
   const birdY = useRef(screenHeight / 2);
   const birdVelocity = useRef(0);
@@ -213,7 +226,7 @@ export default function EasterEggScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') {
       const handleKeyDown = (e) => {
-        if (e.code === 'Space') {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === ' ') {
           e.preventDefault();
           jump();
         }
@@ -224,16 +237,25 @@ export default function EasterEggScreen() {
   }, [isPlaying, isGameOver, screenWidth, screenHeight]);
 
   return (
-    <TouchableOpacity activeOpacity={1} style={styles.container} onPress={jump} onLayout={(e) => {
-      setGameDimensions(e.nativeEvent.layout);
-      if (!isPlaying) {
-        birdY.current = e.nativeEvent.layout.height / 2;
-      }
-    }}>
+    <TouchableOpacity 
+      activeOpacity={1} 
+      style={styles.container} 
+      onPress={jump} 
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        if (width > 0 && height > 0) {
+          setGameDimensions({ width, height });
+          if (!isPlaying) {
+            birdY.current = height / 2;
+          }
+        }
+      }}
+    >
       <Stack.Screen options={{ title: '', headerTransparent: true }} />
       <ImageBackground 
-        source={require('../src/assets/flappy_bg.jpg')} 
+        source={require('../src/assets/GalaxyBG.jfif')} 
         style={styles.background}
+        imageStyle={styles.backgroundImage}
         resizeMode="cover"
       >
         {!isPlaying && !isGameOver && (
@@ -248,21 +270,28 @@ export default function EasterEggScreen() {
           const bottomHeight = Math.max(0, screenHeight - obs.topHeight - obs.gap);
           return (
             <React.Fragment key={i}>
-              <View style={[styles.pipe, styles.pipeTop, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.topHeight }]} />
-              <View style={[styles.pipe, styles.pipeBottom, { left: obs.x, width: OBSTACLE_WIDTH, height: bottomHeight, bottom: 0 }]} />
+              <View style={[styles.pipe, styles.pipeTop, { left: obs.x, width: OBSTACLE_WIDTH, height: obs.topHeight }]}>
+                <View style={styles.pipeEnergyLine} />
+                <View style={[styles.pipeCap, styles.pipeCapBottomEdge]} />
+              </View>
+              <View style={[styles.pipe, styles.pipeBottom, { left: obs.x, width: OBSTACLE_WIDTH, height: bottomHeight, bottom: 0 }]}>
+                <View style={styles.pipeEnergyLine} />
+                <View style={[styles.pipeCap, styles.pipeCapTopEdge]} />
+              </View>
             </React.Fragment>
           );
         })}
 
         <Image 
-          source={require('../src/assets/CokieMan.png')} 
+          source={require('../src/assets/CokieAstronauta.png')} 
           style={[styles.bird, { 
             top: birdY.current, 
             left: screenWidth / 2 - BIRD_WIDTH / 2, 
             width: BIRD_WIDTH, 
             height: BIRD_HEIGHT,
-            transform: [{ rotate: `${Math.min(Math.max(birdVelocity.current * 3, -30), 90)}deg` }]
+            transform: [{ rotate: `${Math.min(Math.max(birdVelocity.current * 2.5, -25), 45)}deg` }]
           }]} 
+          resizeMode="contain"
         />
 
         {isGameOver && (
@@ -307,10 +336,34 @@ export default function EasterEggScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#050515',
+    ...(Platform.OS === 'web' && {
+      width: '100vw',
+      height: '100vh',
+    }),
   },
   background: {
     flex: 1,
-    overflow: 'hidden'
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    position: 'relative',
+    ...(Platform.OS === 'web' && {
+      width: '100vw',
+      height: '100vh',
+    }),
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    ...(Platform.OS === 'web' && {
+      width: '100vw',
+      height: '100vh',
+      objectFit: 'cover',
+    }),
   },
   bird: {
     position: 'absolute',
@@ -318,10 +371,16 @@ const styles = StyleSheet.create({
   },
   pipe: {
     position: 'absolute',
-    backgroundColor: '#73bf2e',
-    borderColor: '#558c22',
-    borderWidth: 3,
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderColor: '#38bdf8',
+    borderWidth: 2.5,
     borderRadius: 8,
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
   },
   pipeTop: {
     top: 0,
@@ -335,9 +394,35 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
+  pipeEnergyLine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '50%',
+    marginLeft: -1,
+    width: 2,
+    backgroundColor: 'rgba(56, 189, 248, 0.45)',
+  },
+  pipeCap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 7,
+    backgroundColor: '#38bdf8',
+    shadowColor: '#00f5ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+  },
+  pipeCapBottomEdge: {
+    bottom: 0,
+  },
+  pipeCapTopEdge: {
+    top: 0,
+  },
   scoreText: {
     position: 'absolute',
-    top: 130, // Bajado para evitar la dynamic island
+    top: Platform.OS === 'web' ? 80 : 130,
     alignSelf: 'center',
     fontSize: 56,
     fontWeight: 'bold',
@@ -351,14 +436,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    padding: 20,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   startText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   gameOverOverlay: {
