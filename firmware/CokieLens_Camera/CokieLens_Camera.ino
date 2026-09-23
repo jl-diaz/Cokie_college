@@ -281,7 +281,7 @@ void startCaptivePortal() {
 
 // ── SETUP DEL SISTEMA ──────────────────────────────────────────────────────
 void setup() {
-    WRITE_PERI_REG(RTC_CNTL_BROWNOUT_REG, 0);
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Desactivar detector de brownout
 
     Serial.begin(115200);
     Serial.println("\n\n==============================================");

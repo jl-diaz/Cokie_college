@@ -5,24 +5,15 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
-// In Expo SDK 53+, remote push notifications were removed from Expo Go on Android.
-// To prevent the entire app from crashing in Expo Go, we only load expo-notifications
-// when not running inside Expo Go on Android, and guard with try-catch.
-let Notifications = null;
-const isExpoGo =
-  Constants?.appOwnership === 'expo' ||
-  Constants?.executionEnvironment === ExecutionEnvironment.StoreClient;
+// Detectar si estamos en Expo Go
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const isAndroidExpoGo = Platform.OS === 'android' && isExpoGo;
 
-if (!(isExpoGo && Platform.OS === 'android')) {
+// En Android Expo Go (SDK 53+), importar expo-notifications crashea la app en tiempo de carga
+let Notifications = null;
+if (!isAndroidExpoGo && Platform.OS !== 'web') {
   try {
     Notifications = require('expo-notifications');
-  } catch (err) {
-    console.warn('expo-notifications is not available in this environment:', err?.message);
-  }
-}
-
-if (Notifications?.setNotificationHandler) {
-  try {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -31,7 +22,7 @@ if (Notifications?.setNotificationHandler) {
       }),
     });
   } catch (e) {
-    console.warn('Notification handler setup warning:', e);
+    // Silencioso en entornos no compatibles
   }
 }
 
@@ -43,11 +34,14 @@ export function usePushNotifications() {
   const { profile } = useAuth();
 
   useEffect(() => {
-    if (!Notifications) {
+    let isMounted = true;
+
+    if (isAndroidExpoGo || Platform.OS === 'web' || !Notifications) {
+      if (isAndroidExpoGo) {
+        console.warn('[PushNotifications] En Expo Go (Android), el servicio remoto push está inhabilitado por Expo. Funcionará automáticamente en la APK compilada.');
+      }
       return;
     }
-
-    let isMounted = true;
 
     registerForPushNotificationsAsync().then(token => {
       if (token && isMounted) {
@@ -56,25 +50,23 @@ export function usePushNotifications() {
     });
 
     try {
-      if (typeof Notifications.addNotificationReceivedListener === 'function') {
-        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-          setNotification(notification);
-        });
-      }
+      notificationListener.current = Notifications.addNotificationReceivedListener(notif => {
+        setNotification(notif);
+      });
 
-      if (typeof Notifications.addNotificationResponseReceivedListener === 'function') {
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-          console.log('Notification response received:', response);
-        });
-      }
-    } catch (err) {
-      console.warn('Error attaching notification listeners:', err);
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+        console.log('Notification response received:', response);
+      });
+    } catch (e) {
+      console.warn('Notification listeners warning:', e.message);
     }
 
     return () => {
       isMounted = false;
-      notificationListener.current?.remove?.();
-      responseListener.current?.remove?.();
+      try {
+        notificationListener.current?.remove();
+        responseListener.current?.remove();
+      } catch (e) {}
     };
   }, []);
 
@@ -108,14 +100,12 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotificationsAsync() {
-  if (!Notifications) {
+  if (Platform.OS === 'web' || !Notifications || isAndroidExpoGo) {
     return null;
   }
 
-  let token = null;
-
   if (!Device.isDevice) {
-    console.log('Must use physical device for Push Notifications');
+    console.log('Dispositivo físico requerido para notificaciones push');
     return null;
   }
 
@@ -132,6 +122,8 @@ async function registerForPushNotificationsAsync() {
     }
   }
 
+  let token = null;
+
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -147,14 +139,16 @@ async function registerForPushNotificationsAsync() {
     const rawProjectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
     const projectId = (rawProjectId && rawProjectId !== 'your-eas-project-id') 
       ? rawProjectId 
-      : 'fd2a2f1c-190e-4d55-90ec-58fa0db18620'; // Fallback to hardcoded app.json project id if missing in constants
+      : 'fd2a2f1c-190e-4d55-90ec-58fa0db18620';
 
     const tokenObj = await Notifications.getExpoPushTokenAsync({ projectId });
     token = tokenObj?.data;
-    console.log('Expo Push Token generated successfully:', token);
+    console.log('Expo Push Token generado correctamente:', token);
   } catch (e) {
-    console.warn('Could not generate Expo push token:', e.message);
+    console.warn('No se pudo generar el token push:', e.message);
   }
 
   return token;
 }
+
+

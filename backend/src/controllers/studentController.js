@@ -229,12 +229,29 @@ const studentController = {
                 return res.status(400).json({ error: 'La fecha de ausencia y el motivo son obligatorios.' });
             }
 
+            if (reason.length > 1000) {
+                return res.status(400).json({ error: 'El motivo no puede exceder los 1000 caracteres.' });
+            }
+
             const inputDate = new Date(absence_date);
             const today = new Date();
             today.setHours(23, 59, 59, 999);
 
             if (inputDate > today) {
                 return res.status(400).json({ error: 'La fecha de inasistencia no puede ser una fecha futura.' });
+            }
+
+            // Evitar saturación por múltiples solicitudes pendientes para la misma fecha
+            const { data: existingPending } = await supabaseAdmin
+                .from('justifications')
+                .select('id')
+                .eq('student_id', student_id)
+                .eq('absence_date', absence_date)
+                .eq('status', 'pending')
+                .maybeSingle();
+
+            if (existingPending) {
+                return res.status(400).json({ error: 'Ya tienes una solicitud de justificación pendiente de revisión para esta fecha.' });
             }
 
             const { data, error } = await supabaseAdmin

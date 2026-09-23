@@ -37,7 +37,8 @@ import {
   SwitchCamera,
   Wifi,
   Check,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,6 +47,7 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 
 const { width } = Dimensions.get('window');
+const TARGET_MOVEMENT_FRAMES = 15;
 
 export default function GestureStudioScreen() {
   const { t, i18n } = useTranslation();
@@ -272,7 +274,107 @@ export default function GestureStudioScreen() {
     }
   };
 
-  // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO DURANTE GRABACIÓN ─────────────
+  // ── CAPTURA FOTOGRÁFICA PARA SEÑAS ESTÁTICAS ─────────────────────────────
+  const handleCaptureStaticPhoto = async () => {
+    if (!selectedGestureId) {
+      Alert.alert('Selección requerida', 'Selecciona un gesto primero en la barra superior.');
+      return;
+    }
+
+    if (recorderSource === 'phone' && !permission?.granted) {
+      const res = await requestPermission();
+      if (!res?.granted) return;
+    }
+
+    if (recorderSource === 'phone' && !cameraRef.current) {
+      Alert.alert('Cámara no lista', 'La cámara aún se está inicializando. Intenta en un momento.');
+      return;
+    }
+
+    setRecordingState('saving');
+
+    try {
+      let imageBase64 = null;
+
+      if (recorderSource === 'phone') {
+        const photo = await cameraRef.current.takePictureAsync({
+          base64: true,
+          quality: 0.25,
+          skipProcessing: true,
+          shutterSound: true,
+          exif: false,
+          pictureSize: '640x480',
+        });
+        imageBase64 = photo?.base64;
+      } else {
+        if (!liveFrameUri) {
+          Alert.alert('Sin señal', 'No se ha recibido señal de video de los lentes CokieLens.');
+          setRecordingState('idle');
+          return;
+        }
+        imageBase64 = liveFrameUri;
+      }
+
+      if (!imageBase64) {
+        Alert.alert('Error', 'No se pudo capturar la foto.');
+        setRecordingState('idle');
+        return;
+      }
+
+      // Enviar al extractor para validar presencia de manos
+      const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: imageBase64 })
+      });
+
+      if (!extractRes.ok) {
+        Alert.alert('Error de servidor', 'No se pudo procesar la foto con el servidor.');
+        setRecordingState('idle');
+        return;
+      }
+
+      const data = await extractRes.json();
+      const hasHand = data.detected && data.vector && data.vector.some(v => v !== 0);
+
+      if (!hasHand) {
+        Alert.alert(
+          'Mano no detectada',
+          'No se detectaron manos visibles en la foto. Coloca tu mano fija frente a la cámara mostrando la seña con buena luz e inténtalo de nuevo.'
+        );
+        setRecordingState('idle');
+        return;
+      }
+
+      // Guardar muestra para la seña estática (secuencia replicada a 30 fotogramas)
+      const staticSequence = Array.from({ length: 30 }, () => data.vector);
+      const saveRes = await fetch(`${serverUrl}/api/gestures/record-sample`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gesture_id: selectedGestureId,
+          sequence: staticSequence
+        })
+      });
+
+      if (saveRes.ok) {
+        await fetchGestures();
+        Alert.alert(
+          '¡Foto Guardada!',
+          `Muestra fotográfica guardada con éxito para la seña estática "${selectedGesture?.name_es || selectedGesture?.name}".`
+        );
+      } else {
+        Alert.alert('Error', 'No se pudo guardar la muestra en el servidor.');
+      }
+    } catch (err) {
+      console.warn('Error capturando foto:', err);
+      Alert.alert('Error', 'Hubo un fallo de conexión al procesar la foto.');
+    } finally {
+      setRecordingState('idle');
+    }
+  };
+
+  // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO DURANTE GRABACIÓN DE MOVIMIENTO ──
   useEffect(() => {
     let isRunning = true;
 
@@ -280,11 +382,11 @@ export default function GestureStudioScreen() {
       const capturePhoneLoop = async () => {
         while (isRunning && recordingStateRef.current === 'recording') {
           if (!cameraRef.current || isFetchingFrameRef.current) {
-            await new Promise(r => setTimeout(r, 50));
+            await new Promise(r => setTimeout(r, 40));
             continue;
           }
 
-          if (recordedFramesRef.current.length >= 30) {
+          if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
             break;
           }
 
@@ -308,10 +410,10 @@ export default function GestureStudioScreen() {
 
               if (extractRes.ok) {
                 const data = await extractRes.json();
-                if (data.vector && data.vector.length > 0) {
+                if (data.detected && data.vector && data.vector.some(v => v !== 0)) {
                   recordedFramesRef.current.push(data.vector);
-                  setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / 30) * 100)));
-                  if (recordedFramesRef.current.length >= 30) {
+                  setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100)));
+                  if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
                     break;
                   }
                 }
@@ -323,7 +425,7 @@ export default function GestureStudioScreen() {
             isFetchingFrameRef.current = false;
           }
 
-          await new Promise(r => setTimeout(r, 75));
+          await new Promise(r => setTimeout(r, 20));
         }
 
         if (isRunning && recordingStateRef.current === 'recording') {
@@ -373,10 +475,10 @@ export default function GestureStudioScreen() {
                   });
                   if (extractRes.ok) {
                     const data = await extractRes.json();
-                    if (data.vector && data.vector.length > 0) {
+                    if (data.detected && data.vector && data.vector.some(v => v !== 0)) {
                       recordedFramesRef.current.push(data.vector);
-                      setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / 30) * 100)));
-                      if (recordedFramesRef.current.length >= 30) {
+                      setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100)));
+                      if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
                         await saveRecordedSequence();
                       }
                     }
@@ -401,10 +503,10 @@ export default function GestureStudioScreen() {
     };
   }, [activeTab, recorderSource, esp32Ip]);
 
-  // ── INICIAR GRABACIÓN GUIADA CON CUENTA REGRESIVA ─────────────────────────────
+  // ── INICIAR GRABACIÓN GUIADA CON CUENTA REGRESIVA (MOVIMIENTO) ────────────────
   const startGuidedRecording = () => {
     if (!selectedGestureId) {
-      alert('Selecciona un gesto primero en la barra superior.');
+      Alert.alert('Selección requerida', 'Selecciona un gesto primero en la barra superior.');
       return;
     }
 
@@ -425,15 +527,15 @@ export default function GestureStudioScreen() {
         setCountdown(currentCount);
       } else {
         clearInterval(countTimer);
-        // ¡Empezar a grabar los 30 cuadros!
+        // ¡Empezar a grabar!
         setRecordingState('recording');
 
-        // Temporizador de seguridad de 5.5s para no quedar atascado si no hay manos visibles
+        // Temporizador de seguridad de 14s (suficiente para capturar los fotogramas en móvil)
         setTimeout(async () => {
           if (recordingStateRef.current === 'recording') {
             await saveRecordedSequence();
           }
-        }, 5500);
+        }, 14000);
       }
     }, 1000);
   };
@@ -443,8 +545,11 @@ export default function GestureStudioScreen() {
     setRecordingState('saving');
     try {
       const frames = recordedFramesRef.current;
-      if (frames.length < 8) {
-        alert('No se detectaron suficientes movimientos de manos en la cámara (mínimo 8 cuadros). Asegúrate de colocarte frente a la cámara con buena luz.');
+      if (frames.length < 4) {
+        Alert.alert(
+          'Muestras insuficientes',
+          'No se detectaron suficientes movimientos de manos en la cámara (mínimo 4 cuadros). Asegúrate de colocarte frente a la cámara mostrando torso y manos con buena luz.'
+        );
         setRecordingState('idle');
         return;
       }
@@ -459,13 +564,16 @@ export default function GestureStudioScreen() {
       });
 
       if (res.ok) {
-        fetchGestures();
-        alert(`¡Muestra de ${frames.length} fotogramas guardada con éxito!`);
+        await fetchGestures();
+        Alert.alert(
+          '¡Muestra Guardada!',
+          `Se registraron ${frames.length} fotogramas de movimiento para "${selectedGesture?.name_es || selectedGesture?.name}".`
+        );
       } else {
-        alert('Error al guardar la muestra en el servidor.');
+        Alert.alert('Error', 'Error al guardar la muestra en el servidor.');
       }
     } catch (e) {
-      alert('Error de conexión con el servidor.');
+      Alert.alert('Error', 'Error de conexión con el servidor.');
     } finally {
       setRecordingState('idle');
       recordedFramesRef.current = [];
@@ -647,14 +755,26 @@ export default function GestureStudioScreen() {
 
                 <View style={styles.gestureCardFooter}>
                   <TouchableOpacity
-                    style={styles.cardActionBtn}
+                    style={[
+                      styles.cardActionBtn,
+                      item.type === 'static' && { backgroundColor: 'rgba(16, 185, 129, 0.12)' }
+                    ]}
                     onPress={() => {
                       setSelectedGestureId(item.id);
                       setActiveTab('recorder');
                     }}
                   >
-                    <Video size={14} color="#38bdf8" style={{ marginRight: 6 }} />
-                    <Text style={styles.cardActionBtnText}>Grabar Muestras</Text>
+                    {item.type === 'static' ? (
+                      <Camera size={14} color="#10b981" style={{ marginRight: 6 }} />
+                    ) : (
+                      <Video size={14} color="#38bdf8" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={[
+                      styles.cardActionBtnText,
+                      item.type === 'static' && { color: '#059669' }
+                    ]}>
+                      {item.type === 'static' ? 'Capturar Foto' : 'Grabar Movimiento'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -714,25 +834,55 @@ export default function GestureStudioScreen() {
           <View style={styles.gestureSelectorBar}>
             <Text style={styles.selectorLabel}>Grabando para:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
-              {gestures.map((g) => (
-                <TouchableOpacity
-                  key={g.id}
-                  style={[
-                    styles.selectorPill,
-                    selectedGestureId === g.id && styles.selectorPillActive
-                  ]}
-                  onPress={() => setSelectedGestureId(g.id)}
-                >
-                  <Text style={[
-                    styles.selectorPillText,
-                    selectedGestureId === g.id && styles.selectorPillTextActive
-                  ]}>
-                    {g.name_es || g.name} ({g.sample_count || 0})
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {gestures.map((g) => {
+                const isItemStatic = g.type === 'static';
+                const isSelected = selectedGestureId === g.id;
+                return (
+                  <TouchableOpacity
+                    key={g.id}
+                    style={[
+                      styles.selectorPill,
+                      isSelected && (isItemStatic ? styles.selectorPillActiveStatic : styles.selectorPillActive)
+                    ]}
+                    onPress={() => setSelectedGestureId(g.id)}
+                  >
+                    {isItemStatic ? (
+                      <Camera size={13} color={isSelected ? '#FFF' : '#10b981'} style={{ marginRight: 5 }} />
+                    ) : (
+                      <Video size={13} color={isSelected ? '#FFF' : '#38bdf8'} style={{ marginRight: 5 }} />
+                    )}
+                    <Text style={[
+                      styles.selectorPillText,
+                      isSelected && styles.selectorPillTextActive
+                    ]}>
+                      {g.name_es || g.name} ({g.sample_count || 0})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
+
+          {/* Banner indicador del modo (Estática vs Dinámica) */}
+          {selectedGesture && (
+            <View style={styles.gestureModeBanner}>
+              {selectedGesture.type === 'static' ? (
+                <>
+                  <Camera size={14} color="#10b981" />
+                  <Text style={styles.gestureModeTextStatic}>
+                    Seña Estática (Modo Foto) — {selectedGesture.name_es || selectedGesture.name}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Video size={14} color="#38bdf8" />
+                  <Text style={styles.gestureModeTextMovement}>
+                    Movimiento Dinámico (Modo Grabación) — {selectedGesture.name_es || selectedGesture.name}
+                  </Text>
+                </>
+              )}
+            </View>
+          )}
 
           {/* Visor de video en vivo (Teléfono o Lentes) */}
           <View style={styles.videoPreviewBox}>
@@ -740,7 +890,7 @@ export default function GestureStudioScreen() {
               !permission?.granted ? (
                 <View style={styles.noSignalBox}>
                   <Smartphone size={40} color="#64748b" style={{ marginBottom: 12 }} />
-                  <Text style={styles.noSignalText}>Se requiere acceso a la cámara del teléfono para grabar señas.</Text>
+                  <Text style={styles.noSignalText}>Se requiere acceso a la cámara del teléfono para capturar señas.</Text>
                   <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
                     <Text style={styles.permissionBtnText}>Conceder Permiso</Text>
                   </TouchableOpacity>
@@ -777,7 +927,17 @@ export default function GestureStudioScreen() {
               )
             )}
 
-            {/* Overlay de Cuenta Regresiva */}
+            {/* Banner flotante de instrucción en la cámara */}
+            {selectedGesture?.type === 'static' && recordingState === 'idle' && (
+              <View style={styles.staticModeBanner}>
+                <Camera size={14} color="#10b981" style={{ marginRight: 6 }} />
+                <Text style={styles.staticModeBannerText}>
+                  Mantén la seña fija frente a la cámara y presiona "Tomar Foto"
+                </Text>
+              </View>
+            )}
+
+            {/* Overlay de Cuenta Regresiva (Solo para Movimiento) */}
             {recordingState === 'countdown' && (
               <View style={styles.countdownOverlay}>
                 <Text style={styles.countdownNumber}>{countdown}</Text>
@@ -785,49 +945,70 @@ export default function GestureStudioScreen() {
               </View>
             )}
 
-            {/* Overlay de Grabación Activa */}
+            {/* Overlay de Grabación Activa (Solo para Movimiento) */}
             {recordingState === 'recording' && (
               <View style={styles.recordingOverlay}>
                 <View style={styles.recordingHeader}>
                   <View style={styles.redRecordingDot} />
-                  <Text style={styles.recordingTitle}>GRABANDO MOVIMIENTO (30 CUADROS)</Text>
+                  <Text style={styles.recordingTitle}>GRABANDO MOVIMIENTO ({TARGET_MOVEMENT_FRAMES} CUADROS)</Text>
                 </View>
                 <Text style={styles.recordingSubtitle}>¡Haz el movimiento con brazos y manos ahora!</Text>
                 <View style={styles.progressBarBg}>
                   <View style={[styles.progressBarFill, { width: `${recordingProgress}%` }]} />
                 </View>
-                <Text style={styles.progressCounter}>{recordedFramesRef.current.length} / 30 fotogramas</Text>
+                <Text style={styles.progressCounter}>{recordedFramesRef.current.length} / {TARGET_MOVEMENT_FRAMES} fotogramas</Text>
               </View>
             )}
 
+            {/* Overlay de Procesamiento / Guardado */}
             {recordingState === 'saving' && (
               <View style={styles.countdownOverlay}>
                 <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={styles.countdownPrompt}>Procesando y guardando muestra...</Text>
+                <Text style={styles.countdownPrompt}>
+                  {selectedGesture?.type === 'static' ? 'Procesando mano y guardando foto...' : 'Procesando y guardando muestra...'}
+                </Text>
               </View>
             )}
           </View>
 
           {/* Controles inferiores del grabador */}
           <View style={styles.recorderControls}>
-            <TouchableOpacity
-              style={[
-                styles.recordActionButton,
-                recordingState !== 'idle' && styles.recordActionButtonDisabled
-              ]}
-              onPress={startGuidedRecording}
-              disabled={recordingState !== 'idle'}
-            >
-              <View style={styles.recordInnerCircle} />
-              <Text style={styles.recordButtonText}>
-                {recordingState === 'idle' ? 'Iniciar Grabación (30 cuadros)' : 'Grabando...'}
-              </Text>
-            </TouchableOpacity>
+            {selectedGesture?.type === 'static' ? (
+              <TouchableOpacity
+                style={[
+                  styles.photoActionButton,
+                  recordingState !== 'idle' && styles.recordActionButtonDisabled
+                ]}
+                onPress={handleCaptureStaticPhoto}
+                disabled={recordingState !== 'idle'}
+              >
+                <Camera size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.recordButtonText}>
+                  {recordingState === 'saving' ? 'Procesando Foto...' : 'Tomar Foto de la Seña'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.recordActionButton,
+                  recordingState !== 'idle' && styles.recordActionButtonDisabled
+                ]}
+                onPress={startGuidedRecording}
+                disabled={recordingState !== 'idle'}
+              >
+                <View style={styles.recordInnerCircle} />
+                <Text style={styles.recordButtonText}>
+                  {recordingState === 'idle' ? `Iniciar Grabación (${TARGET_MOVEMENT_FRAMES} cuadros)` : 'Grabando...'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={styles.recorderHint}>
-              {recorderSource === 'phone'
-                ? 'Colócate frente a la cámara del teléfono mostrando torso, brazos y manos.'
-                : 'Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.'}
+              {selectedGesture?.type === 'static'
+                ? 'Coloca tu mano fija frente a la cámara mostrando la seña y presiona Tomar Foto.'
+                : recorderSource === 'phone'
+                  ? 'Colócate frente a la cámara del teléfono mostrando torso, brazos y manos.'
+                  : 'Colócate frente a la cámara de los lentes mostrando torso, brazos y manos.'}
             </Text>
           </View>
         </View>
@@ -1283,6 +1464,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     marginBottom: 6,
   },
   selectorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
@@ -1292,6 +1475,9 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   selectorPillActive: {
     backgroundColor: '#3b82f6',
   },
+  selectorPillActiveStatic: {
+    backgroundColor: '#059669',
+  },
   selectorPillText: {
     fontSize: 12,
     fontWeight: '600',
@@ -1299,6 +1485,27 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   selectorPillTextActive: {
     color: '#FFF',
+  },
+  gestureModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: theme === 'dark' ? '#0b1329' : '#f1f5f9',
+    borderBottomWidth: 1,
+    borderBottomColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+  },
+  gestureModeTextStatic: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10b981',
+    marginLeft: 6,
+  },
+  gestureModeTextMovement: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#38bdf8',
+    marginLeft: 6,
   },
   videoPreviewBox: {
     flex: 1,
@@ -1412,6 +1619,41 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     marginBottom: 10,
+  },
+  photoActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 24,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+    marginBottom: 10,
+  },
+  staticModeBanner: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 68,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    zIndex: 20,
+  },
+  staticModeBannerText: {
+    color: '#34d399',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
   },
   recordActionButtonDisabled: {
     backgroundColor: '#64748b',

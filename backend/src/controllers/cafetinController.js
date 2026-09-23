@@ -168,8 +168,8 @@ const cafetinController = {
             const cafetinId = req.user.id;
             const today = getElSalvadorDate();
             const { page = 1, limit = 50 } = req.query;
-            const pageNum = parseInt(page) || 1;
-            const limitNum = parseInt(limit) || 50;
+            const pageNum = Math.max(1, parseInt(page) || 1);
+            const limitNum = Math.min(Math.max(1, parseInt(limit) || 50), 100);
             const from = (pageNum - 1) * limitNum;
             const to = from + limitNum - 1;
 
