@@ -823,7 +823,10 @@
     "testConnectionBtn": "Test Connection",
     "quickOptions": "Quick Options",
     "saveAndConnect": "Save and Connect",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "volumeLabel": "Headphone / Voice Volume",
+    "testAudioBtn": "Test Sound",
+    "testAudioPhrase": "CokieLens audio test at {{volume}} percent"
   },
   "gestureStudio": {
     "title": "Gesture & AI Studio",

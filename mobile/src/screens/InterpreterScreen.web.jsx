@@ -6,14 +6,20 @@ import {
   TouchableOpacity, 
   Modal, 
   TextInput, 
-  ActivityIndicator 
+  ActivityIndicator,
+  useWindowDimensions 
 } from 'react-native';
 import { useRouter, Stack, useIsFocused, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   Mic, 
   MicOff, 
   SwitchCamera, 
   Volume2, 
+  Volume1,
+  VolumeX,
+  Plus,
+  Minus,
   Sparkles, 
   Glasses, 
   Monitor, 
@@ -34,6 +40,13 @@ export default function InterpreterScreenWeb() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isDesktopOrTablet = width >= 768;
+  // En móvil web, se eleva para quedar por encima de la TabBar flotante inferior
+  const subtitleBottomOffset = isDesktopOrTablet 
+    ? 24 
+    : (Math.max(insets.bottom, 16) + 12 + 56 + 12);
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [hasPermission, setHasPermission] = useState(null);
@@ -52,6 +65,7 @@ export default function InterpreterScreenWeb() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [glassesFrameUri, setGlassesFrameUri] = useState(null);
+  const [audioVolume, setAudioVolume] = useState(80); // 0 a 100%
 
   const videoRef = useRef(null);
   const glassesBlobUrlRef = useRef(null);
@@ -60,6 +74,8 @@ export default function InterpreterScreenWeb() {
   const lastSpokenRef = useRef('');
   const audioOutputRef = useRef(audioOutput);
   const esp32IpRef = useRef(esp32Ip);
+  const audioVolumeRef = useRef(audioVolume);
+  const trackWidthRef = useRef(200);
 
   useEffect(() => {
     audioOutputRef.current = audioOutput;
@@ -68,6 +84,10 @@ export default function InterpreterScreenWeb() {
   useEffect(() => {
     esp32IpRef.current = esp32Ip;
   }, [esp32Ip]);
+
+  useEffect(() => {
+    audioVolumeRef.current = audioVolume;
+  }, [audioVolume]);
 
   // Cargar configuración guardada en localStorage
   useEffect(() => {
@@ -84,6 +104,14 @@ export default function InterpreterScreenWeb() {
       const savedSource = localStorage.getItem('cokielens_video_source');
       if (savedSource) {
         setVideoSource(savedSource);
+      }
+      const savedVol = localStorage.getItem('cokielens_volume');
+      if (savedVol) {
+        const parsed = Number(savedVol);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+          setAudioVolume(parsed);
+          audioVolumeRef.current = parsed;
+        }
       }
     }
   }, []);
@@ -158,7 +186,7 @@ export default function InterpreterScreenWeb() {
             const matchingVoice = voices.find(v => v.lang.startsWith(i18n.language === 'en' ? 'en' : 'es'));
             if (matchingVoice) utterance.voice = matchingVoice;
             utterance.rate = 1.0;
-            utterance.volume = 1.0;
+            utterance.volume = audioVolumeRef.current / 100;
             window.speechSynthesis.speak(utterance);
             window.speechSynthesis.resume();
           } catch (e) {
@@ -173,7 +201,10 @@ export default function InterpreterScreenWeb() {
           fetch(`http://${clean}/play`, {
             method: 'POST',
             body: translatedText,
-            headers: { 'Content-Type': 'text/plain' }
+            headers: { 
+              'Content-Type': 'text/plain',
+              'X-Audio-Volume': String(audioVolumeRef.current)
+            }
           }).catch(e => console.log('Envío a lentes:', e));
         } catch (err) {
           console.warn('Error enviando audio a los lentes:', err);
@@ -437,6 +468,62 @@ export default function InterpreterScreenWeb() {
     }
   };
 
+  const updateVolume = (newVol) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(newVol)));
+    setAudioVolume(clamped);
+    audioVolumeRef.current = clamped;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cokielens_volume', String(clamped));
+    }
+    const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+    if (clean) {
+      fetch(`http://${clean}/volume?level=${clamped}`, { method: 'POST' }).catch(() => {});
+    }
+  };
+
+  const handleSliderTouch = (evt) => {
+    const locationX = evt.nativeEvent.locationX;
+    const width = trackWidthRef.current || 200;
+    const ratio = Math.max(0, Math.min(1, locationX / width));
+    updateVolume(ratio * 100);
+  };
+
+  const handleTestAudio = () => {
+    const testText = t('interpreter.testAudioPhrase', { 
+      volume: audioVolume, 
+      defaultValue: `Prueba de audio CokieLens al ${audioVolume} por ciento` 
+    });
+
+    if (audioOutput === 'browser') {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(testText);
+          utterance.lang = i18n.language === 'en' ? 'en-US' : 'es-MX';
+          utterance.volume = audioVolume / 100;
+          window.speechSynthesis.speak(utterance);
+          window.speechSynthesis.resume();
+        } catch (e) {
+          console.warn('Error en Web Speech:', e);
+        }
+      }
+    } else {
+      try {
+        const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+        fetch(`http://${clean}/play`, {
+          method: 'POST',
+          body: testText,
+          headers: { 
+            'Content-Type': 'text/plain',
+            'X-Audio-Volume': String(audioVolume)
+          }
+        }).catch(e => console.log('Envío a lentes:', e));
+      } catch (err) {
+        console.warn('Error enviando audio a los lentes:', err);
+      }
+    }
+  };
+
   if (hasPermission === null && videoSource === 'webcam') {
     return <View style={styles.container} />;
   }
@@ -557,8 +644,8 @@ export default function InterpreterScreenWeb() {
           </div>
         )}
 
-        {/* Subtítulos gigantes */}
-        <View style={styles.subtitleOverlay}>
+        {/* Subtítulos gigantes (elevado por encima de la TabBar) */}
+        <View style={[styles.subtitleOverlay, { bottom: subtitleBottomOffset }]}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={18} />
             <Text style={styles.subtitleHeaderTitle}>{t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}</Text>
@@ -662,6 +749,83 @@ export default function InterpreterScreenWeb() {
                 <Text style={styles.testBadgeText}>{testResult.message}</Text>
               </View>
             )}
+
+            {/* Control de Volumen (Voz / Audífono de Lentes) */}
+            <View style={styles.volumeCard}>
+              <View style={styles.volumeHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  {audioVolume === 0 ? (
+                    <VolumeX size={16} color="#ef4444" />
+                  ) : (
+                    <Volume1 size={16} color="#38bdf8" />
+                  )}
+                  <Text style={styles.volumeTitle}>{t('interpreter.volumeLabel', 'Volumen de Audífono / Voz')}</Text>
+                </View>
+                <View style={styles.volumeBadge}>
+                  <Text style={styles.volumeBadgeText}>{audioVolume}%</Text>
+                </View>
+              </View>
+
+              {/* Slider interactivo */}
+              <View style={styles.sliderRow}>
+                <TouchableOpacity 
+                  style={styles.stepBtn}
+                  onPress={() => updateVolume(audioVolume - 10)}
+                  activeOpacity={0.7}
+                >
+                  <Minus size={14} color="#FFF" />
+                </TouchableOpacity>
+
+                <View 
+                  style={[styles.trackContainer, { cursor: 'pointer' }]}
+                  onLayout={(e) => {
+                    trackWidthRef.current = e.nativeEvent.layout.width;
+                  }}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                  onResponderGrant={handleSliderTouch}
+                  onResponderMove={handleSliderTouch}
+                >
+                  <View style={styles.trackBackground} />
+                  <View style={[styles.trackFill, { width: `${audioVolume}%` }]} />
+                  <View style={[styles.thumb, { left: `${Math.max(0, Math.min(94, audioVolume - 4))}%` }]} />
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.stepBtn}
+                  onPress={() => updateVolume(audioVolume + 10)}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={14} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Presets de Volumen */}
+              <View style={styles.presetRow}>
+                {[0, 25, 50, 75, 100].map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.presetBtn, audioVolume === val && styles.presetBtnActive]}
+                    onPress={() => updateVolume(val)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.presetText, audioVolume === val && styles.presetTextActive]}>
+                      {val === 0 ? 'Mute' : `${val}%`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Botón Probar Sonido */}
+              <TouchableOpacity 
+                style={styles.testAudioBtn}
+                onPress={handleTestAudio}
+                activeOpacity={0.8}
+              >
+                <Volume2 size={15} color="#38bdf8" style={{ marginRight: 6 }} />
+                <Text style={styles.testAudioBtnText}>{t('interpreter.testAudioBtn', 'Probar Sonido')}</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity 
@@ -801,7 +965,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Subtítulos
   subtitleOverlay: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 96,
     left: 16,
     right: 16,
     backgroundColor: 'rgba(11, 25, 86, 0.88)',
@@ -970,10 +1134,134 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
     backgroundColor: '#3b82f6',
+    cursor: 'pointer',
   },
   saveBtnText: {
     color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 13,
+  },
+  // Controles de volumen
+  volumeCard: {
+    backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.65)' : 'rgba(241, 245, 249, 0.8)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  },
+  volumeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  volumeTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+  },
+  volumeBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  volumeBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#38bdf8',
+  },
+  sliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: theme === 'dark' ? '#334155' : '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  trackContainer: {
+    flex: 1,
+    height: 30,
+    justifyContent: 'center',
+  },
+  trackBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+  },
+  trackFill: {
+    position: 'absolute',
+    left: 0,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#38bdf8',
+  },
+  thumb: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#0284c7',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginBottom: 12,
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  presetBtnActive: {
+    backgroundColor: '#38bdf8',
+  },
+  presetText: {
+    fontSize: 11,
+    color: theme === 'dark' ? '#94a3b8' : '#64748b',
+    fontWeight: '600',
+  },
+  presetTextActive: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  testAudioBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    cursor: 'pointer',
+  },
+  testAudioBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284c7',
   },
 });

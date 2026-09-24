@@ -37,6 +37,7 @@ const char* default_pass = "TU_PASSWORD_WIFI";
 
 String wifi_ssid = "";
 String wifi_pass = "";
+int audio_volume = 80;
 
 // ── DEFINICIÓN DE PINES PARA AI THINKER ESP32-CAM ──────────────────────────
 #define PWDN_GPIO_NUM     32
@@ -146,10 +147,11 @@ static esp_err_t stream_handler(httpd_req_t *req) {
 
 // ── HANDLER 3: ESTADO Y SALUD (/status) ────────────────────────────────────
 static esp_err_t status_handler(httpd_req_t *req) {
-    char json_response[300];
+    char json_response[320];
     snprintf(json_response, sizeof(json_response),
-        "{\"status\":\"online\",\"device\":\"CokieLens-ESP32\",\"ip\":\"%s\",\"mdns\":\"http://cokielens.local\",\"free_heap\":%u,\"rssi\":%d}",
+        "{\"status\":\"online\",\"device\":\"CokieLens-ESP32\",\"ip\":\"%s\",\"mdns\":\"http://cokielens.local\",\"volume\":%d,\"free_heap\":%u,\"rssi\":%d}",
         in_ap_mode ? WiFi.softAPIP().toString().c_str() : WiFi.localIP().toString().c_str(),
+        audio_volume,
         ESP.getFreeHeap(),
         in_ap_mode ? 0 : WiFi.RSSI()
     );
@@ -170,7 +172,16 @@ static esp_err_t audio_play_handler(httpd_req_t *req) {
     if (received <= 0) return ESP_FAIL;
     content[total_len] = '\0';
 
-    Serial.printf("[COKIELENS AUDIO] Recibido para audífonos de lentes: %s\n", content);
+    // Leer cabecera opcional de volumen
+    char vol_hdr[10];
+    if (httpd_req_get_hdr_value_str(req, "X-Audio-Volume", vol_hdr, sizeof(vol_hdr)) == ESP_OK) {
+        int v = atoi(vol_hdr);
+        if (v >= 0 && v <= 100) {
+            audio_volume = v;
+        }
+    }
+
+    Serial.printf("[COKIELENS AUDIO] Recibido a volumen %d%%: %s\n", audio_volume, content);
 
     // Destello de feedback
     digitalWrite(LED_FLASH_PIN, HIGH);
@@ -179,8 +190,47 @@ static esp_err_t audio_play_handler(httpd_req_t *req) {
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    const char* resp = "{\"status\":\"ok\",\"audio_routed\":\"lentes\"}";
+    char resp[80];
+    snprintf(resp, sizeof(resp), "{\"status\":\"ok\",\"audio_routed\":\"lentes\",\"volume\":%d}", audio_volume);
     return httpd_resp_send(req, resp, strlen(resp));
+}
+
+// ── HANDLER 4B: AJUSTE DE VOLUMEN (/volume) ───────────────────────────────
+static esp_err_t volume_handler(httpd_req_t *req) {
+    char param[32];
+    if (httpd_req_get_url_query_str(req, param, sizeof(param)) == ESP_OK) {
+        char val_str[10];
+        if (httpd_query_key_value(param, "level", val_str, sizeof(val_str)) == ESP_OK) {
+            int val = atoi(val_str);
+            if (val >= 0 && val <= 100) {
+                audio_volume = val;
+                preferences.begin("cokielens", false);
+                preferences.putInt("volume", audio_volume);
+                preferences.end();
+                Serial.printf("[COKIELENS AUDIO] Nuevo volumen establecido: %d%%\n", audio_volume);
+            }
+        }
+    } else if (req->method == HTTP_POST && req->content_len > 0) {
+        char buf[16];
+        int ret = httpd_req_recv(req, buf, min((size_t)req->content_len, sizeof(buf) - 1));
+        if (ret > 0) {
+            buf[ret] = '\0';
+            int val = atoi(buf);
+            if (val >= 0 && val <= 100) {
+                audio_volume = val;
+                preferences.begin("cokielens", false);
+                preferences.putInt("volume", audio_volume);
+                preferences.end();
+                Serial.printf("[COKIELENS AUDIO] Nuevo volumen establecido (POST): %d%%\n", audio_volume);
+            }
+        }
+    }
+
+    char json_resp[64];
+    snprintf(json_resp, sizeof(json_resp), "{\"status\":\"ok\",\"volume\":%d}", audio_volume);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, json_resp, strlen(json_resp));
 }
 
 // ── HANDLER 5: PORTAL CAUTIVO PARA GUARDAR WI-FI SIN ARDUINO IDE ───────────
@@ -247,7 +297,7 @@ static esp_err_t options_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/plain");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Audio-Volume, *");
     httpd_resp_set_hdr(req, "Access-Control-Max-Age", "86400");
     return httpd_resp_send(req, "OK", 2);
 }
@@ -270,6 +320,10 @@ void startCameraServer() {
     httpd_uri_t opt_audio   = { .uri = "/play",    .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
     httpd_uri_t opt_stream  = { .uri = "/stream",  .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
 
+    httpd_uri_t vol_get     = { .uri = "/volume",  .method = HTTP_GET,     .handler = volume_handler,  .user_ctx = NULL };
+    httpd_uri_t vol_post    = { .uri = "/volume",  .method = HTTP_POST,    .handler = volume_handler,  .user_ctx = NULL };
+    httpd_uri_t opt_vol     = { .uri = "/volume",  .method = HTTP_OPTIONS, .handler = options_handler, .user_ctx = NULL };
+
     if (httpd_start(&camera_httpd, &config) == ESP_OK) {
         httpd_register_uri_handler(camera_httpd, &capture_uri);
         httpd_register_uri_handler(camera_httpd, &status_uri);
@@ -277,11 +331,14 @@ void startCameraServer() {
         httpd_register_uri_handler(camera_httpd, &stream_uri);
         httpd_register_uri_handler(camera_httpd, &portal_get);
         httpd_register_uri_handler(camera_httpd, &portal_post);
+        httpd_register_uri_handler(camera_httpd, &vol_get);
+        httpd_register_uri_handler(camera_httpd, &vol_post);
 
         httpd_register_uri_handler(camera_httpd, &opt_status);
         httpd_register_uri_handler(camera_httpd, &opt_capture);
         httpd_register_uri_handler(camera_httpd, &opt_audio);
         httpd_register_uri_handler(camera_httpd, &opt_stream);
+        httpd_register_uri_handler(camera_httpd, &opt_vol);
     }
 }
 
@@ -311,10 +368,11 @@ void setup() {
     pinMode(LED_FLASH_PIN, OUTPUT);
     digitalWrite(LED_FLASH_PIN, LOW);
 
-    // Cargar credenciales Wi-Fi desde memoria NVS interna
+    // Cargar credenciales Wi-Fi y volumen desde memoria NVS interna
     preferences.begin("cokielens", false);
     wifi_ssid = preferences.getString("ssid", default_ssid);
     wifi_pass = preferences.getString("pass", default_pass);
+    audio_volume = preferences.getInt("volume", 80);
     preferences.end();
 
     // Configuración OV2640

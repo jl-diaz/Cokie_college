@@ -823,7 +823,10 @@
     "testConnectionBtn": "Probar Conexión",
     "quickOptions": "Opciones Rápidas",
     "saveAndConnect": "Guardar y Conectar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "volumeLabel": "Volumen de Audífono / Voz",
+    "testAudioBtn": "Probar Sonido",
+    "testAudioPhrase": "Prueba de audio CokieLens al {{volume}} por ciento"
   },
   "gestureStudio": {
     "title": "Estudio de Gestos e IA",
