@@ -426,7 +426,11 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 1: MENÚ --- */}
       {activeTab === 'menu' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 60 }}
+        >
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>{t('cafetin.dailyMenu', 'Menú del Día')}</Text>
@@ -757,9 +761,10 @@ export default function CafetinScreen() {
             </View>
 
             <ScrollView 
-              showsVerticalScrollIndicator={false}
+              style={{ flexShrink: 1, width: '100%', maxHeight: Platform.OS === 'web' ? '70vh' : 480 }}
+              showsVerticalScrollIndicator={true}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 24 }}
+              contentContainerStyle={{ paddingBottom: 36 }}
             >
               <Text style={styles.inputLabel}>{t('cafetin.foodName', 'Nombre del Alimento *')}</Text>
               <TextInput
@@ -912,6 +917,8 @@ const createStyles = (Colors, theme) => {
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 20,
@@ -1246,6 +1253,8 @@ const createStyles = (Colors, theme) => {
     width: '100%',
     padding: 20,
     paddingBottom: 24,
+    maxHeight: Platform.OS === 'web' ? '85vh' : undefined,
+    flexShrink: 1,
   },
   modalHeader: {
     flexDirection: 'row',

@@ -5,9 +5,9 @@ import {
   Text, 
   TouchableOpacity, 
   StyleSheet, 
-  Animated, 
-  TouchableWithoutFeedback,
-  Platform
+  Pressable, 
+  Platform,
+  BackHandler
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
@@ -43,11 +43,7 @@ export const AlertProvider = ({ children }) => {
       cancelText: null,
       onConfirm
     });
-    // Pequeño timeout (60ms) para garantizar que si otro modal se estaba cerrando,
-    // se complete el ciclo de desmontaje en Web, iOS y Android sin colisiones
-    setTimeout(() => {
-      setVisible(true);
-    }, 60);
+    setVisible(true);
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
@@ -60,16 +56,14 @@ export const AlertProvider = ({ children }) => {
       onConfirm,
       onCancel
     });
-    setTimeout(() => {
-      setVisible(true);
-    }, 60);
+    setVisible(true);
   }, [t]);
 
   const hideAlert = useCallback(() => {
     setVisible(false);
   }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     const onConfirmAction = config.onConfirm;
     hideAlert();
     if (onConfirmAction) {
@@ -77,9 +71,9 @@ export const AlertProvider = ({ children }) => {
         onConfirmAction();
       }, 50);
     }
-  };
+  }, [config.onConfirm, hideAlert]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     const onCancelAction = config.onCancel;
     hideAlert();
     if (onCancelAction) {
@@ -87,7 +81,27 @@ export const AlertProvider = ({ children }) => {
         onCancelAction();
       }, 50);
     }
-  };
+  }, [config.onCancel, hideAlert]);
+
+  // Manejo de tecla Escape en Web y botón Atrás en Android
+  useEffect(() => {
+    if (!visible) return;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          hideAlert();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    } else if (Platform.OS === 'android') {
+      const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
+        hideAlert();
+        return true;
+      });
+      return () => backSub.remove();
+    }
+  }, [visible, hideAlert]);
 
   const getIcon = () => {
     switch (config.type) {
@@ -114,88 +128,71 @@ export const AlertProvider = ({ children }) => {
     return Colors.primary;
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && visible) {
-      const timer = setTimeout(() => {
-        const bodyDivs = document.querySelectorAll('body > div');
-        if (bodyDivs.length > 0) {
-          const lastDiv = bodyDivs[bodyDivs.length - 1];
-          if (lastDiv) {
-            lastDiv.style.zIndex = '9999999';
-            // CRÍTICO: Debe ser 'fixed' para que nunca sea desplazado fuera del viewport
-            lastDiv.style.position = 'fixed';
-            lastDiv.style.top = '0';
-            lastDiv.style.left = '0';
-            lastDiv.style.right = '0';
-            lastDiv.style.bottom = '0';
-            lastDiv.style.width = '100vw';
-            lastDiv.style.height = '100vh';
-            lastDiv.style.pointerEvents = 'auto';
-          }
-        }
-      }, 10);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
   const styles = createStyles(Colors, theme);
+
+  const alertContent = (
+    <View style={styles.overlay} pointerEvents="auto">
+      {/* Fondo oscuro clicable para cerrar */}
+      <Pressable 
+        style={StyleSheet.absoluteFillObject} 
+        onPress={config.cancelText ? handleCancel : handleConfirm}
+        accessibilityLabel="Cerrar modal"
+      />
+
+      {/* Tarjeta de alerta */}
+      <View style={styles.alertCard}>
+        <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
+          {getIcon()}
+        </View>
+
+        {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
+        {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
+
+        <View style={styles.buttonRow}>
+          {config.cancelText ? (
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
+            ]}
+            onPress={handleConfirm}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <AlertContext.Provider value={{ showAlert, showConfirm, hideAlert }}>
       {children}
 
       {visible && (
-        <Modal
-          visible={visible}
-          transparent
-          animationType="fade"
-          onRequestClose={hideAlert}
-          statusBarTranslucent
-          navigationBarTranslucent
-        >
-          <TouchableWithoutFeedback onPress={hideAlert}>
-            <View style={styles.overlay}>
-              <TouchableWithoutFeedback onPress={(e) => {
-                if (e && e.stopPropagation) e.stopPropagation();
-              }}>
-                <View 
-                  style={styles.alertCard}
-                  onStartShouldSetResponder={() => true}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
-                    {getIcon()}
-                  </View>
-
-                  {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
-                  {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
-
-                  <View style={styles.buttonRow}>
-                    {config.cancelText ? (
-                      <TouchableOpacity
-                        style={[styles.button, styles.cancelButton]}
-                        onPress={handleCancel}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-
-                    <TouchableOpacity
-                      style={[
-                        styles.button,
-                        { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
-                      ]}
-                      onPress={handleConfirm}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+        Platform.OS === 'web' ? (
+          alertContent
+        ) : (
+          <Modal
+            visible={visible}
+            transparent
+            animationType="fade"
+            onRequestClose={hideAlert}
+            statusBarTranslucent
+            navigationBarTranslucent
+          >
+            {alertContent}
+          </Modal>
+        )
       )}
     </AlertContext.Provider>
   );
@@ -205,14 +202,7 @@ export const useAlert = () => useContext(AlertContext);
 
 const createStyles = (Colors, theme) => StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    zIndex: 999999,
-    elevation: 999999,
-    ...(Platform.OS === 'web' && {
+    ...(Platform.OS === 'web' ? {
       position: 'fixed',
       top: 0,
       left: 0,
@@ -220,7 +210,14 @@ const createStyles = (Colors, theme) => StyleSheet.create({
       bottom: 0,
       width: '100vw',
       height: '100vh',
+      zIndex: 99999999,
+    } : {
+      flex: 1,
     }),
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
   alertCard: {
     width: '100%',
@@ -236,6 +233,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
+    zIndex: 1,
   },
   iconContainer: {
     width: 68,

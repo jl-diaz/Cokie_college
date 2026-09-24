@@ -584,83 +584,158 @@ export default function LunchScreen() {
         </ScrollView>
 
         {/* --- MODAL DE CONFIRMACIÓN (IMAGEN 3) --- */}
-        <Modal
-          visible={confirmModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setConfirmModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalDialog}>
-              <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
-              
-              {/* Recuadro con bordes y la lista detallada */}
-              <View style={styles.modalInnerBox}>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
-                  {selectedCafetin?.full_name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
-                  {selectedFuerte?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
-                  {selectedAcomp1?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
-                  {selectedAcomp2?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
-                  {tortillasQty === 0 
-                    ? t('lunch.noTortillas', 'Sin tortillas') 
-                    : tortillasQty === 1 
-                      ? t('lunch.tortillaSingle', '1 tortilla') 
-                      : t('lunch.tortillasPlural', '{{count}} tortillas', { count: tortillasQty })}
-                </Text>
-                {selectedRefresco && (
+        {confirmModalVisible && (
+          Platform.OS === 'web' ? (
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalDialog}>
+                <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
+                
+                {/* Recuadro con bordes y la lista detallada */}
+                <View style={styles.modalInnerBox}>
                   <Text style={styles.modalLine}>
-                    <Text style={styles.modalLineBold}>{t('lunch.bebida', 'Refresco')}: </Text>
-                    {selectedRefresco.name}
+                    <Text style={styles.modalLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
+                    {selectedCafetin?.full_name}
                   </Text>
-                )}
-              </View>
-
-              {/* Banner azul: Se pagará en el momento del retiro */}
-              <View style={styles.modalBlueBanner}>
-                <Text style={styles.modalBlueBannerText}>
-                  {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: calculatedTotal.toFixed(2) })}
-                </Text>
-              </View>
-
-              {/* Botones de acción */}
-              <View style={styles.modalActionsRow}>
-                <TouchableOpacity
-                  style={styles.modalCancelBtn}
-                  onPress={() => setConfirmModalVisible(false)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.modalCancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalConfirmBtn, submittingOrder && { opacity: 0.6 }]}
-                  onPress={handleFinalizeOrder}
-                  disabled={submittingOrder}
-                  activeOpacity={0.8}
-                >
-                  {submittingOrder ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.modalConfirmBtnText}>{t('lunch.confirmBtn', 'Guardar')}</Text>
+                  <Text style={styles.modalLine}>
+                    <Text style={styles.modalLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
+                    {selectedFuerte?.name}
+                  </Text>
+                  <Text style={styles.modalLine}>
+                    <Text style={styles.modalLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
+                    {selectedAcomp1?.name}
+                  </Text>
+                  <Text style={styles.modalLine}>
+                    <Text style={styles.modalLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
+                    {selectedAcomp2?.name}
+                  </Text>
+                  <Text style={styles.modalLine}>
+                    <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
+                    {tortillasQty === 0 
+                      ? t('lunch.noTortillas', 'Sin tortillas') 
+                      : tortillasQty === 1 
+                        ? t('lunch.tortillaSingle', '1 tortilla') 
+                        : t('lunch.tortillasPlural', '{{count}} tortillas', { count: tortillasQty })}
+                  </Text>
+                  {selectedRefresco && (
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.bebida', 'Refresco')}: </Text>
+                      {selectedRefresco.name}
+                    </Text>
                   )}
-                </TouchableOpacity>
+                </View>
+
+                {/* Banner azul: Se pagará en el momento del retiro */}
+                <View style={styles.modalBlueBanner}>
+                  <Text style={styles.modalBlueBannerText}>
+                    {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: calculatedTotal.toFixed(2) })}
+                  </Text>
+                </View>
+
+                {/* Botones de acción */}
+                <View style={styles.modalActionsRow}>
+                  <TouchableOpacity
+                    style={styles.modalCancelBtn}
+                    onPress={() => setConfirmModalVisible(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.modalCancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalConfirmBtn, submittingOrder && { opacity: 0.6 }]}
+                    onPress={handleFinalizeOrder}
+                    disabled={submittingOrder}
+                    activeOpacity={0.8}
+                  >
+                    {submittingOrder ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.modalConfirmBtnText}>{t('lunch.confirmBtn', 'Guardar')}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
+          ) : (
+            <Modal
+              visible={confirmModalVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setConfirmModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalDialog}>
+                  <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
+                  
+                  {/* Recuadro con bordes y la lista detallada */}
+                  <View style={styles.modalInnerBox}>
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
+                      {selectedCafetin?.full_name}
+                    </Text>
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
+                      {selectedFuerte?.name}
+                    </Text>
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
+                      {selectedAcomp1?.name}
+                    </Text>
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
+                      {selectedAcomp2?.name}
+                    </Text>
+                    <Text style={styles.modalLine}>
+                      <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
+                      {tortillasQty === 0 
+                        ? t('lunch.noTortillas', 'Sin tortillas') 
+                        : tortillasQty === 1 
+                          ? t('lunch.tortillaSingle', '1 tortilla') 
+                          : t('lunch.tortillasPlural', '{{count}} tortillas', { count: tortillasQty })}
+                    </Text>
+                    {selectedRefresco && (
+                      <Text style={styles.modalLine}>
+                        <Text style={styles.modalLineBold}>{t('lunch.bebida', 'Refresco')}: </Text>
+                        {selectedRefresco.name}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Banner azul: Se pagará en el momento del retiro */}
+                  <View style={styles.modalBlueBanner}>
+                    <Text style={styles.modalBlueBannerText}>
+                      {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: calculatedTotal.toFixed(2) })}
+                    </Text>
+                  </View>
+
+                  {/* Botones de acción */}
+                  <View style={styles.modalActionsRow}>
+                    <TouchableOpacity
+                      style={styles.modalCancelBtn}
+                      onPress={() => setConfirmModalVisible(false)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.modalCancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalConfirmBtn, submittingOrder && { opacity: 0.6 }]}
+                      onPress={handleFinalizeOrder}
+                      disabled={submittingOrder}
+                      activeOpacity={0.8}
+                    >
+                      {submittingOrder ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.modalConfirmBtnText}>{t('lunch.confirmBtn', 'Guardar')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )
+        )}
       </View>
     );
   }
@@ -950,6 +1025,16 @@ const createStyles = (Colors, theme, screenWidth) => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
+      ...(Platform.OS === 'web' && {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 99999,
+      }),
     },
     modalDialog: {
       width: '100%',

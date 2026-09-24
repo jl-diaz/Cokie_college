@@ -251,6 +251,8 @@ const styles = StyleSheet.create({
   panelWrapper: {
     width: '100%',
     maxWidth: Platform.OS === 'web' ? 640 : '100%',
+    display: 'flex',
+    flexDirection: 'column',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderTopWidth: 1.5,

@@ -581,6 +581,8 @@ const createStyles = (Colors, theme) => {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 6,
   },
   cleanRecordName: {
