@@ -45,15 +45,16 @@ export default function InterpreterScreenWeb() {
   // Selectores de fuente de video y salida de audio
   const [videoSource, setVideoSource] = useState('webcam'); // 'webcam' | 'glasses'
   const [audioOutput, setAudioOutput] = useState('browser'); // 'browser' | 'glasses'
-  const [esp32Ip, setEsp32Ip] = useState('cokielens.local');
+  const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
-  const [ipInput, setIpInput] = useState('cokielens.local');
+  const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [glassesFrameUri, setGlassesFrameUri] = useState(null);
 
   const videoRef = useRef(null);
-  const glassesImgRef = useRef(null);
+  const glassesBlobUrlRef = useRef(null);
   const canvasRef = useRef(null);
   const isCapturingRef = useRef(false);
   const lastSpokenRef = useRef('');
@@ -111,16 +112,25 @@ export default function InterpreterScreenWeb() {
     WebSocketService.connect(serverUrl);
 
     // ── GESTIÓN DE TRADUCCIÓN Y SALIDA DE AUDIO ──
-    const handleTranslation = (text) => {
+    const handleTranslation = (text, rawData) => {
       let translatedText = text;
-      if (text.startsWith('sign.')) {
-        const translationKey = text.replace('sign.', 'signs.');
+      // Priorizar traducción bilingüe si el servidor envía metadata
+      if (rawData && typeof rawData === 'object') {
+        if (i18n.language === 'en' && rawData.name_en) {
+          translatedText = rawData.name_en;
+        } else if (rawData.name_es) {
+          translatedText = rawData.name_es;
+        }
+      }
+
+      if (translatedText.startsWith('sign.')) {
+        const translationKey = translatedText.replace('sign.', 'signs.');
         const i18nVal = t(translationKey, { defaultValue: '' });
         if (i18nVal) {
           translatedText = i18nVal;
         } else {
           // Limpiar formato técnico si es un gesto nuevo (ej: 'sign.puerta' -> 'Puerta')
-          const raw = text.replace('sign.', '').replace(/_/g, ' ');
+          const raw = translatedText.replace('sign.', '').replace(/_/g, ' ');
           translatedText = raw.charAt(0).toUpperCase() + raw.slice(1);
         }
       }
@@ -141,12 +151,16 @@ export default function InterpreterScreenWeb() {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           try {
             window.speechSynthesis.cancel();
-            window.speechSynthesis.resume();
             const utterance = new SpeechSynthesisUtterance(translatedText);
-            utterance.lang = i18n.language === 'en' ? 'en-US' : 'es-MX';
+            const targetLang = i18n.language === 'en' ? 'en-US' : 'es-MX';
+            utterance.lang = targetLang;
+            const voices = window.speechSynthesis.getVoices();
+            const matchingVoice = voices.find(v => v.lang.startsWith(i18n.language === 'en' ? 'en' : 'es'));
+            if (matchingVoice) utterance.voice = matchingVoice;
             utterance.rate = 1.0;
             utterance.volume = 1.0;
             window.speechSynthesis.speak(utterance);
+            window.speechSynthesis.resume();
           } catch (e) {
             console.warn('Error en Web Speech:', e);
           }
@@ -155,7 +169,7 @@ export default function InterpreterScreenWeb() {
       // 2. SALIDA DE AUDIO: Lentes CokieLens (ESP32)
       else if (audioOutputRef.current === 'glasses') {
         try {
-          const clean = esp32IpRef.current.replace('http://', '').replace('/', '');
+          const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
           fetch(`http://${clean}/play`, {
             method: 'POST',
             body: translatedText,
@@ -253,12 +267,13 @@ export default function InterpreterScreenWeb() {
     };
   }, [isFocused, hasPermission, isActive, videoSource]);
 
-  // ── BUCLE 2: CAPTURA DESDE LENTES COKIELENS (ESP32-CAM) EN WEB ──
+  // ── BUCLE 2: CAPTURA FLUIDA DESDE LENTES COKIELENS (ESP32-CAM) EN WEB ──
   useEffect(() => {
     let intervalId;
+    let consecutiveErrors = 0;
 
     if (isFocused && isActive && videoSource === 'glasses') {
-      const cleanIp = esp32Ip.replace('http://', '').replace('/', '').trim();
+      const cleanIp = esp32Ip.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim() || '192.168.4.1';
       const captureUrl = `http://${cleanIp}/capture`;
 
       intervalId = setInterval(async () => {
@@ -266,34 +281,8 @@ export default function InterpreterScreenWeb() {
         isCapturingRef.current = true;
 
         try {
-          // Si el <img> del stream está activo y cargado, extraer directamente del canvas
-          const img = glassesImgRef.current;
-          if (img && img.complete && img.naturalWidth > 0) {
-            try {
-              if (!canvasRef.current) {
-                canvasRef.current = document.createElement('canvas');
-              }
-              const canvas = canvasRef.current;
-              canvas.width = 360;
-              canvas.height = Math.round(360 * (img.naturalHeight / img.naturalWidth));
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
-              const base64 = dataUrl.split(',')[1];
-              if (base64) {
-                WebSocketService.sendFrame(base64);
-                setGlassesConnected(true);
-                isCapturingRef.current = false;
-                return;
-              }
-            } catch (canvasErr) {
-              // Si canvas se mancha (tainted) por CORS, continuar con fetch individual
-            }
-          }
-
-          // Fallback seguro: obtener snapshot via /capture si stream no provee frames
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const timeoutId = setTimeout(() => controller.abort(), 1400);
 
           const res = await fetch(captureUrl, { 
             signal: controller.signal,
@@ -302,32 +291,65 @@ export default function InterpreterScreenWeb() {
           clearTimeout(timeoutId);
 
           if (res.ok) {
+            consecutiveErrors = 0;
             setGlassesConnected(true);
             const blob = await res.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const base64Data = reader.result;
-              if (base64Data) {
-                const rawBase64 = base64Data.split(',')[1];
-                if (rawBase64) {
-                  WebSocketService.sendFrame(rawBase64);
-                }
+
+            // Actualizar vista previa en vivo liberando URL anterior
+            if (glassesBlobUrlRef.current) {
+              URL.revokeObjectURL(glassesBlobUrlRef.current);
+            }
+            const blobUrl = URL.createObjectURL(blob);
+            glassesBlobUrlRef.current = blobUrl;
+            setGlassesFrameUri(blobUrl);
+
+            // Conversión atómica garantizada a base64
+            const base64Data = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = () => resolve(null);
+              reader.readAsDataURL(blob);
+            });
+
+            if (typeof base64Data === 'string' && base64Data.length > 50) {
+              const rawBase64 = base64Data.split(',')[1];
+              if (rawBase64) {
+                WebSocketService.sendFrame(rawBase64);
               }
-            };
-            reader.readAsDataURL(blob);
+            }
           } else {
-            setGlassesConnected(false);
+            consecutiveErrors++;
+            if (consecutiveErrors >= 3) {
+              setGlassesConnected(false);
+            }
           }
         } catch (e) {
-          setGlassesConnected(false);
+          consecutiveErrors++;
+          if (consecutiveErrors >= 3) {
+            setGlassesConnected(false);
+            // Fallback automático si cokielens.local falla en la red local
+            if (cleanIp === 'cokielens.local') {
+              console.log('[CokieLens Web] Fallback automático a 192.168.4.1');
+              setEsp32Ip('192.168.4.1');
+              setIpInput('192.168.4.1');
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cokielens_ip', '192.168.4.1');
+              }
+              consecutiveErrors = 0;
+            }
+          }
         } finally {
           isCapturingRef.current = false;
         }
-      }, 200);
+      }, 180);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
+      if (glassesBlobUrlRef.current) {
+        URL.revokeObjectURL(glassesBlobUrlRef.current);
+        glassesBlobUrlRef.current = null;
+      }
     };
   }, [isFocused, isActive, videoSource, esp32Ip]);
 
@@ -336,8 +358,10 @@ export default function InterpreterScreenWeb() {
   }
 
   const handleSaveIp = () => {
-    const clean = ipInput.replace('http://', '').replace('/', '').trim();
+    let clean = ipInput.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+    if (!clean) clean = '192.168.4.1';
     setEsp32Ip(clean);
+    setIpInput(clean);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cokielens_ip', clean);
     }
@@ -347,8 +371,20 @@ export default function InterpreterScreenWeb() {
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
     setTestResult(null);
+
+    // Advertencia amigable si la página web corre bajo HTTPS
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    if (isHttps) {
+      setIsTestingConnection(false);
+      setTestResult({ 
+        success: false, 
+        message: 'Aviso Navegador HTTPS: Los navegadores restringen peticiones fetch hacia IPs locales no cifradas (192.168.4.1). Abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS para conectarte a los lentes.' 
+      });
+      return;
+    }
+
     try {
-      let clean = ipInput.replace('http://', '').replace('/', '').trim();
+      let clean = ipInput.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
       if (!clean) clean = '192.168.4.1';
 
       const controller = new AbortController();
@@ -496,19 +532,21 @@ export default function InterpreterScreenWeb() {
           </>
         ) : (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#020617', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <img 
-              ref={glassesImgRef}
-              src={`http://${cleanIp}/stream`}
-              crossOrigin="anonymous"
-              alt="CokieLens Stream"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              onError={(e) => {
-                setGlassesConnected(false);
-              }}
-              onLoad={() => {
-                setGlassesConnected(true);
-              }}
-            />
+            {glassesFrameUri ? (
+              <img 
+                src={glassesFrameUri}
+                alt="CokieLens Feed"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <View style={styles.glassesPlaceholder}>
+                <ActivityIndicator size="large" color="#38bdf8" />
+                <Text style={styles.glassesPlaceholderText}>
+                  {t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes CokieLens en ${esp32Ip}...` })}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.glassesBadge}>
               <Glasses size={16} color="#38bdf8" style={{ marginRight: 6 }} />
               <Text style={styles.glassesBadgeText}>
@@ -559,6 +597,14 @@ export default function InterpreterScreenWeb() {
               <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
               <Text style={styles.modalTitle}>{t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}</Text>
             </View>
+
+            {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
+              <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', borderWidth: 1, borderColor: '#ef4444', borderRadius: 8, padding: 8, marginBottom: 12 }}>
+                <Text style={{ color: '#f87171', fontSize: 11, lineHeight: 15 }}>
+                  ⚠️ Navegador en HTTPS: Los navegadores restringen llamadas hacia IPs locales HTTP (192.168.4.1). Para conectar tus lentes en web, abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS.
+                </Text>
+              </View>
+            )}
 
             <Text style={styles.modalHelp}>
               {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida:')}
@@ -701,6 +747,17 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
 
   cameraContainer: { flex: 1, overflow: 'hidden', position: 'relative' },
+  glassesPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  glassesPlaceholderText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
+  },
   glassesBadge: {
     position: 'absolute',
     top: 16,

@@ -50,11 +50,24 @@ class WebSocketService {
 
     // ── EVENTO: Traducción instantánea recibida de la IA ──
     this.socket.on('translation_result', (data) => {
-      if (data && data.text) {
-        this.lastSpokenText = data.text;
+      let text = '';
+      if (typeof data === 'string') {
+        text = data;
+      } else if (data && typeof data === 'object') {
+        text = data.text || data.name_es || data.name_en || data.label || data.id || '';
+      }
+
+      if (text) {
+        this.lastSpokenText = text;
         this.lastSpokenTime = Date.now();
         if (this.listeners && this.listeners.length > 0) {
-          this.listeners.forEach(cb => cb(data.text));
+          this.listeners.forEach(cb => {
+            try {
+              cb(text, data);
+            } catch (err) {
+              console.warn('[SOCKET.IO] Error en listener callback:', err);
+            }
+          });
         }
       }
     });
