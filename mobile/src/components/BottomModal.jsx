@@ -125,18 +125,18 @@ export default function BottomModal({ visible, onClose, children }) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 180,
+          duration: 150,
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
           toValue: currentHeight,
-          duration: 200,
+          duration: 150,
           useNativeDriver: true,
         })
       ]).start(finish);
 
       // Fallback para garantizar que el modal siempre se desmonte aun si la animación nativa se interrumpe
-      const timer = setTimeout(finish, 230);
+      const timer = setTimeout(finish, 180);
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -166,55 +166,75 @@ export default function BottomModal({ visible, onClose, children }) {
     if (onClose) onClose();
   };
 
+  const modalContent = (
+    <View 
+      style={[
+        styles.overlayContainer,
+        isWeb && {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9999,
+        }
+      ]}
+      pointerEvents={visible ? 'auto' : 'none'}
+    >
+      {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
+      <Animated.View 
+        style={[
+          StyleSheet.absoluteFillObject, 
+          { 
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            opacity: fadeAnim 
+          }
+        ]} 
+      >
+        <Pressable 
+          style={StyleSheet.absoluteFillObject}
+          onPress={handleClose}
+          disabled={!visible}
+          accessibilityLabel="Cerrar modal"
+        />
+      </Animated.View>
+
+      {/* Hoja modal inferior animada que sube con el teclado */}
+      <Animated.View 
+        style={[
+          styles.panelWrapper, 
+          { 
+            transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
+            backgroundColor: colors.card,
+            paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
+            maxHeight: maxSheetHeight,
+            borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+          }
+        ]} 
+        onStartShouldSetResponder={() => Platform.OS !== 'web'}
+        onResponderTerminationRequest={() => true}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+
+  if (isWeb) {
+    return modalContent;
+  }
+
   return (
     <Modal
       transparent
       visible={showModal}
-      animationType="fade"
+      animationType="none"
       onRequestClose={handleClose}
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <View 
-        style={styles.overlayContainer}
-        pointerEvents={visible ? 'auto' : 'none'}
-      >
-        {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
-        <Animated.View 
-          style={[
-            StyleSheet.absoluteFillObject, 
-            { 
-              backgroundColor: 'rgba(0, 0, 0, 0.65)',
-              opacity: fadeAnim 
-            }
-          ]} 
-        >
-          <Pressable 
-            style={StyleSheet.absoluteFillObject}
-            onPress={handleClose}
-            disabled={!visible}
-            accessibilityLabel="Cerrar modal"
-          />
-        </Animated.View>
-
-        {/* Hoja modal inferior animada que sube con el teclado */}
-        <Animated.View 
-          style={[
-            styles.panelWrapper, 
-            { 
-              transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
-              backgroundColor: colors.card,
-              paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
-              maxHeight: maxSheetHeight,
-              borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-            }
-          ]} 
-          onStartShouldSetResponder={() => Platform.OS !== 'web'}
-          onResponderTerminationRequest={() => true}
-        >
-          {children}
-        </Animated.View>
-      </View>
+      {modalContent}
     </Modal>
   );
 }

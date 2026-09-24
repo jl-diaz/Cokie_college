@@ -43,7 +43,11 @@ export const AlertProvider = ({ children }) => {
       cancelText: null,
       onConfirm
     });
-    setVisible(true);
+    // Pequeño timeout (60ms) para garantizar que si otro modal se estaba cerrando,
+    // se complete el ciclo de desmontaje en Web, iOS y Android sin colisiones
+    setTimeout(() => {
+      setVisible(true);
+    }, 60);
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
@@ -56,7 +60,9 @@ export const AlertProvider = ({ children }) => {
       onConfirm,
       onCancel
     });
-    setVisible(true);
+    setTimeout(() => {
+      setVisible(true);
+    }, 60);
   }, [t]);
 
   const hideAlert = useCallback(() => {
@@ -115,11 +121,19 @@ export const AlertProvider = ({ children }) => {
         if (bodyDivs.length > 0) {
           const lastDiv = bodyDivs[bodyDivs.length - 1];
           if (lastDiv) {
-            lastDiv.style.zIndex = '999999';
-            lastDiv.style.position = 'relative';
+            lastDiv.style.zIndex = '9999999';
+            // CRÍTICO: Debe ser 'fixed' para que nunca sea desplazado fuera del viewport
+            lastDiv.style.position = 'fixed';
+            lastDiv.style.top = '0';
+            lastDiv.style.left = '0';
+            lastDiv.style.right = '0';
+            lastDiv.style.bottom = '0';
+            lastDiv.style.width = '100vw';
+            lastDiv.style.height = '100vh';
+            lastDiv.style.pointerEvents = 'auto';
           }
         }
-      }, 0);
+      }, 10);
       return () => clearTimeout(timer);
     }
   }, [visible]);
@@ -141,8 +155,13 @@ export const AlertProvider = ({ children }) => {
         >
           <TouchableWithoutFeedback onPress={hideAlert}>
             <View style={styles.overlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.alertCard}>
+              <TouchableWithoutFeedback onPress={(e) => {
+                if (e && e.stopPropagation) e.stopPropagation();
+              }}>
+                <View 
+                  style={styles.alertCard}
+                  onStartShouldSetResponder={() => true}
+                >
                   <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
                     {getIcon()}
                   </View>

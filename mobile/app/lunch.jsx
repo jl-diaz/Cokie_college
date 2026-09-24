@@ -336,7 +336,11 @@ export default function LunchScreen() {
               </Text>
               <Text style={styles.summaryLine}>
                 <Text style={styles.summaryLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
-                {existingOrder.tortillas_qty}
+                {existingOrder.tortillas_qty === 0
+                  ? t('lunch.noTortillas', 'Sin tortillas')
+                  : existingOrder.tortillas_qty === 1
+                    ? t('lunch.tortillaSingle', '1 tortilla')
+                    : t('lunch.tortillasPlural', '{{count}} tortillas', { count: existingOrder.tortillas_qty })}
               </Text>
               {existingOrder.refresco?.name ? (
                 <Text style={styles.summaryLine}>
@@ -500,9 +504,11 @@ export default function LunchScreen() {
                 <Text style={styles.bentoCardTitle}>{t('lunch.tortillas', 'Cantidad de tortillas')}</Text>
                 {[1, 2, 0].map(qty => {
                   const isSelected = tortillasQty === qty;
-                  const label = qty === 1 
-                    ? t('lunch.tortillaSingle', '1 tortilla') 
-                    : t('lunch.tortillasPlural', '{{count}} tortillas', { count: qty });
+                  const label = qty === 0
+                    ? t('lunch.noTortillas', 'Sin tortillas')
+                    : qty === 1 
+                      ? t('lunch.tortillaSingle', '1 tortilla') 
+                      : t('lunch.tortillasPlural', '{{count}} tortillas', { count: qty });
                   return (
                     <TouchableOpacity
                       key={qty}
@@ -608,7 +614,11 @@ export default function LunchScreen() {
                 </Text>
                 <Text style={styles.modalLine}>
                   <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
-                  {tortillasQty}
+                  {tortillasQty === 0 
+                    ? t('lunch.noTortillas', 'Sin tortillas') 
+                    : tortillasQty === 1 
+                      ? t('lunch.tortillaSingle', '1 tortilla') 
+                      : t('lunch.tortillasPlural', '{{count}} tortillas', { count: tortillasQty })}
                 </Text>
                 {selectedRefresco && (
                   <Text style={styles.modalLine}>

@@ -76,6 +76,7 @@ export default function CoordinatorJustificationsScreen() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [gradeFilter, setGradeFilter] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('');
   const [absenceDate, setAbsenceDate] = useState('');
   const [dateError, setDateError] = useState('');
 
@@ -408,10 +409,10 @@ export default function CoordinatorJustificationsScreen() {
     }
 
     setCreating(true);
+    const finalReason = absenceScope === 'hourly'
+      ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
+      : `[JORNADA COMPLETA] ${reason.trim()}`;
     try {
-      const finalReason = absenceScope === 'hourly'
-        ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
-        : `[JORNADA COMPLETA] ${reason.trim()}`;
 
       if (creationMode === 'individual') {
         await api.post('/coordinator/justifications/student', {
@@ -439,6 +440,9 @@ export default function CoordinatorJustificationsScreen() {
 
       setSelectedStudent(null);
       setSelectedStudents([]);
+      setGradeFilter('');
+      setSectionFilter('');
+      setSearchTerm('');
       setAbsenceDate('');
       setDateError('');
       setAbsenceScope('full_day');
@@ -471,6 +475,9 @@ export default function CoordinatorJustificationsScreen() {
 
         setSelectedStudent(null);
         setSelectedStudents([]);
+        setGradeFilter('');
+        setSectionFilter('');
+        setSearchTerm('');
         setAbsenceDate('');
         setDateError('');
         setAbsenceScope('full_day');
