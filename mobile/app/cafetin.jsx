@@ -581,7 +581,7 @@ export default function CafetinScreen() {
                       <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.fuerte', 'Fuerte:')}</Text> {order.fuerte?.name}</Text>
                       <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.acomp1', 'Acompañamiento 1:')}</Text> {order.acompanamiento1?.name}</Text>
                       <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.acomp2', 'Acompañamiento 2:')}</Text> {order.acompanamiento2?.name}</Text>
-                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.tortillas', 'Tortillas:')}</Text> {order.tortillas_qty}</Text>
+                      <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.tortillas', 'Tortillas:')}</Text> {order.tortillas_qty === 0 ? t('lunch.noTortillas', 'Sin tortillas') : order.tortillas_qty === 1 ? t('lunch.tortillaSingle', '1 tortilla') : t('lunch.tortillasPlural', '{{count}} tortillas', { count: order.tortillas_qty })}</Text>
                       {order.refresco?.name ? (
                         <Text style={styles.orderItemText}>• <Text style={styles.boldText}>{t('cafetin.refresco', 'Refresco:')}</Text> {order.refresco?.name}</Text>
                       ) : null}
@@ -701,7 +701,7 @@ export default function CafetinScreen() {
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>{t('cafetin.tortillas', 'Tortillas:')}</Text>
-                <Text style={styles.infoValue}>{scannedOrder.tortillas_qty}</Text>
+                <Text style={styles.infoValue}>{scannedOrder.tortillas_qty === 0 ? t('lunch.noTortillas', 'Sin tortillas') : scannedOrder.tortillas_qty === 1 ? t('lunch.tortillaSingle', '1 tortilla') : t('lunch.tortillasPlural', '{{count}} tortillas', { count: scannedOrder.tortillas_qty })}</Text>
               </View>
 
               {scannedOrder.refresco?.name ? (

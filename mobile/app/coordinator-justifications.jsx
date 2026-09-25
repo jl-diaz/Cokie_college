@@ -76,6 +76,7 @@ export default function CoordinatorJustificationsScreen() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [gradeFilter, setGradeFilter] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('');
   const [absenceDate, setAbsenceDate] = useState('');
   const [dateError, setDateError] = useState('');
 
@@ -429,6 +430,9 @@ export default function CoordinatorJustificationsScreen() {
 
       setSelectedStudent(null);
       setSelectedStudents([]);
+      setGradeFilter('');
+      setSectionFilter('');
+      setSearchTerm('');
       setAbsenceDate('');
       setDateError('');
       setAbsenceScope('full_day');
@@ -461,6 +465,9 @@ export default function CoordinatorJustificationsScreen() {
 
         setSelectedStudent(null);
         setSelectedStudents([]);
+        setGradeFilter('');
+        setSectionFilter('');
+        setSearchTerm('');
         setAbsenceDate('');
         setDateError('');
         setAbsenceScope('full_day');
