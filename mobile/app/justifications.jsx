@@ -469,7 +469,6 @@ export default function JustificationsScreen() {
             <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No has enviado solicitudes de justificación')}</Text>
           </View>
         }
-        ListFooterComponent={<View style={{height: 40}} />}
       />
 
       {/* Modal para Crear Solicitud de Justificación */}

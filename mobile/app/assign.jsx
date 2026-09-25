@@ -427,8 +427,6 @@ export default function AssignScreen() {
             {renderProposal()}
           </View>
         )}
-        
-        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Modal de Advertencia para Borrar Horario */}

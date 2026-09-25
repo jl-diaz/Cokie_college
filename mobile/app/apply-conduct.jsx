@@ -211,7 +211,6 @@ export default function ApplyConductScreen() {
                 </>
               )}
             </TouchableOpacity>
-            <View style={{ height: 40 }} />
           </View>
         }
       />

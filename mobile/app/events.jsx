@@ -391,7 +391,6 @@ export default function EventsScreen() {
             </View>
           ))
         )}
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       {isManagementAllowed && (

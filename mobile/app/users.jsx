@@ -765,8 +765,6 @@ export default function UsersScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
-
-              <View style={{ height: 32 }} />
             </ScrollView>
           </View>
         </BottomModal>
@@ -828,7 +826,7 @@ const createStyles = (Colors) => StyleSheet.create({
     fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  listContent: { padding: Spacing.xl, paddingBottom: Spacing.xl },
+  listContent: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.card,

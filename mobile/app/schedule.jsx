@@ -236,7 +236,6 @@ export default function ScheduleScreen() {
             );
           })
         )}
-        <View style={{height: 40}} />
       </View>
     </ScrollView>
   );

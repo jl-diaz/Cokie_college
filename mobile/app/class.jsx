@@ -923,7 +923,6 @@ export default function ClassScreen() {
                   <Text style={styles.submitBtnText}>{t('class.applyConductBtn', 'Aplicar Código de Conducta')}</Text>
                 )}
               </TouchableOpacity>
-              <View style={{ height: 28 }} />
             </ScrollView>
           </View>
         </BottomModal>

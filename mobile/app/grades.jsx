@@ -346,7 +346,6 @@ export default function GradesScreen() {
             );
           })
         )}
-        <View style={{ height: 40 }} />
       </View>
     </ScrollView>
   );

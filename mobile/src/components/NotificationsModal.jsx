@@ -143,7 +143,6 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   if (!showModal) return null;
 
   const isDark = theme === 'dark';
-  const bottomPadding = Math.max(insets.bottom, 24) + 16;
 
   return (
     <Modal

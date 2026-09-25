@@ -186,8 +186,10 @@ export default function BottomModal({ visible, onClose, children }) {
   );
 
   const bottomInset = Math.max(insets?.bottom || 0, 0);
-  // Margen inferior equilibrado para evitar exceso de espacio en blanco
-  const bottomClearance = bottomInset > 0 ? bottomInset + 8 : (Platform.OS === 'ios' ? 16 : 12);
+  // El contenido interno de cada modal ya provee su propio espaciado inferior (paddingBottom de 12 a 20px).
+  // Solo se requiere holgura adicional si el dispositivo tiene barra física/gestos (Home Indicator en iOS)
+  // para que los botones de acción no queden cubiertos por el indicador del sistema.
+  const bottomClearance = bottomInset > 16 ? Math.max(bottomInset - 16, 0) : 0;
 
   const topSafe = (insets?.top || 0) > 0 ? insets.top + 20 : (isWeb ? 36 : 50);
 
@@ -240,7 +242,7 @@ export default function BottomModal({ visible, onClose, children }) {
             { 
               transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
               backgroundColor: colors.card,
-              paddingBottom: keyboardHeight > 0 ? 8 : bottomClearance,
+              paddingBottom: keyboardHeight > 0 ? 6 : bottomClearance,
               maxHeight: maxSheetHeight,
               borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
             }

@@ -291,7 +291,6 @@ export default function AnnouncementsScreen() {
             );
           })
         )}
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       {canCreateAnnouncement && (
