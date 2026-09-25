@@ -830,7 +830,7 @@ export default function CoordinatorJustificationsScreen() {
       {view === 'requests' ? (
         <FlatList
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 32 }}
           data={requests}
           keyExtractor={item => item.id}
           renderItem={({ item }) => renderJustificationCard(item)}
@@ -910,7 +910,7 @@ export default function CoordinatorJustificationsScreen() {
         >
           <ScrollView 
             style={styles.content}
-            contentContainerStyle={{ paddingBottom: 160 }}
+            contentContainerStyle={{ paddingBottom: 32 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >

@@ -66,7 +66,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 120, // Espacio holgado para evitar que el botón quede tapado por la TabBar
+    paddingBottom: 85,
   },
   content: {
     flex: 1,

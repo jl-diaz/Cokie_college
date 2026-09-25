@@ -7,7 +7,8 @@ import {
   Dimensions, 
   Platform, 
   Keyboard,
-  BackHandler
+  BackHandler,
+  Modal
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -185,15 +186,8 @@ export default function BottomModal({ visible, onClose, children }) {
   );
 
   const bottomInset = Math.max(insets?.bottom || 0, 0);
-
-  // Margen inferior holgado y seguro para evitar colisiones con el Home Indicator o la barra de pestañas del navegador web (Safari/Chrome)
-  const bottomClearance = isIOS
-    ? Math.max(bottomInset, 24) + 16
-    : isMobileWeb
-      ? Math.max(bottomInset, 36) + 20
-      : isWeb
-        ? 28
-        : (bottomInset > 0 ? bottomInset + 16 : 24);
+  // Margen inferior equilibrado para evitar exceso de espacio en blanco
+  const bottomClearance = bottomInset > 0 ? bottomInset + 8 : (Platform.OS === 'ios' ? 16 : 12);
 
   const topSafe = (insets?.top || 0) > 0 ? insets.top + 20 : (isWeb ? 36 : 50);
 
@@ -212,51 +206,54 @@ export default function BottomModal({ visible, onClose, children }) {
   };
 
   return (
-    <View 
-      style={styles.overlayContainer}
-      pointerEvents={visible ? 'auto' : 'none'}
+    <Modal
+      transparent
+      visible={showModal}
+      onRequestClose={handleClose}
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
     >
-      {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
-      <Animated.View 
-        style={[
-          StyleSheet.absoluteFillObject, 
-          { 
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            opacity: fadeAnim 
-          }
-        ]} 
-      >
-        <Pressable 
-          style={StyleSheet.absoluteFillObject}
-          onPress={handleClose}
-          disabled={!visible}
-          accessibilityLabel="Cerrar modal"
-        />
-      </Animated.View>
+      <View style={styles.overlayContainer}>
+        {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
+        <Animated.View 
+          style={[
+            StyleSheet.absoluteFillObject, 
+            { 
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              opacity: fadeAnim 
+            }
+          ]} 
+        >
+          <Pressable 
+            style={StyleSheet.absoluteFillObject}
+            onPress={handleClose}
+            disabled={!visible}
+            accessibilityLabel="Cerrar modal"
+          />
+        </Animated.View>
 
-      {/* Hoja modal inferior animada que sube con el teclado */}
-      <Animated.View 
-        style={[
-          styles.panelWrapper, 
-          { 
-            transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
-            backgroundColor: colors.card,
-            paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
-            maxHeight: maxSheetHeight,
-            borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-          },
-          isWeb && {
-            paddingBottom: keyboardHeight > 0 ? 12 : `max(${bottomClearance}px, calc(env(safe-area-inset-bottom, 20px) + 20px))`,
-          }
-        ]} 
-        onStartShouldSetResponder={() => Platform.OS !== 'web'}
-        onResponderTerminationRequest={() => true}
-      >
-        <View style={styles.contentWrapper}>
-          {children}
-        </View>
-      </Animated.View>
-    </View>
+        {/* Hoja modal inferior animada que sube con el teclado */}
+        <Animated.View 
+          style={[
+            styles.panelWrapper, 
+            { 
+              transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
+              backgroundColor: colors.card,
+              paddingBottom: keyboardHeight > 0 ? 8 : bottomClearance,
+              maxHeight: maxSheetHeight,
+              borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+            }
+          ]} 
+          onStartShouldSetResponder={() => Platform.OS !== 'web'}
+          onResponderTerminationRequest={() => true}
+        >
+          <View style={styles.contentWrapper}>
+            {children}
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -274,7 +271,6 @@ const styles = StyleSheet.create({
       maxHeight: '100dvh',
     }),
     zIndex: 99999,
-    elevation: 99999,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },

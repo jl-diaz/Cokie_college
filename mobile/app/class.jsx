@@ -695,7 +695,7 @@ export default function ClassScreen() {
             <FlatList
               data={filteredStudents}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={[styles.studentsList, { paddingBottom: 140 + (insets.bottom || 0) }]}
+              contentContainerStyle={[styles.studentsList, { paddingBottom: 32 + (insets.bottom || 0) }]}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <View style={styles.studentCard}>
@@ -935,7 +935,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   flex1: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  scrollContent: { padding: Spacing.lg, paddingBottom: 120 },
+  scrollContent: { padding: Spacing.lg, paddingBottom: 32 },
   sectionTitle: { 
     fontSize: Typography.size.md, 
     fontWeight: Typography.weight.bold, 
@@ -1147,7 +1147,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   quickBtnText: { color: '#FFF', fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
 
   // Student Card Items
-  studentsList: { padding: Spacing.lg, paddingBottom: 140 },
+  studentsList: { padding: Spacing.lg, paddingBottom: 32 },
   studentCard: {
     flexDirection: 'row',
     alignItems: 'center',

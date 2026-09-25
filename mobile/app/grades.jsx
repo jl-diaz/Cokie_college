@@ -357,7 +357,7 @@ const createStyles = (Colors, theme) => {
   return StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background},
   container: { flex: 1, backgroundColor: headerBgColor },
-  scrollContent: { flexGrow: 1, backgroundColor: Colors.background, paddingBottom: 120 },
+  scrollContent: { flexGrow: 1, backgroundColor: Colors.background, paddingBottom: 32 },
   header: {
     backgroundColor: theme === 'dark' ? Colors.card : '#0B1956',
     padding: 24,
@@ -417,7 +417,7 @@ const createStyles = (Colors, theme) => {
   },
   content: {
     padding: 20,
-    paddingBottom: 120,
+    paddingBottom: 32,
   },
   summaryCard: {
     flexDirection: 'row',

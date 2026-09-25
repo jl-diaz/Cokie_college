@@ -439,7 +439,7 @@ export default function CafetinScreen() {
         <ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 32 }}
         >
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
@@ -564,7 +564,7 @@ export default function CafetinScreen() {
               data={orders}
               keyExtractor={item => item.id}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 120 }}
+              contentContainerStyle={{ paddingBottom: 32 }}
               refreshControl={
                 <RefreshControl refreshing={refreshingOrders} onRefresh={() => { setRefreshingOrders(true); fetchTodayOrders(1); }} />
               }
@@ -618,7 +618,7 @@ export default function CafetinScreen() {
         <ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 32 }}
         >
           <View style={styles.qrHeaderCard}>
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />

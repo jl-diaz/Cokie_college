@@ -829,7 +829,7 @@ const createStyles = (Colors, theme) => {
     },
     listContent: {
       paddingHorizontal: Spacing.lg,
-      paddingBottom: 120,
+      paddingBottom: Spacing.xl,
     },
     card: {
       backgroundColor: cardBg,

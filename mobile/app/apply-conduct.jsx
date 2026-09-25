@@ -130,7 +130,7 @@ export default function ApplyConductScreen() {
 
       <FlatList 
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 32 }}
         data={filteredCodes}
         keyExtractor={item => item.id}
         onEndReached={loadMoreCodes}

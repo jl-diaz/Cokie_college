@@ -470,7 +470,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   scrollContent: { 
     padding: Spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: Spacing.xl,
   },
   card: {
     backgroundColor: Colors.card,

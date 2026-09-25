@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions, Platform, Modal, Pressable } from 'react-native';
 import { X, Bell, CheckCheck, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useTabBar } from '../context/TabBarContext';
 import api from '../utils/api';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -12,6 +13,17 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const { t } = useTranslation();
   const { colors, theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { registerModal, unregisterModal } = useTabBar?.() || {};
+
+  // Ocultar TabBar mientras el modal de notificaciones esté visible
+  useEffect(() => {
+    if (visible && registerModal) {
+      registerModal();
+      return () => {
+        unregisterModal?.();
+      };
+    }
+  }, [visible, registerModal, unregisterModal]);
 
   const [notificationsList, setNotificationsList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -134,18 +146,35 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const bottomPadding = Math.max(insets.bottom, 24) + 16;
 
   return (
-    <View style={styles.overlayContainer}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+    <Modal
+      transparent
+      visible={showModal}
+      onRequestClose={onClose}
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      <View style={styles.overlayContainer}>
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} accessibilityLabel="Cerrar modal" />
+        </Animated.View>
+
         <Animated.View 
           style={[
             styles.panel, 
             { 
               transform: [{ translateY: slideAnim }], 
-              backgroundColor: isDark ? '#18181B' : '#F8FAFC',
-              paddingBottom: bottomPadding,
+              backgroundColor: isDark ? '#18181B' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              paddingBottom: Math.max(insets.bottom, 16),
             }
           ]}
         >
+          {/* Drag Handle */}
+          <View style={styles.dragHandleContainer}>
+            <View style={[styles.dragHandle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)' }]} />
+          </View>
+
           {/* Header del Modal */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -222,6 +251,7 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
           </ScrollView>
         </Animated.View>
       </View>
+    </Modal>
   );
 }
 
@@ -230,23 +260,47 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
     zIndex: 99998,
-    elevation: 99998,
+    ...(Platform.OS === 'web' && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100%',
+      height: '100%',
+      maxHeight: '100dvh',
+    }),
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   panel: {
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    overflow: 'hidden',
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 8,
     maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.2,
     shadowRadius: 18,
     elevation: 16,
+  },
+  dragHandleContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  dragHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',

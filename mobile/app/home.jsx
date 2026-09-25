@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 110, // Margen holgado para que el TabBar no tape nada
+    paddingBottom: 85, // Calibrado para que el contenido termine justo arriba del TabBar sin espacio excesivo
   },
   headerContainer: {
     paddingHorizontal: 20,

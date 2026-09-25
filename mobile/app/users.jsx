@@ -828,7 +828,7 @@ const createStyles = (Colors) => StyleSheet.create({
     fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  listContent: { padding: Spacing.xl, paddingBottom: 120 },
+  listContent: { padding: Spacing.xl, paddingBottom: Spacing.xl },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.card,

@@ -1094,7 +1094,7 @@ export default function ChatScreen() {
           data={filteredConversations}
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 110 }}
+          contentContainerStyle={{ paddingBottom: 85 }}
           renderItem={({ item }) => {
             const isSelected = activeConv?.id === item.id;
             const badge = getRoleBadgeInfo(item.is_group ? 'group' : item.recipient_role);
@@ -2587,6 +2587,7 @@ const createStyles = (Colors, theme, isDesktop) => {
     // Modal Nuevo Chat
     newChatModalContent: {
       padding: 20,
+      paddingBottom: 10,
       backgroundColor: isDark ? Colors.background : Colors.card,
       maxHeight: '100%',
       flexShrink: 1,

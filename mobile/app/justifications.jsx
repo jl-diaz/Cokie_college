@@ -706,7 +706,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
