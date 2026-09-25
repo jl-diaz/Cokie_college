@@ -288,5 +288,49 @@
     "sample_count": 6,
     "is_default": false,
     "created_at": "2026-09-22 16:24:59"
+  },
+  {
+    "id": "listo",
+    "name": "Listo",
+    "name_es": "Listo",
+    "name_en": "Ready",
+    "type": "movement",
+    "description": "Coloca ambas manos frente a tu cuerpo formando la letra r y muévelas hacia afuera",
+    "sample_count": 4,
+    "is_default": false,
+    "created_at": "2026-09-24 20:59:28"
+  },
+  {
+    "id": "como_estan",
+    "name": "Cómo están?",
+    "name_es": "Cómo están?",
+    "name_en": "How are you?",
+    "type": "movement",
+    "description": "Coloca las manos con los dedos curvos y los nudillos juntos con las palmas hacia abajo giras las manos hacia adelante hasta que las palmas queden hacia arriba baja las cejas porque es una pregunta A veces se puede hacer usando una sola mano además apunta con el dedo índice a la persona a la que te diriges.",
+    "sample_count": 8,
+    "is_default": false,
+    "created_at": "2026-09-24 21:05:20"
+  },
+  {
+    "id": "bien",
+    "name": "Bien",
+    "name_es": "Bien",
+    "name_en": "Fine",
+    "type": "movement",
+    "description": "Coloca la mano abierta y simplemente debes girarla hacia adelante",
+    "sample_count": 9,
+    "is_default": false,
+    "created_at": "2026-09-24 21:12:37"
+  },
+  {
+    "id": "esta_bien__ok",
+    "name": "Está bien/ ok",
+    "name_es": "Está bien/ ok",
+    "name_en": "Okay",
+    "type": "movement",
+    "description": "",
+    "sample_count": 5,
+    "is_default": false,
+    "created_at": "2026-09-24 21:18:54"
   }
 ]
