@@ -70,28 +70,55 @@ const chatController = {
                 });
             }
 
-            // 4. Obtener último mensaje de cada conversación y conteo de no leídos
+            // 4. Batch queries: Obtener conteos de no leídos y mensajes recientes en bloque (elimina avalancha 2N+1)
+            const minLastRead = participations.reduce((min, p) => {
+                const t = p.last_read_at || '1970-01-01T00:00:00Z';
+                return t < min ? t : min;
+            }, new Date().toISOString());
+
+            // 1 sola consulta agregada para no leídos de todas las conversaciones
+            const { data: unreadRows } = await supabaseAdmin
+                .from('messages')
+                .select('conversation_id, created_at')
+                .in('conversation_id', conversationIds)
+                .neq('sender_id', userId)
+                .gt('created_at', minLastRead);
+
+            // 1 sola consulta para los mensajes más recientes
+            const { data: recentMsgs } = await supabaseAdmin
+                .from('messages')
+                .select('id, conversation_id, content, type, attachment_name, created_at')
+                .in('conversation_id', conversationIds)
+                .order('created_at', { ascending: false })
+                .limit(conversationIds.length * 6);
+
+            const latestMsgMap = {};
+            (recentMsgs || []).forEach(m => {
+                if (!latestMsgMap[m.conversation_id]) {
+                    latestMsgMap[m.conversation_id] = m;
+                }
+            });
+
             const results = await Promise.all((conversations || []).map(async (conv) => {
                 const myParticipation = participations.find(p => p.conversation_id === conv.id);
                 const lastRead = myParticipation?.last_read_at || '1970-01-01T00:00:00Z';
 
-                // Último mensaje
-                const { data: lastMsgs } = await supabaseAdmin
-                    .from('messages')
-                    .select('*')
-                    .eq('conversation_id', conv.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                // Último mensaje (desde mapa de lote o fallback puntual)
+                let lastMsg = latestMsgMap[conv.id];
+                if (!lastMsg) {
+                    const { data: fallbackMsgs } = await supabaseAdmin
+                        .from('messages')
+                        .select('id, conversation_id, content, type, attachment_name, created_at')
+                        .eq('conversation_id', conv.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+                    lastMsg = fallbackMsgs && fallbackMsgs.length > 0 ? fallbackMsgs[0] : null;
+                }
 
-                const lastMsg = lastMsgs && lastMsgs.length > 0 ? lastMsgs[0] : null;
-
-                // Conteo de mensajes no leídos
-                const { count: unreadCount } = await supabaseAdmin
-                    .from('messages')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('conversation_id', conv.id)
-                    .gt('created_at', lastRead)
-                    .neq('sender_id', userId);
+                // Conteo de mensajes no leídos (calculado en memoria O(1))
+                const unreadCount = (unreadRows || []).filter(
+                    m => m.conversation_id === conv.id && m.created_at > lastRead
+                ).length;
 
                 // Determinar título y avatar de la conversación
                 const convParts = (allParticipants || []).filter(p => p.conversation_id === conv.id);

@@ -56,9 +56,9 @@ const adminController = {
             // Coordinator filter logic
             if (req.user.role === 'coordinator' && req.user.level) {
                 if (req.user.level === 'Primaria') {
-                    query = query.or('grade.in.(2,3,4,5,6),level.eq.Primaria');
-                } else if (req.user.level === 'Tercer Ciclo') {
-                    query = query.or('grade.in.(7,8,9),level.eq.Tercer Ciclo');
+                    query = query.or('grade.in.(1,2,3,4,5,6),level.eq.Primaria');
+                } else if (req.user.level === 'Tercer Ciclo' || req.user.level === 'Secundaria') {
+                    query = query.or('grade.in.(7,8,9,10,11),level.eq.Tercer Ciclo,level.eq.Secundaria');
                 }
             }
 

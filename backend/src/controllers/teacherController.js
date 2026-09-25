@@ -45,7 +45,7 @@ const teacherController = {
         try {
             const { level } = req.user;
             
-            let studentGrades = level === 'Primaria' ? ['2', '3', '4', '5', '6'] : ['7', '8', '9'];
+            let studentGrades = level === 'Primaria' ? ['1', '2', '3', '4', '5', '6'] : ['7', '8', '9', '10', '11'];
 
             if (!level) {
                 return res.status(400).json({ error: 'El maestro no tiene un nivel asignado.' });

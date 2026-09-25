@@ -41,7 +41,7 @@ export default function CoordinatorTicketsScreen() {
   useEffect(() => {
     setPage(1);
     fetchTickets(1, true);
-  }, []);
+  }, [filterStatus]);
 
   const fetchTickets = async (pageNum = page, reset = false) => {
     try {
@@ -49,7 +49,11 @@ export default function CoordinatorTicketsScreen() {
       else setLoadingMore(true);
       
       const res = await api.get('/coordinator/grade-tickets', {
-        params: { page: pageNum, limit: 50 }
+        params: { 
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+          page: pageNum, 
+          limit: 50 
+        }
       });
       const newTickets = res.data?.data || [];
       

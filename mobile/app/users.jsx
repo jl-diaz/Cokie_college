@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Modal, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Dimensions } from 'react-native';
 import api from '../src/utils/api';
 import { Search, Plus, Trash2, Edit2, X, ChevronDown, User, Mail, Shield, Book, CheckCircle2 } from 'lucide-react-native';
 import { Typography, Spacing, BorderRadius, Shadows } from '../src/constants/theme';
@@ -23,10 +23,18 @@ export default function UsersScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   // Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -94,7 +102,7 @@ export default function UsersScreen() {
   useEffect(() => {
     setPage(1);
     fetchUsers(1, true);
-  }, [roleFilter]);
+  }, [roleFilter, debouncedSearch]);
 
   const fetchUsers = async (pageNum = page, reset = false) => {
     if (reset) setLoading(true);
@@ -102,7 +110,12 @@ export default function UsersScreen() {
 
     try {
       const response = await api.get('/admin/users', {
-        params: { role: roleFilter || undefined, limit: 50, page: pageNum }
+        params: { 
+          role: roleFilter || undefined, 
+          search: debouncedSearch.trim() || undefined,
+          limit: 50, 
+          page: pageNum 
+        }
       });
       const userData = response.data?.data || [];
       

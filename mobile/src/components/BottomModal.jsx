@@ -7,8 +7,7 @@ import {
   Dimensions, 
   Platform, 
   Keyboard,
-  BackHandler,
-  Modal
+  BackHandler
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -167,66 +166,65 @@ export default function BottomModal({ visible, onClose, children }) {
   };
 
   return (
-    <Modal
-      transparent
-      visible={showModal}
-      animationType="fade"
-      onRequestClose={handleClose}
-      statusBarTranslucent
-      navigationBarTranslucent
+    <View 
+      style={styles.overlayContainer}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
-      <View 
-        style={styles.overlayContainer}
-        pointerEvents={visible ? 'auto' : 'none'}
+      {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
+      <Animated.View 
+        style={[
+          StyleSheet.absoluteFillObject, 
+          { 
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            opacity: fadeAnim 
+          }
+        ]} 
       >
-        {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
-        <Animated.View 
-          style={[
-            StyleSheet.absoluteFillObject, 
-            { 
-              backgroundColor: 'rgba(0, 0, 0, 0.65)',
-              opacity: fadeAnim 
-            }
-          ]} 
-        >
-          <Pressable 
-            style={StyleSheet.absoluteFillObject}
-            onPress={handleClose}
-            disabled={!visible}
-            accessibilityLabel="Cerrar modal"
-          />
-        </Animated.View>
+        <Pressable 
+          style={StyleSheet.absoluteFillObject}
+          onPress={handleClose}
+          disabled={!visible}
+          accessibilityLabel="Cerrar modal"
+        />
+      </Animated.View>
 
-        {/* Hoja modal inferior animada que sube con el teclado */}
-        <Animated.View 
-          style={[
-            styles.panelWrapper, 
-            { 
-              transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
-              backgroundColor: colors.card,
-              paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
-              maxHeight: maxSheetHeight,
-              borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-            }
-          ]} 
-          onStartShouldSetResponder={() => Platform.OS !== 'web'}
-          onResponderTerminationRequest={() => true}
-        >
-          {children}
-        </Animated.View>
-      </View>
-    </Modal>
+      {/* Hoja modal inferior animada que sube con el teclado */}
+      <Animated.View 
+        style={[
+          styles.panelWrapper, 
+          { 
+            transform: [{ translateY: Animated.subtract(slideAnim, keyboardAnim) }],
+            backgroundColor: colors.card,
+            paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
+            maxHeight: maxSheetHeight,
+            borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+          }
+        ]} 
+        onStartShouldSetResponder={() => Platform.OS !== 'web'}
+        onResponderTerminationRequest={() => true}
+      >
+        {children}
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFillObject,
+    ...(Platform.OS === 'web' && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+    }),
+    zIndex: 9999,
+    elevation: 9999,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   panelWrapper: {
     width: '100%',

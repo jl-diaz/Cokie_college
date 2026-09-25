@@ -7,7 +7,6 @@ import {
   ActivityIndicator, 
   TextInput, 
   StyleSheet, 
-  Modal,
   Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions, BackHandler, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Image, Dimensions, BackHandler, StatusBar } from 'react-native';
 import api from '../src/utils/api';
 import { enqueueOutbox } from '../src/utils/outboxQueue';
 import { FileText, CheckCircle, XCircle, AlertCircle, X, ExternalLink, Plus, Search, Calendar, Clock, ChevronDown, Download, Users, CheckSquare, Square, Trash2, Check, User } from 'lucide-react-native';
@@ -92,17 +92,7 @@ export default function CoordinatorJustificationsScreen() {
   const [creating, setCreating] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const [statusFilter, setStatusFilter] = useState(''); // '' (todas), 'pending', 'approved', 'rejected'
-
-  const pendingRequests = React.useMemo(() => {
-    if (!Array.isArray(requests)) return [];
-    return requests.filter(r => r.status === 'pending');
-  }, [requests]);
-
-  const historyRequests = React.useMemo(() => {
-    if (!Array.isArray(requests)) return [];
-    return requests.filter(r => r.status !== 'pending');
-  }, [requests]);
+  const [statusFilter, setStatusFilter] = useState('pending'); // 'pending' (por defecto), '' (todas), 'approved', 'rejected'
 
   const renderJustificationCard = (req) => {
     const isPending = req.status === 'pending';
@@ -249,7 +239,7 @@ export default function CoordinatorJustificationsScreen() {
       else setLoadingMore(true);
 
       const response = await api.get('/coordinator/justifications', {
-        params: { status: statusFilter || undefined, page: pageNum, limit: 10 }
+        params: { status: statusFilter || undefined, page: pageNum, limit: 15 }
       });
       const newRequests = response.data?.data || [];
       
@@ -789,8 +779,8 @@ export default function CoordinatorJustificationsScreen() {
   }
 
   const statusFilterTabs = [
-    { label: t('users.tabAll', 'Todas'), value: '' },
     { label: t('dashboard.pending', 'Pendientes'), value: 'pending' },
+    { label: t('users.tabAll', 'Todas'), value: '' },
     { label: t('dashboard.approved', 'Aprobadas'), value: 'approved' },
     { label: t('dashboard.rejected', 'Rechazadas'), value: 'rejected' }
   ];
@@ -818,65 +808,80 @@ export default function CoordinatorJustificationsScreen() {
       </PageHeader>
 
       {view === 'requests' ? (
-        <ScrollView style={styles.content}>
-          {/* Sub-filtro por Estado */}
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-            {statusFilterTabs.map(st => (
-              <TouchableOpacity
-                key={st.value}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  backgroundColor: statusFilter === st.value ? Colors.primary : Colors.gray[100]
-                }}
-                onPress={() => setStatusFilter(st.value)}
-              >
-                <Text style={{
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  color: statusFilter === st.value ? '#FFF' : Colors.text.muted
-                }}>
-                  {st.label}
+        <FlatList
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          data={requests}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => renderJustificationCard(item)}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          ListHeaderComponent={
+            <View style={{ marginBottom: 12 }}>
+              {/* Sub-filtro por Estado */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                {statusFilterTabs.map(st => (
+                  <TouchableOpacity
+                    key={st.value}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 16,
+                      backgroundColor: statusFilter === st.value ? Colors.primary : Colors.gray[100]
+                    }}
+                    onPress={() => setStatusFilter(st.value)}
+                  >
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      color: statusFilter === st.value ? '#FFF' : Colors.text.muted
+                    }}>
+                      {st.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.sectionTitle}>
+                {statusFilter === 'pending'
+                  ? `${t('dashboard.pending', 'Pendientes')} (${requests.length})`
+                  : statusFilter === 'approved'
+                    ? `${t('coordinatorJustifications.approved', 'Aprobadas')} (${requests.length})`
+                    : statusFilter === 'rejected'
+                      ? `${t('coordinatorJustifications.rejected', 'Rechazadas')} (${requests.length})`
+                      : `${t('justifications.requests', 'Solicitudes')} (${requests.length})`
+                }
+              </Text>
+            </View>
+          }
+          ListEmptyComponent={
+            !loading && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {statusFilter === 'pending'
+                    ? t('dashboard.noRequestsYet', 'No hay solicitudes pendientes.')
+                    : t('coordinatorJustifications.noHistory', 'No hay solicitudes en esta sección.')}
                 </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            page < totalPages ? (
+              <TouchableOpacity 
+                style={{ padding: 16, alignItems: 'center', backgroundColor: Colors.gray[100], borderRadius: 12, marginTop: 10 }}
+                onPress={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <ActivityIndicator color={Colors.primary} size="small" />
+                ) : (
+                  <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>{t('common.loadMore', 'Cargar Más')}</Text>
+                )}
               </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.sectionTitle}>{t('dashboard.pending', 'Pendientes')} ({pendingRequests.length})</Text>
-          
-          {pendingRequests.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No hay solicitudes pendientes.')}</Text>
-            </View>
-          ) : (
-            pendingRequests.map(req => renderJustificationCard(req))
-          )}
-          
-          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t('coordinatorJustifications.history', 'Historial')} ({historyRequests.length})</Text>
-          {historyRequests.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{t('coordinatorJustifications.noHistory', 'No hay historial de solicitudes.')}</Text>
-            </View>
-          ) : (
-            historyRequests.map(req => renderJustificationCard(req))
-          )}
-
-          {page < totalPages && (
-            <TouchableOpacity 
-              style={{ padding: 16, alignItems: 'center', backgroundColor: Colors.gray[100], borderRadius: 12, marginTop: 10 }}
-              onPress={handleLoadMore}
-              disabled={loadingMore}
-            >
-              {loadingMore ? (
-                <ActivityIndicator color={Colors.primary} size="small" />
-              ) : (
-                <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>{t('common.loadMore', 'Cargar Más')}</Text>
-              )}
-            </TouchableOpacity>
-          )}
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
+            ) : null
+          }
+        />
       ) : (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions, Platform } from 'react-native';
 import { X, Bell, CheckCheck, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -134,15 +134,7 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const bottomPadding = Math.max(insets.bottom, 24) + 16;
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={showModal}
-      onRequestClose={onClose}
-      statusBarTranslucent
-      navigationBarTranslucent
-    >
-      <View style={styles.overlayContainer}>
+    <View style={styles.overlayContainer}>
         <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
         <Animated.View 
           style={[
@@ -230,15 +222,15 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
           </ScrollView>
         </Animated.View>
       </View>
-    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
+    zIndex: 99998,
+    elevation: 99998,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,

@@ -176,13 +176,28 @@ const studentController = {
                 .eq('student_id', student_id)
                 .eq('status', 'approved');
 
+            // Pre-cargar datos del estudiante y horarios para resolución O(1) en memoria (elimina N+1)
+            const studentProfile = { grade: req.user.grade, section: req.user.section };
+            let cachedSchedules = null;
+            if (studentProfile.grade && studentProfile.section) {
+                const { data: dbScheds } = await supabaseAdmin
+                    .from('schedules')
+                    .select('day_of_week, start_time, end_time, subjects(name)')
+                    .eq('grade', studentProfile.grade)
+                    .eq('section', studentProfile.section);
+                cachedSchedules = dbScheds;
+            }
+
             let attendanceList = [...(attendance || [])];
             if (justifications) {
                 for (const just of justifications) {
                     const justPeriod = await getPeriodForDate(just.absence_date);
                     if (justPeriod === period) {
                         const rawReason = just.coordinator_message || just.reason || '';
-                        const resolved = await resolveJustificationSubjects(student_id, just.absence_date, rawReason);
+                        const resolved = await resolveJustificationSubjects(student_id, just.absence_date, rawReason, {
+                            studentProfile,
+                            schedules: cachedSchedules
+                        });
 
                         const existingIndices = [];
                         attendanceList.forEach((a, idx) => {

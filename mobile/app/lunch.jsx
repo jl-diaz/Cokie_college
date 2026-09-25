@@ -578,12 +578,7 @@ export default function LunchScreen() {
         </ScrollView>
 
         {/* --- MODAL DE CONFIRMACIÓN (IMAGEN 3) --- */}
-        <Modal
-          visible={confirmModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setConfirmModalVisible(false)}
-        >
+        {confirmModalVisible && (
           <View style={styles.modalOverlay}>
             <View style={styles.modalDialog}>
               <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
@@ -650,7 +645,7 @@ export default function LunchScreen() {
               </View>
             </View>
           </View>
-        </Modal>
+        )}
       </View>
     );
   }
@@ -935,11 +930,13 @@ const createStyles = (Colors, theme, screenWidth) => {
 
     // --- VISTA 2: MODAL DE CONFIRMACIÓN (IMAGEN 3) ---
     modalOverlay: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0, 0, 0, 0.65)',
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
+      zIndex: 9999,
+      elevation: 9999,
     },
     modalDialog: {
       width: '100%',

@@ -5,8 +5,7 @@ import {
   Text, 
   TouchableOpacity, 
   StyleSheet, 
-  Animated, 
-  TouchableWithoutFeedback,
+  Pressable,
   Platform
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
@@ -35,28 +34,44 @@ export const AlertProvider = ({ children }) => {
   });
 
   const showAlert = useCallback(({ type = 'info', title, message, confirmText, onConfirm }) => {
-    setConfig({
-      type,
-      title,
-      message,
-      confirmText: confirmText || t('common.ok', 'Aceptar'),
-      cancelText: null,
-      onConfirm
-    });
-    setVisible(true);
+    const show = () => {
+      setConfig({
+        type,
+        title,
+        message,
+        confirmText: confirmText || t('common.ok', 'Aceptar'),
+        cancelText: null,
+        onConfirm
+      });
+      setVisible(true);
+    };
+
+    if (Platform.OS === 'android') {
+      setTimeout(show, 100);
+    } else {
+      show();
+    }
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
-    setConfig({
-      type,
-      title,
-      message,
-      confirmText: confirmText || t('common.confirm', 'Confirmar'),
-      cancelText: cancelText || t('common.cancel', 'Cancelar'),
-      onConfirm,
-      onCancel
-    });
-    setVisible(true);
+    const show = () => {
+      setConfig({
+        type,
+        title,
+        message,
+        confirmText: confirmText || t('common.confirm', 'Confirmar'),
+        cancelText: cancelText || t('common.cancel', 'Cancelar'),
+        onConfirm,
+        onCancel
+      });
+      setVisible(true);
+    };
+
+    if (Platform.OS === 'android') {
+      setTimeout(show, 100);
+    } else {
+      show();
+    }
   }, [t]);
 
   const hideAlert = useCallback(() => {
@@ -69,7 +84,7 @@ export const AlertProvider = ({ children }) => {
     if (onConfirmAction) {
       setTimeout(() => {
         onConfirmAction();
-      }, 50);
+      }, Platform.OS === 'android' ? 150 : 50);
     }
   };
 
@@ -79,7 +94,7 @@ export const AlertProvider = ({ children }) => {
     if (onCancelAction) {
       setTimeout(() => {
         onCancelAction();
-      }, 50);
+      }, Platform.OS === 'android' ? 150 : 50);
     }
   };
 
@@ -137,45 +152,48 @@ export const AlertProvider = ({ children }) => {
           animationType="fade"
           onRequestClose={hideAlert}
           statusBarTranslucent
-          navigationBarTranslucent
         >
-          <TouchableWithoutFeedback onPress={hideAlert}>
-            <View style={styles.overlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.alertCard}>
-                  <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
-                    {getIcon()}
-                  </View>
+          <View style={styles.overlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFillObject} 
+              onPress={config.cancelText ? undefined : hideAlert} 
+              accessibilityLabel="Cerrar alerta"
+            />
+            <View 
+              style={styles.alertCard}
+              onStartShouldSetResponder={() => true}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
+                {getIcon()}
+              </View>
 
-                  {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
-                  {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
+              {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
+              {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
 
-                  <View style={styles.buttonRow}>
-                    {config.cancelText ? (
-                      <TouchableOpacity
-                        style={[styles.button, styles.cancelButton]}
-                        onPress={handleCancel}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
-                      </TouchableOpacity>
-                    ) : null}
+              <View style={styles.buttonRow}>
+                {config.cancelText ? (
+                  <TouchableOpacity
+                    style={[styles.button, styles.cancelButton]}
+                    onPress={handleCancel}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                  </TouchableOpacity>
+                ) : null}
 
-                    <TouchableOpacity
-                      style={[
-                        styles.button,
-                        { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
-                      ]}
-                      onPress={handleConfirm}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    { backgroundColor: getConfirmBtnColor(), flex: config.cancelText ? 1 : 0, minWidth: 120 }
+                  ]}
+                  onPress={handleConfirm}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </TouchableWithoutFeedback>
+          </View>
         </Modal>
       )}
     </AlertContext.Provider>

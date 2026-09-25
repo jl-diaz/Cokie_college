@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Pressable, Platform } from 'react-native';
 import { X, Check, Palette } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -20,16 +20,9 @@ export default function DarkColorModal() {
   if (!isColorModalOpen) return null;
 
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={isColorModalOpen}
-      onRequestClose={closeColorModal}
-      statusBarTranslucent
-      navigationBarTranslucent
-    >
-      <View style={styles.overlay}>
-        <View style={[styles.modalCard, { backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
+    <View style={styles.overlay}>
+      <Pressable style={StyleSheet.absoluteFillObject} onPress={closeColorModal} />
+      <View style={[styles.modalCard, { backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF' }]}>
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Palette size={22} color={colors.primary} style={{ marginRight: 8 }} />
@@ -99,17 +92,18 @@ export default function DarkColorModal() {
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 99999,
+    elevation: 99999,
   },
   modalCard: {
     width: '100%',

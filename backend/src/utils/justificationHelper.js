@@ -28,7 +28,7 @@ const parseTime24 = (tStr) => {
  * Si es jornada completa, no devuelve materias individuales, sino 'Día completo'.
  * Si es por horario, busca en schedules todas las materias en ese rango.
  */
-const resolveJustificationSubjects = async (studentId, absenceDate, rawReason) => {
+const resolveJustificationSubjects = async (studentId, absenceDate, rawReason, options = {}) => {
     try {
         const text = rawReason || '';
         const isFullDay = text.includes('[JORNADA COMPLETA]');
@@ -48,24 +48,34 @@ const resolveJustificationSubjects = async (studentId, absenceDate, rawReason) =
                 const start24 = parseTime24(parts[0]);
                 const end24 = parseTime24(parts[1]);
 
-                // Consultar grado y sección del estudiante
-                const { data: student } = await supabaseAdmin
-                    .from('profiles')
-                    .select('grade, section')
-                    .eq('id', studentId)
-                    .single();
+                // Consultar o usar grado y sección del estudiante
+                let student = options.studentProfile;
+                if (!student?.grade || !student?.section) {
+                    const { data: dbStudent } = await supabaseAdmin
+                        .from('profiles')
+                        .select('grade, section')
+                        .eq('id', studentId)
+                        .single();
+                    student = dbStudent;
+                }
 
                 if (student?.grade && student?.section) {
                     const dateObj = new Date(`${absenceDate}T12:00:00`);
                     const dayOfWeek = dateObj.getDay(); // 1=Lunes, ..., 5=Viernes
 
-                    const { data: scheds } = await supabaseAdmin
-                        .from('schedules')
-                        .select('start_time, end_time, subjects(name)')
-                        .eq('grade', student.grade)
-                        .eq('section', student.section)
-                        .eq('day_of_week', dayOfWeek)
-                        .order('start_time', { ascending: true });
+                    let scheds = null;
+                    if (Array.isArray(options.schedules)) {
+                        scheds = options.schedules.filter(s => parseInt(s.day_of_week, 10) === dayOfWeek);
+                    } else {
+                        const { data: dbScheds } = await supabaseAdmin
+                            .from('schedules')
+                            .select('start_time, end_time, subjects(name)')
+                            .eq('grade', student.grade)
+                            .eq('section', student.section)
+                            .eq('day_of_week', dayOfWeek)
+                            .order('start_time', { ascending: true });
+                        scheds = dbScheds;
+                    }
 
                     if (scheds && scheds.length > 0) {
                         const matching = scheds.filter(s => {

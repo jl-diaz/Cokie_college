@@ -10,12 +10,21 @@ ON notifications(user_id, read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created 
 ON notifications(user_id, created_at DESC);
 
--- 2. Justificaciones (Filtros por estudiante, fecha de ausencia y estado)
+-- 2. Justificaciones (Filtros por estudiante, fecha de ausencia, orden cronológico y estado)
 CREATE INDEX IF NOT EXISTS idx_justifications_student_date 
 ON justifications(student_id, absence_date DESC);
 
 CREATE INDEX IF NOT EXISTS idx_justifications_status_date 
 ON justifications(status, absence_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_justifications_created_at 
+ON justifications(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_justifications_status_created 
+ON justifications(status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_justifications_student_created 
+ON justifications(student_id, created_at DESC);
 
 -- 3. Asistencia Diaria (Consultada en cada cambio de clase / pase de lista)
 CREATE INDEX IF NOT EXISTS idx_attendance_student_date 
@@ -49,6 +58,13 @@ ON profiles(role, is_active);
 CREATE INDEX IF NOT EXISTS idx_profiles_grade_section 
 ON profiles(grade, section) 
 WHERE grade IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at 
+ON profiles(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_role_grade_section 
+ON profiles(role, grade, section) 
+WHERE is_active = true;
 
 -- 8. CokieChat (Mensajería en tiempo real y lectura de conversaciones)
 CREATE INDEX IF NOT EXISTS idx_messages_conv_created 

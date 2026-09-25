@@ -43,35 +43,33 @@ export default function AnnouncementsScreen() {
     const userRole = profile?.role;
     const options = [{ id: 'all', label: t('common.all', 'Todos') }];
 
-    if (userRole === 'super_admin' || userRole === 'coordinator') {
+    if (userRole === 'super_admin' || userRole === 'coordinator' || !userRole) {
       options.push(
-        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
-        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') },
-        { id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') }
+        { id: 'students', label: t('announcements.targetStudentsShort', 'Alumnos') },
+        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Maestros') }
       );
     } else if (userRole === 'teacher') {
       options.push(
-        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
-        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') }
+        { id: 'teachers', label: t('announcements.targetTeachersShort', 'Maestros') }
       );
     } else if (userRole === 'student') {
       options.push(
-        { id: 'both', label: t('announcements.targetBothShort', 'Generales') },
-        { id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') }
+        { id: 'students', label: t('announcements.targetStudentsShort', 'Alumnos') }
       );
-    } else {
-      const uniqueTargets = Array.from(new Set(announcements.map(a => a.target_role).filter(Boolean)));
-      if (uniqueTargets.includes('both')) options.push({ id: 'both', label: t('announcements.targetBothShort', 'Generales') });
-      if (uniqueTargets.includes('teachers')) options.push({ id: 'teachers', label: t('announcements.targetTeachersShort', 'Docentes') });
-      if (uniqueTargets.includes('students')) options.push({ id: 'students', label: t('announcements.targetStudentsShort', 'Estudiantes') });
     }
 
     return options;
-  }, [profile?.role, announcements, t]);
+  }, [profile?.role, t]);
 
   const filteredAnnouncements = useMemo(() => {
     if (selectedFilter === 'all') return announcements;
-    return announcements.filter(item => item.target_role === selectedFilter);
+    if (selectedFilter === 'students') {
+      return announcements.filter(item => item.target_role === 'students' || item.target_role === 'both');
+    }
+    if (selectedFilter === 'teachers') {
+      return announcements.filter(item => item.target_role === 'teachers' || item.target_role === 'both');
+    }
+    return announcements;
   }, [announcements, selectedFilter]);
 
   const TARGET_OPTIONS = useMemo(() => [
@@ -195,9 +193,9 @@ export default function AnnouncementsScreen() {
 
   const getTargetBadge = (target) => {
     switch (target) {
-      case 'teachers': return { label: t('announcements.targetTeachers', 'Maestros'), bg: '#3b82f615', color: '#3b82f6' };
-      case 'students': return { label: t('announcements.targetStudents', 'Alumnos'), bg: '#8b5cf615', color: '#8b5cf6' };
-      default: return { label: t('announcements.targetBoth', 'Todos'), bg: `${Colors.primary}18`, color: Colors.primary };
+      case 'teachers': return { label: t('announcements.targetTeachersShort', 'Maestros'), bg: '#3b82f615', color: '#3b82f6' };
+      case 'students': return { label: t('announcements.targetStudentsShort', 'Alumnos'), bg: '#8b5cf615', color: '#8b5cf6' };
+      default: return { label: t('announcements.targetBothShort', 'Todos'), bg: `${Colors.primary}18`, color: Colors.primary };
     }
   };
 
@@ -209,35 +207,37 @@ export default function AnnouncementsScreen() {
       />
 
       {/* Pills de categorías evaluando el rol */}
-      <View style={styles.filterPillsWrapper}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.filterPillsContainer}
-        >
-          {filterOptions.map((opt) => {
-            const isSelected = selectedFilter === opt.id;
-            return (
-              <TouchableOpacity
-                key={opt.id}
-                style={[
-                  styles.filterPill,
-                  isSelected && styles.filterPillActive
-                ]}
-                onPress={() => setSelectedFilter(opt.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.filterPillText,
-                  isSelected && styles.filterPillTextActive
-                ]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+      {filterOptions.length > 1 && (
+        <View style={styles.filterPillsWrapper}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.filterPillsContainer}
+          >
+            {filterOptions.map((opt) => {
+              const isSelected = selectedFilter === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[
+                    styles.filterPill,
+                    isSelected && styles.filterPillActive
+                  ]}
+                  onPress={() => setSelectedFilter(opt.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.filterPillText,
+                    isSelected && styles.filterPillTextActive
+                  ]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView
         style={styles.content}

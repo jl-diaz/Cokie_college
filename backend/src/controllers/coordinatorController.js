@@ -48,7 +48,7 @@ const coordinatorController = {
 
             let query = supabaseAdmin
                 .from('profiles')
-                .select('*')
+                .select('id, full_name, institutional_code, grade, section, is_active')
                 .eq('role', 'student')
                 .eq('is_active', true);
 
@@ -148,13 +148,33 @@ const coordinatorController = {
                 .eq('student_id', studentId)
                 .eq('status', 'approved');
 
+            // Pre-cargar datos del estudiante y horarios para resolución O(1) en memoria (elimina N+1)
+            const { data: studentProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('grade, section')
+                .eq('id', studentId)
+                .single();
+
+            let cachedSchedules = null;
+            if (studentProfile?.grade && studentProfile?.section) {
+                const { data: dbScheds } = await supabaseAdmin
+                    .from('schedules')
+                    .select('day_of_week, start_time, end_time, subjects(name)')
+                    .eq('grade', studentProfile.grade)
+                    .eq('section', studentProfile.section);
+                cachedSchedules = dbScheds;
+            }
+
             let attendanceList = [...(attendance || [])];
             if (justifications) {
                 for (const just of justifications) {
                     const justPeriod = await getPeriodForDate(just.absence_date);
                     if (justPeriod === period) {
                         const rawReason = just.coordinator_message || just.reason || '';
-                        const resolved = await resolveJustificationSubjects(studentId, just.absence_date, rawReason);
+                        const resolved = await resolveJustificationSubjects(studentId, just.absence_date, rawReason, {
+                            studentProfile,
+                            schedules: cachedSchedules
+                        });
 
                         const existingIndices = [];
                         attendanceList.forEach((a, idx) => {
@@ -539,44 +559,39 @@ const coordinatorController = {
 
             console.log('Fetching justifications for level:', level, 'status:', status);
             
-            // 1. Obtener IDs de estudiantes según el nivel del coordinador
-            let query = supabaseAdmin
-                .from('profiles')
-                .select('id')
-                .eq('role', 'student');
-
+            let targetGrades = [];
             if (level === 'Primaria') {
-                query = query.in('grade', ['1', '2', '3', '4', '5', '6']);
+                targetGrades = ['1', '2', '3', '4', '5', '6'];
             } else if (level === 'Secundaria' || level === 'Tercer Ciclo') {
-                query = query.in('grade', ['7', '8', '9', '10', '11']);
-            }
-            
-            const { data: students, error: studentError } = await query;
-
-            if (studentError) {
-                console.error('Error fetching students for justifications:', studentError);
-                throw studentError;
+                targetGrades = ['7', '8', '9', '10', '11'];
             }
 
-            if (!students || students.length === 0) {
-                return res.json({ data: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 });
-            }
-
-            const studentIds = students.map(s => s.id);
-
-            // 2. Obtener justificaciones con filtro por estado opcional y paginación
+            // Consulta de alto rendimiento: JOIN interno en 1 solo paso con PostgREST
             let justQuery = supabaseAdmin
                 .from('justifications')
                 .select(`
-                    *,
-                    profiles:student_id (
+                    id,
+                    student_id,
+                    coordinator_id,
+                    absence_date,
+                    reason,
+                    evidence_url,
+                    status,
+                    coordinator_message,
+                    created_at,
+                    profiles:student_id!inner (
                         full_name,
-                        institutional_code
+                        institutional_code,
+                        grade,
+                        section
                     )
-                `, { count: 'exact' })
-                .in('student_id', studentIds);
+                `, { count: 'exact' });
 
-            if (status) {
+            if (targetGrades.length > 0) {
+                justQuery = justQuery.in('profiles.grade', targetGrades);
+            }
+
+            if (status && status !== 'all') {
                 justQuery = justQuery.eq('status', status);
             }
 
