@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Linking
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { setAudioModeAsync } from 'expo-audio';
@@ -59,8 +60,16 @@ export default function InterpreterScreenNative() {
   const [isActive, setIsActive] = useState(true);
   const [facingMode, setFacingMode] = useState('front');
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [aiServerStatus, setAiServerStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected' | 'error'
   const [lastTranslation, setLastTranslation] = useState('');
   const [subtitleHistory, setSubtitleHistory] = useState([]);
+
+  const tRef = useRef(t);
+  const i18nRef = useRef(i18n);
+  useEffect(() => {
+    tRef.current = t;
+    i18nRef.current = i18n;
+  }, [t, i18n]);
 
   // ── SELECTORES DE FUENTE DE VIDEO Y SALIDA DE AUDIO ───────────────────────
   const [videoSource, setVideoSource] = useState('phone'); // 'phone' | 'glasses'
@@ -135,8 +144,12 @@ export default function InterpreterScreenNative() {
   useEffect(() => {
     if (!isFocused) return;
     (async () => {
-      if (!permission) {
-        await requestPermission();
+      if (!permission?.granted) {
+        try {
+          await requestPermission();
+        } catch (e) {
+          console.warn("Error solicitando permisos de cámara:", e);
+        }
       }
       try {
         await setAudioModeAsync({
@@ -148,7 +161,17 @@ export default function InterpreterScreenNative() {
         console.warn("No se pudo configurar el audio:", e);
       }
     })();
-  }, [isFocused, permission]);
+  }, [isFocused, permission?.granted]);
+
+  // Suscripción al estado de conexión de la IA
+  useEffect(() => {
+    if (!isFocused) return;
+    const updateStatus = (status) => setAiServerStatus(status);
+    WebSocketService.addStatusListener(updateStatus);
+    return () => {
+      WebSocketService.removeStatusListener(updateStatus);
+    };
+  }, [isFocused]);
 
   // Inicializar WebSocket sólo cuando la pantalla esté enfocada
   useEffect(() => {
@@ -160,9 +183,12 @@ export default function InterpreterScreenNative() {
     // ── GESTIÓN DE TRADUCCIONES Y LOCUCIÓN INSTANTÁNEA ───────────────────────
     const handleTranslation = async (text, rawData) => {
       let translatedText = text;
+      const currentLang = i18nRef.current?.language || 'es';
+      const currentT = tRef.current;
+
       // Priorizar traducción bilingüe si el servidor envía metadata
       if (rawData && typeof rawData === 'object') {
-        if (i18n.language === 'en' && rawData.name_en) {
+        if (currentLang === 'en' && rawData.name_en) {
           translatedText = rawData.name_en;
         } else if (rawData.name_es) {
           translatedText = rawData.name_es;
@@ -171,7 +197,7 @@ export default function InterpreterScreenNative() {
 
       if (translatedText.startsWith('sign.')) {
         const translationKey = translatedText.replace('sign.', 'signs.');
-        const i18nVal = t(translationKey, { defaultValue: '' });
+        const i18nVal = currentT(translationKey, { defaultValue: '' });
         if (i18nVal) {
           translatedText = i18nVal;
         } else {
@@ -198,7 +224,7 @@ export default function InterpreterScreenNative() {
         try {
           await Speech.stop();
           Speech.speak(translatedText, {
-            language: i18n.language === 'en' ? 'en-US' : 'es-MX',
+            language: currentLang === 'en' ? 'en-US' : 'es-MX',
             pitch: 1.0,
             rate: 1.0,
             volume: audioVolumeRef.current / 100,
@@ -232,7 +258,7 @@ export default function InterpreterScreenNative() {
       WebSocketService.disconnect();
       Speech.stop().catch(() => {});
     };
-  }, [isFocused, t, i18n.language]);
+  }, [isFocused]);
 
   // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO ────────────────────────────
   useEffect(() => {
@@ -246,11 +272,10 @@ export default function InterpreterScreenNative() {
         try {
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.10,
+            quality: 0.15,
             skipProcessing: true,
             shutterSound: false,
             exif: false,
-            pictureSize: '352x288',
           });
 
           if (photo?.base64) {
@@ -258,7 +283,7 @@ export default function InterpreterScreenNative() {
           }
         } catch (e) {
           if (!e.message?.includes('unmounted')) {
-            console.log('Error capturando frame nativo:', e);
+            console.log('Error capturando frame nativo:', e?.message || e);
           }
         } finally {
           isCapturingRef.current = false;
@@ -469,13 +494,44 @@ export default function InterpreterScreenNative() {
   };
 
   if (hasPermission === null && videoSource === 'phone') {
-    return <View style={styles.container} />;
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
   }
   
   if (hasPermission === false && videoSource === 'phone') {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.text}>{t('interpreter.noPermission', 'No hay permisos de cámara')}</Text>
+      <View style={[styles.container, styles.centered, { padding: 24 }]}>
+        <AlertCircle size={56} color="#ef4444" style={{ marginBottom: 16 }} />
+        <Text style={[styles.text, { fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }]}>
+          {t('interpreter.cameraPermissionTitle', 'Permiso de Cámara Requerido')}
+        </Text>
+        <Text style={[styles.subText, { textAlign: 'center', marginBottom: 24, color: '#94a3b8' }]}>
+          {t('interpreter.cameraPermissionDesc', 'Para traducir el lenguaje de señas en tiempo real, la aplicación necesita acceder a la cámara.')}
+        </Text>
+        <TouchableOpacity 
+          style={{ backgroundColor: '#3b82f6', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginBottom: 14, minWidth: 200, alignItems: 'center' }}
+          onPress={async () => {
+            const res = await requestPermission();
+            if (!res.granted && !res.canAskAgain) {
+              Linking.openSettings();
+            }
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>
+            {t('interpreter.grantPermissionBtn', 'Conceder Permiso')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={{ paddingVertical: 10, alignItems: 'center' }}
+          onPress={() => Linking.openSettings()}
+        >
+          <Text style={{ color: '#60a5fa', fontSize: 14, textDecorationLine: 'underline' }}>
+            {t('interpreter.openSettingsBtn', 'Abrir Configuración de la App')}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -546,6 +602,41 @@ export default function InterpreterScreenNative() {
 
       {/* ── ÁREA DE VIDEO (TELÉFONO O LENTES) ── */}
       <View style={styles.cameraContainer}>
+        {/* Indicador flotante de Estado del Servidor de IA */}
+        <TouchableOpacity 
+          style={[
+            styles.aiStatusBadge, 
+            aiServerStatus === 'connected' ? styles.aiStatusConnected :
+            aiServerStatus === 'connecting' ? styles.aiStatusConnecting :
+            styles.aiStatusDisconnected
+          ]}
+          onPress={() => {
+            if (aiServerStatus !== 'connected') {
+              const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+              WebSocketService.connect(serverUrl);
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          {aiServerStatus === 'connecting' ? (
+            <ActivityIndicator size="small" color="#f59e0b" style={{ marginRight: 6 }} />
+          ) : (
+            <View 
+              style={[
+                styles.miniDot, 
+                { backgroundColor: aiServerStatus === 'connected' ? '#10b981' : '#ef4444', marginRight: 6 }
+              ]} 
+            />
+          )}
+          <Text style={styles.aiStatusText}>
+            {aiServerStatus === 'connected' 
+              ? t('interpreter.aiConnected', 'IA Conectada')
+              : aiServerStatus === 'connecting'
+              ? t('interpreter.aiConnecting', 'Conectando con IA...')
+              : t('interpreter.aiReconnect', 'Reconectar IA')}
+          </Text>
+        </TouchableOpacity>
+
         {videoSource === 'phone' ? (
           isFocused ? (
             <>
@@ -876,9 +967,38 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
-  glassesBadge: {
+  aiStatusBadge: {
     position: 'absolute',
     top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    zIndex: 25,
+    elevation: 8,
+  },
+  aiStatusConnected: {
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+  },
+  aiStatusConnecting: {
+    borderColor: 'rgba(245, 158, 11, 0.5)',
+  },
+  aiStatusDisconnected: {
+    borderColor: 'rgba(239, 68, 68, 0.5)',
+  },
+  aiStatusText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  glassesBadge: {
+    position: 'absolute',
+    top: 54,
     left: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -888,6 +1008,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.3)',
+    zIndex: 24,
   },
   glassesBadgeText: {
     color: '#FFF',

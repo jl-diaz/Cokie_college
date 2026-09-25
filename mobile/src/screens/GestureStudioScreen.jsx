@@ -312,7 +312,6 @@ export default function GestureStudioScreen() {
           skipProcessing: true,
           shutterSound: true,
           exif: false,
-          pictureSize: '640x480',
         });
         imageBase64 = photo?.base64;
       } else {
@@ -418,11 +417,10 @@ export default function GestureStudioScreen() {
           try {
             const photo = await cameraRef.current.takePictureAsync({
               base64: true,
-              quality: 0.10,
+              quality: 0.15,
               skipProcessing: true,
               shutterSound: false,
               exif: false,
-              pictureSize: '352x288',
             });
 
             if (photo?.base64 && isRunning && recordingStateRef.current === 'recording') {
