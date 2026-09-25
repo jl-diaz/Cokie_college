@@ -806,7 +806,7 @@ const createStyles = (Colors, theme) => {
     color: isDark ? '#fef08a' : '#78350f',
   },
 
-  content: { padding: Spacing.lg, paddingTop: Spacing.xs },
+  content: { padding: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: 120 },
   sectionTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: Colors.primary, marginTop: Spacing.xs, marginBottom: Spacing.xs },
   subTitle: { fontSize: Typography.size.sm, color: Colors.text.muted, marginTop: 4, marginBottom: Spacing.xl },
   studentHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

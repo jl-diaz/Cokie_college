@@ -16,6 +16,7 @@ import {
   Image
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../src/utils/api';
 import {  
   BookOpen, 
@@ -57,6 +58,7 @@ export default function ClassScreen() {
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
   const { profile } = useAuth();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const params = useLocalSearchParams();
 
@@ -693,7 +695,7 @@ export default function ClassScreen() {
             <FlatList
               data={filteredStudents}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.studentsList}
+              contentContainerStyle={[styles.studentsList, { paddingBottom: 140 + (insets.bottom || 0) }]}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <View style={styles.studentCard}>
@@ -758,7 +760,7 @@ export default function ClassScreen() {
           )}
 
           {students.length > 0 && (
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom || 0, Spacing.lg) }]}>
               {isSelectedClassActive ? (
                 <TouchableOpacity 
                   style={styles.saveBtn} 
@@ -796,7 +798,11 @@ export default function ClassScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalForm} keyboardShouldPersistTaps="handled">
+            <ScrollView 
+              style={styles.modalForm} 
+              contentContainerStyle={{ paddingBottom: 24 }}
+              keyboardShouldPersistTaps="handled"
+            >
               <View style={styles.studentBannerCard}>
                 <Text style={styles.studentLabelTitle}>{t('class.selectedStudent', 'Estudiante Seleccionado:')}</Text>
                 <Text style={styles.studentNameHighlight}>{selectedStudent?.full_name}</Text>
@@ -842,7 +848,12 @@ export default function ClassScreen() {
                       )}
                     </View>
 
-                    <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    <ScrollView 
+                      style={{ maxHeight: 220 }} 
+                      contentContainerStyle={{ paddingBottom: 16 }}
+                      nestedScrollEnabled 
+                      keyboardShouldPersistTaps="handled"
+                    >
                       {filteredConductCodes.length === 0 ? (
                         <View style={styles.emptyDropdownResult}>
                           <Text style={styles.emptyDropdownText}>{t('common.noMatchingCodes', 'No se encontraron códigos que coincidan.')}</Text>
@@ -924,7 +935,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   flex1: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  scrollContent: { padding: Spacing.lg, paddingBottom: 60 },
+  scrollContent: { padding: Spacing.lg, paddingBottom: 120 },
   sectionTitle: { 
     fontSize: Typography.size.md, 
     fontWeight: Typography.weight.bold, 
@@ -1136,7 +1147,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   quickBtnText: { color: '#FFF', fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
 
   // Student Card Items
-  studentsList: { padding: Spacing.lg, paddingBottom: 90 },
+  studentsList: { padding: Spacing.lg, paddingBottom: 140 },
   studentCard: {
     flexDirection: 'row',
     alignItems: 'center',

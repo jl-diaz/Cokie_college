@@ -30,6 +30,7 @@ function LayoutInner() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const segments = useSegments();
+  const { user, loading: authLoading } = useAuth();
   const { tabAnimation, registerModal, unregisterModal } = useTabBar();
 
   useEffect(() => {
@@ -372,11 +373,11 @@ export default function Layout() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AlertProvider>
-          <TabBarProvider>
+        <TabBarProvider>
+          <AlertProvider>
             <LayoutInner />
-          </TabBarProvider>
-        </AlertProvider>
+          </AlertProvider>
+        </TabBarProvider>
       </ThemeProvider>
     </AuthProvider>
   );

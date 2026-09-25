@@ -16,6 +16,7 @@ import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
 import DatePickerSelector from '../src/components/DatePickerSelector';
 import { WebView } from 'react-native-webview';
+import { useTabBar } from '../src/context/TabBarContext';
 
 const SCHOOL_HOURS = [
   '07:00 AM',
@@ -69,6 +70,17 @@ export default function CoordinatorJustificationsScreen() {
   const [observation, setObservation] = useState('');
   const [statusToSet, setStatusToSet] = useState('');
   const [view, setView] = useState('requests'); // 'requests' or 'create'
+
+  const { registerModal, unregisterModal } = useTabBar?.() || {};
+
+  useEffect(() => {
+    if (evidenceModalVisible && registerModal) {
+      registerModal();
+      return () => {
+        unregisterModal?.();
+      };
+    }
+  }, [evidenceModalVisible, registerModal, unregisterModal]);
 
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -399,10 +411,11 @@ export default function CoordinatorJustificationsScreen() {
     }
 
     setCreating(true);
+    const finalReason = absenceScope === 'hourly'
+      ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
+      : `[JORNADA COMPLETA] ${reason.trim()}`;
+
     try {
-      const finalReason = absenceScope === 'hourly'
-        ? `[HORARIO: ${startTime} - ${endTime}] ${reason.trim()}`
-        : `[JORNADA COMPLETA] ${reason.trim()}`;
 
       if (creationMode === 'individual') {
         await api.post('/coordinator/justifications/student', {
@@ -817,7 +830,7 @@ export default function CoordinatorJustificationsScreen() {
       {view === 'requests' ? (
         <FlatList
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           data={requests}
           keyExtractor={item => item.id}
           renderItem={({ item }) => renderJustificationCard(item)}
@@ -961,7 +974,11 @@ export default function CoordinatorJustificationsScreen() {
                     </View>
                   )}
 
-                  <ScrollView style={styles.studentList} nestedScrollEnabled>
+                  <ScrollView 
+                    style={styles.studentList} 
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    nestedScrollEnabled
+                  >
                     {filteredStudents.slice(0, 8).map(s => (
                       <TouchableOpacity
                         key={s.id}
@@ -1081,7 +1098,11 @@ export default function CoordinatorJustificationsScreen() {
                   )}
 
                   {/* Lista de estudiantes con Checkboxes */}
-                  <ScrollView style={[styles.studentList, { maxHeight: 240 }]} nestedScrollEnabled>
+                  <ScrollView 
+                    style={[styles.studentList, { maxHeight: 240 }]} 
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    nestedScrollEnabled
+                  >
                     {filteredStudents.length === 0 ? (
                       <View style={{ padding: 16, alignItems: 'center' }}>
                         <Text style={{ color: Colors.text.muted, fontSize: 13 }}>{t('coordinatorJustifications.noStudentsFound', 'No se encontraron estudiantes con los filtros aplicados')}</Text>
@@ -1304,7 +1325,11 @@ export default function CoordinatorJustificationsScreen() {
               <X size={24} color={Colors.primary} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={{ maxHeight: 300 }} 
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
               {SCHOOL_HOURS.map(hour => {
                 const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;

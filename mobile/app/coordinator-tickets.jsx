@@ -430,7 +430,7 @@ const createStyles = (Colors, theme) => {
     listContent: {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.md,
-      paddingBottom: 40,
+      paddingBottom: 120,
     },
 
     // 2-TONE CARD STYLES

@@ -501,7 +501,11 @@ export default function JustificationsScreen() {
                     <X size={24} color={Colors.primary} />
                   </TouchableOpacity>
                 </View>
-                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                  style={{ maxHeight: 320 }} 
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  showsVerticalScrollIndicator={false}
+                >
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
                     {SCHOOL_HOURS.map(hour => {
                       const isSelected = (timePickerTarget === 'start' ? formData.start_time : formData.end_time) === hour;
@@ -702,7 +706,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
-  content: { paddingHorizontal: 20, paddingTop: 20 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

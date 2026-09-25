@@ -241,6 +241,7 @@ export default function AnnouncementsScreen() {
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         showsVerticalScrollIndicator={false}
       >

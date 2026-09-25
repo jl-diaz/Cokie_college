@@ -1620,7 +1620,12 @@ export default function ChatScreen() {
         {loadingUsers ? (
           <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 20 }} />
         ) : (
-          <ScrollView style={{ maxHeight: 220, flexShrink: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView 
+            style={{ maxHeight: 220, flexShrink: 1 }} 
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled"
+          >
             {usersList.map(u => {
               const isSelected = selectedGroupMembers.some(m => m.id === u.id);
               const badge = getRoleBadgeInfo(u.role);

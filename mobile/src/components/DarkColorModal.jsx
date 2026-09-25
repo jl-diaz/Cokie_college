@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Pressable, Platform } from 'react-native';
 import { X, Check, Palette } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useTabBar } from '../context/TabBarContext';
 
 export default function DarkColorModal() {
   const { t } = useTranslation();
+  const { registerModal, unregisterModal } = useTabBar();
   const { 
     isColorModalOpen, 
     closeColorModal, 
@@ -16,6 +18,13 @@ export default function DarkColorModal() {
     theme,
     changeTheme
   } = useTheme();
+
+  useEffect(() => {
+    if (isColorModalOpen) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [isColorModalOpen, registerModal, unregisterModal]);
 
   if (!isColorModalOpen) return null;
 
@@ -39,7 +48,11 @@ export default function DarkColorModal() {
             {t('theme.colorModalSubtitle', 'Selecciona el color primario que se aplicará.')}
           </Text>
 
-          <ScrollView style={styles.presetList} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.presetList} 
+            contentContainerStyle={{ paddingBottom: 16 }}
+            showsVerticalScrollIndicator={false}
+          >
             {darkPresets.map((preset) => {
               const isSelected = darkPrimaryPresetId === preset.id;
               return (
@@ -104,6 +117,13 @@ const styles = StyleSheet.create({
     padding: 20,
     zIndex: 99999,
     elevation: 99999,
+    ...(Platform.OS === 'web' && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }),
   },
   modalCard: {
     width: '100%',

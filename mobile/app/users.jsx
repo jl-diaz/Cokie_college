@@ -579,7 +579,12 @@ export default function UsersScreen() {
                 </TouchableOpacity>
 
                 {roleDropdownOpen && editingUser?.id !== currentProfile?.id && (
-                  <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                  <ScrollView 
+                    style={[styles.dropdownList, { maxHeight: 180 }]} 
+                    contentContainerStyle={{ paddingBottom: 8 }}
+                    nestedScrollEnabled 
+                    showsVerticalScrollIndicator={true}
+                  >
                     {roles.map(r => (
                       <TouchableOpacity
                         key={r.value}
@@ -611,7 +616,12 @@ export default function UsersScreen() {
                   </TouchableOpacity>
 
                   {levelDropdownOpen && (
-                    <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                    <ScrollView 
+                      style={[styles.dropdownList, { maxHeight: 180 }]} 
+                      contentContainerStyle={{ paddingBottom: 8 }}
+                      nestedScrollEnabled 
+                      showsVerticalScrollIndicator={true}
+                    >
                       {levels.map(l => (
                         <TouchableOpacity
                           key={l.value}
@@ -644,7 +654,11 @@ export default function UsersScreen() {
                   </TouchableOpacity>
 
                   {subjectDropdownOpen && (
-                    <ScrollView style={[styles.dropdownList, { maxHeight: 150 }]} nestedScrollEnabled>
+                    <ScrollView 
+                      style={[styles.dropdownList, { maxHeight: 150 }]} 
+                      contentContainerStyle={{ paddingBottom: 8 }}
+                      nestedScrollEnabled
+                    >
                       {subjects.map(s => (
                         <TouchableOpacity
                           key={s.value}
@@ -678,7 +692,12 @@ export default function UsersScreen() {
                     </TouchableOpacity>
 
                     {gradeDropdownOpen && (
-                      <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                      <ScrollView 
+                        style={[styles.dropdownList, { maxHeight: 180 }]} 
+                        contentContainerStyle={{ paddingBottom: 8 }}
+                        nestedScrollEnabled 
+                        showsVerticalScrollIndicator={true}
+                      >
                         {grades.map(g => (
                           <TouchableOpacity
                             key={g.value}
@@ -709,7 +728,12 @@ export default function UsersScreen() {
                     </TouchableOpacity>
 
                     {sectionDropdownOpen && (
-                      <ScrollView style={[styles.dropdownList, { maxHeight: 180 }]} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                      <ScrollView 
+                        style={[styles.dropdownList, { maxHeight: 180 }]} 
+                        contentContainerStyle={{ paddingBottom: 8 }}
+                        nestedScrollEnabled 
+                        showsVerticalScrollIndicator={true}
+                      >
                         {sections.map(s => (
                           <TouchableOpacity
                             key={s.value}
@@ -804,7 +828,7 @@ const createStyles = (Colors) => StyleSheet.create({
     fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  listContent: { padding: Spacing.xl, pb: 100 },
+  listContent: { padding: Spacing.xl, paddingBottom: 120 },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.card,

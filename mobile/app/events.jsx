@@ -338,6 +338,7 @@ export default function EventsScreen() {
 
       <ScrollView 
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         showsVerticalScrollIndicator={false}
       >
@@ -429,7 +430,11 @@ export default function EventsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                  style={{ maxHeight: 320 }} 
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  showsVerticalScrollIndicator={false}
+                >
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
                     {EVENT_HOURS.map(hour => {
                       const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;

@@ -251,7 +251,11 @@ export default function LunchScreen() {
             </View>
           </View>
         </View>
-        <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={{ padding: 16 }} 
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+        >
           <SkeletonCard />
           <SkeletonCard />
         </ScrollView>
@@ -722,7 +726,7 @@ const createStyles = (Colors, theme, screenWidth) => {
     },
     scrollContent: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 120,
     },
 
     // --- ENCABEZADO BANNER (IMÁGENES 1 & 4) ---

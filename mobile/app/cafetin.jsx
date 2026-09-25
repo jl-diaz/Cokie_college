@@ -44,6 +44,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Camera } from 'lucide-react-native';
 import { SkeletonCard } from '../src/components/Skeleton';
 import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/utils/haptics';
+import { useTabBar } from '../src/context/TabBarContext';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +54,7 @@ export default function CafetinScreen() {
   const isDark = theme === 'dark';
   const { profile } = useAuth();
   const { showAlert, showConfirm } = useAlert();
+  const { registerModal, unregisterModal } = useTabBar();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [activeTab, setActiveTab] = useState('menu'); // 'menu', 'pedidos', 'qr'
@@ -83,6 +85,14 @@ export default function CafetinScreen() {
   const [loadingScan, setLoadingScan] = useState(false);
   const [confirmingDispatch, setConfirmingDispatch] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+
+  useEffect(() => {
+    if (cameraOpen) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [cameraOpen, registerModal, unregisterModal]);
+
   const [permission, requestPermission] = useCameraPermissions();
   const scanLockRef = useRef(false);
 
@@ -429,7 +439,7 @@ export default function CafetinScreen() {
         <ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
         >
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
@@ -554,7 +564,7 @@ export default function CafetinScreen() {
               data={orders}
               keyExtractor={item => item.id}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 40 }}
+              contentContainerStyle={{ paddingBottom: 120 }}
               refreshControl={
                 <RefreshControl refreshing={refreshingOrders} onRefresh={() => { setRefreshingOrders(true); fetchTodayOrders(1); }} />
               }
@@ -608,7 +618,7 @@ export default function CafetinScreen() {
         <ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
         >
           <View style={styles.qrHeaderCard}>
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />

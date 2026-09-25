@@ -696,7 +696,7 @@ const createStyles = (Colors, theme) => {
     },
     listContent: {
       paddingHorizontal: Spacing.lg,
-      paddingBottom: 40,
+      paddingBottom: 120,
     },
     // HERO BENTO SPOTLIGHT CARD
     heroCard: {

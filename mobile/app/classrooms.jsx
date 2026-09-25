@@ -328,7 +328,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
 
-  scrollContent: { padding: Spacing.lg, paddingBottom: 40 },
+  scrollContent: { padding: Spacing.lg, paddingBottom: 120 },
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: Colors.text.muted, textAlign: 'center', fontSize: Typography.size.sm },
 

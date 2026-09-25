@@ -6,12 +6,14 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBar } from '../context/TabBarContext';
 
 const { width, height } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.75, 320);
 
 export default function CustomDrawer({ visible, onClose }) {
   const { t } = useTranslation();
+  const { registerModal, unregisterModal } = useTabBar();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === 'ios'
     ? Math.max(insets.top + 10, 50)
@@ -36,6 +38,13 @@ export default function CustomDrawer({ visible, onClose }) {
   const borderColor = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)';
   const avatarBg = theme === 'dark' ? colors.background : '#FFF';
   const avatarText = theme === 'dark' ? colors.primary : '#0B1956';
+
+  useEffect(() => {
+    if (visible) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [visible, registerModal, unregisterModal]);
 
   useEffect(() => {
     if (visible) {
@@ -209,6 +218,7 @@ export default function CustomDrawer({ visible, onClose }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 } : {}),
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,

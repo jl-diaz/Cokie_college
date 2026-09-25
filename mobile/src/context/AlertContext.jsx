@@ -11,6 +11,7 @@ import {
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useTabBar } from './TabBarContext';
 
 const AlertContext = createContext({
   showAlert: () => {},
@@ -21,8 +22,16 @@ const AlertContext = createContext({
 export const AlertProvider = ({ children }) => {
   const { colors: Colors, theme } = useTheme();
   const { t } = useTranslation();
+  const { registerModal, unregisterModal } = useTabBar();
 
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [visible, registerModal, unregisterModal]);
   const [config, setConfig] = useState({
     type: 'info', // 'success', 'error', 'warning', 'info', 'danger'
     title: '',
