@@ -906,6 +906,9 @@ const createStyles = (Colors, theme) => {
   modalContent: {
     width: '100%',
     maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,

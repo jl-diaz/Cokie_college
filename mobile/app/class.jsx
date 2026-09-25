@@ -1230,7 +1230,11 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   modalContent: {
     width: '100%',
     padding: Spacing.xl,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.md,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',

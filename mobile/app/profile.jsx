@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../src/context/AuthContext';
@@ -29,7 +29,11 @@ export default function ProfileScreen() {
         subtitle={t('titles.profileSubtitle', 'Información personal y cuenta')}
       />
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.profileHeader}>
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
@@ -50,7 +54,7 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>{t('menu.logout', 'Cerrar Sesión')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -59,6 +63,10 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 120, // Espacio holgado para evitar que el botón quede tapado por la TabBar
   },
   content: {
     flex: 1,

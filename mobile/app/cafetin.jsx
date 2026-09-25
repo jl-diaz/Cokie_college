@@ -426,7 +426,11 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 1: MENÚ --- */}
       {activeTab === 'menu' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 60 }}
+        >
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>{t('cafetin.dailyMenu', 'Menú del Día')}</Text>
@@ -601,7 +605,11 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 3: ESCÁNER QR --- */}
       {activeTab === 'qr' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 60 }}
+        >
           <View style={styles.qrHeaderCard}>
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.qrTitle}>{t('cafetin.scanOrEnterQr', 'Escanear o Ingresar Código QR')}</Text>
@@ -757,6 +765,7 @@ export default function CafetinScreen() {
             </View>
 
             <ScrollView 
+              style={{ flexShrink: 1 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 24 }}
@@ -1245,7 +1254,11 @@ const createStyles = (Colors, theme) => {
   modalContent: {
     width: '100%',
     padding: 20,
-    paddingBottom: 24,
+    paddingBottom: 12,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',

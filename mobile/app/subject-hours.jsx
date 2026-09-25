@@ -939,6 +939,10 @@ const createStyles = (Colors, theme) => {
     // Modal Styles
     modalContent: {
       padding: 20,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     modalHeader: {
       flexDirection: 'row',

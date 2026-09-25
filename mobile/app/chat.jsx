@@ -1094,6 +1094,7 @@ export default function ChatScreen() {
           data={filteredConversations}
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 110 }}
           renderItem={({ item }) => {
             const isSelected = activeConv?.id === item.id;
             const badge = getRoleBadgeInfo(item.is_group ? 'group' : item.recipient_role);
@@ -1619,7 +1620,7 @@ export default function ChatScreen() {
         {loadingUsers ? (
           <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 20 }} />
         ) : (
-          <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ maxHeight: 220, flexShrink: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {usersList.map(u => {
               const isSelected = selectedGroupMembers.some(m => m.id === u.id);
               const badge = getRoleBadgeInfo(u.role);
@@ -2582,6 +2583,10 @@ const createStyles = (Colors, theme, isDesktop) => {
     newChatModalContent: {
       padding: 20,
       backgroundColor: isDark ? Colors.background : Colors.card,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     newChatModalHeader: {
       flexDirection: 'row',
@@ -2714,8 +2719,12 @@ const createStyles = (Colors, theme, isDesktop) => {
     // Modal Adjuntos
     attachmentModalContent: {
       padding: 20,
-      paddingBottom: 28,
+      paddingBottom: 20,
       backgroundColor: isDark ? Colors.background : Colors.card,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     attachmentModalHeader: {
       flexDirection: 'row',
@@ -2786,8 +2795,12 @@ const createStyles = (Colors, theme, isDesktop) => {
     groupInfoModalContent: {
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 24,
+      paddingBottom: 20,
       backgroundColor: isDark ? Colors.background : Colors.card,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     groupInfoModalHeader: {
       flexDirection: 'row',

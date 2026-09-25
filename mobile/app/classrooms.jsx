@@ -386,7 +386,11 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'], 
     borderTopRightRadius: BorderRadius['2xl'], 
     padding: Spacing.xl, 
-    paddingBottom: 24,
+    paddingBottom: 16,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     ...Shadows.elevated,
   },
   modalHeader: {

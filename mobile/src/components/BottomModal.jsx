@@ -11,19 +11,54 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 
 export default function BottomModal({ visible, onClose, children }) {
   const [showModal, setShowModal] = useState(visible);
   const insets = useSafeAreaInsets();
   const { colors, theme } = useTheme();
+  const { registerModal, unregisterModal } = useTabBar?.() || {};
 
-  const [windowDimensions, setWindowDimensions] = useState(() => Dimensions.get('window'));
+  // Ocultar TabBar mientras el modal esté visible
+  useEffect(() => {
+    if (visible && registerModal) {
+      registerModal();
+      return () => {
+        unregisterModal?.();
+      };
+    }
+  }, [visible, registerModal, unregisterModal]);
+
+  // Medir viewport dinámico en web (Safari/Chrome toolbar) y dimensiones de pantalla en nativo
+  const getViewportDimensions = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return {
+        width: window.innerWidth,
+        height: window.visualViewport?.height || window.innerHeight || Dimensions.get('window').height,
+      };
+    }
+    return Dimensions.get('window');
+  };
+
+  const [windowDimensions, setWindowDimensions] = useState(getViewportDimensions);
 
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => {
-      setWindowDimensions(window);
-    });
-    return () => sub?.remove?.();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const updateDim = () => {
+        setWindowDimensions(getViewportDimensions());
+      };
+      window.addEventListener('resize', updateDim);
+      window.visualViewport?.addEventListener('resize', updateDim);
+      return () => {
+        window.removeEventListener('resize', updateDim);
+        window.visualViewport?.removeEventListener('resize', updateDim);
+      };
+    } else {
+      const sub = Dimensions.addEventListener('change', ({ window }) => {
+        setWindowDimensions(window);
+      });
+      return () => sub?.remove?.();
+    }
   }, []);
 
   const screenHeight = windowDimensions.height;
@@ -143,18 +178,29 @@ export default function BottomModal({ visible, onClose, children }) {
   if (!showModal) return null;
 
   const isWeb = Platform.OS === 'web';
-  const bottomInset = isWeb ? 0 : Math.max(insets.bottom, 0);
-  const topSafe = insets.top > 0 ? insets.top + 20 : 50;
-  
-  // Margen inferior seguro para asegurar que botones y contenido queden siempre accesibles sobre el Home Indicator
-  const bottomClearance = Platform.OS === 'ios'
-    ? Math.max(bottomInset, 20) + 8
-    : (bottomInset > 0 ? bottomInset + 8 : 16);
+  const isIOS = Platform.OS === 'ios';
+  const isMobileWeb = isWeb && (
+    typeof navigator !== 'undefined' && 
+    /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '')
+  );
 
-  // Limitar altura máxima para que nunca se desborde fuera de la pantalla
+  const bottomInset = Math.max(insets?.bottom || 0, 0);
+
+  // Margen inferior holgado y seguro para evitar colisiones con el Home Indicator o la barra de pestañas del navegador web (Safari/Chrome)
+  const bottomClearance = isIOS
+    ? Math.max(bottomInset, 24) + 16
+    : isMobileWeb
+      ? Math.max(bottomInset, 36) + 20
+      : isWeb
+        ? 28
+        : (bottomInset > 0 ? bottomInset + 16 : 24);
+
+  const topSafe = (insets?.top || 0) > 0 ? insets.top + 20 : (isWeb ? 36 : 50);
+
+  // Limitar altura máxima para que nunca se desborde fuera de la pantalla visible
   const maxSheetHeight = isWeb 
-    ? Math.min(screenHeight * 0.9, 850) 
-    : Platform.OS === 'ios'
+    ? Math.min(screenHeight - topSafe - (keyboardHeight > 0 ? keyboardHeight : 0), 850)
+    : isIOS
       ? (screenHeight - keyboardHeight - topSafe)
       : (screenHeight - topSafe);
 
@@ -198,12 +244,17 @@ export default function BottomModal({ visible, onClose, children }) {
             paddingBottom: keyboardHeight > 0 ? 12 : bottomClearance,
             maxHeight: maxSheetHeight,
             borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+          },
+          isWeb && {
+            paddingBottom: keyboardHeight > 0 ? 12 : `max(${bottomClearance}px, calc(env(safe-area-inset-bottom, 20px) + 20px))`,
           }
         ]} 
         onStartShouldSetResponder={() => Platform.OS !== 'web'}
         onResponderTerminationRequest={() => true}
       >
-        {children}
+        <View style={styles.contentWrapper}>
+          {children}
+        </View>
       </Animated.View>
     </View>
   );
@@ -218,11 +269,12 @@ const styles = StyleSheet.create({
       left: 0,
       right: 0,
       bottom: 0,
-      width: '100vw',
-      height: '100vh',
+      width: '100%',
+      height: '100%',
+      maxHeight: '100dvh',
     }),
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 99999,
+    elevation: 99999,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
@@ -235,11 +287,20 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 25,
+  },
+  contentWrapper: {
+    width: '100%',
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   dragHandleContainer: {
     width: '100%',

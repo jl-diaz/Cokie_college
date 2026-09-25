@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '../src/utils/api';
 import { Mail, Book, Search, User, ClipboardList, BookOpen, AlertCircle, Calendar, X } from 'lucide-react-native';
@@ -10,12 +10,14 @@ import PageHeader from '../src/components/PageHeader';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import { useAuth } from '../src/context/AuthContext';
+import { useTabBar } from '../src/context/TabBarContext';
 
 export default function StudentsScreen() {
   const { t } = useTranslation();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
   const { profile } = useAuth();
+  const { registerModal, unregisterModal } = useTabBar();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,13 @@ export default function StudentsScreen() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isActionSheetVisible, setActionSheetVisible] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (isActionSheetVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isActionSheetVisible, registerModal, unregisterModal]);
 
   useEffect(() => {
     fetchStudents();
@@ -211,7 +220,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  listContent: { padding: Spacing.xl },
+  listContent: { padding: Spacing.xl, paddingBottom: 120 },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
@@ -241,18 +250,18 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   emptyText: { color: Colors.text.muted, fontSize: Typography.size.sm },
   
   actionSheetOverlay: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
-    zIndex: 1000
+    zIndex: 99999
   },
   actionSheetContent: {
     backgroundColor: Colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'web' ? 44 : 28,
   },
   modalHeader: {
     flexDirection: 'row',

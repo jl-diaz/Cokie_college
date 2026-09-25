@@ -737,9 +737,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',

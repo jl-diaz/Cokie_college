@@ -931,12 +931,22 @@ const createStyles = (Colors, theme, screenWidth) => {
     // --- VISTA 2: MODAL DE CONFIRMACIÓN (IMAGEN 3) ---
     modalOverlay: {
       ...StyleSheet.absoluteFillObject,
+      ...(Platform.OS === 'web' && {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        maxHeight: '100dvh',
+      }),
       backgroundColor: 'rgba(0, 0, 0, 0.65)',
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
-      zIndex: 9999,
-      elevation: 9999,
+      zIndex: 99999,
+      elevation: 99999,
     },
     modalDialog: {
       width: '100%',

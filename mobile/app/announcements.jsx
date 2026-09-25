@@ -463,7 +463,15 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     shadowRadius: 8,
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
-  modalContent: { width: '100%', maxHeight: Platform.OS === 'web' ? '82vh' : undefined, padding: 24, paddingBottom: 24 },
+  modalContent: { 
+    width: '100%', 
+    maxHeight: '100%', 
+    flexShrink: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    padding: 24, 
+    paddingBottom: 16 
+  },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
   inputLabel: { fontSize: 12, fontWeight: 'bold', color: Colors.text.secondary, marginBottom: 6, textTransform: 'uppercase' },

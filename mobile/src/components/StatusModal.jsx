@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
 import { Check, AlertTriangle, X, Info } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 
 /**
  * StatusModal - Modal de estado y confirmación reutilizable.
@@ -38,6 +39,16 @@ export default function StatusModal({
 }) {
   const { theme, colors: Colors } = useTheme();
   const isDark = theme === 'dark';
+  const { registerModal, unregisterModal } = useTabBar();
+
+  useEffect(() => {
+    if (visible) {
+      registerModal();
+      return () => {
+        unregisterModal();
+      };
+    }
+  }, [visible, registerModal, unregisterModal]);
 
   if (!visible) return null;
 
@@ -162,11 +173,12 @@ export default function StatusModal({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
+    ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 } : {}),
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    zIndex: 9999,
+    zIndex: 99999,
     elevation: 9999,
   },
   modalCard: {

@@ -45,6 +45,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
+import { useTabBar } from '../context/TabBarContext';
 
 const { width } = Dimensions.get('window');
 const TARGET_MOVEMENT_FRAMES = 15;
@@ -56,6 +57,7 @@ export default function GestureStudioScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
+  const { registerModal, unregisterModal } = useTabBar();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [activeTab, setActiveTab] = useState('dialect'); // 'dialect' | 'recorder' | 'training'
@@ -93,6 +95,14 @@ export default function GestureStudioScreen() {
 
   // Modal de configuración y prueba de IP de lentes
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (isNewModalOpen || isConfigModalVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isNewModalOpen, isConfigModalVisible, registerModal, unregisterModal]);
+
   const [ipInput, setIpInput] = useState('cokielens.local');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -1348,7 +1358,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     color: '#38bdf8',
   },
   content: { flex: 1 },
-  scrollContent: { padding: 16 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
 
   topStatsRow: {
     flexDirection: 'row',
@@ -1848,6 +1858,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 } : {}),
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',

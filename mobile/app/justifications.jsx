@@ -833,9 +833,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',
