@@ -220,11 +220,8 @@ export default function BottomModal({ visible, onClose, children }) {
         {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
         <Animated.View 
           style={[
-            StyleSheet.absoluteFillObject, 
-            { 
-              backgroundColor: 'rgba(0, 0, 0, 0.65)',
-              opacity: fadeAnim 
-            }
+            styles.backdrop, 
+            { opacity: fadeAnim }
           ]} 
         >
           <Pressable 
@@ -261,20 +258,33 @@ export default function BottomModal({ visible, onClose, children }) {
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    zIndex: 99999,
     ...(Platform.OS === 'web' && {
       position: 'fixed',
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      width: '100%',
-      height: '100%',
+      width: '100vw',
+      height: '100vh',
       maxHeight: '100dvh',
     }),
-    zIndex: 99999,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   panelWrapper: {
     width: '100%',

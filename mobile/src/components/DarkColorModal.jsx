@@ -275,9 +275,12 @@ export default function DarkColorModal() {
 
 const styles = StyleSheet.create({
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    backgroundColor: 'transparent',
     zIndex: 99999,
     ...(Platform.OS === 'web' && {
       position: 'fixed',
@@ -285,13 +288,19 @@ const styles = StyleSheet.create({
       left: 0,
       right: 0,
       bottom: 0,
-      width: '100%',
-      height: '100%',
+      width: '100vw',
+      height: '100vh',
       maxHeight: '100dvh',
     }),
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   panel: {
