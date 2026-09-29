@@ -45,7 +45,7 @@ export function TabBarProvider({ children }) {
     setTabDirection(nextDir);
     prevTabRouteRef.current = targetRoute;
 
-    router.push(targetRoute);
+    router.replace(targetRoute);
   }, []);
 
   return (

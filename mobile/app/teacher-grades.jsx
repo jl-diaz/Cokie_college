@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -13,7 +13,8 @@ import {
   Platform,
   Modal,
   ScrollView,
-  Image
+  Image,
+  Keyboard
 } from 'react-native';
 import api from '../src/utils/api';
 import {  Book, ChevronRight, FileText, CheckCircle, Trash2, Clock, PlusCircle, AlertTriangle, ShieldCheck , ArrowLeft, X } from 'lucide-react-native';
@@ -23,6 +24,189 @@ import { useTranslation } from 'react-i18next';
 import { useAlert } from '../src/context/AlertContext';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+
+// Componente memoizado para cada fila de calificación de estudiante
+const StudentGradeCard = React.memo(({ 
+  item, 
+  index, 
+  canSubmitGrades, 
+  onGradeChange, 
+  onDeleteGrade, 
+  colors: Colors, 
+  isDark, 
+  styles 
+}) => {
+  return (
+    <View style={styles.studentCard}>
+      <Text style={styles.studentIndex}>{index + 1}</Text>
+      <View style={styles.studentInfo}>
+        <Text style={styles.studentName} numberOfLines={1}>{item.full_name}</Text>
+        <Text style={styles.studentCode}>{item.institutional_code}</Text>
+      </View>
+      <TextInput
+        style={[styles.gradeInput, !canSubmitGrades && styles.gradeInputDisabled]}
+        keyboardType="decimal-pad"
+        placeholder="0.00"
+        placeholderTextColor={isDark ? '#666' : '#999'}
+        editable={canSubmitGrades}
+        selectTextOnFocus
+        value={item.grade !== undefined && item.grade !== null ? item.grade.toString() : ''}
+        onChangeText={(val) => onGradeChange(item.id, val)}
+      />
+      {item.grade_id && canSubmitGrades && (
+        <TouchableOpacity 
+          style={styles.deleteBtn}
+          onPress={() => onDeleteGrade(item.grade_id)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Trash2 size={18} color={Colors.status.absent} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
+
+// Componente de temporizador aislado: el ticker de 1s vive aquí y NO re-renderiza la pantalla principal ni la lista de estudiantes
+const CountdownTimerBanner = React.memo(({ 
+  currentPeriodInfo, 
+  canSubmitGrades, 
+  onOpenTicket, 
+  compact, 
+  t, 
+  styles, 
+  isDark 
+}) => {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!currentPeriodInfo?.effective_deadline) return;
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [currentPeriodInfo?.effective_deadline]);
+
+  const countdownText = useMemo(() => {
+    if (!currentPeriodInfo || !currentPeriodInfo.effective_deadline) return null;
+    const deadline = new Date(currentPeriodInfo.effective_deadline);
+    const diff = deadline.getTime() - now.getTime();
+    if (diff <= 0) return t('teacherGrades.deadlineEnded', 'Plazo finalizado');
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    const pad = (n) => n.toString().padStart(2, '0');
+
+    if (days > 0) {
+      return `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+    }
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }, [currentPeriodInfo, now, t]);
+
+  if (!currentPeriodInfo) return null;
+
+  if (compact) {
+    return (
+      <View style={[
+        styles.timerCardCompact,
+        canSubmitGrades && !currentPeriodInfo.is_extended && styles.timerCardActive,
+        canSubmitGrades && currentPeriodInfo.is_extended && styles.timerCardExtended,
+        !canSubmitGrades && styles.timerCardExpired
+      ]}>
+        {canSubmitGrades && currentPeriodInfo.is_extended ? (
+          <ShieldCheck size={16} color="#166534" style={{ marginRight: 6 }} />
+        ) : canSubmitGrades ? (
+          <Clock size={16} color="#1e40af" style={{ marginRight: 6 }} />
+        ) : (
+          <AlertTriangle size={16} color="#991b1b" style={{ marginRight: 6 }} />
+        )}
+        <Text style={[
+          styles.timerCountdownCompact,
+          canSubmitGrades && currentPeriodInfo.is_extended && styles.textExtended,
+          canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
+          !canSubmitGrades && styles.textExpired
+        ]}>
+          {canSubmitGrades 
+            ? t('teacherGrades.closesIn', 'Cierra en: {{time}}', { time: countdownText || '' })
+            : t('teacherGrades.periodClosed', 'INGRESO DE NOTAS CERRADO')}
+        </Text>
+        {!canSubmitGrades && !currentPeriodInfo.pending_ticket && (
+          <TouchableOpacity onPress={onOpenTicket} style={styles.compactTicketBtn}>
+            <Text style={styles.compactTicketBtnText}>+ Ticket</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[
+      styles.timerCard,
+      canSubmitGrades && !currentPeriodInfo.is_extended && styles.timerCardActive,
+      canSubmitGrades && currentPeriodInfo.is_extended && styles.timerCardExtended,
+      !canSubmitGrades && styles.timerCardExpired
+    ]}>
+      <View style={styles.timerRow}>
+        {canSubmitGrades && currentPeriodInfo.is_extended ? (
+          <ShieldCheck size={20} color="#166534" style={{ marginRight: 8 }} />
+        ) : canSubmitGrades ? (
+          <Clock size={20} color="#1e40af" style={{ marginRight: 8 }} />
+        ) : (
+          <AlertTriangle size={20} color="#991b1b" style={{ marginRight: 8 }} />
+        )}
+        
+        <View style={{ flex: 1 }}>
+          <Text style={[
+            styles.timerTitle,
+            canSubmitGrades && currentPeriodInfo.is_extended && styles.textExtended,
+            canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
+            !canSubmitGrades && styles.textExpired
+          ]}>
+            {canSubmitGrades && currentPeriodInfo.is_extended && t('teacherGrades.extendedPeriod', 'PLAZO EXTENDIDO APROBADO')}
+            {canSubmitGrades && !currentPeriodInfo.is_extended && t('teacherGrades.timeRemaining', 'TIEMPO RESTANTE DE INGRESO')}
+            {!canSubmitGrades && t('teacherGrades.periodClosed', 'INGRESO DE NOTAS CERRADO')}
+          </Text>
+          
+          {countdownText && (
+            <Text style={[
+              styles.timerCountdown,
+              canSubmitGrades && currentPeriodInfo.is_extended && styles.textExtended,
+              canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
+              !canSubmitGrades && styles.textExpired
+            ]}>
+              {canSubmitGrades 
+                ? t('teacherGrades.closesIn', 'Cierra en: {{time}}', { time: countdownText })
+                : t('teacherGrades.periodExpired', 'La fecha de este periodo ya finalizó.')}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {!canSubmitGrades && (
+        <View style={styles.ticketSection}>
+          {currentPeriodInfo.pending_ticket ? (
+            <View style={styles.pendingTicketNotice}>
+              <Clock size={16} color="#b45309" style={{ marginRight: 6 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pendingTicketTitle}>{t('teacherGrades.pendingTicketTitle', 'Ticket Pendiente de Revisión')}</Text>
+                <Text style={styles.pendingTicketText}>
+                  {t('teacherGrades.pendingTicketText', 'Solicitaste +{{days}} día(s). Esperando decisión del coordinador.', { days: currentPeriodInfo.pending_ticket.days_requested })}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.createTicketBtn}
+              onPress={onOpenTicket}
+            >
+              <PlusCircle size={18} color="#FFF" style={{ marginRight: 6 }} />
+              <Text style={styles.createTicketBtnText}>{t('teacherGrades.createTicketBtn', 'Crear Ticket de Extensión')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
+  );
+});
 
 export default function TeacherGradesScreen() {
   const router = useRouter();
@@ -42,7 +226,6 @@ export default function TeacherGradesScreen() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [now, setNow] = useState(new Date());
 
   // Ticket Modal State
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
@@ -55,12 +238,6 @@ export default function TeacherGradesScreen() {
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
-
-  // Update timer ticker every second
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
   const fetchInitialData = async () => {
@@ -98,31 +275,6 @@ export default function TeacherGradesScreen() {
     return periodsStatus.find(p => p.period_number === selectedPeriod) || null;
   }, [periodsStatus, selectedPeriod]);
 
-  // Calculate live countdown string
-  const countdownText = useMemo(() => {
-    if (!currentPeriodInfo || !currentPeriodInfo.effective_deadline) {
-      return null;
-    }
-    const deadline = new Date(currentPeriodInfo.effective_deadline);
-    const diff = deadline.getTime() - now.getTime();
-
-    if (diff <= 0) {
-      return t('teacherGrades.deadlineEnded', 'Plazo finalizado');
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / 1000 / 60) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
-
-    const pad = (n) => n.toString().padStart(2, '0');
-
-    if (days > 0) {
-      return `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
-    }
-    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-  }, [currentPeriodInfo, now]);
-
   const canSubmitGrades = useMemo(() => {
     if (!currentPeriodInfo) return true;
     return currentPeriodInfo.can_submit;
@@ -154,14 +306,15 @@ export default function TeacherGradesScreen() {
     }
   };
 
-  const handleGradeChange = (studentId, newValue) => {
+  const handleGradeChange = useCallback((studentId, newValue) => {
     const val = newValue.replace(/[^0-9.]/g, ''); // Solo números y punto
-    setStudents(students.map(s => 
+    setStudents(prev => prev.map(s => 
       s.id === studentId ? { ...s, grade: val } : s
     ));
-  };
+  }, []);
 
   const saveChanges = async () => {
+    Keyboard.dismiss();
     if (!canSubmitGrades) {
       showAlert({
         type: 'warning',
@@ -210,7 +363,7 @@ export default function TeacherGradesScreen() {
     }
   };
 
-  const deleteGrade = async (gradeId) => {
+  const deleteGrade = useCallback(async (gradeId) => {
     if (!canSubmitGrades) {
       showAlert({
         type: 'warning',
@@ -229,7 +382,7 @@ export default function TeacherGradesScreen() {
       onConfirm: async () => {
         try {
           await api.delete(`/teacher/grades/${gradeId}`);
-          setStudents(students.map(s => s.grade_id === gradeId ? { ...s, grade: 0, grade_id: null } : s));
+          setStudents(prev => prev.map(s => s.grade_id === gradeId ? { ...s, grade: 0, grade_id: null } : s));
           showAlert({
             type: 'success',
             title: t('teacherGrades.gradeDeletedTitle', '¡Eliminada!'),
@@ -245,9 +398,10 @@ export default function TeacherGradesScreen() {
         }
       }
     });
-  };
+  }, [canSubmitGrades, showAlert, showConfirm, t]);
 
   const handleCreateTicket = async () => {
+    Keyboard.dismiss();
     if (!ticketReason.trim()) {
       showAlert({
         type: 'warning',
@@ -316,31 +470,18 @@ export default function TeacherGradesScreen() {
 
   const headerInfo = getHeaderTitles();
 
-  const renderStudentItem = ({ item, index }) => (
-    <View style={styles.studentCard}>
-      <Text style={styles.studentIndex}>{index + 1}</Text>
-      <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item.full_name}</Text>
-        <Text style={styles.studentCode}>{item.institutional_code}</Text>
-      </View>
-      <TextInput
-        style={[styles.gradeInput, !canSubmitGrades && styles.gradeInputDisabled]}
-        keyboardType="numeric"
-        placeholder="0.00"
-        editable={canSubmitGrades}
-        value={item.grade !== undefined && item.grade !== null ? item.grade.toString() : ''}
-        onChangeText={(val) => handleGradeChange(item.id, val)}
-      />
-      {item.grade_id && canSubmitGrades && (
-        <TouchableOpacity 
-          style={styles.deleteBtn}
-          onPress={() => deleteGrade(item.grade_id)}
-        >
-          <Trash2 size={18} color={Colors.status.absent} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  const renderStudentItem = useCallback(({ item, index }) => (
+    <StudentGradeCard
+      item={item}
+      index={index}
+      canSubmitGrades={canSubmitGrades}
+      onGradeChange={handleGradeChange}
+      onDeleteGrade={deleteGrade}
+      colors={Colors}
+      isDark={theme === 'dark'}
+      styles={styles}
+    />
+  ), [canSubmitGrades, handleGradeChange, deleteGrade, Colors, theme, styles]);
 
   const renderContent = () => {
     if (!selectedClass) {
@@ -406,13 +547,18 @@ export default function TeacherGradesScreen() {
         data={students}
         renderItem={renderStudentItem}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 160 }]}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        initialNumToRender={20}
+        maxToRenderPerBatch={15}
+        windowSize={11}
         ListHeaderComponent={
           <View>
             <View style={styles.studentHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>{selectedActivity.name}</Text>
-                <Text style={styles.subTitle}>{t('teacherGrades.gradeInputTitle', 'Ingreso de Calificaciones')}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.subTitle}>{t('teacherGrades.gradeInputTitle', 'Ingreso de Calificaciones')} ({students.length})</Text>
               </View>
             </View>
             {loading && <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />}
@@ -549,76 +695,15 @@ export default function TeacherGradesScreen() {
           </View>
         )}
 
-        {/* Countdown Banner */}
-        {currentPeriodInfo && (
-          <View style={[
-            styles.timerCard,
-            canSubmitGrades && !currentPeriodInfo.is_extended && styles.timerCardActive,
-            canSubmitGrades && currentPeriodInfo.is_extended && styles.timerCardExtended,
-            !canSubmitGrades && styles.timerCardExpired
-          ]}>
-            <View style={styles.timerRow}>
-              {canSubmitGrades && currentPeriodInfo.is_extended ? (
-                <ShieldCheck size={20} color="#166534" style={{ marginRight: 8 }} />
-              ) : canSubmitGrades ? (
-                <Clock size={20} color="#1e40af" style={{ marginRight: 8 }} />
-              ) : (
-                <AlertTriangle size={20} color="#991b1b" style={{ marginRight: 8 }} />
-              )}
-              
-              <View style={{ flex: 1 }}>
-                <Text style={[
-                  styles.timerTitle,
-                  canSubmitGrades && currentPeriodInfo.is_extended && styles.textExtended,
-                  canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
-                  !canSubmitGrades && styles.textExpired
-                ]}>
-                  {canSubmitGrades && currentPeriodInfo.is_extended && t('teacherGrades.extendedPeriod', 'PLAZO EXTENDIDO APROBADO')}
-                  {canSubmitGrades && !currentPeriodInfo.is_extended && t('teacherGrades.timeRemaining', 'TIEMPO RESTANTE DE INGRESO')}
-                  {!canSubmitGrades && t('teacherGrades.periodClosed', 'INGRESO DE NOTAS CERRADO')}
-                </Text>
-                
-                {countdownText && (
-                  <Text style={[
-                    styles.timerCountdown,
-                    canSubmitGrades && currentPeriodInfo.is_extended && styles.textExtended,
-                    canSubmitGrades && !currentPeriodInfo.is_extended && styles.textActive,
-                    !canSubmitGrades && styles.textExpired
-                  ]}>
-                    {canSubmitGrades 
-                      ? t('teacherGrades.closesIn', 'Cierra en: {{time}}', { time: countdownText })
-                      : t('teacherGrades.periodExpired', 'La fecha de este periodo ya finalizó.')}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            {/* Ticket Request Option if Expired */}
-            {!canSubmitGrades && (
-              <View style={styles.ticketSection}>
-                {currentPeriodInfo.pending_ticket ? (
-                  <View style={styles.pendingTicketNotice}>
-                    <Clock size={16} color="#b45309" style={{ marginRight: 6 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.pendingTicketTitle}>{t('teacherGrades.pendingTicketTitle', 'Ticket Pendiente de Revisión')}</Text>
-                      <Text style={styles.pendingTicketText}>
-                        {t('teacherGrades.pendingTicketText', 'Solicitaste +{{days}} día(s). Esperando decisión del coordinador.', { days: currentPeriodInfo.pending_ticket.days_requested })}
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <TouchableOpacity 
-                    style={styles.createTicketBtn}
-                    onPress={() => setTicketModalVisible(true)}
-                  >
-                    <PlusCircle size={18} color="#FFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.createTicketBtnText}>{t('teacherGrades.createTicketBtn', 'Crear Ticket de Extensión')}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        )}
+        <CountdownTimerBanner
+          currentPeriodInfo={currentPeriodInfo}
+          canSubmitGrades={canSubmitGrades}
+          onOpenTicket={() => setTicketModalVisible(true)}
+          compact={!!selectedActivity}
+          t={t}
+          styles={styles}
+          isDark={theme === 'dark'}
+        />
       </View>
 
       {renderContent()}
@@ -749,6 +834,32 @@ const createStyles = (Colors, theme) => {
   timerCardExpired: {
     backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
     borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
+  },
+  timerCardCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.xs,
+  },
+  timerCountdownCompact: {
+    fontSize: Typography.size.xs,
+    fontWeight: Typography.weight.bold,
+    flex: 1,
+  },
+  compactTicketBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    marginLeft: 6,
+  },
+  compactTicketBtnText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   timerRow: {
     flexDirection: 'row',

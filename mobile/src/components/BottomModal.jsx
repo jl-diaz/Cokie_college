@@ -200,7 +200,7 @@ export default function BottomModal({ visible, onClose, children }) {
             borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
           }
         ]} 
-        onStartShouldSetResponder={() => Platform.OS !== 'web'}
+        onStartShouldSetResponder={() => visible && Platform.OS !== 'web'}
         onResponderTerminationRequest={() => true}
       >
         {children}

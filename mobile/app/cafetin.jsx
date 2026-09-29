@@ -167,6 +167,7 @@ export default function CafetinScreen() {
 
   // --- FUNCIONES MÓDULO 1: MENÚ ---
   const handleAddItemToCatalog = async () => {
+    Keyboard.dismiss();
     if (!newItemName.trim()) {
       showAlert({
         type: 'warning',

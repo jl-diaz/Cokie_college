@@ -824,7 +824,7 @@ export default function CoordinatorJustificationsScreen() {
           initialNumToRender={8}
           maxToRenderPerBatch={10}
           windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
+          removeClippedSubviews={false}
           ListHeaderComponent={
             <View style={{ marginBottom: 12 }}>
               {/* Sub-filtro por Estado */}

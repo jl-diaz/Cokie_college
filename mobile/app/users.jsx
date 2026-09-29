@@ -178,6 +178,7 @@ export default function UsersScreen() {
   };
 
   const handleSaveUser = async () => {
+    Keyboard.dismiss();
     if (!formData.full_name || !formData.email) {
       showAlert({
         type: 'warning',
@@ -406,7 +407,7 @@ export default function UsersScreen() {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
+          removeClippedSubviews={false}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const badge = getRoleBadgeColor(item.role);

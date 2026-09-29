@@ -1,12 +1,14 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { 
-  Modal, 
   View, 
   Text, 
   TouchableOpacity, 
   StyleSheet, 
   Pressable,
-  Platform
+  Platform,
+  Keyboard,
+  BackHandler,
+  Animated
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
@@ -33,50 +35,70 @@ export const AlertProvider = ({ children }) => {
     onCancel: null
   });
 
-  const showAlert = useCallback(({ type = 'info', title, message, confirmText, onConfirm }) => {
-    const show = () => {
-      setConfig({
-        type,
-        title,
-        message,
-        confirmText: confirmText || t('common.ok', 'Aceptar'),
-        cancelText: null,
-        onConfirm
-      });
-      setVisible(true);
-    };
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
-    if (Platform.OS === 'android') {
-      setTimeout(show, 100);
-    } else {
-      show();
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 75,
+          useNativeDriver: true,
+        })
+      ]).start();
     }
+  }, [visible, fadeAnim, scaleAnim]);
+
+  const hideAlert = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 0.92,
+        duration: 120,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setVisible(false);
+    });
+  }, [fadeAnim, scaleAnim]);
+
+  const showAlert = useCallback(({ type = 'info', title, message, confirmText, onConfirm }) => {
+    Keyboard.dismiss();
+    setConfig({
+      type,
+      title,
+      message,
+      confirmText: confirmText || t('common.ok', 'Aceptar'),
+      cancelText: null,
+      onConfirm
+    });
+    setVisible(true);
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
-    const show = () => {
-      setConfig({
-        type,
-        title,
-        message,
-        confirmText: confirmText || t('common.confirm', 'Confirmar'),
-        cancelText: cancelText || t('common.cancel', 'Cancelar'),
-        onConfirm,
-        onCancel
-      });
-      setVisible(true);
-    };
-
-    if (Platform.OS === 'android') {
-      setTimeout(show, 100);
-    } else {
-      show();
-    }
+    Keyboard.dismiss();
+    setConfig({
+      type,
+      title,
+      message,
+      confirmText: confirmText || t('common.confirm', 'Confirmar'),
+      cancelText: cancelText || t('common.cancel', 'Cancelar'),
+      onConfirm,
+      onCancel
+    });
+    setVisible(true);
   }, [t]);
-
-  const hideAlert = useCallback(() => {
-    setVisible(false);
-  }, []);
 
   const handleConfirm = () => {
     const onConfirmAction = config.onConfirm;
@@ -84,7 +106,7 @@ export const AlertProvider = ({ children }) => {
     if (onConfirmAction) {
       setTimeout(() => {
         onConfirmAction();
-      }, Platform.OS === 'android' ? 150 : 50);
+      }, 50);
     }
   };
 
@@ -94,9 +116,24 @@ export const AlertProvider = ({ children }) => {
     if (onCancelAction) {
       setTimeout(() => {
         onCancelAction();
-      }, Platform.OS === 'android' ? 150 : 50);
+      }, 50);
     }
   };
+
+  // Soporte para botón atrás físico en Android
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'android') return;
+    const onBackPress = () => {
+      if (config.cancelText) {
+        handleCancel();
+      } else {
+        hideAlert();
+      }
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [visible, config.cancelText, handleCancel, hideAlert]);
 
   const getIcon = () => {
     switch (config.type) {
@@ -143,24 +180,24 @@ export const AlertProvider = ({ children }) => {
 
   return (
     <AlertContext.Provider value={{ showAlert, showConfirm, hideAlert }}>
-      {children}
+      <View style={{ flex: 1, width: '100%', height: '100%' }}>
+        {children}
 
-      {visible && (
-        <Modal
-          visible={visible}
-          transparent
-          animationType="fade"
-          onRequestClose={hideAlert}
-          statusBarTranslucent
-        >
-          <View style={styles.overlay}>
+        {visible && (
+          <Animated.View 
+            style={[styles.overlay, { opacity: fadeAnim }]}
+            pointerEvents={visible ? 'auto' : 'none'}
+          >
             <Pressable 
               style={StyleSheet.absoluteFillObject} 
               onPress={config.cancelText ? undefined : hideAlert} 
               accessibilityLabel="Cerrar alerta"
             />
-            <View 
-              style={styles.alertCard}
+            <Animated.View 
+              style={[
+                styles.alertCard,
+                { transform: [{ scale: scaleAnim }] }
+              ]}
               onStartShouldSetResponder={() => true}
             >
               <View style={[styles.iconContainer, { backgroundColor: getIconBg() }]}>
@@ -192,10 +229,10 @@ export const AlertProvider = ({ children }) => {
                   <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+            </Animated.View>
+          </Animated.View>
+        )}
+      </View>
     </AlertContext.Provider>
   );
 };
@@ -204,7 +241,7 @@ export const useAlert = () => useContext(AlertContext);
 
 const createStyles = (Colors, theme) => StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',

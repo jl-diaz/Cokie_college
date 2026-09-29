@@ -1,22 +1,23 @@
-# Manual Integral de CokieLens & Estudio de Gestos IA - Cokie College
+# Manual Integral de CokieLens & Estudio de Gestos IA - Cokie College / CokieInterpreter
 
-> **Actualización ReDesign**: Este documento incluye las nuevas opciones de conexión dual (**AP Directo `192.168.4.1`** vs **mDNS Local `cokielens.local`**), el sistema de rescate y fallback automático para Android/iOS, el nuevo soporte de **Preflight CORS (`HTTP_OPTIONS`)** en el firmware para clientes web, y el ciclo de vida optimizado de streaming en la app.
+> **Actualización CokieInterpreter & ReDesign**: Este documento incluye la nueva aplicación especializada **CokieInterpreter**, la resolución optimizada a **HVGA 480x320** con contraste mejorado en el firmware para máxima precisión de MediaPipe, el trazado de **21 puntos en tiempo real (Esqueleto de Manos y Pose)**, las nuevas opciones de conexión dual (**AP Directo `192.168.4.1`** vs **mDNS Local `cokielens.local`**), el sistema de rescate y fallback automático para Android/iOS, y la integración de la canalización de inferencia continua sin falsos positivos.
 
 ---
 
 ## 1. Arquitectura General del Sistema
 
-El sistema conecta los lentes inteligentes (**CokieLens**) con la aplicación móvil/web de **Cokie College** y el motor de IA de **Lenguaje de Señas y Gestos (MediaPipe + Red Neuronal Espacio-Temporal)**.
+El sistema conecta los lentes inteligentes (**CokieLens**) con las aplicaciones móvil/web (**CokieInterpreter** / **Cokie College**) y el motor de IA de **Lenguaje de Señas y Gestos (MediaPipe + Red Neuronal Espacio-Temporal)**.
 
 ```
-       [ ESP32-CAM (Lentes) ]
-            │  (Wi-Fi Local @ 180ms / QVGA 320x240)
+       [ ESP32-CAM (Lentes CokieLens) ]
+            │  (Wi-Fi Local @ 180ms / HVGA 480x320 @ 15ms)
             ▼
-    [ App Cokie College ] ──(Socket.IO)──> [ Backend IA (FastAPI) ]
-    ├── Selector Video: Teléfono / Lentes       ├── MediaPipe Hands & Pose
-    ├── Selector Audio: Teléfono / Lentes       └── Red Neuronal Temporal (LSTM)
-    └── Salida de Voz Inmediata (< 20ms)               │
-         (Bocina o Audífonos BT/Cable)   <─────────────┘ (Texto traducido)
+    [ App CokieInterpreter (Móvil / Web) ] ──(Socket.IO)──> [ Backend IA (FastAPI) ]
+    ├── Trazado de 21 Puntos en Tiempo Real                      ├── MediaPipe Hands, Pose & Face
+    ├── Selector Video: Cámara / Lentes                         ├── Filtro de Estabilidad y Anti-Ruido
+    ├── Selector Audio: Teléfono / Lentes                       └── Red Neuronal Temporal (LSTM)
+    └── Locución de Voz Inmediata (< 20ms)                             │
+         (Bocina o Audífonos BT/Cable)   <─────────────────────────────┘ (Texto y Landmarks)
 ```
 
 ### Flujo de datos:

@@ -399,14 +399,14 @@ void setup() {
     config.pixel_format = PIXFORMAT_JPEG;
 
     if (psramFound()) {
-        config.frame_size = FRAMESIZE_QVGA;  // 320x240 para fluidez y bajo consumo
-        config.jpeg_quality = 12;
+        config.frame_size = FRAMESIZE_HVGA;  // 480x320: Óptimo balance entre nitidez de manos e inferencia rápida
+        config.jpeg_quality = 10;
         config.fb_count = 2;
         config.fb_location = CAMERA_FB_IN_PSRAM;
         config.grab_mode = CAMERA_GRAB_LATEST;
     } else {
-        config.frame_size = FRAMESIZE_QVGA;
-        config.jpeg_quality = 14;
+        config.frame_size = FRAMESIZE_QVGA;  // 320x240 Fallback si no hay PSRAM
+        config.jpeg_quality = 12;
         config.fb_count = 1;
         config.fb_location = CAMERA_FB_IN_DRAM;
         config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
@@ -421,8 +421,10 @@ void setup() {
     sensor_t * s = esp_camera_sensor_get();
     if (s != NULL) {
         s->set_brightness(s, 1);
-        s->set_contrast(s, 1);
+        s->set_contrast(s, 2);        // Mayor contraste para delimitar dedos y contornos
+        s->set_saturation(s, 1);
         s->set_whitebal(s, 1);
+        s->set_awb_gain(s, 1);
         s->set_exposure_ctrl(s, 1);
     }
 

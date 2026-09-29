@@ -200,7 +200,7 @@ export default function TabBar({ currentRoute }) {
                   if (navigateTab) {
                     navigateTab(tab.route, router, currentRoute);
                   } else {
-                    router.push(tab.route);
+                    router.replace(tab.route);
                   }
                 }
               }}

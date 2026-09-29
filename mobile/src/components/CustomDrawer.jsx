@@ -124,8 +124,14 @@ export default function CustomDrawer({ visible, onClose }) {
   const handleNavigate = (path) => {
     onClose();
     setTimeout(() => {
-      router.push(path);
-    }, 150); // Esperar que cierre el drawer un poco
+      if (pathname === path) return;
+      const ROOT_ROUTES = ['/home', '/interpreter', '/chat', '/modules', '/profile'];
+      if (ROOT_ROUTES.includes(path)) {
+        router.replace(path);
+      } else {
+        router.push(path);
+      }
+    }, 150);
   };
 
   const handleLogout = async () => {

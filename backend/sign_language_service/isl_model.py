@@ -360,7 +360,14 @@ class ISLModel:
                 if hand_result and hand_result.hand_landmarks:
                     hand_landmarks_list = hand_result.hand_landmarks
             
+            # Preparar landmarks simplificados para enviar al frontend
+            simplified_hands = []
+            if hand_landmarks_list:
+                for hand in hand_landmarks_list:
+                    simplified_hands.append([{"x": round(float(p.x), 3), "y": round(float(p.y), 3)} for p in hand])
+
             # Si hay manos detectadas, guardar en la ventana de movimiento temporal
+            motion_energy = 0.0
             if hand_landmarks_list:
                 frame_vector = normalize_hand_landmarks(hand_landmarks_list)
                 self.sequence_buffer.append(frame_vector)
@@ -373,35 +380,46 @@ class ISLModel:
                         static_candidate = s
                         break
 
-                # Medir si la mano está inmóvil (postura estática / letra) o en movimiento dinámico
+                # Medir si la mano está inmóvil (postura estática / letra) o en movimiento dinámico real
                 is_holding_static = False
                 is_moving_dynamically = False
                 if len(self.sequence_buffer) >= 6:
                     recent = np.array(list(self.sequence_buffer)[-8:], dtype=np.float32)
                     diffs = np.diff(recent, axis=0)
+                    motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
-                    if max_motion < 0.05:
+                    # Umbrales robustos para evitar que ruido de sensor o mínimo movimiento dispare gestos
+                    if max_motion < 0.045:
                         is_holding_static = True
-                    elif max_motion >= 0.055:
+                    elif max_motion >= 0.11: # Movimiento intencional real, no ruido
                         is_moving_dynamically = True
 
-                # Si el usuario está sosteniendo una letra o seña fija (como 'Y', 'A', 'B', etc.), priorizar de inmediato
+                # Si el usuario sostiene una letra fija con estabilidad (A-Z, 0-9), priorizar
                 if static_candidate and is_holding_static:
                     current_prediction = static_candidate
 
-                # 2. CAPA DEL MODELO ENTRENADO (ESTÁTICA Y DINÁMICA)
+                # 2. CAPA DEL MODELO ENTRENADO (ESTÁTICA Y DINÁMICA CON FILTRO ANTI-FALSOS POSITIVOS)
                 if current_prediction is None:
                     active_model = gesture_trainer.get_active_model()
                     if active_model and len(self.sequence_buffer) >= 15:
                         try:
+                            # Verificar si hay una oscilación o desplazamiento intencional
+                            recent_wrists = [vec[0] for vec in list(self.sequence_buffer)[-15:]]
+                            wrist_travel = max(recent_wrists) - min(recent_wrists)
+
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
                             pred_label, confidence = active_model.predict(feats)
                             if pred_label:
                                 g_type = gesture_trainer.get_gesture_type(pred_label)
                                 should_trigger = False
-                                if g_type == "static" and (is_holding_static or not is_moving_dynamically) and confidence >= 0.78:
+
+                                # Filtro estricto para 'hola': requiere oscilación real de saludo (> 0.12 de recorrido)
+                                if pred_label == "hola":
+                                    if is_moving_dynamically and wrist_travel >= 0.12 and confidence >= 0.86:
+                                        should_trigger = True
+                                elif g_type == "static" and is_holding_static and confidence >= 0.84:
                                     should_trigger = True
-                                elif g_type == "movement" and is_moving_dynamically and confidence >= 0.82:
+                                elif g_type == "movement" and is_moving_dynamically and wrist_travel >= 0.09 and confidence >= 0.85:
                                     should_trigger = True
 
                                 if should_trigger:
@@ -415,47 +433,58 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # 3. Si aún no hay predicción dinámica, asignar la seña estática detectada
-                if current_prediction is None and static_candidate:
+                # 3. Si aún no hay predicción dinámica pero hay candidato estático claro
+                if current_prediction is None and static_candidate and is_holding_static:
                     current_prediction = static_candidate
             else:
-                # Si no hay manos, agregar vector neutro o limpiar buffer si pasa mucho tiempo
                 self.sequence_buffer.append(np.zeros(126, dtype=np.float32))
 
-            # 4. Fallback a GestureRecognizer de Google
+            # 4. Fallback a GestureRecognizer de Google solo si hay alta certidumbre
             if current_prediction is None and self.gesture_recognizer:
                 result = self.gesture_recognizer.recognize(mp_image)
                 if result and result.gestures:
                     for hand_gestures in result.gestures:
                         if hand_gestures:
                             gesture = hand_gestures[0]
-                            if gesture.score > 0.72 and gesture.category_name != "None":
+                            if gesture.score > 0.82 and gesture.category_name != "None":
                                 current_prediction = GESTURE_TO_ISL.get(gesture.category_name, gesture.category_name)
                                 break
 
-            # 5. Estabilización de predicción
+            # Payload de landmarks para que el frontend dibuje los puntos y el esqueleto
+            landmarks_payload = {
+                "detected": bool(hand_landmarks_list),
+                "hands": simplified_hands,
+                "motion_energy": round(motion_energy, 3),
+                "is_static": bool(hand_landmarks_list and is_holding_static)
+            }
+
+            # 5. Estabilización de predicción (subir a 3 para evitar saltos por ruido)
+            stable_result = None
             if current_prediction is None:
                 self.no_detection_count += 1
-                if self.no_detection_count >= 2:
+                if self.no_detection_count >= 3:
                     self.last_stable_prediction = None
                     self.recent_predictions = []
                     self.no_detection_count = 0
-                return None
-            
-            self.no_detection_count = 0
-            self.recent_predictions.append(current_prediction)
-            self.recent_predictions = self.recent_predictions[-self.stability_threshold:]
-            
-            if len(self.recent_predictions) >= self.stability_threshold:
-                if all(p == self.recent_predictions[0] for p in self.recent_predictions):
-                    stable = self.recent_predictions[0]
-                    if stable != self.last_stable_prediction:
-                        self.last_stable_prediction = stable
-                        self.recent_predictions = []
-                        return stable
-            
-            return None
+            else:
+                self.no_detection_count = 0
+                self.recent_predictions.append(current_prediction)
+                self.recent_predictions = self.recent_predictions[-3:]
+
+                if len(self.recent_predictions) >= 3:
+                    if all(p == self.recent_predictions[0] for p in self.recent_predictions):
+                        candidate = self.recent_predictions[0]
+                        if candidate != self.last_stable_prediction:
+                            self.last_stable_prediction = candidate
+                            self.recent_predictions = []
+                            stable_result = candidate
+
+            return {
+                "translation": stable_result,
+                "landmarks": landmarks_payload
+            }
 
         except Exception as e:
             print(f"Error procesando frame: {e}")
             return None
+

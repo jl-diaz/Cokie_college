@@ -229,16 +229,23 @@ async def process_frame(sid, data):
         return
     
     async with inference_lock:
-        translation = await asyncio.to_thread(model.process_frame_base64, data)
-    
-    # Si se detectó una seña o movimiento estable, emitir INMEDIATAMENTE
-    if translation:
-        if isinstance(translation, dict):
-            payload = translation
-        else:
-            payload = {"id": translation, "text": translation}
-        print(f"[TRADUCCIÓN] {sid} => {payload}")
-        # Enviar texto/objeto bilingüe. La app móvil/web lo pronuncia al instante en el idioma del usuario
+        result = await asyncio.to_thread(model.process_frame_base64, data)
+
+    if result and isinstance(result, dict):
+        landmarks = result.get("landmarks")
+        if landmarks:
+            await sio.emit('landmarks_data', landmarks, room=sid)
+
+        translation = result.get("translation")
+        if translation:
+            if isinstance(translation, dict):
+                payload = translation
+            else:
+                payload = {"id": translation, "text": translation}
+            print(f"[TRADUCCIÓN] {sid} => {payload}")
+            await sio.emit('translation_result', payload, room=sid)
+    elif translation:
+        payload = translation if isinstance(translation, dict) else {"id": translation, "text": translation}
         await sio.emit('translation_result', payload, room=sid)
 
 if __name__ == '__main__':

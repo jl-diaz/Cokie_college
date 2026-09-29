@@ -223,6 +223,7 @@ export default function EventsScreen() {
   };
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (!title.trim() || !eventDate.trim() || !startTime.trim() || !endTime.trim()) {
       if (!eventDate.trim()) {
         setDateError(t('events.dateRequired', 'Por favor selecciona la fecha del evento.'));
