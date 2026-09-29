@@ -342,14 +342,7 @@ export default function ChatScreen() {
       })));
 
       // Limpiar conteo no leído de esta conversación en el estado local
-      setConversations(prev => {
-        const updated = prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c);
-        if (setUnreadChatCount) {
-          const total = updated.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-          setUnreadChatCount(total);
-        }
-        return updated;
-      });
+      setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread_count: 0 } : c));
 
       // Marcar como leída de inmediato
       api.post(`/chat/conversations/${convId}/read`).catch(() => {});
@@ -434,11 +427,6 @@ export default function ChatScreen() {
 
           updated.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
-          if (setUnreadChatCount) {
-            const total = updated.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-            setUnreadChatCount(total);
-          }
-
           return updated;
         });
       })
@@ -457,6 +445,14 @@ export default function ChatScreen() {
       supabase.removeChannel(userChannel);
     };
   }, [user?.id, activeConv?.id]);
+
+  // Sincronizar de forma segura el contador total de mensajes no leídos con la barra de navegación (TabBar)
+  useEffect(() => {
+    if (setUnreadChatCount && Array.isArray(conversations)) {
+      const total = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+      setUnreadChatCount(total);
+    }
+  }, [conversations, setUnreadChatCount]);
 
   // Vigilancia de la cola de salida (Outbox Offline Queue)
   useEffect(() => {
