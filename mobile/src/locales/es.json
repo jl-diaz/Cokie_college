@@ -1022,7 +1022,11 @@
     "thank_you": "Gracias",
     "please": "Por favor",
     "sorry": "Lo siento",
-    "yes": "Sí"
+    "yes": "Sí",
+    "si": "Sí",
+    "bien": "Bien",
+    "esta_bien__ok": "Está bien / Ok",
+    "te_quiero": "Te quiero"
   },
   "conduct": {
     "loadError": "No se pudieron cargar los códigos de conducta",

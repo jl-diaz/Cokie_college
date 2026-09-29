@@ -33,6 +33,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 import { useTabBar } from '../context/TabBarContext';
+import SkeletonOverlay from '../components/SkeletonOverlay';
 
 export default function InterpreterScreenWeb() {
   const pathname = usePathname();
@@ -56,6 +57,7 @@ export default function InterpreterScreenWeb() {
   const [facing, setFacing] = useState('front');
   const [lastTranslation, setLastTranslation] = useState('');
   const [subtitleHistory, setSubtitleHistory] = useState([]);
+  const [liveLandmarks, setLiveLandmarks] = useState(null);
 
   // Selectores de fuente de video y salida de audio
   const [videoSource, setVideoSource] = useState('webcam'); // 'webcam' | 'glasses'
@@ -221,10 +223,16 @@ export default function InterpreterScreenWeb() {
       }
     };
 
+    const handleLandmarks = (landmarksData) => {
+      setLiveLandmarks(landmarksData);
+    };
+
     WebSocketService.addListener(handleTranslation);
+    WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
       WebSocketService.removeListener(handleTranslation);
+      WebSocketService.removeLandmarksListener(handleLandmarks);
       WebSocketService.disconnect();
     };
   }, [isFocused, t, i18n.language]);
@@ -299,7 +307,7 @@ export default function InterpreterScreenWeb() {
             isCapturingRef.current = false;
           }
         }
-      }, 180);
+      }, 120);
     }
 
     return () => {
@@ -381,7 +389,7 @@ export default function InterpreterScreenWeb() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 180);
+      }, 120);
     }
 
     return () => {
@@ -653,11 +661,22 @@ export default function InterpreterScreenWeb() {
           </div>
         )}
 
+        {/* Trazado de esqueleto y puntos en tiempo real (Manos y Pose) */}
+        <SkeletonOverlay
+          landmarks={liveLandmarks}
+          mirrored={videoSource === 'webcam' && facing === 'front'}
+          active={isActive && isFocused}
+        />
+
         {/* Subtítulos gigantes (elevado por encima de la TabBar) */}
         <View style={[styles.subtitleOverlay, { bottom: subtitleBottomOffset }]}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={18} />
-            <Text style={styles.subtitleHeaderTitle}>{t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}</Text>
+            <Text style={styles.subtitleHeaderTitle}>
+              {liveLandmarks?.detected
+                ? (liveLandmarks.is_static ? 'SEÑA DETECTADA (IA LOCAL)' : 'RASTREANDO GESTOS...')
+                : t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}
+            </Text>
           </View>
 
           {lastTranslation ? (

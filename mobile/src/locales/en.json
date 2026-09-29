@@ -1022,7 +1022,11 @@
     "thank_you": "Thank you",
     "please": "Please",
     "sorry": "Sorry",
-    "yes": "Yes"
+    "yes": "Yes",
+    "si": "Yes",
+    "bien": "Good / Fine",
+    "esta_bien__ok": "It's ok",
+    "te_quiero": "I love you"
   },
   "conduct": {
     "loadError": "Could not load conduct codes",

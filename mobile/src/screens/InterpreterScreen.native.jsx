@@ -42,6 +42,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebSocketService from '../services/WebSocketService';
 import { useTabBar } from '../context/TabBarContext';
+import SkeletonOverlay from '../components/SkeletonOverlay';
 
 export default function InterpreterScreenNative() {
   const pathname = usePathname();
@@ -65,6 +66,8 @@ export default function InterpreterScreenNative() {
   const [aiServerStatus, setAiServerStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected' | 'error'
   const [lastTranslation, setLastTranslation] = useState('');
   const [subtitleHistory, setSubtitleHistory] = useState([]);
+  const [liveLandmarks, setLiveLandmarks] = useState(null);
+  const [pictureSize, setPictureSize] = useState(undefined);
 
   const tRef = useRef(t);
   const i18nRef = useRef(i18n);
@@ -260,14 +263,48 @@ export default function InterpreterScreenNative() {
       }
     };
 
+    const handleLandmarks = (landmarksData) => {
+      setLiveLandmarks(landmarksData);
+    };
+
     WebSocketService.addListener(handleTranslation);
+    WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
       WebSocketService.removeListener(handleTranslation);
+      WebSocketService.removeLandmarksListener(handleLandmarks);
       WebSocketService.disconnect();
       Speech.stop().catch(() => {});
     };
   }, [isFocused]);
+
+  const handleCameraReady = async () => {
+    setIsCameraReady(true);
+    try {
+      if (cameraRef.current?.getAvailablePictureSizesAsync) {
+        const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
+        if (sizes && sizes.length > 0) {
+          const preferredSizes = ['352x288', '640x480', '480x360', '320x240', 'VGA', 'CIF', 'QVGA'];
+          let chosen = sizes.find(s => preferredSizes.includes(s));
+          if (!chosen) {
+            chosen = sizes.find(s => {
+              const parts = s.split('x');
+              if (parts.length === 2) {
+                const area = parseInt(parts[0]) * parseInt(parts[1]);
+                return area >= 70000 && area <= 350000;
+              }
+              return false;
+            }) || sizes[sizes.length - 1];
+          }
+          if (chosen) {
+            setPictureSize(chosen);
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Seleccionando resolución óptima:', e);
+    }
+  };
 
   // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO ────────────────────────────
   useEffect(() => {
@@ -281,7 +318,7 @@ export default function InterpreterScreenNative() {
         try {
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.15,
+            quality: 0.1,
             skipProcessing: true,
             shutterSound: false,
             exif: false,
@@ -297,7 +334,7 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 150);
+      }, 120);
     }
 
     return () => {
@@ -372,7 +409,7 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 180);
+      }, 120);
     }
 
     return () => {
@@ -653,7 +690,8 @@ export default function InterpreterScreenNative() {
                 ref={cameraRef}
                 style={StyleSheet.absoluteFill} 
                 facing={facingMode}
-                onCameraReady={() => setIsCameraReady(true)}
+                pictureSize={pictureSize}
+                onCameraReady={handleCameraReady}
                 animateShutter={false}
               />
               {/* Botón flotante para alternar frontal / trasera */}
@@ -692,11 +730,22 @@ export default function InterpreterScreenNative() {
           </View>
         )}
 
+        {/* Trazado de esqueleto y puntos en tiempo real (Manos y Pose) */}
+        <SkeletonOverlay
+          landmarks={liveLandmarks}
+          mirrored={videoSource === 'phone' && facingMode === 'front'}
+          active={isActive && isFocused}
+        />
+
         {/* Banner de subtítulos en vivo (elevado por encima de la TabBar) */}
         <View style={[styles.subtitleOverlay, { bottom: subtitleBottomOffset }]}>
           <View style={styles.subtitleHeader}>
             <Volume2 color="#10b981" size={18} />
-            <Text style={styles.subtitleHeaderTitle}>{t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}</Text>
+            <Text style={styles.subtitleHeaderTitle}>
+              {liveLandmarks?.detected
+                ? (liveLandmarks.is_static ? 'SEÑA DETECTADA (IA LOCAL)' : 'RASTREANDO GESTOS...')
+                : t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}
+            </Text>
           </View>
 
           {lastTranslation ? (

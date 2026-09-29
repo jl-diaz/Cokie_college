@@ -8,6 +8,7 @@ class WebSocketService {
     this.lastSpokenText = '';
     this.lastSpokenTime = 0;
     this.listeners = [];
+    this.landmarksListeners = [];
     this.trainingListeners = [];
     this.statusListeners = [];
   }
@@ -60,6 +61,19 @@ class WebSocketService {
       console.warn('[SOCKET.IO] Error de conexión:', err.message);
       this.isConnected = false;
       this.notifyStatus('error');
+    });
+
+    // ── EVENTO: Trazado de puntos y esqueleto en tiempo real ──
+    this.socket.on('landmarks_data', (data) => {
+      if (this.landmarksListeners && this.landmarksListeners.length > 0) {
+        this.landmarksListeners.forEach(cb => {
+          try {
+            cb(data);
+          } catch (err) {
+            console.warn('[SOCKET.IO] Error en landmarks listener:', err);
+          }
+        });
+      }
     });
 
     // ── EVENTO: Traducción instantánea recibida de la IA ──
@@ -121,6 +135,17 @@ class WebSocketService {
     }
   }
 
+  addLandmarksListener(callback) {
+    if (!this.landmarksListeners) this.landmarksListeners = [];
+    this.landmarksListeners.push(callback);
+  }
+
+  removeLandmarksListener(callback) {
+    if (this.landmarksListeners) {
+      this.landmarksListeners = this.landmarksListeners.filter(cb => cb !== callback);
+    }
+  }
+
   addTrainingListener(callback) {
     if (!this.trainingListeners) this.trainingListeners = [];
     this.trainingListeners.push(callback);
@@ -166,6 +191,7 @@ class WebSocketService {
       this.socket = null;
     }
     this.listeners = [];
+    this.landmarksListeners = [];
     this.trainingListeners = [];
     this.isConnected = false;
     this.connectionStatus = 'disconnected';

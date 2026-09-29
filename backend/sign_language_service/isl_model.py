@@ -25,79 +25,117 @@ GESTURE_TO_ISL = {
 }
 
 # ─────────────────────────────────────────────────────────────────
-# Funciones auxiliares de geometría
+# Funciones auxiliares de geometría invariantes a escala y orientación
 # ─────────────────────────────────────────────────────────────────
 def distance_2d(p1, p2):
-    return math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2)
+    x1 = p1.x if hasattr(p1, 'x') else p1['x']
+    y1 = p1.y if hasattr(p1, 'y') else p1['y']
+    x2 = p2.x if hasattr(p2, 'x') else p2['x']
+    y2 = p2.y if hasattr(p2, 'y') else p2['y']
+    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
 def distance_3d(p1, p2):
-    dz = (p1.z - p2.z) if hasattr(p1, 'z') and hasattr(p2, 'z') else 0
-    return math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2 + dz**2)
+    x1 = p1.x if hasattr(p1, 'x') else p1['x']
+    y1 = p1.y if hasattr(p1, 'y') else p1['y']
+    z1 = p1.z if hasattr(p1, 'z') else (p1.get('z', 0) if isinstance(p1, dict) else 0)
+    x2 = p2.x if hasattr(p2, 'x') else p2['x']
+    y2 = p2.y if hasattr(p2, 'y') else p2['y']
+    z2 = p2.z if hasattr(p2, 'z') else (p2.get('z', 0) if isinstance(p2, dict) else 0)
+    return math.sqrt((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)
 
 def angle_between_points(a, b, c):
-    ba = (a.x - b.x, a.y - b.y)
-    bc = (c.x - b.x, c.y - b.y)
+    ax = a.x if hasattr(a, 'x') else a['x']
+    ay = a.y if hasattr(a, 'y') else a['y']
+    bx = b.x if hasattr(b, 'x') else b['x']
+    by = b.y if hasattr(b, 'y') else b['y']
+    cx = c.x if hasattr(c, 'x') else c['x']
+    cy = c.y if hasattr(c, 'y') else c['y']
+    ba = (ax - bx, ay - by)
+    bc = (cx - bx, cy - by)
     dot = ba[0]*bc[0] + ba[1]*bc[1]
     mag_ba = math.sqrt(ba[0]**2 + ba[1]**2)
     mag_bc = math.sqrt(bc[0]**2 + bc[1]**2)
     if mag_ba * mag_bc == 0:
         return 0
-    cos_angle = max(-1, min(1, dot / (mag_ba * mag_bc)))
+    cos_angle = max(-1.0, min(1.0, dot / (mag_ba * mag_bc)))
     return math.degrees(math.acos(cos_angle))
 
-def is_finger_extended(landmarks, finger_tip, finger_pip, finger_mcp):
+def get_palm_scale(landmarks):
+    wrist = landmarks[0]
+    middle_mcp = landmarks[9]
+    scale = distance_2d(wrist, middle_mcp)
+    return scale if scale >= 1e-4 else 1.0
+
+def is_finger_extended(landmarks, finger_tip, finger_pip, finger_mcp, scale=None):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
     tip = landmarks[finger_tip]
     pip = landmarks[finger_pip]
     mcp = landmarks[finger_mcp]
     wrist = landmarks[0]
     angle = angle_between_points(mcp, pip, tip)
-    # Dedo extendido si está recto y la punta está más alejada de la muñeca que las articulaciones
-    is_straight = angle > 135
-    is_dist = distance_2d(tip, wrist) > distance_2d(pip, wrist)
-    return is_dist and (is_straight or tip.y < pip.y)
+    d_wrist_tip = distance_2d(tip, wrist)
+    d_wrist_pip = distance_2d(pip, wrist)
+    d_mcp_tip = distance_2d(tip, mcp)
+    # Extendido si la articulación está abierta (> 125°) y se aleja de la muñeca/nudillo
+    return (d_wrist_tip > d_wrist_pip and angle > 125) or (d_mcp_tip / scale > 0.80)
 
-def is_finger_curled(landmarks, finger_tip, finger_pip, finger_mcp):
+def is_finger_curled(landmarks, finger_tip, finger_pip, finger_mcp, scale=None):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
     tip = landmarks[finger_tip]
     pip = landmarks[finger_pip]
     mcp = landmarks[finger_mcp]
     wrist = landmarks[0]
     angle = angle_between_points(mcp, pip, tip)
-    # Dedo doblado en puño o hacia la palma
-    is_closer = distance_2d(tip, wrist) < distance_2d(mcp, wrist) * 1.3
-    return is_closer or tip.y > pip.y or angle < 130
+    d_mcp_tip = distance_2d(tip, mcp)
+    d_wrist_tip = distance_2d(tip, wrist)
+    d_wrist_mcp = distance_2d(mcp, wrist)
+    return angle < 125 or (d_mcp_tip / scale < 0.65) or (d_wrist_tip < d_wrist_mcp * 1.2)
 
-def is_finger_half_bent(landmarks, finger_tip, finger_pip, finger_mcp):
-    return not is_finger_extended(landmarks, finger_tip, finger_pip, finger_mcp) and \
-           not is_finger_curled(landmarks, finger_tip, finger_pip, finger_mcp)
+def is_finger_half_bent(landmarks, finger_tip, finger_pip, finger_mcp, scale=None):
+    return not is_finger_extended(landmarks, finger_tip, finger_pip, finger_mcp, scale) and \
+           not is_finger_curled(landmarks, finger_tip, finger_pip, finger_mcp, scale)
 
-def is_thumb_extended(landmarks):
+def is_thumb_extended(landmarks, scale=None):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
     thumb_tip = landmarks[4]
     index_mcp = landmarks[5]
-    # El pulgar está extendido hacia afuera si se separa claramente del nudillo del índice
-    return distance_2d(thumb_tip, index_mcp) > 0.11
+    wrist = landmarks[0]
+    d_thumb_index = distance_2d(thumb_tip, index_mcp)
+    d_thumb_wrist = distance_2d(thumb_tip, wrist)
+    return (d_thumb_index / scale > 0.50) or (d_thumb_wrist / scale > 0.85)
 
-def is_thumb_across_palm(landmarks):
+def is_thumb_across_palm(landmarks, scale=None):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
     thumb_tip = landmarks[4]
     index_mcp = landmarks[5]
     middle_mcp = landmarks[9]
-    return abs(thumb_tip.x - middle_mcp.x) < abs(index_mcp.x - middle_mcp.x) * 0.5
+    return abs(thumb_tip.x - middle_mcp.x) < abs(index_mcp.x - middle_mcp.x) * 0.7 or (distance_2d(thumb_tip, middle_mcp) / scale < 0.45)
 
-def tips_touching(landmarks, tip1, tip2, threshold=0.04):
-    return distance_2d(landmarks[tip1], landmarks[tip2]) < threshold
+def tips_touching(landmarks, tip1, tip2, scale=None, threshold=0.28):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
+    return (distance_2d(landmarks[tip1], landmarks[tip2]) / scale) < threshold
 
 def hand_orientation(landmarks):
     wrist = landmarks[0]
     middle_tip = landmarks[12]
     dx = abs(middle_tip.x - wrist.x)
     dy = abs(middle_tip.y - wrist.y)
-    if dy > dx * 1.5: return 'vertical'
-    elif dx > dy * 1.5: return 'horizontal'
+    if dy > dx * 1.4: return 'vertical'
+    elif dx > dy * 1.4: return 'horizontal'
     return 'diagonal'
 
-def fingers_spread(landmarks):
+def fingers_spread(landmarks, scale=None):
+    if scale is None:
+        scale = get_palm_scale(landmarks)
     tips = [8, 12, 16, 20]
     spreads = [distance_2d(landmarks[tips[i]], landmarks[tips[i+1]]) for i in range(len(tips) - 1)]
-    return (sum(spreads) / len(spreads)) > 0.075
+    avg_spread = (sum(spreads) / len(spreads)) / scale
+    return avg_spread > 0.35
 
 def palm_facing_camera(landmarks):
     wrist = landmarks[0]
@@ -135,54 +173,77 @@ def normalize_hand_landmarks(landmarks_list):
     return vector
 
 # ─────────────────────────────────────────────────────────────────
-# Clasificador Heurístico de Alfabeto y Señas Estáticas
+# Clasificador Heurístico Invariante a Escala (Alfabeto y Señas Estáticas)
 # ─────────────────────────────────────────────────────────────────
 def classify_sign_from_landmarks(landmarks):
     if not landmarks or len(landmarks) < 21: return None
     
-    thumb = is_thumb_extended(landmarks)
-    thumb_across = is_thumb_across_palm(landmarks)
-    index = is_finger_extended(landmarks, 8, 6, 5)
-    middle = is_finger_extended(landmarks, 12, 10, 9)
-    ring = is_finger_extended(landmarks, 16, 14, 13)
-    pinky = is_finger_extended(landmarks, 20, 18, 17)
+    scale = get_palm_scale(landmarks)
     
-    index_curled = is_finger_curled(landmarks, 8, 6, 5)
-    middle_curled = is_finger_curled(landmarks, 12, 10, 9)
-    ring_curled = is_finger_curled(landmarks, 16, 14, 13)
-    pinky_curled = is_finger_curled(landmarks, 20, 18, 17)
+    thumb = is_thumb_extended(landmarks, scale)
+    thumb_across = is_thumb_across_palm(landmarks, scale)
+    index = is_finger_extended(landmarks, 8, 6, 5, scale)
+    middle = is_finger_extended(landmarks, 12, 10, 9, scale)
+    ring = is_finger_extended(landmarks, 16, 14, 13, scale)
+    pinky = is_finger_extended(landmarks, 20, 18, 17, scale)
     
-    index_half = is_finger_half_bent(landmarks, 8, 6, 5)
-    middle_half = is_finger_half_bent(landmarks, 12, 10, 9)
-    ring_half = is_finger_half_bent(landmarks, 16, 14, 13)
-    pinky_half = is_finger_half_bent(landmarks, 20, 18, 17)
+    index_curled = is_finger_curled(landmarks, 8, 6, 5, scale)
+    middle_curled = is_finger_curled(landmarks, 12, 10, 9, scale)
+    ring_curled = is_finger_curled(landmarks, 16, 14, 13, scale)
+    pinky_curled = is_finger_curled(landmarks, 20, 18, 17, scale)
+    
+    index_half = is_finger_half_bent(landmarks, 8, 6, 5, scale)
+    middle_half = is_finger_half_bent(landmarks, 12, 10, 9, scale)
+    ring_half = is_finger_half_bent(landmarks, 16, 14, 13, scale)
+    pinky_half = is_finger_half_bent(landmarks, 20, 18, 17, scale)
     
     extended_count = sum([thumb, index, middle, ring, pinky])
     orientation = hand_orientation(landmarks)
-    spread = fingers_spread(landmarks)
+    spread = fingers_spread(landmarks, scale)
     
-    index_middle_dist = distance_2d(landmarks[8], landmarks[12])
+    index_middle_dist = distance_2d(landmarks[8], landmarks[12]) / scale
     
-    # ── ALFABETO LSM / ASL (A-Z) ──
-    # A: Puño cerrado con pulgar al lado vertical (no cruzado sobre dedos)
+    # ── 1. GESTOS DE PRIORIDAD ALTA ──
+    # TE QUIERO / I LOVE YOU (Pulgar, índice y meñique extendidos; medio y anular doblados)
+    if thumb and index and not middle and not ring and pinky:
+        return "sign.i_love_you"
+
+    # SHAKA / LETRA Y (Pulgar y meñique extendidos; índice, medio y anular doblados)
+    if thumb and not index and not middle and not ring and pinky:
+        return "sign.y"
+
+    # OK / LETRA F (Pulgar e índice tocándose formando un círculo, otros 3 extendidos)
+    if tips_touching(landmarks, 4, 8, scale, 0.28) and middle and ring and pinky:
+        return "sign.ok"
+
+    # NO (Índice y medio tocan o se juntan con el pulgar, anular y meñique doblados)
+    if tips_touching(landmarks, 4, 8, scale, 0.25) and tips_touching(landmarks, 4, 12, scale, 0.25) and ring_curled and pinky_curled:
+        return "sign.no"
+
+    # PULGAR ARRIBA / ABAJO (El pulgar debe sobresalir claramente por encima o debajo del puño)
+    if thumb and index_curled and middle_curled and ring_curled and pinky_curled:
+        if landmarks[4].y < (landmarks[5].y - 0.15 * scale) and landmarks[4].y < landmarks[3].y:
+            return "sign.thumb_up"
+        if landmarks[4].y > (landmarks[0].y + 0.05 * scale) and landmarks[4].y > landmarks[3].y:
+            return "sign.thumb_down"
+
+    # ── 2. ALFABETO LSM / ASL (A-Z) ──
+    # A: Puño cerrado con pulgar descansando al lado o sobre el índice
     if index_curled and middle_curled and ring_curled and pinky_curled and not thumb_across:
         return "sign.a"
-    # B: Cuatro dedos extendidos hacia arriba
-    if index and middle and ring and pinky and not spread and orientation == 'vertical':
+    # B: Cuatro dedos extendidos hacia arriba con pulgar doblado/cruzado
+    if (not thumb or thumb_across) and index and middle and ring and pinky and not spread and orientation == 'vertical':
         return "sign.b"
-    # C: Dedos medio doblados formando curvatura de C
+    # C: Dedos curvados formando una C
     if index_half and middle_half and ring_half:
-        y_diff = abs(landmarks[4].y - landmarks[8].y)
-        if y_diff < 0.18: return "sign.c"
+        y_diff = abs(landmarks[4].y - landmarks[8].y) / scale
+        if y_diff < 0.95: return "sign.c"
     # D: Índice extendido hacia arriba, pulgar tocando dedos medio/anular
-    if index and not middle and not ring and not pinky and tips_touching(landmarks, 4, 12, 0.08):
+    if index and not middle and not ring and not pinky and tips_touching(landmarks, 4, 12, scale, 0.35):
         return "sign.d"
-    # E: Cuatro dedos curvados fuertemente con pulgar cruzado enfrente
+    # E: Cuatro dedos curvados con pulgar cruzado enfrente
     if index_curled and middle_curled and ring_curled and pinky_curled and thumb_across:
         return "sign.e"
-    # F: Índice tocando pulgar, demás dedos extendidos
-    if tips_touching(landmarks, 4, 8, 0.06) and middle and ring and pinky:
-        return "sign.f"
     # G: Pulgar e índice extendidos horizontalmente
     if thumb and index and not middle and not ring and not pinky and orientation == 'horizontal':
         return "sign.g"
@@ -197,48 +258,34 @@ def classify_sign_from_landmarks(landmarks):
     if thumb and index and not middle and not ring and not pinky and orientation == 'vertical':
         return "sign.l"
     # O: Puntas de pulgar e índice tocándose formando un círculo
-    if tips_touching(landmarks, 4, 8, 0.06) and not index and middle_curled and ring_curled and pinky_curled:
+    if tips_touching(landmarks, 4, 8, scale, 0.28) and not index and middle_curled and ring_curled and pinky_curled:
         return "sign.o"
     # U: Índice y medio juntos hacia arriba
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.04 and orientation == 'vertical':
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.25 and orientation == 'vertical':
         return "sign.u"
-    # V: Índice y medio separados hacia arriba (Paz)
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.04:
+    # V / 2: Índice y medio separados hacia arriba (Paz / Victoria)
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.25:
         return "sign.v"
-    # W: Tres dedos extendidos (índice, medio, anular)
+    # W / 3: Tres dedos extendidos (índice, medio, anular)
     if not thumb and index and middle and ring and not pinky:
         return "sign.w"
+    # 3 (LSM): Pulgar, índice y medio extendidos
+    if thumb and index and middle and not ring and not pinky and orientation == 'vertical':
+        return "sign.3"
     # X: Índice doblado en gancho
     if not thumb and not middle and not ring and not pinky and index_half:
         return "sign.x"
-    # Y: Pulgar y meñique extendidos (Shaka)
-    if thumb and not index and not middle and not ring and pinky:
-        return "sign.y"
     # Z: Índice apuntando diagonalmente
     if not thumb and index and not middle and not ring and not pinky and orientation == 'diagonal':
         return "sign.z"
 
-    # ── GESTOS Y SEÑAS COMUNES ──
-    # NO
-    if tips_touching(landmarks, 4, 8, 0.05) and tips_touching(landmarks, 4, 12, 0.05) and ring_curled and pinky_curled:
-        return "sign.no"
-    
-    # TE QUIERO / I LOVE YOU
-    if thumb and index and not middle and not ring and pinky:
-        return "sign.i_love_you"
-            
-    # ── NÚMEROS ──
-    if tips_touching(landmarks, 4, 8, 0.04) and not middle and not ring and not pinky: return "sign.0"
+    # ── 3. NÚMEROS ──
+    if tips_touching(landmarks, 4, 8, scale, 0.25) and not middle and not ring and not pinky: return "sign.0"
     if not thumb and index and not middle and not ring and not pinky and orientation == 'vertical': return "sign.1"
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.04 and orientation == 'vertical': return "sign.2"
-    if thumb and index and middle and not ring and not pinky and orientation == 'vertical': return "sign.3"
     if not thumb and index and middle and ring and pinky and orientation == 'vertical': return "sign.4"
     if extended_count == 5 and spread: return "sign.5"
-    if thumb and index and middle and not ring and not pinky and orientation == 'horizontal': return "sign.7"
-    if index and tips_touching(landmarks, 4, 12, 0.04) and not ring and not pinky: return "sign.8"
-    if tips_touching(landmarks, 4, 8, 0.04) and middle and ring and pinky: return "sign.9"
-    
-    # FRASES / GESTOS EXTRA
+
+    # ── 4. GESTOS GLOBALES ──
     if extended_count == 5 and not spread: return "sign.please_wait"
     if extended_count == 0: return "sign.closed_fist"
     
@@ -323,6 +370,8 @@ class ISLModel:
         self.last_stable_prediction = None
         self.stability_threshold = 2
         self.no_detection_count = 0
+        self.frame_count = 0
+        self.cached_pose_landmarks = None
 
     def extract_landmarks_from_base64(self, base64_img):
         """
@@ -364,13 +413,12 @@ class ISLModel:
 
     def process_frame_base64(self, base64_img):
         """
-        Procesa el fotograma con estrategia de doble capa:
-        1. Capa Temporal (Red Neuronal del Administrador): Reconoce movimientos dinámicos
-           de brazos y manos en la ventana de 30 frames.
-        2. Capa Estática (MediaPipe): Reconoce señas fijas y letras del alfabeto (A-Z).
+        Procesa el fotograma con estrategia de doble capa optimizada para tiempo real (< 40ms):
+        1. Capa Estática: Reconoce señas fijas (A-Z, números, Te quiero, Shaka, etc.)
+        2. Capa Temporal (Red Neuronal): Reconoce señas dinámicas cuando hay movimiento
         """
         try:
-            if not self.gesture_recognizer and not self.hand_landmarker:
+            if not self.hand_landmarker and not self.gesture_recognizer:
                 return None
                 
             encoded_data = base64_img.split(',')[1] if ',' in base64_img else base64_img
@@ -379,11 +427,13 @@ class ISLModel:
             
             if image is None: return None
 
-            # Redimensionar si la imagen es grande para acelerar la inferencia
+            self.frame_count += 1
+
+            # Redimensionar a resolución óptima (360px) para máxima velocidad de inferencia
             h, w = image.shape[:2]
             if w > 360:
                 scale = 360.0 / w
-                image = cv2.resize(image, (360, int(h * scale)), interpolation=cv2.INTER_AREA)
+                image = cv2.resize(image, (360, int(h * scale)), interpolation=cv2.INTER_LINEAR)
 
             image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
@@ -392,22 +442,26 @@ class ISLModel:
             hand_landmarks_list = None
             pose_landmarks_list = None
             
-            # 1. Detección de puntos de mano
+            # 1. Detección de puntos de mano (MediaPipe HandLandmarker)
             if self.hand_landmarker:
                 hand_result = self.hand_landmarker.detect(mp_image)
                 if hand_result and hand_result.hand_landmarks:
                     hand_landmarks_list = hand_result.hand_landmarks
 
-            # 2. Detección de torso, brazos y hombros (Pose)
+            # 2. Detección de torso, brazos y hombros (Pose con caché de fotogramas alternos)
             if self.pose_landmarker:
-                try:
-                    pose_result = self.pose_landmarker.detect(mp_image)
-                    if pose_result and pose_result.pose_landmarks:
-                        pose_landmarks_list = pose_result.pose_landmarks
-                except Exception:
-                    pass
+                if self.frame_count % 2 == 1 or self.cached_pose_landmarks is None:
+                    try:
+                        pose_result = self.pose_landmarker.detect(mp_image)
+                        if pose_result and pose_result.pose_landmarks:
+                            self.cached_pose_landmarks = pose_result.pose_landmarks
+                        else:
+                            self.cached_pose_landmarks = None
+                    except Exception:
+                        pass
+                pose_landmarks_list = self.cached_pose_landmarks
             
-            # Preparar landmarks simplificados para enviar al frontend
+            # Formato ligero de landmarks para emitir inmediatamente al frontend
             simplified_hands = []
             if hand_landmarks_list:
                 for hand in hand_landmarks_list:
@@ -417,13 +471,16 @@ class ISLModel:
             if pose_landmarks_list and len(pose_landmarks_list) > 0:
                 simplified_pose = [{"x": round(float(p.x), 3), "y": round(float(p.y), 3)} for p in pose_landmarks_list[0]]
 
-            # Si hay manos detectadas, guardar en la ventana de movimiento temporal
+            # Evaluación de gestos
             motion_energy = 0.0
+            is_holding_static = False
+            is_moving_dynamically = False
+
             if hand_landmarks_list:
                 frame_vector = normalize_hand_landmarks(hand_landmarks_list)
                 self.sequence_buffer.append(frame_vector)
 
-                # 1. EVALUAR CAPA ESTÁTICA (Alfabeto A-Z, Números 0-10, Señas Fijas)
+                # Evaluar candidato de seña estática invariante a escala
                 static_candidate = None
                 for hand_landmarks in hand_landmarks_list:
                     s = classify_sign_from_landmarks(hand_landmarks)
@@ -431,27 +488,32 @@ class ISLModel:
                         static_candidate = s
                         break
 
-                # Medir si la mano está inmóvil o en movimiento dinámico
-                is_holding_static = False
-                is_moving_dynamically = False
+                # Medir si la mano está inmóvil o en movimiento activo
                 if len(self.sequence_buffer) >= 4:
                     recent = np.array(list(self.sequence_buffer)[-6:], dtype=np.float32)
                     diffs = np.diff(recent, axis=0)
                     motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
-                    if max_motion < 0.08:
+                    if max_motion < 0.07:
                         is_holding_static = True
-                    if max_motion >= 0.08:
+                    elif max_motion >= 0.09:
                         is_moving_dynamically = True
 
-                # 1. EVALUAR CAPA DEL MODELO ENTRENADO (Vocabulario aprendido: hola, gracias, que, etc.)
-                if current_prediction is None:
+                # Estrategia de asignación priorizada:
+                # A) Si la mano está quieta o muestra una forma fija definida (Te quiero, Y, L, etc.), la seña estática manda
+                if static_candidate and (is_holding_static or not is_moving_dynamically):
+                    current_prediction = static_candidate
+
+                # B) Si hay movimiento dinámico o no hubo seña estática, evaluar modelo aprendido (hola, gracias, etc.)
+                if current_prediction is None and len(self.sequence_buffer) >= 6:
                     active_model = gesture_trainer.get_active_model()
-                    if active_model and len(self.sequence_buffer) >= 8:
+                    if active_model:
                         try:
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
                             pred_label, confidence = active_model.predict(feats)
-                            if pred_label and confidence >= 0.70:
+                            # Umbral de confianza calibrado para respuesta fluida
+                            min_conf = 0.65 if is_moving_dynamically else 0.72
+                            if pred_label and confidence >= min_conf:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
                                 current_prediction = {
                                     "id": f"sign.{info['id']}",
@@ -462,37 +524,13 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # 2. CAPA ESTÁTICA HEURÍSTICA (Alfabeto A-Z, Números, Señas fijas)
+                # C) Fallback a seña estática si el modelo dinámico no disparó
                 if current_prediction is None and static_candidate:
                     current_prediction = static_candidate
             else:
                 self.sequence_buffer.append(np.zeros(126, dtype=np.float32))
 
-            # 3. Fallback a GestureRecognizer de Google solo si no hubo predicción previa
-            if current_prediction is None and self.gesture_recognizer:
-                result = self.gesture_recognizer.recognize(mp_image)
-                if result and result.gestures:
-                    for hand_gestures in result.gestures:
-                        if hand_gestures:
-                            gesture = hand_gestures[0]
-                            # Prevenir falsos positivos masivos de "ILoveYou"
-                            if gesture.category_name == "ILoveYou":
-                                valid_ily = False
-                                if hand_landmarks_list:
-                                    for hl in hand_landmarks_list:
-                                        if (is_thumb_extended(hl) and is_finger_extended(hl, 8, 6, 5) and
-                                            is_finger_extended(hl, 20, 18, 17) and is_finger_curled(hl, 12, 10, 9) and
-                                            is_finger_curled(hl, 16, 14, 13)):
-                                            valid_ily = True
-                                            break
-                                if not valid_ily:
-                                    continue
-
-                            if gesture.score > 0.85 and gesture.category_name != "None":
-                                current_prediction = GESTURE_TO_ISL.get(gesture.category_name, gesture.category_name)
-                                break
-
-            # Payload de landmarks para que el frontend dibuje los puntos y el esqueleto
+            # Payload visual de puntos para el esqueleto en tiempo real
             landmarks_payload = {
                 "detected": bool(hand_landmarks_list or pose_landmarks_list),
                 "hands": simplified_hands,
@@ -501,11 +539,11 @@ class ISLModel:
                 "is_static": bool(hand_landmarks_list and is_holding_static)
             }
 
-            # 4. Estabilización de predicción (umbral de 2 para reconocimiento instantáneo sin lag)
+            # 4. Estabilización de predicción para traducción fluida y sin rebotes
             stable_result = None
             if current_prediction is None:
                 self.no_detection_count += 1
-                if self.no_detection_count >= 2:
+                if self.no_detection_count >= 3:
                     self.last_stable_prediction = None
                     self.recent_predictions = []
                     self.no_detection_count = 0
