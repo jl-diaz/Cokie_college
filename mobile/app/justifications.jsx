@@ -469,7 +469,6 @@ export default function JustificationsScreen() {
             <Text style={styles.emptyText}>{t('dashboard.noRequestsYet', 'No has enviado solicitudes de justificación')}</Text>
           </View>
         }
-        ListFooterComponent={<View style={{height: 40}} />}
       />
 
       {/* Modal para Crear Solicitud de Justificación */}
@@ -501,7 +500,11 @@ export default function JustificationsScreen() {
                     <X size={24} color={Colors.primary} />
                   </TouchableOpacity>
                 </View>
-                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                  style={{ maxHeight: 320 }} 
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  showsVerticalScrollIndicator={false}
+                >
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
                     {SCHOOL_HOURS.map(hour => {
                       const isSelected = (timePickerTarget === 'start' ? formData.start_time : formData.end_time) === hour;
@@ -702,7 +705,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   headerTitle: { color: theme === 'dark' ? Colors.primary : '#FFF', fontSize: 22, fontWeight: 'bold' },
   headerSubtitle: { color: theme === 'dark' ? Colors.text.secondary : 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4, textTransform: 'uppercase' },
-  content: { paddingHorizontal: 20, paddingTop: 20 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -833,9 +836,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'flex-end', alignItems: 'stretch', padding: 0, margin: 0 },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',

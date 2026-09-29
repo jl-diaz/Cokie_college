@@ -130,6 +130,7 @@ export default function ApplyConductScreen() {
 
       <FlatList 
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 32 }}
         data={filteredCodes}
         keyExtractor={item => item.id}
         onEndReached={loadMoreCodes}
@@ -210,7 +211,6 @@ export default function ApplyConductScreen() {
                 </>
               )}
             </TouchableOpacity>
-            <View style={{ height: 40 }} />
           </View>
         }
       />

@@ -31,7 +31,21 @@ function LayoutInner() {
   const rootNavigationState = useRootNavigationState();
   const segments = useSegments();
   const { user, loading: authLoading } = useAuth();
-  const { tabAnimation } = useTabBar();
+  const { tabAnimation, registerModal, unregisterModal } = useTabBar();
+
+  useEffect(() => {
+    if (drawerVisible) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [drawerVisible, registerModal, unregisterModal]);
+
+  useEffect(() => {
+    if (notifModalVisible) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [notifModalVisible, registerModal, unregisterModal]);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -359,11 +373,11 @@ export default function Layout() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <AlertProvider>
-          <TabBarProvider>
+        <TabBarProvider>
+          <AlertProvider>
             <LayoutInner />
-          </TabBarProvider>
-        </AlertProvider>
+          </AlertProvider>
+        </TabBarProvider>
       </ThemeProvider>
     </AuthProvider>
   );

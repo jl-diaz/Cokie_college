@@ -427,8 +427,6 @@ export default function AssignScreen() {
             {renderProposal()}
           </View>
         )}
-        
-        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Modal de Advertencia para Borrar Horario */}
@@ -469,7 +467,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     flex: 1 
   },
   scrollContent: { 
-    padding: Spacing.lg 
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   card: {
     backgroundColor: Colors.card,

@@ -441,7 +441,7 @@ const createStyles = (Colors) => StyleSheet.create({
     fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  listContent: { padding: Spacing.xl, pb: 100 },
+  listContent: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
   card: {
     flexDirection: 'row',
     backgroundColor: Colors.card,
@@ -483,9 +483,12 @@ const createStyles = (Colors) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: Typography.size.xl, fontWeight: 'bold', color: Colors.primary },

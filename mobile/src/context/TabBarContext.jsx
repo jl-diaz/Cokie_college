@@ -6,6 +6,9 @@ export const TAB_SCREEN_NAMES = ['home', 'interpreter', 'chat', 'modules', 'prof
 const TabBarContext = createContext({
   isTabBarHidden: false,
   setIsTabBarHidden: () => {},
+  modalCount: 0,
+  registerModal: () => {},
+  unregisterModal: () => {},
   unreadChatCount: 0,
   setUnreadChatCount: () => {},
   tabAnimation: 'slide_from_right',
@@ -17,10 +20,19 @@ const TabBarContext = createContext({
 
 export function TabBarProvider({ children }) {
   const [isTabBarHidden, setIsTabBarHidden] = useState(false);
+  const [modalCount, setModalCount] = useState(0);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [tabAnimation, setTabAnimation] = useState('slide_from_right');
   const [tabDirection, setTabDirection] = useState('right');
   const prevTabRouteRef = useRef('/home');
+
+  const registerModal = useCallback(() => {
+    setModalCount(c => c + 1);
+  }, []);
+
+  const unregisterModal = useCallback(() => {
+    setModalCount(c => Math.max(0, c - 1));
+  }, []);
 
   const navigateTab = useCallback((targetRoute, router, currentRoute) => {
     if (!targetRoute || targetRoute === currentRoute) return;
@@ -53,6 +65,9 @@ export function TabBarProvider({ children }) {
       value={{ 
         isTabBarHidden, 
         setIsTabBarHidden, 
+        modalCount,
+        registerModal,
+        unregisterModal,
         unreadChatCount, 
         setUnreadChatCount,
         tabAnimation,

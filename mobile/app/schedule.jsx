@@ -236,7 +236,6 @@ export default function ScheduleScreen() {
             );
           })
         )}
-        <View style={{height: 40}} />
       </View>
     </ScrollView>
   );
@@ -247,7 +246,7 @@ const createStyles = (Colors, theme) => {
   return StyleSheet.create({
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
     container: { flex: 1, backgroundColor: headerBgColor },
-    scrollContent: { flexGrow: 1, backgroundColor: Colors.background },
+    scrollContent: { flexGrow: 1, backgroundColor: Colors.background, paddingBottom: 32 },
     topBleed: {
       position: 'absolute',
       top: -1000,
@@ -306,6 +305,7 @@ const createStyles = (Colors, theme) => {
   },
   content: {
     padding: 20,
+    paddingBottom: 32,
   },
   emptyCard: {
     backgroundColor: Colors.card,

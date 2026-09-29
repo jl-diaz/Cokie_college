@@ -229,7 +229,7 @@ const createStyles = (Colors, isDark) => {
     },
     scrollContent: {
       paddingHorizontal: 0,
-      paddingBottom: 120,
+      paddingBottom: 85,
     },
     list: {
       gap: 12,

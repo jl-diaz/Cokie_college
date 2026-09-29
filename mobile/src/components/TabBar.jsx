@@ -32,7 +32,7 @@ export default function TabBar({ currentRoute }) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { isTabBarHidden, unreadChatCount = 0, setUnreadChatCount, navigateTab } = useTabBar();
+  const { isTabBarHidden, modalCount = 0, unreadChatCount = 0, setUnreadChatCount, navigateTab } = useTabBar();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -149,7 +149,7 @@ export default function TabBar({ currentRoute }) {
     };
   }, [currentRoute]);
 
-  if (isDesktopOrTablet || isTabBarHidden) {
+  if (isDesktopOrTablet || isTabBarHidden || modalCount > 0) {
     return null;
   }
 

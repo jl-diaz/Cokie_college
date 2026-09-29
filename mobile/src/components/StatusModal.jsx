@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
 import { Check, AlertTriangle, X, Info } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useTabBar } from '../context/TabBarContext';
 
 /**
  * StatusModal - Modal de estado y confirmación reutilizable.
@@ -38,6 +39,16 @@ export default function StatusModal({
 }) {
   const { theme, colors: Colors } = useTheme();
   const isDark = theme === 'dark';
+  const { registerModal, unregisterModal } = useTabBar();
+
+  useEffect(() => {
+    if (visible) {
+      registerModal();
+      return () => {
+        unregisterModal();
+      };
+    }
+  }, [visible, registerModal, unregisterModal]);
 
   if (!visible) return null;
 
@@ -75,7 +86,20 @@ export default function StatusModal({
   };
 
   return (
-    <View style={styles.overlay}>
+    <Modal
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      <View style={styles.overlay}>
+        <Pressable 
+          style={StyleSheet.absoluteFillObject} 
+          onPress={onClose} 
+          accessibilityLabel="Cerrar modal" 
+        />
         <View style={[
           styles.modalCard,
           { 
@@ -156,18 +180,29 @@ export default function StatusModal({
           )}
         </View>
       </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 99999,
+    ...(Platform.OS === 'web' ? { 
+      position: 'fixed', 
+      top: 0, 
+      left: 0, 
+      right: 0, 
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+    } : {}),
   },
   modalCard: {
     width: '100%',

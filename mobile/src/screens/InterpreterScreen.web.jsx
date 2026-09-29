@@ -32,6 +32,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
+import { useTabBar } from '../context/TabBarContext';
 
 export default function InterpreterScreenWeb() {
   const pathname = usePathname();
@@ -40,6 +41,7 @@ export default function InterpreterScreenWeb() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
+  const { registerModal, unregisterModal } = useTabBar();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isDesktopOrTablet = width >= 768;
@@ -60,6 +62,13 @@ export default function InterpreterScreenWeb() {
   const [audioOutput, setAudioOutput] = useState('browser'); // 'browser' | 'glasses'
   const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (isConfigModalVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isConfigModalVisible, registerModal, unregisterModal]);
   const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -1051,7 +1060,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
 
   // Modal
   modalOverlay: {
-    flex: 1,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 99999,
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',

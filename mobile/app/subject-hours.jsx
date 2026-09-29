@@ -829,7 +829,7 @@ const createStyles = (Colors, theme) => {
     },
     listContent: {
       paddingHorizontal: Spacing.lg,
-      paddingBottom: 40,
+      paddingBottom: Spacing.xl,
     },
     card: {
       backgroundColor: cardBg,
@@ -939,6 +939,10 @@ const createStyles = (Colors, theme) => {
     // Modal Styles
     modalContent: {
       padding: 20,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     modalHeader: {
       flexDirection: 'row',

@@ -41,6 +41,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebSocketService from '../services/WebSocketService';
+import { useTabBar } from '../context/TabBarContext';
 
 export default function InterpreterScreenNative() {
   const pathname = usePathname();
@@ -49,6 +50,7 @@ export default function InterpreterScreenNative() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
+  const { registerModal, unregisterModal } = useTabBar();
   const insets = useSafeAreaInsets();
   // Elevado para quedar exactamente por encima del TabBar inferior flotante (altura 56 + offset)
   const tabBarBottom = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 16) + 12;
@@ -76,6 +78,13 @@ export default function InterpreterScreenNative() {
   const [audioOutput, setAudioOutput] = useState('phone'); // 'phone' | 'glasses'
   const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (isConfigModalVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isConfigModalVisible, registerModal, unregisterModal]);
   const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);

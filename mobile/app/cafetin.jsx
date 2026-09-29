@@ -44,6 +44,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Camera } from 'lucide-react-native';
 import { SkeletonCard } from '../src/components/Skeleton';
 import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/utils/haptics';
+import { useTabBar } from '../src/context/TabBarContext';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +54,7 @@ export default function CafetinScreen() {
   const isDark = theme === 'dark';
   const { profile } = useAuth();
   const { showAlert, showConfirm } = useAlert();
+  const { registerModal, unregisterModal } = useTabBar();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
   const [activeTab, setActiveTab] = useState('menu'); // 'menu', 'pedidos', 'qr'
@@ -83,6 +85,14 @@ export default function CafetinScreen() {
   const [loadingScan, setLoadingScan] = useState(false);
   const [confirmingDispatch, setConfirmingDispatch] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+
+  useEffect(() => {
+    if (cameraOpen) {
+      registerModal?.();
+      return () => unregisterModal?.();
+    }
+  }, [cameraOpen, registerModal, unregisterModal]);
+
   const [permission, requestPermission] = useCameraPermissions();
   const scanLockRef = useRef(false);
 
@@ -427,7 +437,11 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 1: MENÚ --- */}
       {activeTab === 'menu' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>{t('cafetin.dailyMenu', 'Menú del Día')}</Text>
@@ -551,7 +565,7 @@ export default function CafetinScreen() {
               data={orders}
               keyExtractor={item => item.id}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 40 }}
+              contentContainerStyle={{ paddingBottom: 32 }}
               refreshControl={
                 <RefreshControl refreshing={refreshingOrders} onRefresh={() => { setRefreshingOrders(true); fetchTodayOrders(1); }} />
               }
@@ -602,7 +616,11 @@ export default function CafetinScreen() {
 
       {/* --- MÓDULO 3: ESCÁNER QR --- */}
       {activeTab === 'qr' && (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
           <View style={styles.qrHeaderCard}>
             <QrCode size={36} color={Colors.primary} style={{ marginBottom: 8 }} />
             <Text style={styles.qrTitle}>{t('cafetin.scanOrEnterQr', 'Escanear o Ingresar Código QR')}</Text>
@@ -758,6 +776,7 @@ export default function CafetinScreen() {
             </View>
 
             <ScrollView 
+              style={{ flexShrink: 1 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 24 }}
@@ -1246,7 +1265,11 @@ const createStyles = (Colors, theme) => {
   modalContent: {
     width: '100%',
     padding: 20,
-    paddingBottom: 24,
+    paddingBottom: 12,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',

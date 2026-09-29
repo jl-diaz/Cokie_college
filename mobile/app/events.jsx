@@ -339,6 +339,7 @@ export default function EventsScreen() {
 
       <ScrollView 
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />}
         showsVerticalScrollIndicator={false}
       >
@@ -391,7 +392,6 @@ export default function EventsScreen() {
             </View>
           ))
         )}
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       {isManagementAllowed && (
@@ -430,7 +430,11 @@ export default function EventsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <ScrollView 
+                  style={{ maxHeight: 320 }} 
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  showsVerticalScrollIndicator={false}
+                >
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 16 }}>
                     {EVENT_HOURS.map(hour => {
                       const isSelected = (timePickerTarget === 'start' ? startTime : endTime) === hour;
@@ -738,9 +742,12 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxHeight: Platform.OS === 'web' ? '82vh' : undefined,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     padding: 24,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',

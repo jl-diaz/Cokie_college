@@ -430,7 +430,7 @@ const createStyles = (Colors, theme) => {
     listContent: {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.md,
-      paddingBottom: 40,
+      paddingBottom: Spacing.xl,
     },
 
     // 2-TONE CARD STYLES
@@ -589,6 +589,10 @@ const createStyles = (Colors, theme) => {
     modalContainer: {
       width: '100%',
       padding: Spacing.lg,
+      maxHeight: '100%',
+      flexShrink: 1,
+      display: 'flex',
+      flexDirection: 'column',
     },
     modalHeader: {
       flexDirection: 'row',

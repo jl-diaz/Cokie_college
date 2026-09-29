@@ -97,7 +97,7 @@ const createStyles = (Colors) => StyleSheet.create({
   headerTitle: { color: '#FFF', fontSize: Typography.size.xl, fontWeight: 'bold' },
   headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.sm, marginTop: 4 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
-  scrollContent: { padding: Spacing.xl },
+  scrollContent: { padding: Spacing.xl, paddingBottom: 120 },
   emptyText: { textAlign: 'center', color: Colors.text.muted, marginTop: 40 },
   card: {
     backgroundColor: Colors.card,

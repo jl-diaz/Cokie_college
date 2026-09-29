@@ -251,7 +251,11 @@ export default function LunchScreen() {
             </View>
           </View>
         </View>
-        <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={{ padding: 16 }} 
+          contentContainerStyle={{ paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+        >
           <SkeletonCard />
           <SkeletonCard />
         </ScrollView>
@@ -722,7 +726,7 @@ const createStyles = (Colors, theme, screenWidth) => {
     },
     scrollContent: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 32,
     },
 
     // --- ENCABEZADO BANNER (IMÁGENES 1 & 4) ---
@@ -931,12 +935,22 @@ const createStyles = (Colors, theme, screenWidth) => {
     // --- VISTA 2: MODAL DE CONFIRMACIÓN (IMAGEN 3) ---
     modalOverlay: {
       ...StyleSheet.absoluteFillObject,
+      ...(Platform.OS === 'web' && {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        maxHeight: '100dvh',
+      }),
       backgroundColor: 'rgba(0, 0, 0, 0.65)',
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
-      zIndex: 9999,
-      elevation: 9999,
+      zIndex: 99999,
+      elevation: 99999,
     },
     modalDialog: {
       width: '100%',

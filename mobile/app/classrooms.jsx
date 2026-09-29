@@ -328,7 +328,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 16, color: Colors.text.primary },
 
-  scrollContent: { padding: Spacing.lg, paddingBottom: 40 },
+  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xl },
   emptyContainer: { padding: 40, alignItems: 'center' },
   emptyText: { color: Colors.text.muted, textAlign: 'center', fontSize: Typography.size.sm },
 
@@ -386,7 +386,11 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'], 
     borderTopRightRadius: BorderRadius['2xl'], 
     padding: Spacing.xl, 
-    paddingBottom: 24,
+    paddingBottom: 16,
+    maxHeight: '100%',
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
     ...Shadows.elevated,
   },
   modalHeader: {
