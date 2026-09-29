@@ -1,30 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Plus, X, Check, Volume2, Sparkles } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Plus, Delete, Trash2, Volume2 } from 'lucide-react-native';
 import Colors from '../constants/colors';
 import { useInterpreter } from '../context/InterpreterContext';
 
 export default function FingerspellingBar({ currentDetectedLetter, isActive = true }) {
   const { speakText } = useInterpreter();
   const [composedMessage, setComposedMessage] = useState('');
+  const lastAddedTimeRef = useRef(0);
+  const lastLetterRef = useRef('');
 
-  // Cuando se detecta una nueva letra de forma estable
+  // Auto-acumular letras de forma inteligente evitando saturación
   useEffect(() => {
     if (!currentDetectedLetter || !isActive) return;
 
-    // Si es una sola letra (A-Z) o número (0-9)
     const clean = currentDetectedLetter.replace(/^sign\./, '').toUpperCase();
-    if (clean.length === 1 && (clean >= 'A' && clean <= 'Z' || clean >= '0' && clean <= '9')) {
-      setComposedMessage((prev) => {
-        // Evitar repetir la misma letra si se mantiene quieta por segundos
-        if (prev.endsWith(clean)) return prev;
-        return prev + clean;
-      });
+    if (clean.length === 1 && ((clean >= 'A' && clean <= 'Z') || (clean >= '0' && clean <= '9'))) {
+      const now = Date.now();
+      // Si es una letra diferente o pasaron más de 1200ms manteniendo la misma letra
+      if (clean !== lastLetterRef.current || now - lastAddedTimeRef.current > 1200) {
+        lastLetterRef.current = clean;
+        lastAddedTimeRef.current = now;
+        setComposedMessage((prev) => prev + clean);
+      }
     }
   }, [currentDetectedLetter, isActive]);
 
+  const handleManualAdd = () => {
+    if (!currentDetectedLetter) return;
+    const clean = currentDetectedLetter.replace(/^sign\./, '').toUpperCase();
+    if (clean.length === 1) {
+      setComposedMessage((prev) => prev + clean);
+      lastAddedTimeRef.current = Date.now();
+      lastLetterRef.current = clean;
+    }
+  };
+
   const handleAddSpace = () => {
     setComposedMessage((prev) => (prev ? prev + ' ' : ''));
+    lastLetterRef.current = ' ';
   };
 
   const handleDeleteLetter = () => {
@@ -33,6 +47,7 @@ export default function FingerspellingBar({ currentDetectedLetter, isActive = tr
 
   const handleClearAll = () => {
     setComposedMessage('');
+    lastLetterRef.current = '';
   };
 
   const handleSpeakComposed = () => {
@@ -49,65 +64,79 @@ export default function FingerspellingBar({ currentDetectedLetter, isActive = tr
 
   return (
     <View style={styles.container}>
-      {/* ── FILA SUPERIOR: BADGE DE SEÑA DETECTADA (Imágenes 2 y 3) ── */}
+      {/* ── FILA SUPERIOR: BADGE DE SEÑA DETECTADA Y TEXTO ACUMULADO ── */}
       <View style={styles.topRow}>
-        <View style={styles.detectedCard}>
-          <Text style={styles.detectedLabel}>¡Seña Detectada!</Text>
+        <TouchableOpacity
+          style={styles.detectedCard}
+          onPress={handleManualAdd}
+          activeOpacity={0.8}
+          accessibilityLabel="Añadir letra detectada"
+        >
+          <Text style={styles.detectedLabel}>SEÑA ACTIVA</Text>
           <Text style={styles.detectedLetter}>{displayLetter}</Text>
-        </View>
+          <Text style={styles.tapHint}>Toca para añadir</Text>
+        </TouchableOpacity>
 
         {/* Mensaje Deletreado / Acumulado */}
         <View style={styles.messageBox}>
           <View style={styles.messageHeader}>
-            <Text style={styles.messageLabel}>Tu Mensaje Deletreado:</Text>
+            <Text style={styles.messageLabel}>Mensaje Deletreado</Text>
             {composedMessage.trim().length > 0 && (
               <TouchableOpacity
                 onPress={handleSpeakComposed}
                 style={styles.speakMiniBtn}
                 activeOpacity={0.7}
               >
-                <Volume2 size={14} color={Colors.primary} />
-                <Text style={styles.speakMiniText}>Leer</Text>
+                <Volume2 size={13} color="#93C5FD" />
+                <Text style={styles.speakMiniText}>Escuchar</Text>
               </TouchableOpacity>
             )}
           </View>
 
           <Text style={styles.composedText} numberOfLines={2}>
-            {composedMessage || 'Haz señas con tus manos (A-Z)...'}
+            {composedMessage ? (
+              <React.Fragment>
+                {composedMessage} <Text style={styles.cursor}>|</Text>
+              </React.Fragment>
+            ) : (
+              <Text style={styles.placeholderText}>
+                Forma letras A-Z con tu mano para deletrear...
+              </Text>
+            )}
           </Text>
         </View>
       </View>
 
-      {/* ── BOTONES DE ACCIÓN (Exactos a las Imágenes 2 y 3) ── */}
+      {/* ── BOTONES DE ACCIÓN (Paleta Dark Navy Cokie College) ── */}
       <View style={styles.actionsRow}>
-        {/* Botón Azul: + Agregar Espacio */}
+        {/* + Espacio */}
         <TouchableOpacity
           style={[styles.actionBtn, styles.btnSpace]}
           onPress={handleAddSpace}
           activeOpacity={0.8}
         >
-          <Plus size={15} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={styles.btnText}>Agregar Espacio</Text>
+          <Plus size={14} color="#FFFFFF" strokeWidth={2.5} />
+          <Text style={styles.btnText}>Espacio</Text>
         </TouchableOpacity>
 
-        {/* Botón Rojo: ✕ Borrar Letra */}
+        {/* ⌫ Borrar Letra */}
         <TouchableOpacity
           style={[styles.actionBtn, styles.btnDelete]}
           onPress={handleDeleteLetter}
           activeOpacity={0.8}
         >
-          <X size={15} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={styles.btnText}>Borrar Letra</Text>
+          <Delete size={14} color="#CBD5E1" strokeWidth={2.2} />
+          <Text style={[styles.btnText, { color: '#E2E8F0' }]}>Borrar</Text>
         </TouchableOpacity>
 
-        {/* Botón Verde: ✓ Limpiar Todo */}
+        {/* Limpiar Todo */}
         <TouchableOpacity
           style={[styles.actionBtn, styles.btnClear]}
           onPress={handleClearAll}
           activeOpacity={0.8}
         >
-          <Check size={15} color="#FFFFFF" strokeWidth={2.5} />
-          <Text style={styles.btnText}>Limpiar Todo</Text>
+          <Trash2 size={14} color="#F87171" strokeWidth={2.2} />
+          <Text style={[styles.btnText, { color: '#F87171' }]}>Limpiar</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -116,10 +145,10 @@ export default function FingerspellingBar({ currentDetectedLetter, isActive = tr
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#131722',
+    backgroundColor: '#0D1527',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderColor: 'rgba(59, 130, 246, 0.18)',
     padding: 14,
     marginHorizontal: 16,
     marginBottom: 14,
@@ -130,37 +159,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   detectedCard: {
-    width: 110,
-    backgroundColor: '#EF4444', // Fondo rojo coral como en las imágenes 2 y 3
+    width: 104,
+    backgroundColor: '#0B1956',
     borderRadius: 14,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: '#2563EB',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   detectedLabel: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 10,
+    color: '#93C5FD',
+    fontSize: 9,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.6,
     marginBottom: 2,
     textAlign: 'center',
   },
   detectedLetter: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
     letterSpacing: -0.5,
+    lineHeight: 34,
+  },
+  tapHint: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 8,
+    fontWeight: '600',
+    marginTop: 2,
   },
   messageBox: {
     flex: 1,
-    backgroundColor: '#1A2130',
+    backgroundColor: '#070C18',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -174,29 +211,43 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageLabel: {
-    color: '#10B981', // Verde suave
-    fontSize: 11,
+    color: '#60A5FA',
+    fontSize: 10,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   speakMiniBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(37, 99, 235, 0.15)',
     paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.3)',
   },
   speakMiniText: {
-    color: Colors.primary,
-    fontSize: 11,
+    color: '#93C5FD',
+    fontSize: 10,
     fontWeight: '700',
   },
   composedText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  cursor: {
+    color: '#3B82F6',
+    fontWeight: '800',
+  },
+  placeholderText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
+    fontStyle: 'italic',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -213,13 +264,17 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   btnSpace: {
-    backgroundColor: '#2563EB', // Azul
+    backgroundColor: '#2563EB',
   },
   btnDelete: {
-    backgroundColor: '#EF4444', // Rojo
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   btnClear: {
-    backgroundColor: '#10B981', // Verde
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
   btnText: {
     color: '#FFFFFF',

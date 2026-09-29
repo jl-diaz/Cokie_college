@@ -238,15 +238,9 @@ async def process_frame(sid, data):
 
         translation = result.get("translation")
         if translation:
-            if isinstance(translation, dict):
-                payload = translation
-            else:
-                payload = {"id": translation, "text": translation}
+            payload = translation if isinstance(translation, dict) else {"id": translation, "text": translation}
             print(f"[TRADUCCIÓN] {sid} => {payload}")
             await sio.emit('translation_result', payload, room=sid)
-    elif translation:
-        payload = translation if isinstance(translation, dict) else {"id": translation, "text": translation}
-        await sio.emit('translation_result', payload, room=sid)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))

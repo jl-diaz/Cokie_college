@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import WebSocketService from '../services/WebSocketService';
 import SpeechService from '../services/SpeechService';
 import Esp32Service from '../services/Esp32Service';
+import { formatSignTranslation } from '../constants/signDictionary';
 
 const InterpreterContext = createContext(null);
 
@@ -122,34 +123,28 @@ export function InterpreterProvider({ children }) {
 
   // Manejador central de traducción recibida (desde Socket.IO o simulación)
   const handleIncomingTranslation = useCallback((text, rawData) => {
-    if (!text) return;
+    if (!text && !rawData) return;
 
-    let cleanText = text;
-    if (typeof cleanText === 'string') {
-      cleanText = cleanText.trim();
-      if (cleanText.startsWith('sign.')) {
-        cleanText = cleanText.replace('sign.', '').replace(/_/g, ' ');
-        cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
-      }
-    }
+    const formatted = formatSignTranslation(text, rawData);
+    if (!formatted) return;
 
-    setCurrentTranslation(cleanText);
+    setCurrentTranslation(formatted);
     setTranslationState('updated');
 
     // Agregar a historial
     setTranslationHistory((prev) => {
-      if (prev.length > 0 && prev[0].text.toLowerCase() === cleanText.toLowerCase()) {
+      if (prev.length > 0 && prev[0].text.toLowerCase() === formatted.toLowerCase()) {
         return prev;
       }
       const now = new Date();
       const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      return [{ id: `${Date.now()}-${Math.random()}`, text: cleanText, timestamp: timeStr }, ...prev].slice(0, 30);
+      return [{ id: `${Date.now()}-${Math.random()}`, text: formatted, timestamp: timeStr }, ...prev].slice(0, 30);
     });
 
     // Pronunciar si no se acaba de pronunciar exactamente lo mismo
-    if (lastSpokenRef.current !== cleanText) {
-      lastSpokenRef.current = cleanText;
-      speakText(cleanText);
+    if (lastSpokenRef.current !== formatted) {
+      lastSpokenRef.current = formatted;
+      speakText(formatted);
     }
 
     if (stateResetTimerRef.current) clearTimeout(stateResetTimerRef.current);
@@ -170,7 +165,7 @@ export function InterpreterProvider({ children }) {
 
     const unsubLandmarks = WebSocketService.addLandmarksListener((landmarks) => {
       setLandmarksData(landmarks);
-      if (landmarks?.detected) {
+      if (landmarks && landmarks.detected) {
         setTranslationState((prev) => (prev === 'updated' ? 'updated' : 'detecting'));
       }
     });
@@ -236,6 +231,7 @@ export function InterpreterProvider({ children }) {
 
   const clearTranslation = useCallback(() => {
     setCurrentTranslation('');
+    setTranslationHistory([]);
     lastSpokenRef.current = '';
     setTranslationState('ready');
   }, []);
@@ -275,6 +271,7 @@ export function InterpreterProvider({ children }) {
         speakText,
         simulateGesture,
         clearTranslation,
+        clearTranslationHistory: clearTranslation,
       }}
     >
       {children}

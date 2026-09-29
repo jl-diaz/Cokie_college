@@ -71,6 +71,11 @@ BEGIN
     END IF;
 END $$;
 
+-- Configurar REPLICA IDENTITY FULL para que Supabase Realtime replique todos los campos en eventos y filtros
+ALTER TABLE messages REPLICA IDENTITY FULL;
+ALTER TABLE conversation_participants REPLICA IDENTITY FULL;
+ALTER TABLE conversations REPLICA IDENTITY FULL;
+
 -- 6. Row Level Security (RLS)
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversation_participants ENABLE ROW LEVEL SECURITY;

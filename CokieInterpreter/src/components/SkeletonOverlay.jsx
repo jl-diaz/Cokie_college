@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Text, Platform } from 'react-native';
-import Svg, { Circle, Line, G, Rect } from 'react-native-svg';
-import Colors from '../constants/colors';
+import { View, StyleSheet } from 'react-native';
+import Svg, { Circle, Line, G } from 'react-native-svg';
 
 // Conexiones de los 21 puntos clave de la mano de MediaPipe
 const HAND_CONNECTIONS = [
@@ -19,73 +18,149 @@ const HAND_CONNECTIONS = [
   [17, 18], [18, 19], [19, 20],
 ];
 
-// Conexiones de brazos y hombros (Pose)
-const POSE_CONNECTIONS = [
-  ['left_shoulder', 'right_shoulder'],
-  ['left_shoulder', 'left_elbow'],
-  ['left_elbow', 'left_wrist'],
-  ['right_shoulder', 'right_elbow'],
-  ['right_elbow', 'right_wrist'],
+// Conexiones de torso y brazos de Pose (MediaPipe Holistic / Pose)
+const POSE_CONNECTIONS_INDICES = [
+  [11, 12], // Hombro izq a hombro der
+  [11, 13], // Hombro izq a codo izq
+  [13, 15], // Codo izq a muñeca izq
+  [12, 14], // Hombro der a codo der
+  [14, 16], // Codo der a muñeca der
+  [11, 23], // Hombro izq a torso/cadera izq
+  [12, 24], // Hombro der a torso/cadera der
+  [23, 24], // Conexión de cadera
 ];
+
+const POSE_KEYPOINTS = [11, 12, 13, 14, 15, 16, 23, 24]; // Hombros, codos, muñecas y torso
+
+// Color clásico original MediaPipe (idéntico a la captura de referencia del usuario)
+const COLOR_CONNECTOR = '#00FF00'; // Verde neón puro vibrante
+const COLOR_LANDMARK = '#FF0000';  // Puntos circulares rojos puros sólidos
+const LINE_WIDTH = '3.2';
 
 export default function SkeletonOverlay({
   width = 360,
-  height = 480,
+  height = 440,
   landmarksData = null,
   isActive = true,
   mode = 'full', // 'full' | 'hands' | 'pose'
+  facing = 'front',
+  videoSource = 'webcam',
 }) {
   if (!isActive) return null;
 
-  // Si no hay datos directos, generar puntos de muestra sutiles si hay detección activa
+  // En la cámara frontal del teléfono, la vista previa se muestra en espejo horizontal.
+  // Invertimos la coordenada X para alinearla al 100% con la mano del usuario.
+  const isMirrored = videoSource === 'webcam' && facing === 'front';
+
   const hands = useMemo(() => {
-    if (landmarksData?.hands && landmarksData.hands.length > 0) {
+    if (landmarksData && landmarksData.hands && landmarksData.hands.length > 0) {
       return landmarksData.hands;
     }
     return [];
   }, [landmarksData]);
 
-  const hasHands = hands.length > 0;
-  const motionEnergy = landmarksData?.motion_energy || 0;
+  const pose = useMemo(() => {
+    if (landmarksData && landmarksData.pose && landmarksData.pose.length > 0) {
+      return landmarksData.pose;
+    }
+    return [];
+  }, [landmarksData]);
+
+  const getX = (val) => (isMirrored ? (1.0 - val) : val) * width;
+  const getY = (val) => val * height;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={StyleSheet.absoluteFill}>
-        {/* ── 1. DIBUJAR ESQUELETO DE MANOS (21 Puntos + Líneas Naranjas como en las imágenes 2 y 3) ── */}
+        {/* ── 1. ESQUELETO DE POSE / BRAZOS, HOMBROS Y TORSO (Líneas verdes + Puntos rojos) ── */}
+        {(mode === 'full' || mode === 'pose') && pose.length >= 17 && (
+          <G key="pose-skeleton">
+            {/* Conexiones de hombros, brazos y torso */}
+            {POSE_CONNECTIONS_INDICES.map(([p1Idx, p2Idx], lineIdx) => {
+              const p1 = pose[p1Idx];
+              const p2 = pose[p2Idx];
+              if (!p1 || !p2) return null;
+              return (
+                <Line
+                  key={`pose-line-${lineIdx}`}
+                  x1={getX(p1.x)}
+                  y1={getY(p1.y)}
+                  x2={getX(p2.x)}
+                  y2={getY(p2.y)}
+                  stroke={COLOR_CONNECTOR}
+                  strokeWidth={LINE_WIDTH}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+
+            {/* Puntos de articulaciones corporales (Rojo puro sólido) */}
+            {POSE_KEYPOINTS.map((idx) => {
+              const pt = pose[idx];
+              if (!pt) return null;
+              return (
+                <Circle
+                  key={`pose-pt-${idx}`}
+                  cx={getX(pt.x)}
+                  cy={getY(pt.y)}
+                  r={5.5}
+                  fill={COLOR_LANDMARK}
+                />
+              );
+            })}
+          </G>
+        )}
+
+        {/* ── 2. ESQUELETO DE MANOS (21 PUNTOS POR MANO: Líneas verdes + Puntos rojos) ── */}
         {(mode === 'full' || mode === 'hands') &&
           hands.map((handPoints, handIdx) => {
             if (!handPoints || handPoints.length < 21) return null;
 
-            // Escalar puntos normalizados (0.0 a 1.0) al ancho y alto del contenedor
+            // Escalar puntos normalizados con corrección de espejo
             const scaled = handPoints.map((pt) => ({
-              x: pt.x * width,
-              y: pt.y * height,
+              x: getX(pt.x),
+              y: getY(pt.y),
             }));
 
-            // Calcular caja delimitadora
-            const xs = scaled.map((p) => p.x);
-            const ys = scaled.map((p) => p.y);
-            const minX = Math.min(...xs) - 14;
-            const maxX = Math.max(...xs) + 14;
-            const minY = Math.min(...ys) - 14;
-            const maxY = Math.max(...ys) + 14;
+            // Si hay pose disponible, conectar la muñeca de la mano (punto 0) con el codo correspondiente
+            let forearmLine = null;
+            if (pose && pose.length >= 17 && scaled[0]) {
+              // Buscar el codo o muñeca de pose más cercano
+              const wristHand = scaled[0];
+              const leftElbow = pose[13] ? { x: getX(pose[13].x), y: getY(pose[13].y) } : null;
+              const rightElbow = pose[14] ? { x: getX(pose[14].x), y: getY(pose[14].y) } : null;
+
+              let closestElbow = null;
+              if (leftElbow && rightElbow) {
+                const distLeft = Math.hypot(wristHand.x - leftElbow.x, wristHand.y - leftElbow.y);
+                const distRight = Math.hypot(wristHand.x - rightElbow.x, wristHand.y - rightElbow.y);
+                closestElbow = distLeft < distRight ? leftElbow : rightElbow;
+              } else {
+                closestElbow = leftElbow || rightElbow;
+              }
+
+              if (closestElbow) {
+                forearmLine = (
+                  <Line
+                    key={`forearm-${handIdx}`}
+                    x1={wristHand.x}
+                    y1={wristHand.y}
+                    x2={closestElbow.x}
+                    y2={closestElbow.y}
+                    stroke={COLOR_CONNECTOR}
+                    strokeWidth={LINE_WIDTH}
+                    strokeLinecap="round"
+                  />
+                );
+              }
+            }
 
             return (
               <G key={`hand-${handIdx}`}>
-                {/* Caja delimitadora sutil */}
-                <Rect
-                  x={minX}
-                  y={minY}
-                  width={maxX - minX}
-                  height={maxY - minY}
-                  fill="rgba(56, 189, 248, 0.04)"
-                  stroke="rgba(56, 189, 248, 0.35)"
-                  strokeWidth="1.2"
-                  strokeDasharray="4, 4"
-                  rx="8"
-                />
+                {/* Línea del antebrazo conectando mano y codo */}
+                {forearmLine}
 
-                {/* Líneas conectores en naranja brillante (como en las imágenes de referencia del usuario) */}
+                {/* Líneas conectoras de los 21 puntos en verde neón */}
                 {HAND_CONNECTIONS.map(([startIdx, endIdx], lineIdx) => {
                   const p1 = scaled[startIdx];
                   const p2 = scaled[endIdx];
@@ -97,103 +172,32 @@ export default function SkeletonOverlay({
                       y1={p1.y}
                       x2={p2.x}
                       y2={p2.y}
-                      stroke="#F97316" // Naranja idéntico al boceto
-                      strokeWidth="2.2"
+                      stroke={COLOR_CONNECTOR}
+                      strokeWidth={LINE_WIDTH}
                       strokeLinecap="round"
                     />
                   );
                 })}
 
-                {/* Puntos circulares azules con centro blanco (como en las imágenes 2 y 3) */}
+                {/* Puntos de articulaciones de la mano en rojo puro sólido (exacto a la imagen anterior) */}
                 {scaled.map((pt, ptIdx) => {
                   const isFingertip = [4, 8, 12, 16, 20].includes(ptIdx);
                   const isWrist = ptIdx === 0;
 
                   return (
-                    <G key={`point-${handIdx}-${ptIdx}`}>
-                      {/* Aro exterior azul / cian */}
-                      <Circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r={isFingertip ? 5.5 : isWrist ? 6 : 4.5}
-                        fill="#2563EB" // Azul vibrante
-                        stroke="#60A5FA"
-                        strokeWidth="1.5"
-                      />
-                      {/* Núcleo blanco de alta precisión */}
-                      <Circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r={isFingertip ? 2.5 : 2}
-                        fill="#FFFFFF"
-                      />
-                    </G>
+                    <Circle
+                      key={`point-${handIdx}-${ptIdx}`}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={isWrist ? 6 : isFingertip ? 5 : 4.5}
+                      fill={COLOR_LANDMARK}
+                    />
                   );
                 })}
               </G>
             );
           })}
-
-        {/* ── 2. DIBUJAR PUNTOS DE POSE Y ROSTRO SI ESTÁN DISPONIBLES ── */}
-        {(mode === 'full' || mode === 'pose') && landmarksData?.pose && (
-          <G>
-            {landmarksData.pose.map((pt, idx) => (
-              <Circle
-                key={`pose-${idx}`}
-                cx={pt.x * width}
-                cy={pt.y * height}
-                r={4}
-                fill="#10B981"
-                stroke="#FFFFFF"
-                strokeWidth="1"
-              />
-            ))}
-          </G>
-        )}
       </Svg>
-
-      {/* ── HUD SUPERIOR DEL ESQUELETO ── */}
-      <View style={styles.hudBadge}>
-        <View
-          style={[
-            styles.hudDot,
-            { backgroundColor: hasHands ? Colors.success : '#F59E0B' },
-          ]}
-        />
-        <Text style={styles.hudText}>
-          {hasHands
-            ? `${hands.length} MANO${hands.length > 1 ? 'S' : ''} RASTREADA${hands.length > 1 ? 'S' : ''} (21 PUNTOS)`
-            : 'ESPERANDO MANOS PARA RASTREO...'}
-        </Text>
-      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  hudBadge: {
-    position: 'absolute',
-    bottom: 14,
-    left: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  hudDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  hudText: {
-    color: '#E2E8F0',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-});

@@ -48,6 +48,7 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
   const [facing, setFacing] = useState('front');
   const [glassesFrameUri, setGlassesFrameUri] = useState(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [viewportSize, setViewportSize] = useState({ width: 360, height: 440 });
 
   const cameraRef = useRef(null);
   const isCapturingRef = useRef(false);
@@ -55,12 +56,12 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
 
   // Solicitar permiso de cámara
   useEffect(() => {
-    if (!permission?.granted) {
+    if (!permission || !permission.granted) {
       requestPermission().catch(() => {});
     }
   }, [permission, requestPermission]);
 
-  // Captura periódica de fotogramas en modo Teléfono/Cámara para enviar al backend de IA
+  // Captura periódica ultrarrápida de fotogramas (150ms, calidad optimizada sin lag)
   useEffect(() => {
     if (videoSource !== 'webcam' || !isCameraReady) return;
 
@@ -70,21 +71,22 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
       try {
         isCapturingRef.current = true;
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.5,
+          quality: 0.15,
           base64: true,
           shutterSound: false,
           skipProcessing: true,
+          exif: false,
         });
 
-        if (photo?.base64 && isMounted) {
+        if (photo && photo.base64 && isMounted) {
           WebSocketService.sendFrame(`data:image/jpeg;base64,${photo.base64}`);
         }
       } catch (e) {
-        // En algunas plataformas puede fallar si la cámara está ocupada
+        // Ignorar si la cámara está ocupada
       } finally {
         isCapturingRef.current = false;
       }
-    }, 240);
+    }, 150);
 
     return () => {
       isMounted = false;
@@ -160,9 +162,17 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
   };
 
   return (
-    <View style={styles.viewportContainer}>
+    <View
+      style={styles.viewportContainer}
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        if (w > 0 && h > 0) {
+          setViewportSize({ width: Math.round(w), height: Math.round(h) });
+        }
+      }}
+    >
       {videoSource === 'webcam' ? (
-        permission?.granted ? (
+        (permission && permission.granted) ? (
           <CameraView
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
@@ -204,16 +214,18 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
         </View>
       )}
 
-      {/* ── TRAZADO DE PUNTOS Y ESQUELETO EN TIEMPO REAL (Imágenes 2 y 3) ── */}
+      {/* ── TRAZADO DE PUNTOS Y ESQUELETO EN TIEMPO REAL CON CORRECCIÓN DE ESPEJO ── */}
       <SkeletonOverlay
-        width={width > 480 ? 480 : width - 32}
-        height={440}
+        width={viewportSize.width}
+        height={viewportSize.height}
         landmarksData={landmarksData}
         isActive={isSkeletonEnabled}
         mode={skeletonMode}
+        facing={facing}
+        videoSource={videoSource}
       />
 
-      {/* Retícula y efectos de detección en tiempo real */}
+      {/* Retícula sutil de encuadre */}
       <DetectionOverlay
         isDetecting={translationState === 'detecting' || translationState === 'updated'}
         source={videoSource}
@@ -228,7 +240,7 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
               {
                 backgroundColor:
                   videoSource === 'webcam'
-                    ? permission?.granted
+                    ? (permission && permission.granted)
                       ? Colors.success
                       : Colors.danger
                     : glassesConnected
@@ -238,7 +250,7 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
             ]}
           />
           <Text style={styles.liveBadgeText}>
-            {videoSource === 'webcam' ? 'CÁMARA EN VIVO' : 'COKIELENS'}
+            {videoSource === 'webcam' ? 'EN VIVO' : 'COKIELENS'}
           </Text>
         </View>
 
@@ -251,7 +263,7 @@ export default function CameraViewportNative({ isFullscreen, onToggleFullscreen 
           onPress={toggleSkeletonMode}
           activeOpacity={0.8}
         >
-          <Target size={12} color={isSkeletonEnabled ? '#0B0F17' : '#FFFFFF'} />
+          <Target size={12} color={isSkeletonEnabled ? '#FFFFFF' : '#94A3B8'} />
           <Text
             style={[
               styles.skeletonToggleText,
@@ -401,16 +413,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   skeletonTogglePillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: '#2563EB',
+    borderColor: '#3B82F6',
   },
   skeletonToggleText: {
-    color: '#E2E8F0',
+    color: '#94A3B8',
     fontSize: 10,
     fontWeight: '700',
   },
   skeletonToggleTextActive: {
-    color: '#0B0F17',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   floatingActionColumn: {

@@ -1,29 +1,32 @@
+// Sistema de diseño Dark Navy para CokieInterpreter (Cokie College)
 export const Colors = {
-  // Base theme colors
-  background: '#0B0F17',
-  backgroundSecondary: '#121722',
-  surface: '#1A2130',
-  surfaceHighlight: '#222B3D',
-  surfaceTranslucent: 'rgba(26, 33, 48, 0.85)',
-  surfaceGlass: 'rgba(18, 23, 34, 0.75)',
+  // Base theme colors - Dark Navy Aesthetic
+  background: '#070C18',
+  backgroundSecondary: '#0B1325',
+  surface: '#0E172E',
+  surfaceHighlight: '#14203E',
+  surfaceTranslucent: 'rgba(14, 23, 46, 0.88)',
+  surfaceGlass: 'rgba(11, 19, 37, 0.78)',
 
   // Borders
-  border: 'rgba(255, 255, 255, 0.09)',
-  borderLight: 'rgba(255, 255, 255, 0.16)',
-  borderActive: 'rgba(56, 189, 248, 0.45)',
+  border: 'rgba(59, 130, 246, 0.18)',
+  borderLight: 'rgba(255, 255, 255, 0.14)',
+  borderActive: '#3B82F6',
 
-  // Accents & States
-  primary: '#38BDF8', // Cyan / Sky AI
-  primaryDark: '#0284C7',
-  primaryGlow: 'rgba(56, 189, 248, 0.25)',
+  // Cokie College Navy & Electric Accents
+  cokieNavy: '#0B1956',
+  cokieNavyLight: '#426BC2',
+  cokieNavyDark: '#0A1540',
+  primary: '#2563EB', // Royal Electric Navy Blue
+  primaryLight: '#3B82F6',
+  primaryDark: '#1D4ED8',
+  primaryGlow: 'rgba(37, 99, 235, 0.30)',
 
-  success: '#10B981', // Emerald / Mint for verified translation
+  // States
+  success: '#10B981',
   successGlow: 'rgba(16, 185, 129, 0.25)',
-  successLight: '#34D399',
-
   warning: '#F59E0B',
   warningGlow: 'rgba(245, 158, 11, 0.25)',
-
   danger: '#EF4444',
   dangerGlow: 'rgba(239, 68, 68, 0.25)',
 
@@ -37,13 +40,31 @@ export const Colors = {
   textSecondary: '#94A3B8',
   textTertiary: '#64748B',
   textMuted: '#475569',
-  textInverse: '#0B0F17',
+  textInverse: '#0B1956',
 
   // Controls
-  pillActive: '#FFFFFF',
-  pillActiveText: '#0B0F17',
-  pillInactive: 'rgba(255, 255, 255, 0.12)',
+  pillActive: '#2563EB',
+  pillActiveText: '#FFFFFF',
+  pillInactive: 'rgba(255, 255, 255, 0.08)',
   pillInactiveText: '#94A3B8',
+
+  // Cokie College Dark Navy Design Tokens
+  navyTheme: {
+    bg: '#070C18',
+    bgCard: '#0D1527',
+    bgCardElevated: '#111C35',
+    bgSurface: '#162342',
+    navyDeep: '#0B1956',
+    navyAccent: '#2563EB',
+    navyLight: '#3B82F6',
+    navySky: '#60A5FA',
+    border: 'rgba(59, 130, 246, 0.22)',
+    borderSubtle: 'rgba(255, 255, 255, 0.08)',
+    borderGlass: 'rgba(59, 130, 246, 0.35)',
+    glow: 'rgba(37, 99, 235, 0.35)',
+    textLight: '#FFFFFF',
+    textDim: '#94A3B8',
+  },
 };
 
 export default Colors;

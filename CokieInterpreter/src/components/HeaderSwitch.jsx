@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Settings, Video, Glasses, Sparkles, HelpCircle, FileText, Type } from 'lucide-react-native';
+import { Settings, Video, Glasses, Sparkles, HelpCircle, Activity } from 'lucide-react-native';
 import Colors from '../constants/colors';
 import { useInterpreter } from '../context/InterpreterContext';
 
@@ -33,19 +33,19 @@ export default function HeaderSwitch({ onOpenSettings, onOpenTutorial }) {
 
   return (
     <View style={styles.wrapper}>
-      {/* ── FILA SUPERIOR: MARCA, SELECTOR [ Webcam | Lentes ] Y BOTONES ⚙️ / ? ── */}
+      {/* Fila Superior: Marca, Selector de Entrada [ Cámara | Lentes ] y Acciones */}
       <View style={styles.container}>
-        {/* Brand Badge */}
+        {/* Brand Badge Cokie College Navy */}
         <View style={styles.brandContainer}>
           <View style={styles.brandIconCircle}>
-            <Sparkles size={14} color={Colors.primary} />
+            <Activity size={15} color="#3B82F6" />
           </View>
           <Text style={styles.brandText}>
             Cokie<Text style={styles.brandTextAccent}>Interpreter</Text>
           </Text>
         </View>
 
-        {/* Pill Switcher [ Webcam | Lentes ] (tal como en el boceto) */}
+        {/* Pill Switcher [ Cámara | Lentes ] */}
         <View style={styles.switcherContainer}>
           <TouchableOpacity
             style={[
@@ -61,7 +61,7 @@ export default function HeaderSwitch({ onOpenSettings, onOpenTutorial }) {
                 videoSource === 'webcam' && styles.switchTextActive,
               ]}
             >
-              Webcam
+              Cámara
             </Text>
           </TouchableOpacity>
 
@@ -87,7 +87,7 @@ export default function HeaderSwitch({ onOpenSettings, onOpenTutorial }) {
           </TouchableOpacity>
         </View>
 
-        {/* Botones de Cabecera: Tutorial (?) y Ajustes (⚙️) */}
+        {/* Botones de Cabecera: Tutorial y Ajustes */}
         <View style={styles.rightIconsRow}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -104,12 +104,12 @@ export default function HeaderSwitch({ onOpenSettings, onOpenTutorial }) {
             activeOpacity={0.7}
             accessibilityLabel="Configuración de CokieLens y Servidor"
           >
-            <Settings size={20} color={Colors.textPrimary} />
+            <Settings size={18} color="#E2E8F0" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── FILA INFERIOR: SELECTOR DE MODO DE INTERPRETACIÓN ── */}
+      {/* Fila Inferior: Selector de Modo de Interpretación */}
       <View style={styles.modesRow}>
         <TouchableOpacity
           style={[
@@ -171,8 +171,8 @@ export default function HeaderSwitch({ onOpenSettings, onOpenTutorial }) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingTop: Platform.OS === 'web' ? 14 : 6,
-    paddingBottom: 8,
+    paddingTop: Platform.OS === 'web' ? 14 : 8,
+    paddingBottom: 10,
     zIndex: 10,
   },
   container: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   brandContainer: {
     flexDirection: 'row',
@@ -188,12 +188,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brandIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: 'rgba(59, 130, 246, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -204,39 +204,41 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   brandTextAccent: {
-    color: Colors.primary,
-    fontWeight: '500',
+    color: '#3B82F6',
+    fontWeight: '600',
   },
   switcherContainer: {
     flexDirection: 'row',
-    backgroundColor: '#353A45',
+    backgroundColor: '#0B1426',
     borderRadius: 30,
     padding: 3,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.25)',
   },
   switchSegment: {
     paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 24,
+    paddingHorizontal: 15,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   switchSegmentActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: '#2563EB',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
     elevation: 3,
   },
   switchText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#D1D5DB',
+    color: '#94A3B8',
   },
   switchTextActive: {
-    color: '#0B0F17',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   segmentWithDot: {
     flexDirection: 'row',
@@ -247,7 +249,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.success,
+    backgroundColor: '#3B82F6',
   },
   rightIconsRow: {
     flexDirection: 'row',
@@ -258,9 +260,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#0D1527',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -270,19 +272,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    marginTop: 2,
   },
   modeChip: {
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#0D1527',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   modeChipActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    borderColor: Colors.primary,
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    borderColor: '#3B82F6',
   },
   modeChipText: {
     color: '#94A3B8',
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modeChipTextActive: {
-    color: Colors.primary,
+    color: '#60A5FA',
     fontWeight: '700',
   },
 });

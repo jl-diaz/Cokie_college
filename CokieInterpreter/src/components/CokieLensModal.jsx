@@ -24,6 +24,7 @@ import {
   Plus,
   Minus,
   Radio,
+  Info,
 } from 'lucide-react-native';
 import Colors from '../constants/colors';
 import SmartGlassesGraphic from './SmartGlassesGraphic';
@@ -193,12 +194,18 @@ export default function CokieLensModal({ visible, onClose }) {
               </TouchableOpacity>
             </View>
 
-            {/* Nota de Arquitectura de Red (Resuelve el problema de no perder Internet) */}
+            {/* Nota de Arquitectura de Red */}
             <View style={styles.networkNoteBox}>
+              <View style={styles.networkNoteHeader}>
+                <Info size={13} color={activeTab === 'mdns' ? '#3B82F6' : '#F59E0B'} />
+                <Text style={[styles.networkNoteBadge, { color: activeTab === 'mdns' ? '#60A5FA' : '#F59E0B' }]}>
+                  {activeTab === 'mdns' ? 'MODO RECOMENDADO' : 'MODO CONFIGURACIÓN'}
+                </Text>
+              </View>
               <Text style={styles.networkNoteText}>
                 {activeTab === 'mdns'
-                  ? '💡 Modo Recomendado: Conecta los lentes a la Zona Wi-Fi de tu celular o a tu router para que tu app tenga Internet para la IA y video de los lentes a la vez.'
-                  : '⚠️ Modo Configuración: La red "CokieLens-Setup" (192.168.4.1) no tiene internet. Úsala para configurar el Wi-Fi de los lentes o con servidor IA local.'}
+                  ? 'Conecta los lentes a la Zona Wi-Fi de tu celular o a tu router para que tu app tenga Internet para la IA y video de los lentes simultáneamente.'
+                  : 'La red "CokieLens-Setup" (192.168.4.1) no tiene internet. Úsala para configurar el Wi-Fi de los lentes o con servidor IA local.'}
               </Text>
             </View>
 
@@ -484,17 +491,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   networkNoteBox: {
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    backgroundColor: '#0E172E',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    paddingVertical: 8,
+    borderColor: 'rgba(59, 130, 246, 0.25)',
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 14,
   },
+  networkNoteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  networkNoteBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   networkNoteText: {
     fontSize: 11,
-    color: '#BAE6FD',
+    color: '#94A3B8',
     lineHeight: 16,
     fontWeight: '500',
   },

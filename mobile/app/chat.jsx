@@ -131,6 +131,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [activeParticipants, setActiveParticipants] = useState([]);
   const flatListRef = useRef(null);
+  const activeChannelRef = useRef(null);
 
   // Modales
   const [newChatModalVisible, setNewChatModalVisible] = useState(false);
@@ -377,6 +378,86 @@ export default function ChatScreen() {
     fetchConversations();
   }, [user]);
 
+  // Suscripción de nivel de usuario para recibir eventos de cualquier conversación en tiempo real
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const userChannel = supabase
+      .channel(`user_chat_${user.id}`)
+      .on('broadcast', { event: 'new_message' }, ({ payload }) => {
+        if (!payload || !payload.conversation_id) return;
+        const clearContent = decryptMessage(payload.content);
+        const isMine = payload.sender_id === user.id;
+
+        // Si la conversación del mensaje recibido está abierta en pantalla
+        if (activeConv?.id === payload.conversation_id) {
+          setMessages(prev => {
+            if (prev.some(m => m.id === payload.id)) return prev;
+            return [
+              ...prev,
+              {
+                ...payload,
+                content: clearContent,
+                is_mine: isMine,
+                status: 'sent'
+              }
+            ];
+          });
+          if (!isMine) {
+            api.post(`/chat/conversations/${payload.conversation_id}/read`).catch(() => {});
+          }
+        }
+
+        // Actualizar listado de conversaciones lateral/principal
+        setConversations(prev => {
+          let exists = false;
+          const updated = prev.map(c => {
+            if (c.id === payload.conversation_id) {
+              exists = true;
+              const isCurrentlyActive = activeConv?.id === payload.conversation_id;
+              return {
+                ...c,
+                last_message: payload.type === 'image'
+                  ? t('chat.attachedPhoto', '📷 Foto enviada')
+                  : (payload.type === 'document' ? `📄 ${payload.attachment_name || 'Documento'}` : clearContent),
+                last_message_at: payload.created_at || new Date().toISOString(),
+                unread_count: isCurrentlyActive ? 0 : (c.unread_count || 0) + (isMine ? 0 : 1)
+              };
+            }
+            return c;
+          });
+
+          if (!exists) {
+            fetchConversations(true);
+            return prev;
+          }
+
+          updated.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+
+          if (setUnreadChatCount) {
+            const total = updated.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+            setUnreadChatCount(total);
+          }
+
+          return updated;
+        });
+      })
+      .on('broadcast', { event: 'conversation_created' }, () => {
+        fetchConversations(true);
+      })
+      .subscribe();
+
+    // Refresco periódico de fondo de la lista de chats cada 20 segundos
+    const convInterval = setInterval(() => {
+      fetchConversations(true);
+    }, 20000);
+
+    return () => {
+      clearInterval(convInterval);
+      supabase.removeChannel(userChannel);
+    };
+  }, [user?.id, activeConv?.id]);
+
   // Vigilancia de la cola de salida (Outbox Offline Queue)
   useEffect(() => {
     const stopAutoFlush = startOutboxAutoFlush(api, 12000);
@@ -406,12 +487,82 @@ export default function ChatScreen() {
     }
   }, [activeConv?.id]);
 
-  // 3. Suscripción en Tiempo Real mediante Supabase Realtime (Mensajes y Lectura)
+  // 3. Suscripción en Tiempo Real para la conversación activa (Broadcast + postgres_changes + Polling sync)
   useEffect(() => {
-    if (!activeConv?.id) return;
+    if (!activeConv?.id) {
+      activeChannelRef.current = null;
+      return;
+    }
 
+    const channelName = `chat_room_${activeConv.id}`;
     const channel = supabase
-      .channel(`chat_room_${activeConv.id}`)
+      .channel(channelName, {
+        config: {
+          broadcast: { self: false }
+        }
+      })
+      // A. Evento Broadcast: Mensaje nuevo entrante (<100ms)
+      .on('broadcast', { event: 'new_message' }, async ({ payload }) => {
+        if (!payload || !payload.id) return;
+        const newMsg = payload;
+        const isMine = newMsg.sender_id === user?.id;
+        const clearContent = decryptMessage(newMsg.content);
+
+        // Si el mensaje es entrante y la pantalla está activa, marcarlo leído y responder con recibo de lectura
+        if (!isMine) {
+          api.post(`/chat/conversations/${activeConv.id}/read`).catch(() => {});
+          channel.send({
+            type: 'broadcast',
+            event: 'read_receipt',
+            payload: {
+              conversation_id: activeConv.id,
+              user_id: user?.id,
+              last_read_at: new Date().toISOString()
+            }
+          }).catch(() => {});
+        }
+
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [
+            ...prev,
+            {
+              ...newMsg,
+              content: clearContent,
+              is_mine: isMine,
+              status: 'sent',
+              sender: newMsg.sender || { full_name: isMine ? (profile?.full_name || 'Yo') : 'Usuario' }
+            }
+          ];
+        });
+
+        // Actualizar lista de conversaciones
+        setConversations(prev => {
+          const updated = prev.map(c => {
+            if (c.id === activeConv.id) {
+              return {
+                ...c,
+                last_message: newMsg.type === 'image' 
+                  ? t('chat.attachedPhoto', '📷 Foto enviada') 
+                  : (newMsg.type === 'document' ? `📄 ${newMsg.attachment_name || 'Documento'}` : clearContent),
+                last_message_at: newMsg.created_at || new Date().toISOString()
+              };
+            }
+            return c;
+          });
+          return updated.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+        });
+      })
+      // B. Evento Broadcast: Confirmación de lectura (doble check azul instantáneo)
+      .on('broadcast', { event: 'read_receipt' }, ({ payload }) => {
+        if (!payload || !payload.user_id) return;
+        setActiveParticipants(prev => {
+          const exists = prev.some(p => p.user_id === payload.user_id);
+          if (!exists) return [...prev, payload];
+          return prev.map(p => p.user_id === payload.user_id ? { ...p, last_read_at: payload.last_read_at } : p);
+        });
+      })
+      // C. Evento Postgres Changes: INSERT en messages (canal de réplica de respaldo)
       .on(
         'postgres_changes',
         {
@@ -422,15 +573,14 @@ export default function ChatScreen() {
         },
         async (payload) => {
           const newMsg = payload.new;
+          if (!newMsg) return;
           const isMine = newMsg.sender_id === user?.id;
           const clearContent = decryptMessage(newMsg.content);
 
-          // Si el mensaje es entrante y la pantalla está activa, marcarlo leído
           if (!isMine) {
             api.post(`/chat/conversations/${activeConv.id}/read`).catch(() => {});
           }
 
-          // Obtener nombre del remitente si es de otro usuario
           let senderProfile = null;
           if (!isMine && newMsg.sender_id) {
             const { data: prof } = await supabase
@@ -455,21 +605,24 @@ export default function ChatScreen() {
             ];
           });
 
-          // Actualizar lista de conversaciones
-          setConversations(prev => prev.map(c => {
-            if (c.id === activeConv.id) {
-              return {
-                ...c,
-                last_message: newMsg.type === 'image' 
-                  ? t('chat.attachedPhoto', '📷 Foto enviada') 
-                  : (newMsg.type === 'document' ? `📄 ${newMsg.attachment_name || 'Documento'}` : clearContent),
-                last_message_at: newMsg.created_at
-              };
-            }
-            return c;
-          }));
+          setConversations(prev => {
+            const updated = prev.map(c => {
+              if (c.id === activeConv.id) {
+                return {
+                  ...c,
+                  last_message: newMsg.type === 'image' 
+                    ? t('chat.attachedPhoto', '📷 Foto enviada') 
+                    : (newMsg.type === 'document' ? `📄 ${newMsg.attachment_name || 'Documento'}` : clearContent),
+                  last_message_at: newMsg.created_at || new Date().toISOString()
+                };
+              }
+              return c;
+            });
+            return updated.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+          });
         }
       )
+      // D. Evento Postgres Changes: UPDATE en conversation_participants (lectura)
       .on(
         'postgres_changes',
         {
@@ -480,6 +633,7 @@ export default function ChatScreen() {
         },
         (payload) => {
           const updated = payload.new;
+          if (!updated) return;
           setActiveParticipants(prev => {
             const exists = prev.some(p => p.user_id === updated.user_id);
             if (!exists) return [...prev, updated];
@@ -489,7 +643,39 @@ export default function ChatScreen() {
       )
       .subscribe();
 
+    activeChannelRef.current = channel;
+
+    // E. Polling de sincronización periódica cada 5s de respaldo (para desconexiones / reconexiones de socket)
+    const syncInterval = setInterval(async () => {
+      try {
+        const res = await api.get(`/chat/conversations/${activeConv.id}/messages`);
+        const serverMessages = res.data?.messages || [];
+        const serverParts = res.data?.participants || [];
+        if (serverParts.length > 0) {
+          setActiveParticipants(serverParts);
+        }
+        if (serverMessages.length > 0) {
+          setMessages(prev => {
+            const hasNew = serverMessages.some(sm => !prev.some(pm => pm.id === sm.id));
+            if (!hasNew) return prev;
+
+            const pending = prev.filter(m => m.status === 'pending');
+            const mapped = serverMessages.map(m => ({
+              ...m,
+              content: decryptMessage(m.content),
+              status: 'sent'
+            }));
+            return [...mapped, ...pending];
+          });
+        }
+      } catch (err) {
+        // silencioso
+      }
+    }, 5000);
+
     return () => {
+      clearInterval(syncInterval);
+      activeChannelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [activeConv?.id, user?.id, profile?.full_name]);
@@ -516,10 +702,36 @@ export default function ChatScreen() {
 
       // Agregar inmediatamente a la lista si no vino ya por Realtime
       if (res.data) {
+        const fullNewMsg = {
+          ...res.data,
+          content: textToSend,
+          is_mine: true,
+          status: 'sent',
+          sender: {
+            id: user?.id,
+            full_name: profile?.full_name || 'Yo',
+            role: profile?.role
+          }
+        };
+
         setMessages(prev => {
           if (prev.some(m => m.id === res.data.id)) return prev;
-          return [...prev, { ...res.data, content: textToSend, is_mine: true, status: 'sent' }];
+          return [...prev, fullNewMsg];
         });
+
+        // Emitir de inmediato por Broadcast al socket de la sala activa para entrega instantánea (<100ms)
+        activeChannelRef.current?.send({
+          type: 'broadcast',
+          event: 'new_message',
+          payload: {
+            ...res.data,
+            sender: {
+              id: user?.id,
+              full_name: profile?.full_name || 'Yo',
+              role: profile?.role
+            }
+          }
+        }).catch(() => {});
       }
 
       // Actualizar timestamp en la lista de conversaciones
@@ -999,6 +1211,56 @@ export default function ChatScreen() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Helper para verificar si dos fechas corresponden al mismo día calendario
+  const isSameDay = (date1, date2) => {
+    if (!date1 || !date2) return false;
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  // Formateador de separadores por día (Hoy, Ayer o Fecha completa legible)
+  const formatDaySeparator = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (isSameDay(date, today)) {
+      return isDesktop
+        ? t('chat.todayFull', {
+            date: date.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(),
+            defaultValue: `HOY · ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}`
+          })
+        : t('chat.today', 'HOY');
+    }
+
+    if (isSameDay(date, yesterday)) {
+      return isDesktop
+        ? t('chat.yesterdayFull', {
+            date: date.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(),
+            defaultValue: `AYER · ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}`
+          })
+        : t('chat.yesterday', 'AYER');
+    }
+
+    const locale = i18n.language === 'en' ? 'en-US' : 'es-ES';
+    const isSameYear = date.getFullYear() === today.getFullYear();
+    const formatted = date.toLocaleDateString(locale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: isSameYear ? undefined : 'numeric'
+    });
+
+    return formatted.toUpperCase();
+  };
+
   const isDark = theme === 'dark';
 
   const getRoleBadgeInfo = (role) => {
@@ -1311,22 +1573,26 @@ export default function ChatScreen() {
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-              ListHeaderComponent={() => (
-                <View style={styles.dateSeparatorWrapper}>
-                  <Text style={styles.dateSeparatorText}>
-                    {isDesktop
-                      ? t('chat.todayFull', {
-                          date: new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase(),
-                          defaultValue: `HOY · ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}`
-                        })
-                      : t('chat.today', 'HOY')}
-                  </Text>
-                </View>
-              )}
-              renderItem={({ item }) => {
-                const isMine = item.is_mine || item.sender_id === user?.id;
-                return (
-                  <View style={[styles.messageRow, isMine ? styles.messageRowRight : styles.messageRowLeft]}>
+                ListHeaderComponent={null}
+                renderItem={({ item, index }) => {
+                  const isMine = item.is_mine || item.sender_id === user?.id;
+                  const itemDate = item.created_at || new Date().toISOString();
+                  const prevItem = index > 0 ? messages[index - 1] : null;
+                  const prevDate = prevItem?.created_at;
+                  const showDateSeparator = !prevItem || !isSameDay(prevDate, itemDate);
+
+                  return (
+                    <View key={item.id || `msg-${index}`}>
+                      {showDateSeparator && (
+                        <View style={styles.dateSeparatorWrapper}>
+                          <View style={styles.dateSeparatorPill}>
+                            <Text style={styles.dateSeparatorText}>
+                              {formatDaySeparator(itemDate)}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                      <View style={[styles.messageRow, isMine ? styles.messageRowRight : styles.messageRowLeft]}>
                     {/* Avatar en mensajes entrantes */}
                     {!isMine && (
                       <View style={styles.messageAvatar}>
@@ -1451,8 +1717,9 @@ export default function ChatScreen() {
                       </View>
                     )}
                   </View>
-                );
-              }}
+                </View>
+              );
+            }}
             />
           )}
 
@@ -2348,11 +2615,21 @@ const createStyles = (Colors, theme, isDesktop) => {
       alignItems: 'center',
       marginVertical: 14,
     },
+    dateSeparatorPill: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+      alignSelf: 'center',
+    },
     dateSeparatorText: {
       fontSize: 11,
-      fontWeight: 'bold',
-      color: Colors.text.muted,
-      letterSpacing: 0.5,
+      fontWeight: '700',
+      color: isDark ? 'rgba(255, 255, 255, 0.75)' : Colors.text.muted,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
     },
     messageRow: {
       flexDirection: 'row',

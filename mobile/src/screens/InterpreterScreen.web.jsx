@@ -697,7 +697,7 @@ export default function InterpreterScreenWeb() {
             {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
               <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', borderWidth: 1, borderColor: '#ef4444', borderRadius: 8, padding: 8, marginBottom: 12 }}>
                 <Text style={{ color: '#f87171', fontSize: 11, lineHeight: 15 }}>
-                  ⚠️ Navegador en HTTPS: Los navegadores restringen llamadas hacia IPs locales HTTP (192.168.4.1). Para conectar tus lentes en web, abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS.
+                  Aviso - Navegador en HTTPS: Los navegadores restringen llamadas hacia IPs locales HTTP (192.168.4.1). Para conectar tus lentes en web, abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS.
                 </Text>
               </View>
             )}

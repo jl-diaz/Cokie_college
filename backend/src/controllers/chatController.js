@@ -2,6 +2,58 @@ const { supabaseAdmin } = require('../config/supabase');
 const { sendNotification } = require('../utils/notificationService');
 const { decryptMessage } = require('../utils/chatCrypto');
 
+/**
+ * Emite un evento en tiempo real a una sala de chat específica mediante Supabase Realtime Broadcast
+ */
+const broadcastToRoom = (conversationId, event, payload) => {
+    try {
+        const roomChannel = supabaseAdmin.channel(`chat_room_${conversationId}`);
+        roomChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                try {
+                    await roomChannel.send({
+                        type: 'broadcast',
+                        event,
+                        payload
+                    });
+                } catch (sendErr) {
+                    console.error(`[broadcastToRoom send error - ${event}]:`, sendErr);
+                } finally {
+                    supabaseAdmin.removeChannel(roomChannel);
+                }
+            }
+        });
+    } catch (e) {
+        console.error(`[broadcastToRoom error - ${event}]:`, e);
+    }
+};
+
+/**
+ * Emite un evento en tiempo real al canal personal de un usuario (para actualizar su lista de chats)
+ */
+const broadcastToUser = (userId, event, payload) => {
+    try {
+        const userChannel = supabaseAdmin.channel(`user_chat_${userId}`);
+        userChannel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                try {
+                    await userChannel.send({
+                        type: 'broadcast',
+                        event,
+                        payload
+                    });
+                } catch (sendErr) {
+                    console.error(`[broadcastToUser send error - ${event}]:`, sendErr);
+                } finally {
+                    supabaseAdmin.removeChannel(userChannel);
+                }
+            }
+        });
+    } catch (e) {
+        console.error(`[broadcastToUser error - ${event}]:`, e);
+    }
+};
+
 const chatController = {
     /**
      * Obtener listado de conversaciones del usuario autenticado
@@ -250,6 +302,9 @@ const chatController = {
                         { conversation_id: newConv.id, user_id: recipient_id, role: 'member' }
                     ]);
 
+                // Notificar en tiempo real al destinatario para que aparezca la conversación
+                broadcastToUser(recipient_id, 'conversation_created', { conversation_id: newConv.id });
+
                 return res.status(201).json({ id: newConv.id, existing: false });
             } else if (type === 'group') {
                 if (!name || !name.trim()) {
@@ -296,6 +351,11 @@ const chatController = {
                         content: `Grupo "${name.trim()}" creado por ${req.user.full_name || 'un coordinador'}.`,
                         type: 'system'
                     }]);
+
+                // Notificar a todos los demás participantes del grupo
+                uniqueIds.filter(uid => uid !== userId).forEach(uid => {
+                    broadcastToUser(uid, 'conversation_created', { conversation_id: newConv.id });
+                });
 
                 return res.status(201).json({ id: newConv.id, name: newConv.name, is_group: true });
             } else {
@@ -413,6 +473,14 @@ const chatController = {
                 .eq('user_id', userId);
 
             if (error) throw error;
+
+            // Notificar a la sala en tiempo real que se leyó la conversación (doble check azul instantáneo)
+            broadcastToRoom(conversationId, 'read_receipt', {
+                conversation_id: conversationId,
+                user_id: userId,
+                last_read_at: now
+            });
+
             res.json({ success: true, last_read_at: now });
         } catch (error) {
             console.error('Error en markAsRead:', error);
@@ -481,7 +549,19 @@ const chatController = {
                 .eq('conversation_id', conversationId)
                 .eq('user_id', userId);
 
-            // 5. Enviar notificaciones PUSH e in-app a los demás participantes
+            const broadcastPayload = {
+                ...newMsg,
+                sender: {
+                    id: userId,
+                    full_name: senderName,
+                    role: req.user.role
+                }
+            };
+
+            // Notificación broadcast a la sala del chat en tiempo real (<100ms)
+            broadcastToRoom(conversationId, 'new_message', broadcastPayload);
+
+            // 5. Enviar notificaciones PUSH, in-app y broadcast a los canales personales de los demás participantes
             const { data: otherParticipants } = await supabaseAdmin
                 .from('conversation_participants')
                 .select('user_id')
@@ -489,6 +569,11 @@ const chatController = {
                 .neq('user_id', userId);
 
             if (otherParticipants && otherParticipants.length > 0) {
+                // Notificar en tiempo real a cada participante para actualizar su lista de conversaciones
+                for (const p of otherParticipants) {
+                    broadcastToUser(p.user_id, 'new_message', broadcastPayload);
+                }
+
                 const { data: convInfo } = await supabaseAdmin
                     .from('conversations')
                     .select('type, name')

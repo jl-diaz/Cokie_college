@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Volume2, Copy, Check, Sparkles, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { Volume2, Copy, Check, RefreshCw, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react-native';
 import Colors from '../constants/colors';
 import AudioWaveform from './AudioWaveform';
 import { useInterpreter } from '../context/InterpreterContext';
@@ -15,8 +15,42 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
   } = useInterpreter();
 
   const [copied, setCopied] = useState(false);
+  const pulseScale = useRef(new Animated.Value(1)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
 
   const displayText = currentTranslation || 'Hola, ¿Cómo estas hoy?';
+
+  // Animación de pulso cuando cambia la traducción
+  useEffect(() => {
+    if (translationState === 'updated') {
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(pulseScale, {
+            toValue: 1.025,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.spring(pulseScale, {
+            toValue: 1.0,
+            friction: 5,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(glowOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowOpacity, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    }
+  }, [translationState, currentTranslation]);
 
   const handleCopy = () => {
     if (!displayText) return;
@@ -35,15 +69,22 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
   };
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.cardContainer,
+        { transform: [{ scale: pulseScale }] },
         translationState === 'updated' && styles.cardContainerHighlighted,
       ]}
     >
-      {/* Cabecera: "Listo para traducir" */}
+      {/* Cabecera: Estado de traducción */}
       <View style={styles.cardHeader}>
         <View style={styles.headerLeft}>
+          <View
+            style={[
+              styles.statusPulseDot,
+              aiServerStatus === 'connected' ? styles.dotConnected : styles.dotConnecting,
+            ]}
+          />
           <Text style={styles.headerStatusText}>
             {aiServerStatus === 'connecting'
               ? 'Conectando con motor de IA...'
@@ -62,19 +103,19 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
               accessibilityLabel="Ver historial"
             >
               {isHistoryOpen ? (
-                <ChevronDown size={16} color={Colors.textSecondary} />
+                <ChevronDown size={16} color="#94A3B8" />
               ) : (
-                <ChevronUp size={16} color={Colors.textSecondary} />
+                <ChevronUp size={16} color="#94A3B8" />
               )}
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Línea divisoria sutil como en el boceto */}
+      {/* Línea divisoria sutil */}
       <View style={styles.divider} />
 
-      {/* Texto Principal Traducido: "Hola, ¿Cómo estas hoy?" */}
+      {/* Texto Principal Traducido */}
       <View style={styles.contentRow}>
         <Text style={styles.translatedText} numberOfLines={3} selectable>
           “{displayText}”
@@ -87,7 +128,7 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
             activeOpacity={0.7}
             accessibilityLabel="Repetir voz"
           >
-            <Volume2 size={18} color={Colors.primary} />
+            <Volume2 size={17} color="#3B82F6" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -97,26 +138,26 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
             accessibilityLabel="Copiar traducción"
           >
             {copied ? (
-              <Check size={18} color={Colors.success} />
+              <Check size={17} color="#3B82F6" />
             ) : (
-              <Copy size={18} color={Colors.textSecondary} />
+              <Copy size={17} color="#94A3B8" />
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Pie de tarjeta con indicador de estado (Detectando señas... o ✓ Traducción actualizada) */}
+      {/* Pie de tarjeta con indicador de estado animado */}
       <View style={styles.footerRow}>
         {translationState === 'updated' ? (
           <View style={styles.statusIndicatorRow}>
             <View style={styles.checkCircle}>
-              <Check size={12} color="#FFFFFF" strokeWidth={3} />
+              <Check size={11} color="#FFFFFF" strokeWidth={3} />
             </View>
             <Text style={styles.statusUpdatedText}>Traducción actualizada</Text>
           </View>
         ) : translationState === 'detecting' ? (
           <View style={styles.statusIndicatorRow}>
-            <AudioWaveform color={Colors.primary} isAnimating={true} size={15} />
+            <AudioWaveform color="#3B82F6" isAnimating={true} size={15} />
             <Text style={styles.statusDetectingText}>Detectando señas...</Text>
           </View>
         ) : (
@@ -130,30 +171,31 @@ export default function TranslationCard({ onToggleHistory, isHistoryOpen }) {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: '#12151C', // Fondo oscuro del boceto
-    borderRadius: 16,
+    backgroundColor: '#0D1527',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.22)',
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginHorizontal: 16,
     marginBottom: Platform.OS === 'web' ? 16 : 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowColor: '#0B1956',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
     shadowRadius: 12,
     elevation: 6,
   },
   cardContainerHighlighted: {
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    shadowColor: Colors.success,
-    shadowOpacity: 0.2,
+    borderColor: 'rgba(59, 130, 246, 0.65)',
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -164,12 +206,23 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  statusPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotConnected: {
+    backgroundColor: '#3B82F6',
+  },
+  dotConnecting: {
+    backgroundColor: '#F59E0B',
   },
   headerStatusText: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#8E95A5', // Color grisáceo del boceto
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8E9EAB',
     letterSpacing: -0.1,
   },
   headerActions: {
@@ -182,7 +235,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     marginBottom: 12,
   },
   contentRow: {
@@ -206,10 +259,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -228,20 +283,20 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: Colors.success,
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statusUpdatedText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.success,
+    fontWeight: '700',
+    color: '#60A5FA',
     letterSpacing: -0.1,
   },
   statusDetectingText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: Colors.primary,
+    fontWeight: '600',
+    color: '#3B82F6',
     letterSpacing: -0.1,
   },
   statusReadyText: {

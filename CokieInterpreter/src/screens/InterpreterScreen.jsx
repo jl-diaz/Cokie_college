@@ -65,7 +65,7 @@ export default function InterpreterScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0F17" />
+      <StatusBar barStyle="light-content" backgroundColor="#070C18" />
 
       {/* ── TUTORIAL INTERACTIVO EN EL PRIMER USO ── */}
       <TutorialModal visible={isTutorialVisible} onClose={closeTutorial} />
@@ -83,11 +83,11 @@ export default function InterpreterScreen() {
           <View style={styles.desktopHeader}>
             <View style={styles.desktopBrandCol}>
               <View style={styles.brandIconCircle}>
-                <Sparkles size={16} color={Colors.primary} />
+                <Sparkles size={16} color="#3B82F6" />
               </View>
               <View>
                 <Text style={styles.desktopBrandTitle}>
-                  Cokie<Text style={{ color: Colors.primary }}>Interpreter</Text>
+                  Cokie<Text style={{ color: '#3B82F6' }}>Interpreter</Text>
                 </Text>
                 <Text style={styles.desktopBrandSubtitle}>
                   Intérprete Inteligente de Lenguaje de Señas
@@ -345,7 +345,7 @@ export default function InterpreterScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F17',
+    backgroundColor: '#070C18',
   },
   mobileContainer: {
     flex: 1,
@@ -385,9 +385,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: 'rgba(59, 130, 246, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -403,11 +403,11 @@ const styles = StyleSheet.create({
   },
   desktopSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#1E2432',
+    backgroundColor: '#0B1426',
     borderRadius: 24,
     padding: 3,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(59, 130, 246, 0.25)',
   },
   desktopSwitchBtn: {
     flexDirection: 'row',
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   desktopSwitchBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2563EB',
   },
   desktopSwitchText: {
     fontSize: 13,
@@ -425,24 +425,24 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   desktopSwitchTextActive: {
-    color: '#0B0F17',
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   connectedDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.success,
+    backgroundColor: '#3B82F6',
     marginLeft: 6,
   },
   desktopModesToggle: {
     flexDirection: 'row',
     gap: 6,
-    backgroundColor: '#1E2432',
+    backgroundColor: '#0B1426',
     padding: 3,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(59, 130, 246, 0.25)',
   },
   desktopModeChip: {
     paddingVertical: 6,
@@ -450,7 +450,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   desktopModeChipActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    borderColor: '#3B82F6',
   },
   desktopModeChipText: {
     color: '#94A3B8',
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   desktopModeChipTextActive: {
-    color: Colors.primary,
+    color: '#60A5FA',
     fontWeight: '700',
   },
   desktopHeaderRight: {

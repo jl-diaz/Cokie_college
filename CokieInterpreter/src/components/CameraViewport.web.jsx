@@ -54,7 +54,7 @@ export default function CameraViewportWeb({ isFullscreen, onToggleFullscreen }) 
 
   // Iniciar Webcam en el navegador
   const startWebcam = useCallback(async () => {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setHasWebcamPermission(false);
       return;
     }
@@ -276,13 +276,15 @@ export default function CameraViewportWeb({ isFullscreen, onToggleFullscreen }) 
         </View>
       )}
 
-      {/* ── TRAZADO DE PUNTOS Y ESQUELETO EN TIEMPO REAL (Imágenes 2 y 3) ── */}
+      {/* ── TRAZADO DE PUNTOS Y ESQUELETO EN TIEMPO REAL CON CORRECCIÓN DE ESPEJO ── */}
       <SkeletonOverlay
         width={480}
         height={440}
         landmarksData={landmarksData}
         isActive={isSkeletonEnabled}
         mode={skeletonMode}
+        facing={facingMode === 'user' ? 'front' : 'back'}
+        videoSource={videoSource}
       />
 
       {/* Retícula y efectos de detección en tiempo real */}
