@@ -89,11 +89,13 @@ export default function StatusModal({
       navigationBarTranslucent
     >
       <View style={styles.overlay}>
-        <Pressable 
-          style={StyleSheet.absoluteFillObject} 
-          onPress={onClose} 
-          accessibilityLabel="Cerrar modal" 
-        />
+        <View style={styles.backdrop}>
+          <Pressable 
+            style={StyleSheet.absoluteFillObject} 
+            onPress={onClose} 
+            accessibilityLabel="Cerrar modal" 
+          />
+        </View>
         <View style={[
           styles.modalCard,
           { 
@@ -186,10 +188,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    backgroundColor: 'transparent',
     zIndex: 99999,
     ...(Platform.OS === 'web' ? { 
       position: 'fixed', 
@@ -200,6 +202,16 @@ const styles = StyleSheet.create({
       width: '100vw', 
       height: '100vh',
     } : {}),
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
   },
   modalCard: {
     width: '100%',

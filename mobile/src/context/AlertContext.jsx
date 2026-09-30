@@ -28,6 +28,7 @@ export const AlertProvider = ({ children }) => {
   const { registerModal, unregisterModal } = useTabBar();
 
   const [visible, setVisible] = useState(false);
+  const showTimerRef = useRef(null);
 
   useEffect(() => {
     if (visible) {
@@ -67,7 +68,11 @@ export const AlertProvider = ({ children }) => {
     }
   }, [visible, fadeAnim, scaleAnim]);
 
-  const hideAlert = useCallback(() => {
+  const hideAlert = useCallback((callback) => {
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -81,11 +86,20 @@ export const AlertProvider = ({ children }) => {
       })
     ]).start(() => {
       setVisible(false);
+      if (typeof callback === 'function') {
+        setTimeout(callback, 50);
+      }
     });
   }, [fadeAnim, scaleAnim]);
 
   const showAlert = useCallback(({ type = 'info', title, message, confirmText, onConfirm }) => {
-    Keyboard.dismiss();
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
     setConfig({
       type,
       title,
@@ -94,11 +108,21 @@ export const AlertProvider = ({ children }) => {
       cancelText: null,
       onConfirm
     });
-    setVisible(true);
+    // Pequeño retardo para dar respiro a modales previos que estén cerrándose y evitar colisión en iOS/Android
+    const delay = Platform.OS === 'web' ? 0 : 180;
+    showTimerRef.current = setTimeout(() => {
+      setVisible(true);
+    }, delay);
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
-    Keyboard.dismiss();
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
     setConfig({
       type,
       title,
@@ -108,27 +132,28 @@ export const AlertProvider = ({ children }) => {
       onConfirm,
       onCancel
     });
-    setVisible(true);
+    const delay = Platform.OS === 'web' ? 0 : 180;
+    showTimerRef.current = setTimeout(() => {
+      setVisible(true);
+    }, delay);
   }, [t]);
 
   const handleConfirm = () => {
     const onConfirmAction = config.onConfirm;
-    hideAlert();
-    if (onConfirmAction) {
-      setTimeout(() => {
+    hideAlert(() => {
+      if (onConfirmAction) {
         onConfirmAction();
-      }, 50);
-    }
+      }
+    });
   };
 
   const handleCancel = () => {
     const onCancelAction = config.onCancel;
-    hideAlert();
-    if (onCancelAction) {
-      setTimeout(() => {
+    hideAlert(() => {
+      if (onCancelAction) {
         onCancelAction();
-      }, 50);
-    }
+      }
+    });
   };
 
   // Soporte para botón atrás físico en Android
@@ -199,22 +224,6 @@ export const AlertProvider = ({ children }) => {
     return Colors.primary || '#0B1956';
   };
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && visible) {
-      const timer = setTimeout(() => {
-        const bodyDivs = document.querySelectorAll('body > div');
-        if (bodyDivs.length > 0) {
-          const lastDiv = bodyDivs[bodyDivs.length - 1];
-          if (lastDiv) {
-            lastDiv.style.zIndex = '999999';
-            lastDiv.style.position = 'relative';
-          }
-        }
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
   const styles = createStyles(Colors, theme);
 
   return (
@@ -228,53 +237,61 @@ export const AlertProvider = ({ children }) => {
             visible={visible}
             animationType="none"
             statusBarTranslucent
-            onRequestClose={config.cancelText ? handleCancel : hideAlert}
+            navigationBarTranslucent
+            onRequestClose={config.cancelText ? handleCancel : () => hideAlert()}
           >
-            <Animated.View 
-              style={[styles.overlay, { opacity: fadeAnim }]}
-            >
-              <Pressable 
-                style={StyleSheet.absoluteFillObject} 
-                onPress={config.cancelText ? undefined : hideAlert} 
-                accessibilityLabel="Cerrar alerta"
-              />
+            <View style={styles.modalRoot}>
+              {/* Fondo oscuro a pantalla completa */}
               <Animated.View 
-                style={[
-                  styles.alertCard,
-                  { transform: [{ scale: scaleAnim }] }
-                ]}
-                onStartShouldSetResponder={() => true}
+                style={[styles.backdrop, { opacity: fadeAnim }]}
               >
-                {renderIconBadge()}
-
-                {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
-                {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
-
-                <View style={[styles.buttonRow, !config.cancelText && styles.singleButtonRow]}>
-                  {config.cancelText ? (
-                    <TouchableOpacity
-                      style={[styles.button, styles.cancelButton]}
-                      onPress={handleCancel}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
-                    </TouchableOpacity>
-                  ) : null}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.button,
-                      styles.confirmButton,
-                      { backgroundColor: getConfirmBtnColor() }
-                    ]}
-                    onPress={handleConfirm}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
-                  </TouchableOpacity>
-                </View>
+                <Pressable 
+                  style={StyleSheet.absoluteFillObject} 
+                  onPress={config.cancelText ? undefined : () => hideAlert()} 
+                  accessibilityLabel="Cerrar alerta"
+                />
               </Animated.View>
-            </Animated.View>
+
+              {/* Contenedor perfectamente centrado en pantalla */}
+              <View style={styles.cardContainer} pointerEvents="box-none">
+                <Animated.View 
+                  style={[
+                    styles.alertCard,
+                    { transform: [{ scale: scaleAnim }] }
+                  ]}
+                  onStartShouldSetResponder={() => true}
+                >
+                  {renderIconBadge()}
+
+                  {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
+                  {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
+
+                  <View style={[styles.buttonRow, !config.cancelText && styles.singleButtonRow]}>
+                    {config.cancelText ? (
+                      <TouchableOpacity
+                        style={[styles.button, styles.cancelButton]}
+                        onPress={handleCancel}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        styles.confirmButton,
+                        { backgroundColor: getConfirmBtnColor() }
+                      ]}
+                      onPress={handleConfirm}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+              </View>
+            </View>
           </Modal>
         )}
       </View>
@@ -285,12 +302,13 @@ export const AlertProvider = ({ children }) => {
 export const useAlert = () => useContext(AlertContext);
 
 const createStyles = (Colors, theme) => StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  modalRoot: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    backgroundColor: 'transparent',
     zIndex: 999999,
     elevation: 999999,
     ...(Platform.OS === 'web' && {
@@ -303,12 +321,29 @@ const createStyles = (Colors, theme) => StyleSheet.create({
       height: '100vh',
     }),
   },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  },
+  cardContainer: {
+    width: '100%',
+    maxWidth: 360,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 1,
+  },
   alertCard: {
     width: '100%',
-    maxWidth: 340,
     backgroundColor: Colors.card || (theme === 'dark' ? '#1E293B' : '#FFFFFF'),
     borderRadius: 28,
-    paddingHorizontal: 26,
+    paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 22,
     alignItems: 'center',
