@@ -5,6 +5,33 @@ const profileCache = new Map();
 const PROFILE_CACHE_TTL_MS = 60 * 1000;
 const MAX_PROFILE_CACHE_SIZE = 1000;
 
+// Caché en memoria para tokens validados (TTL: 45 segundos, Capacidad máx: 2000)
+// Protege a Supabase Auth de saturación 429 durante picos de alto estrés escolar
+const tokenCache = new Map();
+const TOKEN_CACHE_TTL_MS = 45 * 1000;
+const MAX_TOKEN_CACHE_SIZE = 2000;
+
+const getCachedUser = async (token) => {
+    const now = Date.now();
+    const cached = tokenCache.get(token);
+    if (cached && (now - cached.timestamp < TOKEN_CACHE_TTL_MS)) {
+        return cached.user;
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+        tokenCache.delete(token);
+        return null;
+    }
+
+    if (tokenCache.size >= MAX_TOKEN_CACHE_SIZE) {
+        const firstKey = tokenCache.keys().next().value;
+        if (firstKey) tokenCache.delete(firstKey);
+    }
+    tokenCache.set(token, { user, timestamp: now });
+    return user;
+};
+
 const getCachedProfile = async (userId) => {
     const cached = profileCache.get(userId);
     const now = Date.now();
@@ -32,8 +59,12 @@ const getCachedProfile = async (userId) => {
 };
 
 const invalidateUserProfileCache = (userId) => {
-    if (userId) profileCache.delete(userId);
-    else profileCache.clear();
+    if (userId) {
+        profileCache.delete(userId);
+    } else {
+        profileCache.clear();
+        tokenCache.clear();
+    }
 };
 
 const authenticate = async (req, res, next) => {
@@ -43,11 +74,14 @@ const authenticate = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'Formato de token de autorización inválido' });
+    }
     
     try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        const user = await getCachedUser(token);
 
-        if (authError || !user) {
+        if (!user) {
             return res.status(401).json({ error: 'Token inválido o expirado' });
         }
 

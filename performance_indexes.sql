@@ -81,3 +81,16 @@ ON conversation_participants(conversation_id, user_id);
 
 CREATE INDEX IF NOT EXISTS idx_conversations_last_message 
 ON conversations(last_message_at DESC);
+
+-- 9. Cafetín y Pedidos de Almuerzo (Alto estrés en horas de receso y despacho QR)
+CREATE INDEX IF NOT EXISTS idx_lunch_orders_cafetin_date 
+ON lunch_orders(cafetin_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_lunch_orders_user_date 
+ON lunch_orders(user_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_cafetin_daily_menu_cafetin_date 
+ON cafetin_daily_menu(cafetin_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_cafetin_menu_items_cafetin_active 
+ON cafetin_menu_items(cafetin_id, is_active);

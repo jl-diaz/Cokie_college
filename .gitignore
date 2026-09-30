@@ -48,3 +48,4 @@ CokieHall/JS/*.apk
 __pycache__/
 *.py[cod]
 *$py.class
+backend/sign_language_service/data_backup_*

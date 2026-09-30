@@ -24,7 +24,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "NSFaceIDUsageDescription": "Permite iniciar sesión rápidamente con Face ID en Cokie College."
       }
     },
     "android": {
@@ -39,7 +40,9 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -84,7 +87,14 @@
       "@react-native-community/datetimepicker",
       "expo-sharing",
       "expo-status-bar",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permite iniciar sesión rápidamente con Face ID en Cokie College."
+        }
+      ],
+      "expo-secure-store"
     ],
     "scheme": "cokie-college",
     "extra": {

@@ -297,7 +297,7 @@ const studentController = {
             try {
                 const { data: coordinators } = await supabaseAdmin
                     .from('profiles')
-                    .select('id')
+                    .select('id, push_token')
                     .eq('role', 'coordinator')
                     .eq('level', student_level);
 
@@ -306,9 +306,8 @@ const studentController = {
                     const title = 'Nueva justificación de inasistencia';
                     const body = `${studentName} ha enviado una justificación para revisión.`;
                     
-                    const coordIds = coordinators.map(c => c.id);
                     await sendBulkNotification(
-                        coordIds,
+                        coordinators,
                         title,
                         body,
                         { type: 'justification', justificationId: data.id }

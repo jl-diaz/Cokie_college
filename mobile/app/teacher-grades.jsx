@@ -131,7 +131,7 @@ const CountdownTimerBanner = React.memo(({
         </Text>
         {!canSubmitGrades && !currentPeriodInfo.pending_ticket && (
           <TouchableOpacity onPress={onOpenTicket} style={styles.compactTicketBtn}>
-            <Text style={styles.compactTicketBtnText}>+ Ticket</Text>
+            <Text style={styles.compactTicketBtnText}>{t('teacherGrades.compactTicketBtn', '+ Ticket')}</Text>
           </TouchableOpacity>
         )}
       </View>

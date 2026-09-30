@@ -6,17 +6,19 @@ import {
   StyleSheet, 
   Platform, 
   useWindowDimensions, 
-  Animated 
+  Animated,
+  AppState
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Camera, MessageCircle, Grid, User } from 'lucide-react-native';
 import { useTabBar } from '../context/TabBarContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 
 const TABS = [
-  { key: 'home', name: 'Hogar', route: '/home', icon: Home },
+  { key: 'home', name: 'Inicio', route: '/home', icon: Home },
   { key: 'interpreter', name: 'Intérprete', route: '/interpreter', icon: Camera },
   { key: 'chat', name: 'Chat', route: '/chat', icon: MessageCircle },
   { key: 'modules', name: 'Módulos', route: '/modules', icon: Grid },
@@ -34,6 +36,7 @@ export default function TabBar({ currentRoute }) {
   const insets = useSafeAreaInsets();
   const { isTabBarHidden, modalCount = 0, unreadChatCount = 0, setUnreadChatCount, navigateTab } = useTabBar();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const isDark = theme === 'dark';
 
   const isDesktopOrTablet = width >= 768;
@@ -124,10 +127,11 @@ export default function TabBar({ currentRoute }) {
     });
   }, [activeIndex, tabWidth]);
 
-  // Monitorear mensajes no leídos de CokieChat
+  // Monitorear mensajes no leídos de CokieChat respetando AppState activo
   useEffect(() => {
     let isMounted = true;
     const fetchChatUnread = async () => {
+      if (Platform.OS !== 'web' && AppState.currentState !== 'active') return;
       try {
         const res = await api.get('/chat/conversations');
         if (res.data && Array.isArray(res.data) && isMounted) {
@@ -142,10 +146,18 @@ export default function TabBar({ currentRoute }) {
     };
 
     fetchChatUnread();
-    const interval = setInterval(fetchChatUnread, 20000);
+    const interval = setInterval(fetchChatUnread, 45000);
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        fetchChatUnread();
+      }
+    });
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      subscription?.remove?.();
     };
   }, [currentRoute]);
 
@@ -195,6 +207,9 @@ export default function TabBar({ currentRoute }) {
             <TouchableOpacity
               key={tab.route}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityLabel={t('menu.' + tab.key, tab.name)}
+              accessibilityState={{ selected: isActive }}
               onPress={() => {
                 if (currentRoute !== tab.route) {
                   if (navigateTab) {

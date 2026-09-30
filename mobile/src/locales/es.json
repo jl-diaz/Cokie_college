@@ -125,7 +125,47 @@
     "passwordLabel": "Contraseña",
     "loginBtn": "Iniciar Sesión",
     "fieldsRequired": "Por favor completa todos los campos",
-    "invalidCredentials": "Credenciales inválidas o error de conexión"
+    "invalidCredentials": "Credenciales inválidas o error de conexión",
+    "biometricPrompt": "Inicia sesión con tu huella o Face ID",
+    "biometricBtn": "Entrar con {{type}}",
+    "biometricQuickAccess": "Acceso Rápido Biométrico",
+    "biometricLoginAs": "Iniciar como {{name}}",
+    "biometricUseOther": "Usar otra cuenta",
+    "biometricsSavePromptTitle": "¿Deseas activar el inicio rápido?",
+    "biometricsSavePromptMessage": "Podrás entrar al instante en tus próximas visitas usando {{type}} sin escribir tu contraseña.",
+    "biometricsSavePromptConfirm": "Sí, activar",
+    "biometricsSavePromptCancel": "Ahora no",
+    "biometricsSuccessEnabled": "¡Acceso biométrico activado correctamente!",
+    "biometricsFailed": "No se pudo completar la autenticación biométrica.",
+    "biometricsNotEnrolled": "No tienes huella o Face ID configurado en tu teléfono."
+  },
+  "biometrics": {
+    "title": "Autenticación Biométrica",
+    "touchId": "Touch ID",
+    "faceId": "Face ID",
+    "fingerprint": "Huella Dactilar",
+    "generic": "Biometría",
+    "iris": "Escáner de Iris",
+    "promptMessage": "Verifica tu identidad para acceder a Cokie College",
+    "cancel": "Cancelar",
+    "fallback": "Usar contraseña",
+    "settingsTitle": "Seguridad y Acceso Biométrico",
+    "settingsSubtitle": "Usa Face ID o tu huella digital para desbloquear la app al instante",
+    "toggleLabel": "Inicio de sesión con {{type}}",
+    "toggleActiveDesc": "Habilitado en este dispositivo",
+    "toggleInactiveDesc": "Toca para activar inicio seguro y rápido",
+    "deviceNotSupported": "No disponible en este dispositivo",
+    "disabledAlert": "El inicio de sesión biométrico ha sido desactivado.",
+    "enabledAlert": "¡Inicio de sesión con {{type}} activado con éxito!",
+    "confirmIdentityToDisable": "Confirma tu identidad para desactivar",
+    "confirmIdentityToEnable": "Confirma tu identidad biométrica para activar el acceso rápido",
+    "modalPasswordTitle": "Confirma tu contraseña",
+    "modalPasswordSubtitle": "Para activar el desbloqueo rápido de forma segura, ingresa tu contraseña institucional actual:",
+    "modalPasswordPlaceholder": "Tu contraseña institucional",
+    "modalPasswordConfirm": "Confirmar y Activar",
+    "modalPasswordCancel": "Cancelar",
+    "invalidPassword": "La contraseña ingresada no es válida.",
+    "keychainNotice": "Tus credenciales están resguardadas en el enclave seguro (Keychain/Keystore) de tu dispositivo."
   },
   "dashboard": {
     "welcome": "Bienvenido",
@@ -358,7 +398,8 @@
     "chooseAnotherCafetin": "Elegir otro cafetín",
     "wantSomethingDelicious": "¿Quieres algo delicioso?",
     "step1BuildLunch": "Paso 1. Arma tu almuerzo",
-    "orderCancelledSuccess": "Tu pedido ha sido cancelado. Ahora puedes realizar un nuevo encargo."
+    "orderCancelledSuccess": "Tu pedido ha sido cancelado. Ahora puedes realizar un nuevo encargo.",
+    "noTortillas": "Sin tortillas"
   },
   "events": {
     "title": "Eventos Institucionales",
@@ -539,7 +580,8 @@
     "deleteGradeConfirm": "¿Estás seguro de que deseas eliminar esta nota?",
     "deleteGradeError": "No se pudo eliminar la nota",
     "ticketSentTitle": "Ticket Enviado",
-    "createTicketError": "No se pudo crear el ticket de extensión."
+    "createTicketError": "No se pudo crear el ticket de extensión.",
+    "compactTicketBtn": "+ Ticket"
   },
   "users": {
     "searchPlaceholder": "Buscar por nombre o código...",
@@ -773,7 +815,10 @@
       "sky": "Celeste Vibrante",
       "lime": "Verde Lima Neón",
       "purple": "Violeta Eléctrico"
-    }
+    },
+    "lightMode": "Modo Claro",
+    "darkMode": "Modo Oscuro",
+    "accentColorTitle": "Color de Acento Principal"
   },
   "days": {
     "monday": "Lun",
@@ -826,7 +871,14 @@
     "cancel": "Cancelar",
     "volumeLabel": "Volumen de Audífono / Voz",
     "testAudioBtn": "Probar Sonido",
-    "testAudioPhrase": "Prueba de audio CokieLens al {{volume}} por ciento"
+    "testAudioPhrase": "Prueba de audio CokieLens al {{volume}} por ciento",
+    "cameraPermissionTitle": "Permiso de Cámara Requerido",
+    "cameraPermissionDesc": "Para traducir el lenguaje de señas en tiempo real, la aplicación necesita acceder a la cámara.",
+    "grantPermissionBtn": "Conceder Permiso",
+    "openSettingsBtn": "Abrir Configuración",
+    "aiConnected": "IA Conectada",
+    "aiConnecting": "Conectando con IA...",
+    "aiReconnect": "Reconectar IA"
   },
   "gestureStudio": {
     "title": "Estudio de Gestos e IA",
@@ -963,7 +1015,18 @@
     "dynamicMovement": "Movimiento Dinámico",
     "staticGesture": "Seña Estática",
     "testConnectionBtn": "Probar Conexión",
-    "saveIpBtn": "Guardar IP"
+    "saveIpBtn": "Guardar IP",
+    "rollbackConfirmTitle": "Restaurar Versión Anterior",
+    "rollbackConfirmDesc": "¿Deseas restaurar la versión anterior del modelo neuronal en memoria?",
+    "rollbackAction": "Restaurar",
+    "rollbackBtn": "Restaurar Versión Anterior (Rollback)",
+    "catAll": "Todos",
+    "catAlphabet": "Abecedario A-Z",
+    "catNumbers": "Números 0-10",
+    "catSchool": "Señas Escolares",
+    "activeModelStatus": "Estado del Modelo Activo",
+    "qgPassed": "Quality Gate: Superado (Test Acc >= 70%)",
+    "qgRejected": "Quality Gate: No superado (< 70%). Se conservó el modelo previo."
   },
   "signs": {
     "0": "0 (Cero)",
@@ -1224,7 +1287,9 @@
       "imageProcessError": "No se pudo procesar la imagen seleccionada.",
       "docAttachError": "No se pudo adjuntar el documento.",
       "docOpenError": "No se pudo abrir el documento adjunto."
-    }
+    },
+    "yesterday": "AYER",
+    "yesterdayFull": "AYER · {{date}}"
   },
   "bulkJustifications": {
     "mode": "Modo de Justificación",
@@ -1259,7 +1324,7 @@
     "success": "Éxito",
     "info": "Información",
     "ok": "Aceptar",
-    "confirm": "Confirmar",
+    "confirm": "Aceptar",
     "cancel": "Cancelar",
     "save": "Guardar",
     "delete": "Eliminar",
@@ -1294,7 +1359,8 @@
     "note": "Nota",
     "connectionError": "Error de Conexión",
     "requiredField": "Campo Requerido",
-    "confirmDelete": "Confirmar eliminación"
+    "confirmDelete": "Confirmar eliminación",
+    "applyAndSave": "Aplicar y Guardar"
   },
   "roles": {
     "super_admin": "Administrador",

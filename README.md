@@ -113,4 +113,55 @@ eas update --branch production --message "Actualización de rendimiento y UI"
 
 ---
 
+## 👓 CokieLens & Módulo Intérprete ISL (Lengua de Señas Internacional)
+
+### 1. Lengua Soportada y Alcance
+- **Lengua Oficial**: **ISL (International Sign)**. Se mantiene esta designación sin migrar a LESSA.
+- **Alcance Actual**: Detección robusta de todo el **abecedario manual latino/internacional (A-Z)** y **sistema numérico unimanual (0 al 10)**, sin pérdida de señas preexistentes validadas.
+- **Alfabeto**: Alfabeto dactilológico unimanual estándar (compartido con ASL/LSF). Las letras específicas del español (**Ñ, CH, LL, RR**) están sujetas a validación como señas dinámicas o compuestas.
+- **Números**: Sistema unimanual del 0 al 10 (0=óvalo, 1=índice, 2=V, 3=pulgar+índice+medio, 4=4 dedos, 5=palma abierta, 6=pulgar+meñique, 7=pulgar+anular, 8=pulgar+medio, 9=pulgar+índice, 10=pulgar oscilante).
+
+### 2. Arquitectura de Inferencia y Pipeline
+```
+[ Cámara Móvil / CokieLens ESP32-CAM ]
+                 │ (120ms Base64 JPEG)
+                 ▼
+[ Microservicio Python: FastAPI + Socket.IO ]
+                 │
+       ┌─────────┴─────────┐
+       ▼                   ▼
+ [ MediaPipe Tasks ]   [ Red Neuronal MLP ]
+ (21 Hand Landmarks)   (1512 feats / 3 capas)
+       │                   │
+       └─────────┬─────────┘
+                 ▼
+ [ Traducción y Locución TTS (< 25ms) ]
+```
+
+### 3. Selector de Fuente de Video (Lentes o Teléfono)
+- **`[📱 Teléfono]`**: Captura continua desde la cámara frontal o trasera usando `CameraView` de Expo.
+- **`[👓 Lentes]`**: Conexión al stream HTTP `/capture` del ESP32-CAM vía Wi-Fi Directo (`192.168.4.1`) o red compartida (`http://cokielens.local`).
+
+### 4. Panel de Administrador ("Estudio de Gestos e IA")
+- **Ruta**: `/gesture-studio` (solo administradores).
+- **Subida de Muestras**: Soporta foto estática (un frame replicado) o video en secuencia continua de 30 fotogramas.
+- **Extracción de Landmarks**: Proceso mediante endpoint `/api/gestures/extract-frame`.
+- **Entrenamiento y Calidad**: Disparo en segundo plano con *hot-reload* en memoria (`reload_active_model()`).
+- **Resguardo**: Respaldo versionado garantizado antes de cualquier reentrenamiento.
+
+### 5. Hardware CokieLens (ESP32-CAM)
+- **Placa**: AI Thinker ESP32-CAM con módulo de cámara OV2640.
+- **Firmware**: `firmware/CokieLens_Camera/CokieLens_Camera.ino`.
+- **Portal Cautivo**: Crea la red `CokieLens-Setup` si no detecta red previa; portal web en `http://192.168.4.1` con guardado en Flash NVS (`Preferences.h`).
+- **CORS Habilitado**: Cabeceras `OPTIONS` para permitir peticiones cross-origin desde navegadores web.
+
+### 6. Matriz de Compatibilidad Multiplataforma
+- **Android (APK)**: Compatible al 100% con cámara nativa y stream ESP32-CAM (permiso de tráfico claro activado).
+- **iOS**: Compatible con cámara nativa y red local (`NSAllowsLocalNetworking`).
+- **Expo Go**: Compatible para inferencia remota con WebSocket.
+- **Web en Vercel**: Compatible para cámara webcam local. La conexión con ESP32-CAM requiere evitar bloqueos de contenido mixto (HTTPS a HTTP).
+
+---
+
 *Desarrollado para CokieCollege — 2026*
+

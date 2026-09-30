@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Pla
 import { Check, AlertTriangle, X, Info } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBar } from '../context/TabBarContext';
+import { useTranslation } from 'react-i18next';
 
 /**
  * StatusModal - Modal de estado y confirmación reutilizable.
@@ -16,7 +17,7 @@ import { useTabBar } from '../context/TabBarContext';
  * - message: string
  * - image: any (Image source, ej: require('../assets/...'))
  * - type: 'success' | 'warning' | 'error' | 'info' (default: 'success')
- * - buttonText: string (texto del botón único, default: 'Listo')
+ * - buttonText: string (texto del botón único)
  * - onConfirm: () => void (opcional: si se pasa, habilita modo 2 botones)
  * - confirmText: string (texto botón confirmar)
  * - cancelText: string (texto botón cancelar)
@@ -30,13 +31,17 @@ export default function StatusModal({
   message,
   image = null,
   type = 'success',
-  buttonText = 'Listo',
+  buttonText,
   onConfirm = null,
-  confirmText = 'Aceptar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   confirmLoading = false,
   isDestructive = false,
 }) {
+  const { t } = useTranslation();
+  const resolvedButtonText = buttonText || t('common.done', 'Listo');
+  const resolvedConfirmText = confirmText || t('common.confirm', 'Aceptar');
+  const resolvedCancelText = cancelText || t('common.cancel', 'Cancelar');
   const { theme, colors: Colors } = useTheme();
   const isDark = theme === 'dark';
   const { registerModal, unregisterModal } = useTabBar();
@@ -151,7 +156,7 @@ export default function StatusModal({
                 {confirmLoading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.matteButtonText}>{confirmText}</Text>
+                  <Text style={styles.matteButtonText}>{resolvedConfirmText}</Text>
                 )}
               </TouchableOpacity>
 
@@ -162,7 +167,7 @@ export default function StatusModal({
                 activeOpacity={0.7}
               >
                 <Text style={styles.cancelButtonText}>
-                  {cancelText}
+                  {resolvedCancelText}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -175,7 +180,7 @@ export default function StatusModal({
               onPress={onClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.matteButtonText}>{buttonText}</Text>
+              <Text style={styles.matteButtonText}>{resolvedButtonText}</Text>
             </TouchableOpacity>
           )}
         </View>

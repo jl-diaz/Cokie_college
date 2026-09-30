@@ -22,7 +22,9 @@ import {
   X,
   ArrowRight,
   ArrowLeft,
-  Check
+  Check,
+  Plus,
+  Minus
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -500,29 +502,103 @@ export default function LunchScreen() {
               </View>
 
               {/* Card 4: Cantidad de tortillas */}
+              {/* Card 4: Cantidad de tortillas (Contador interactivo de 0 a 2) */}
               <View style={styles.bentoCard}>
-                <Text style={styles.bentoCardTitle}>{t('lunch.tortillas', 'Cantidad de tortillas')}</Text>
-                {[1, 2, 0].map(qty => {
-                  const isSelected = tortillasQty === qty;
-                  const label = qty === 1 
-                    ? t('lunch.tortillaSingle', '1 tortilla') 
-                    : t('lunch.tortillasPlural', '{{count}} tortillas', { count: qty });
-                  return (
-                    <TouchableOpacity
-                      key={qty}
-                      style={[styles.radioItemBox, isSelected && styles.radioItemBoxSelected]}
-                      onPress={() => { hapticLight(); setTortillasQty(qty); }}
-                      activeOpacity={0.75}
-                    >
-                      <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
-                        {isSelected && <View style={styles.radioDot} />}
-                      </View>
-                      <Text style={[styles.radioItemText, isSelected && styles.radioItemTextSelected]}>
-                        {label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <View style={styles.tortillaHeaderRow}>
+                  <Text style={[styles.bentoCardTitle, { marginBottom: 0 }]}>
+                    {t('lunch.tortillas', 'Cantidad de tortillas')}
+                  </Text>
+                  <View style={[
+                    styles.tortillaBadge,
+                    { 
+                      backgroundColor: tortillasQty === 0 ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2') : (isDark ? 'rgba(236, 72, 153, 0.15)' : '#FDF2F8'),
+                      borderColor: tortillasQty === 0 ? (isDark ? '#EF4444' : '#FCA5A5') : (isDark ? '#EC4899' : '#F472B6')
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.tortillaBadgeText,
+                      { color: tortillasQty === 0 ? '#EF4444' : (isDark ? '#F472B6' : '#BE185D') }
+                    ]}>
+                      {tortillasQty === 0 
+                        ? t('lunch.noTortillas', 'Sin tortillas') 
+                        : tortillasQty === 1 
+                          ? '1 tortilla' 
+                          : '2 tortillas'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Stepper interactivo con botones [-] y [+] */}
+                <View style={styles.counterBox}>
+                  <TouchableOpacity
+                    style={[styles.counterBtn, tortillasQty <= 0 && styles.counterBtnDisabled]}
+                    onPress={() => {
+                      if (tortillasQty > 0) {
+                        hapticLight();
+                        setTortillasQty(prev => Math.max(0, prev - 1));
+                      }
+                    }}
+                    disabled={tortillasQty <= 0}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Reducir cantidad de tortillas"
+                  >
+                    <Minus size={22} color={tortillasQty <= 0 ? (isDark ? '#52525B' : '#CBD5E1') : (isDark ? '#FFFFFF' : '#0B1956')} />
+                  </TouchableOpacity>
+
+                  <View style={styles.counterCenter}>
+                    <Text style={styles.counterValue}>{tortillasQty}</Text>
+                    <Text style={styles.counterDesc}>
+                      {tortillasQty === 0 
+                        ? t('lunch.noTortillas', 'Sin tortillas') 
+                        : tortillasQty === 1 
+                          ? '1 unidad' 
+                          : '2 unidades (Máx)'}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.counterBtn, tortillasQty >= 2 && styles.counterBtnDisabled]}
+                    onPress={() => {
+                      if (tortillasQty < 2) {
+                        hapticLight();
+                        setTortillasQty(prev => Math.min(2, prev + 1));
+                      }
+                    }}
+                    disabled={tortillasQty >= 2}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Aumentar cantidad de tortillas"
+                  >
+                    <Plus size={22} color={tortillasQty >= 2 ? (isDark ? '#52525B' : '#CBD5E1') : (isDark ? '#FFFFFF' : '#0B1956')} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Chips de selección rápida: 0, 1, 2 */}
+                <View style={styles.quickPillsRow}>
+                  {[0, 1, 2].map(qty => {
+                    const isSelected = tortillasQty === qty;
+                    const pillTitle = qty === 0 
+                      ? '0 (Ninguna)' 
+                      : qty === 1 
+                        ? '1 Tortilla' 
+                        : '2 Tortillas';
+
+                    return (
+                      <TouchableOpacity
+                        key={qty}
+                        style={[styles.quickPill, isSelected && styles.quickPillSelected]}
+                        onPress={() => {
+                          hapticLight();
+                          setTortillasQty(qty);
+                        }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.quickPillText, isSelected && styles.quickPillTextSelected]}>
+                          {pillTitle}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
 
               {/* Card 5: Refresco (opcional + $0.25) */}
@@ -844,6 +920,97 @@ const createStyles = (Colors, theme, screenWidth) => {
       fontWeight: '600',
       color: isDark ? Colors.text.secondary : '#334155',
       marginBottom: 10,
+    },
+    // Stepper de tortillas (Contador 0 a 2)
+    tortillaHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    tortillaBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    tortillaBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    counterBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? '#18181B' : '#F8FAFC',
+      borderWidth: 1.2,
+      borderColor: isDark ? '#3F3F46' : '#E2E8F0',
+      borderRadius: 14,
+      padding: 8,
+      marginBottom: 10,
+    },
+    counterBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      backgroundColor: isDark ? '#27272A' : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0',
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    counterBtnDisabled: {
+      opacity: 0.35,
+      backgroundColor: isDark ? '#18181B' : '#F1F5F9',
+      borderColor: 'transparent',
+      elevation: 0,
+    },
+    counterCenter: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    counterValue: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: isDark ? '#FFFFFF' : '#0B1956',
+      lineHeight: 30,
+    },
+    counterDesc: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: isDark ? '#A1A1AA' : '#64748B',
+    },
+    quickPillsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    quickPill: {
+      flex: 1,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1.2,
+      borderColor: isDark ? '#3F3F46' : '#E2E8F0',
+      backgroundColor: isDark ? '#18181B' : '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quickPillSelected: {
+      borderColor: pinkBorder,
+      backgroundColor: pinkBg,
+    },
+    quickPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: isDark ? '#A1A1AA' : '#64748B',
+    },
+    quickPillTextSelected: {
+      color: isDark ? Colors.text.primary : '#0B1956',
+      fontWeight: 'bold',
     },
     radioItemBox: {
       flexDirection: 'row',

@@ -203,7 +203,7 @@ def classify_sign_from_landmarks(landmarks):
     
     index_middle_dist = distance_2d(landmarks[8], landmarks[12]) / scale
     
-    # ── 1. GESTOS DE PRIORIDAD ALTA ──
+    # ── 1. GESTOS DE PRIORIDAD ALTA / UNIVERSALES ──
     # TE QUIERO / I LOVE YOU (Pulgar, índice y meñique extendidos; medio y anular doblados)
     if thumb and index and not middle and not ring and pinky:
         return "sign.i_love_you"
@@ -212,83 +212,159 @@ def classify_sign_from_landmarks(landmarks):
     if thumb and not index and not middle and not ring and pinky:
         return "sign.y"
 
-    # OK / LETRA F (Pulgar e índice tocándose formando un círculo, otros 3 extendidos)
-    if tips_touching(landmarks, 4, 8, scale, 0.28) and middle and ring and pinky:
-        return "sign.ok"
-
     # NO (Índice y medio tocan o se juntan con el pulgar, anular y meñique doblados)
     if tips_touching(landmarks, 4, 8, scale, 0.25) and tips_touching(landmarks, 4, 12, scale, 0.25) and ring_curled and pinky_curled:
         return "sign.no"
 
     # PULGAR ARRIBA / ABAJO (El pulgar debe sobresalir claramente por encima o debajo del puño)
     if thumb and index_curled and middle_curled and ring_curled and pinky_curled:
-        if landmarks[4].y < (landmarks[5].y - 0.15 * scale) and landmarks[4].y < landmarks[3].y:
+        if landmarks[4].y < (landmarks[5].y - 0.20 * scale) and landmarks[4].y < landmarks[3].y:
             return "sign.thumb_up"
         if landmarks[4].y > (landmarks[0].y + 0.05 * scale) and landmarks[4].y > landmarks[3].y:
             return "sign.thumb_down"
 
-    # ── 2. ALFABETO LSM / ASL (A-Z) ──
-    # A: Puño cerrado con pulgar descansando al lado o sobre el índice
-    if index_curled and middle_curled and ring_curled and pinky_curled and not thumb_across:
-        return "sign.a"
-    # B: Cuatro dedos extendidos hacia arriba con pulgar doblado/cruzado
-    if (not thumb or thumb_across) and index and middle and ring and pinky and not spread and orientation == 'vertical':
-        return "sign.b"
-    # C: Dedos curvados formando una C
-    if index_half and middle_half and ring_half:
-        y_diff = abs(landmarks[4].y - landmarks[8].y) / scale
-        if y_diff < 0.95: return "sign.c"
-    # D: Índice extendido hacia arriba, pulgar tocando dedos medio/anular
-    if index and not middle and not ring and not pinky and tips_touching(landmarks, 4, 12, scale, 0.35):
-        return "sign.d"
-    # E: Cuatro dedos curvados con pulgar cruzado enfrente
-    if index_curled and middle_curled and ring_curled and pinky_curled and thumb_across:
-        return "sign.e"
-    # G: Pulgar e índice extendidos horizontalmente
-    if thumb and index and not middle and not ring and not pinky and orientation == 'horizontal':
-        return "sign.g"
-    # H: Índice y medio extendidos horizontalmente
-    if not thumb and index and middle and not ring and not pinky and orientation == 'horizontal':
-        return "sign.h"
-    # I: Solo meñique extendido
-    if not thumb and not index and not middle and not ring and pinky:
-        if orientation == 'diagonal': return "sign.j"
-        return "sign.i"
-    # L: Pulgar e índice en ángulo recto
+    # ── 2. NÚMEROS ISL UNIMANUALES CON PRIORIDAD DE CONTACTO (6-9) ──
+    # 6: Pulgar toca meñique, índice, medio y anular extendidos
+    if tips_touching(landmarks, 4, 20, scale, 0.32) and index and middle and ring:
+        return "sign.6"
+    # 7: Pulgar toca anular, índice, medio y meñique extendidos
+    if tips_touching(landmarks, 4, 16, scale, 0.32) and index and middle and pinky:
+        return "sign.7"
+    # 8: Pulgar toca medio, índice, anular y meñique extendidos
+    if tips_touching(landmarks, 4, 12, scale, 0.32) and index and ring and pinky:
+        return "sign.8"
+    # 9 / F / OK: Pulgar toca índice formando círculo, otros 3 extendidos
+    if tips_touching(landmarks, 4, 8, scale, 0.30) and middle and ring and pinky:
+        return "sign.f"
+
+    # ── 3. DACTILOLOGÍA ISL (A-Z) Y NÚMEROS (0-5, 10) ──
+    # L: Pulgar e índice en ángulo recto de 90°
     if thumb and index and not middle and not ring and not pinky and orientation == 'vertical':
         return "sign.l"
-    # O: Puntas de pulgar e índice tocándose formando un círculo
+
+    # D: Índice extendido hacia arriba, pulgar tocando dedos medio/anular formando círculo
+    if index and not middle and not ring and not pinky and (tips_touching(landmarks, 4, 12, scale, 0.38) or tips_touching(landmarks, 4, 16, scale, 0.38)):
+        return "sign.d"
+
+    # O / 0: Puntas de pulgar e índice tocándose formando un círculo cerrado completo
     if tips_touching(landmarks, 4, 8, scale, 0.28) and not index and middle_curled and ring_curled and pinky_curled:
         return "sign.o"
-    # U: Índice y medio juntos hacia arriba
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.25 and orientation == 'vertical':
+
+    # C: Dedos y pulgar curvados formando un arco cóncavo ("C" abierta)
+    if index_half and middle_half and ring_half and not index and not middle and not ring:
+        c_gap = distance_2d(landmarks[4], landmarks[8]) / scale
+        if 0.30 < c_gap < 0.95:
+            return "sign.c"
+
+    # K: Índice extendido, medio extendido diagonal/adelante, pulgar entre ambos
+    if index and middle and not ring and not pinky and orientation == 'vertical':
+        if landmarks[12].y < landmarks[9].y:
+            thumb_mid_dist = distance_2d(landmarks[4], landmarks[10]) / scale
+            if thumb_mid_dist < 0.48:
+                return "sign.k"
+
+    # P: Misma postura de K pero orientada hacia abajo (muñeca o dedos apuntando hacia abajo)
+    if index and middle and not ring and not pinky:
+        if landmarks[12].y > landmarks[9].y or (orientation == 'horizontal' and landmarks[8].y > landmarks[5].y):
+            return "sign.p"
+
+    # G: Pulgar e índice extendidos horizontalmente (pinza lateral)
+    if thumb and index and not middle and not ring and not pinky and orientation == 'horizontal':
+        if landmarks[8].y <= landmarks[5].y + 0.15 * scale:
+            return "sign.g"
+
+    # Q: Pulgar e índice extendidos apuntando hacia abajo
+    if thumb and index and not middle and not ring and not pinky and landmarks[8].y > landmarks[5].y + 0.10 * scale:
+        return "sign.q"
+
+    # H: Índice y medio extendidos juntos horizontalmente
+    if not thumb and index and middle and not ring and not pinky and orientation == 'horizontal':
+        return "sign.h"
+
+    # R: Índice y medio extendidos y cruzados verticalmente
+    if index and middle and not ring and not pinky and orientation == 'vertical':
+        if index_middle_dist <= 0.18 and abs(landmarks[8].x - landmarks[12].x) < 0.12 * scale:
+            return "sign.r"
+
+    # U: Índice y medio juntos hacia arriba (paralelos)
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.20 and orientation == 'vertical':
         return "sign.u"
-    # V / 2: Índice y medio separados hacia arriba (Paz / Victoria)
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.25:
+
+    # V / 2: Índice y medio separados hacia arriba (forma de V / Paz)
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.22 and orientation == 'vertical':
         return "sign.v"
-    # W / 3: Tres dedos extendidos (índice, medio, anular)
-    if not thumb and index and middle and ring and not pinky:
+
+    # W: Tres dedos extendidos (índice, medio, anular) sin pulgar
+    if not thumb and index and middle and ring and not pinky and orientation == 'vertical':
         return "sign.w"
-    # 3 (LSM): Pulgar, índice y medio extendidos
+
+    # 3: Pulgar, índice y medio extendidos (estándar IS/ASL)
     if thumb and index and middle and not ring and not pinky and orientation == 'vertical':
         return "sign.3"
-    # X: Índice doblado en gancho
-    if not thumb and not middle and not ring and not pinky and index_half:
+
+    # B: Cuatro dedos extendidos hacia arriba y juntos con pulgar cruzado sobre palma
+    if (not thumb or thumb_across) and index and middle and ring and pinky and not spread and orientation == 'vertical':
+        return "sign.b"
+
+    # 4: Cuatro dedos extendidos y separados, pulgar plegado
+    if not thumb and index and middle and ring and pinky and orientation == 'vertical':
+        return "sign.4"
+
+    # 5: Cinco dedos completamente extendidos y separados en abanico
+    if extended_count == 5 and spread:
+        return "sign.5"
+
+    # 1: Solo índice extendido vertical hacia arriba
+    if not thumb and index and not middle and not ring and not pinky and orientation == 'vertical':
+        return "sign.1"
+
+    # I: Solo meñique extendido vertical hacia arriba
+    if not thumb and not index and not middle and not ring and pinky and orientation == 'vertical':
+        return "sign.i"
+
+    # J: Meñique extendido en orientación diagonal (o dinámica)
+    if not thumb and not index and not middle and not ring and pinky and orientation == 'diagonal':
+        return "sign.j"
+
+    # X: Solo índice flexionado en gancho (half bent)
+    if not thumb and not middle and not ring and not pinky and index_half and orientation == 'vertical':
         return "sign.x"
+
     # Z: Índice apuntando diagonalmente
     if not thumb and index and not middle and not ring and not pinky and orientation == 'diagonal':
         return "sign.z"
 
-    # ── 3. NÚMEROS ──
-    if tips_touching(landmarks, 4, 8, scale, 0.25) and not middle and not ring and not pinky: return "sign.0"
-    if not thumb and index and not middle and not ring and not pinky and orientation == 'vertical': return "sign.1"
-    if not thumb and index and middle and ring and pinky and orientation == 'vertical': return "sign.4"
-    if extended_count == 5 and spread: return "sign.5"
+    # ── 4. CLASES DE PUÑO CERRADO (A, E, M, N, S, T, 10) ──
+    if index_curled and middle_curled and ring_curled and pinky_curled:
+        # 10: Puño cerrado con pulgar bien extendido vertical hacia arriba
+        if thumb and landmarks[4].y < landmarks[5].y - 0.22 * scale:
+            return "sign.10"
 
-    # ── 4. GESTOS GLOBALES ──
-    if extended_count == 5 and not spread: return "sign.please_wait"
-    if extended_count == 0: return "sign.closed_fist"
-    
+        # T: Pulgar insertado asomando entre dedo índice y dedo medio
+        if distance_2d(landmarks[4], landmarks[6]) / scale < 0.35 and landmarks[4].y < landmarks[6].y:
+            return "sign.t"
+
+        # M: Pulgar plegado bajo 3 dedos (índice, medio, anular), punta cerca del anular/meñique
+        if thumb_across and distance_2d(landmarks[4], landmarks[14]) / scale < 0.36:
+            return "sign.m"
+
+        # N: Pulgar plegado bajo 2 dedos (índice y medio), punta cerca del dedo medio
+        if thumb_across and distance_2d(landmarks[4], landmarks[10]) / scale < 0.36:
+            return "sign.n"
+
+        # S: Puño cerrado con pulgar cruzado por enfrente sobre los dedos
+        if thumb_across and landmarks[4].y <= landmarks[8].y + 0.12 * scale:
+            return "sign.s"
+
+        # E: Cuatro dedos curvados fuertemente con pulgar plegado horizontal bajo ellos
+        if thumb_across and landmarks[4].y > landmarks[8].y:
+            return "sign.e"
+
+        # A: Puño cerrado con pulgar vertical descansando al lado externo del índice
+        if not thumb_across and landmarks[4].y < landmarks[6].y:
+            return "sign.a"
+
+    # Rechazo por defecto para posturas intermedias, ambiguas o de reposo
     return None
 
 # ─────────────────────────────────────────────────────────────────
@@ -504,16 +580,17 @@ class ISLModel:
                 if static_candidate and (is_holding_static or not is_moving_dynamically):
                     current_prediction = static_candidate
 
-                # B) Si hay movimiento dinámico o no hubo seña estática, evaluar modelo aprendido (hola, gracias, etc.)
-                if current_prediction is None and len(self.sequence_buffer) >= 6:
+                # B) Evaluar modelo dinámico aprendido solo cuando hay movimiento activo intencional
+                if current_prediction is None and len(self.sequence_buffer) >= 6 and (is_moving_dynamically or motion_energy > 0.05):
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
                         try:
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
-                            pred_label, confidence = active_model.predict(feats)
-                            # Umbral de confianza calibrado para respuesta fluida
-                            min_conf = 0.65 if is_moving_dynamically else 0.72
-                            if pred_label and confidence >= min_conf:
+                            pred_label, confidence, margin = active_model.predict_with_margin(feats)
+                            # Umbral calibrado con margen de separación frente a la segunda clase (anti-ruido)
+                            min_conf = 0.65 if is_moving_dynamically else 0.78
+                            min_margin = 0.18
+                            if pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
                                 current_prediction = {
                                     "id": f"sign.{info['id']}",
@@ -524,8 +601,8 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # C) Fallback a seña estática si el modelo dinámico no disparó
-                if current_prediction is None and static_candidate:
+                # C) Fallback a seña estática si la mano está estable y no hubo disparo dinámico
+                if current_prediction is None and static_candidate and is_holding_static:
                     current_prediction = static_candidate
             else:
                 self.sequence_buffer.append(np.zeros(126, dtype=np.float32))

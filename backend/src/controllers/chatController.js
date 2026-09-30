@@ -21,6 +21,8 @@ const broadcastToRoom = (conversationId, event, payload) => {
                 } finally {
                     supabaseAdmin.removeChannel(roomChannel);
                 }
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                supabaseAdmin.removeChannel(roomChannel);
             }
         });
     } catch (e) {
@@ -47,6 +49,8 @@ const broadcastToUser = (userId, event, payload) => {
                 } finally {
                     supabaseAdmin.removeChannel(userChannel);
                 }
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                supabaseAdmin.removeChannel(userChannel);
             }
         });
     } catch (e) {

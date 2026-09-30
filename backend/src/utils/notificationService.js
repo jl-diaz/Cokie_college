@@ -118,12 +118,27 @@ const sendBulkNotification = async (users = [], title, body, data = {}) => {
     if (!users || users.length === 0) return;
 
     try {
+        // Normalizar lista de usuarios: soporta tanto array de strings ['id1', 'id2'] como array de objetos [{ id, push_token }]
+        let userObjects = [];
+        const first = users[0];
+        if (typeof first === 'string') {
+            const { data: profiles } = await supabaseAdmin
+                .from('profiles')
+                .select('id, push_token')
+                .in('id', users);
+            userObjects = profiles || users.map(id => ({ id }));
+        } else {
+            userObjects = users;
+        }
+
         // 1. Inserción masiva en tabla notifications (Lotes de 100)
-        const inAppRecords = users.map(u => ({
-            user_id: u.id,
-            title,
-            body
-        }));
+        const inAppRecords = userObjects
+            .map(u => ({
+                user_id: typeof u === 'string' ? u : u.id,
+                title,
+                body
+            }))
+            .filter(r => r.user_id);
 
         const BATCH_SIZE = 100;
         for (let i = 0; i < inAppRecords.length; i += BATCH_SIZE) {
@@ -135,8 +150,8 @@ const sendBulkNotification = async (users = [], title, body, data = {}) => {
         const { Expo, expo } = await getExpoClient();
         const validMessages = [];
 
-        for (const u of users) {
-            if (u.push_token && Expo.isExpoPushToken(u.push_token)) {
+        for (const u of userObjects) {
+            if (u && u.push_token && Expo.isExpoPushToken(u.push_token)) {
                 validMessages.push({
                     to: u.push_token,
                     sound: 'default',

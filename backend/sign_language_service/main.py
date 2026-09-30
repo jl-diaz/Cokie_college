@@ -9,6 +9,7 @@ import os
 import asyncio
 import json
 import urllib.request
+import time
 
 from isl_model import ISLModel, load_models
 import gesture_trainer
@@ -170,10 +171,14 @@ async def train_model_endpoint(background_tasks: BackgroundTasks):
             if result.get("success"):
                 await sio.emit("training_completed", {
                     "success": True,
-                    "message": "Entrenamiento completado exitosamente!",
+                    "quality_gate_passed": result.get("quality_gate_passed", True),
+                    "message": "Entrenamiento completado y validado!" if result.get("quality_gate_passed") else "Entrenamiento completado, pero no superó el quality gate (<70%). Se conserva el modelo previo.",
                     "accuracy": result.get("final_accuracy"),
+                    "train_accuracy": result.get("train_accuracy"),
+                    "test_accuracy": result.get("test_accuracy"),
                     "classes": result.get("classes"),
-                    "total_samples": result.get("total_samples")
+                    "total_samples": result.get("total_samples"),
+                    "per_class_metrics": result.get("per_class_metrics", {})
                 })
             else:
                 await sio.emit("training_failed", {
@@ -183,6 +188,35 @@ async def train_model_endpoint(background_tasks: BackgroundTasks):
 
     background_tasks.add_task(run_training)
     return {"status": "training_started", "message": "Entrenamiento iniciado en segundo plano."}
+
+@app.get("/api/gestures/model-status")
+async def get_model_status():
+    """Retorna metadatos del modelo activo, clases entrenadas y disponibilidad de rollback."""
+    active_model = gesture_trainer.get_active_model()
+    has_backup = os.path.exists(gesture_trainer.PREV_MODEL_FILE)
+    model_exists = os.path.exists(gesture_trainer.MODEL_FILE)
+    model_mtime = None
+    if model_exists:
+        model_mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(gesture_trainer.MODEL_FILE)))
+    backup_mtime = None
+    if has_backup:
+        backup_mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(gesture_trainer.PREV_MODEL_FILE)))
+        
+    return {
+        "model_exists": model_exists,
+        "active_classes": active_model.labels if active_model else [],
+        "num_classes": len(active_model.labels) if active_model else 0,
+        "last_trained": model_mtime,
+        "has_rollback_backup": has_backup,
+        "backup_date": backup_mtime
+    }
+
+@app.post("/api/gestures/rollback")
+async def rollback_model_endpoint():
+    """Restaura el modelo previo guardado ante degradación de métricas."""
+    res = gesture_trainer.rollback_model()
+    return res
+
 
 # ── ENDPOINT PARA ENCAMINAR AUDIO A LOS LENTES ESP32-CAM ──────────────────────
 @app.post("/api/esp32/audio")

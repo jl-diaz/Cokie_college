@@ -7,7 +7,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Hola",
-    "name_en": "Hello"
+    "name_en": "Hello",
+    "category": "school"
   },
   {
     "id": "gracias",
@@ -17,7 +18,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Gracias",
-    "name_en": "Thank you"
+    "name_en": "Thank you",
+    "category": "school"
   },
   {
     "id": "por_favor",
@@ -27,7 +29,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Por favor",
-    "name_en": "Please"
+    "name_en": "Please",
+    "category": "school"
   },
   {
     "id": "permiso_bano",
@@ -37,7 +40,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Permiso para ir al baño",
-    "name_en": "Bathroom permission"
+    "name_en": "Bathroom permission",
+    "category": "school"
   },
   {
     "id": "te_quiero",
@@ -47,7 +51,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Te quiero",
-    "name_en": "I love you"
+    "name_en": "I love you",
+    "category": "school"
   },
   {
     "id": "si",
@@ -57,7 +62,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "Sí",
-    "name_en": "Yes"
+    "name_en": "Yes",
+    "category": "school"
   },
   {
     "id": "no",
@@ -67,7 +73,8 @@
     "sample_count": 6,
     "is_default": true,
     "name_es": "No",
-    "name_en": "No"
+    "name_en": "No",
+    "category": "school"
   },
   {
     "id": "me_llamo___mi_nombre_es",
@@ -78,7 +85,8 @@
     "description": "Dedos índice y medio de ambas manos hacen una cruz (una mano sobre la otra)",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:20:51"
+    "created_at": "2026-09-22 15:20:51",
+    "category": "school"
   },
   {
     "id": "yo",
@@ -89,7 +97,8 @@
     "description": "Dedo índice apuntando a la persona",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:25:01"
+    "created_at": "2026-09-22 15:25:01",
+    "category": "school"
   },
   {
     "id": "uno",
@@ -100,7 +109,8 @@
     "description": "Dedo índice apuntando hacia arriba",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:28:51"
+    "created_at": "2026-09-22 15:28:51",
+    "category": "numbers"
   },
   {
     "id": "dos",
@@ -111,7 +121,8 @@
     "description": "Dedo índice y medio haciendo la señal de la paz",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:30:32"
+    "created_at": "2026-09-22 15:30:32",
+    "category": "numbers"
   },
   {
     "id": "tres",
@@ -122,7 +133,8 @@
     "description": "Dedo índice, medio y anular apuntando hacia arriba",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:32:03"
+    "created_at": "2026-09-22 15:32:03",
+    "category": "numbers"
   },
   {
     "id": "cuatro",
@@ -133,7 +145,8 @@
     "description": "Todos los dedos abiertos a excepción del pulgar",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:33:36"
+    "created_at": "2026-09-22 15:33:36",
+    "category": "numbers"
   },
   {
     "id": "cinco",
@@ -144,7 +157,8 @@
     "description": "Mano abierta",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:34:55"
+    "created_at": "2026-09-22 15:34:55",
+    "category": "numbers"
   },
   {
     "id": "adios",
@@ -155,7 +169,8 @@
     "description": "Todos los dedos a excepción del pulgar se abren y se cierran",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:36:56"
+    "created_at": "2026-09-22 15:36:56",
+    "category": "school"
   },
   {
     "id": "buenos_dias",
@@ -166,7 +181,8 @@
     "description": "Ambas manos dando like, gesto de U invertida, apertura de manos abiertas",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:45:01"
+    "created_at": "2026-09-22 15:45:01",
+    "category": "school"
   },
   {
     "id": "perdon",
@@ -177,7 +193,8 @@
     "description": "Puño cerrado dando vueltas en el pecho",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:50:55"
+    "created_at": "2026-09-22 15:50:55",
+    "category": "school"
   },
   {
     "id": "ayuda",
@@ -188,7 +205,8 @@
     "description": "Mano izquierda cerrada sobre mano abierta caen hacia abajo",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:54:22"
+    "created_at": "2026-09-22 15:54:22",
+    "category": "school"
   },
   {
     "id": "agua",
@@ -199,7 +217,8 @@
     "description": "Mano abierta, dedo medio frota la barbilla",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 15:57:55"
+    "created_at": "2026-09-22 15:57:55",
+    "category": "school"
   },
   {
     "id": "comida",
@@ -210,7 +229,8 @@
     "description": "Gesto de llevarse la mano a la boca cerrada en forma de capullo",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:01:12"
+    "created_at": "2026-09-22 16:01:12",
+    "category": "school"
   },
   {
     "id": "querer",
@@ -221,7 +241,8 @@
     "description": "Ambas manos hacen el numero 3 y caen hacia abajo",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:03:58"
+    "created_at": "2026-09-22 16:03:58",
+    "category": "school"
   },
   {
     "id": "casa",
@@ -232,7 +253,8 @@
     "description": "Manos extendiendo los 4 dedos a excepción del pulgar, se abren hacia afuera",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:08:24"
+    "created_at": "2026-09-22 16:08:24",
+    "category": "school"
   },
   {
     "id": "amigo",
@@ -243,7 +265,8 @@
     "description": "Ambas manos se enganchan con el dedo índice",
     "sample_count": 7,
     "is_default": false,
-    "created_at": "2026-09-22 16:12:52"
+    "created_at": "2026-09-22 16:12:52",
+    "category": "school"
   },
   {
     "id": "listo___terminado",
@@ -254,7 +277,8 @@
     "description": "Manos abiertas a la inversa se giran, mostrando la palma hacia la otra persona",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:15:54"
+    "created_at": "2026-09-22 16:15:54",
+    "category": "school"
   },
   {
     "id": "mama",
@@ -265,7 +289,8 @@
     "description": "Mano abierta posicionando el dedo pulgar en la barbilla",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:20:38"
+    "created_at": "2026-09-22 16:20:38",
+    "category": "school"
   },
   {
     "id": "papa",
@@ -276,7 +301,8 @@
     "description": "Mano abierta posicionando el dedo pulgar enmedio de las cejas",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:22:40"
+    "created_at": "2026-09-22 16:22:40",
+    "category": "school"
   },
   {
     "id": "que",
@@ -287,7 +313,8 @@
     "description": "Manos abiertas con las palmas hacia arriba sacudiendose de lado a lado",
     "sample_count": 6,
     "is_default": false,
-    "created_at": "2026-09-22 16:24:59"
+    "created_at": "2026-09-22 16:24:59",
+    "category": "school"
   },
   {
     "id": "listo",
@@ -298,7 +325,8 @@
     "description": "Coloca ambas manos frente a tu cuerpo formando la letra r y muévelas hacia afuera",
     "sample_count": 4,
     "is_default": false,
-    "created_at": "2026-09-24 20:59:28"
+    "created_at": "2026-09-24 20:59:28",
+    "category": "school"
   },
   {
     "id": "como_estan",
@@ -309,7 +337,8 @@
     "description": "Coloca las manos con los dedos curvos y los nudillos juntos con las palmas hacia abajo giras las manos hacia adelante hasta que las palmas queden hacia arriba baja las cejas porque es una pregunta A veces se puede hacer usando una sola mano además apunta con el dedo índice a la persona a la que te diriges.",
     "sample_count": 8,
     "is_default": false,
-    "created_at": "2026-09-24 21:05:20"
+    "created_at": "2026-09-24 21:05:20",
+    "category": "school"
   },
   {
     "id": "bien",
@@ -320,7 +349,8 @@
     "description": "Coloca la mano abierta y simplemente debes girarla hacia adelante",
     "sample_count": 9,
     "is_default": false,
-    "created_at": "2026-09-24 21:12:37"
+    "created_at": "2026-09-24 21:12:37",
+    "category": "school"
   },
   {
     "id": "esta_bien__ok",
@@ -331,6 +361,359 @@
     "description": "",
     "sample_count": 5,
     "is_default": false,
-    "created_at": "2026-09-24 21:18:54"
+    "created_at": "2026-09-24 21:18:54",
+    "category": "school"
+  },
+  {
+    "id": "a",
+    "name": "Letra A",
+    "name_es": "Letra A",
+    "name_en": "Letter A",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Puño cerrado con el pulgar apoyado al lado externo del dedo índice.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "b",
+    "name": "Letra B",
+    "name_es": "Letra B",
+    "name_en": "Letter B",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Cuatro dedos extendidos verticalmente y juntos; pulgar plegado sobre la palma.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "c",
+    "name": "Letra C",
+    "name_es": "Letra C",
+    "name_en": "Letter C",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos y pulgar curvados formando un arco cóncavo (forma de C).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "d",
+    "name": "Letra D",
+    "name_es": "Letra D",
+    "name_en": "Letter D",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedo índice extendido hacia arriba; dedos medio, anular y meñique tocando la yema del pulgar.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "e",
+    "name": "Letra E",
+    "name_es": "Letra E",
+    "name_en": "Letter E",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Cuatro dedos curvados hacia abajo; puntas descansando sobre el pulgar doblado transversalmente.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "f",
+    "name": "Letra F",
+    "name_es": "Letra F",
+    "name_en": "Letter F",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Puntas de pulgar e índice tocándose en círculo; dedos medio, anular y meñique extendidos hacia arriba.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "g",
+    "name": "Letra G",
+    "name_es": "Letra G",
+    "name_en": "Letter G",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedo índice y pulgar extendidos paralelamente hacia un lado (pinza horizontal).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "h",
+    "name": "Letra H",
+    "name_es": "Letra H",
+    "name_en": "Letter H",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos índice y medio extendidos juntos horizontalmente; pulgar sobre anular y meñique.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "i",
+    "name": "Letra I",
+    "name_es": "Letra I",
+    "name_en": "Letter I",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Solo dedo meñique extendido verticalmente hacia arriba; demás dedos y pulgar en puño.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "j",
+    "name": "Letra J",
+    "name_es": "Letra J",
+    "name_en": "Letter J",
+    "type": "movement",
+    "category": "alphabet",
+    "description": "Mano en postura de I trazando en el aire una curva de J con la muñeca hacia adentro.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "k",
+    "name": "Letra K",
+    "name_es": "Letra K",
+    "name_en": "Letter K",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Índice vertical; medio extendido diagonal adelante; yema del pulgar en la articulación del medio.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "l",
+    "name": "Letra L",
+    "name_es": "Letra L",
+    "name_en": "Letter L",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedo índice vertical y pulgar horizontal a 90° formando una L.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "m",
+    "name": "Letra M",
+    "name_es": "Letra M",
+    "name_en": "Letter M",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Índice, medio y anular doblados sobre el pulgar (el pulgar asoma entre anular y meñique).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "n",
+    "name": "Letra N",
+    "name_es": "Letra N",
+    "name_en": "Letter N",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Índice y medio doblados sobre el pulgar (el pulgar asoma entre medio y anular).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "o",
+    "name": "Letra O",
+    "name_es": "Letra O",
+    "name_en": "Letter O",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Todas las puntas de los dedos tocando la yema del pulgar formando un óvalo cerrado.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "p",
+    "name": "Letra P",
+    "name_es": "Letra P",
+    "name_en": "Letter P",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Misma postura que K pero orientada verticalmente hacia abajo con la muñeca.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "q",
+    "name": "Letra Q",
+    "name_es": "Letra Q",
+    "name_en": "Letter Q",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Misma postura que G (pinza índice-pulgar) orientada hacia abajo.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "r",
+    "name": "Letra R",
+    "name_es": "Letra R",
+    "name_en": "Letter R",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos índice y medio extendidos verticalmente y cruzados (medio cruzando sobre índice).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "s",
+    "name": "Letra S",
+    "name_es": "Letra S",
+    "name_en": "Letter S",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Puño cerrado compacto con el pulgar cruzado por encima de los dedos índice y medio.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "t",
+    "name": "Letra T",
+    "name_es": "Letra T",
+    "name_en": "Letter T",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Puño cerrado con el pulgar insertado y asomando entre dedo índice y dedo medio.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "u",
+    "name": "Letra U",
+    "name_es": "Letra U",
+    "name_en": "Letter U",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos índice y medio extendidos hacia arriba, paralelos y pegados entre sí.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "v",
+    "name": "Letra V",
+    "name_es": "Letra V",
+    "name_en": "Letter V",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos índice y medio extendidos y separados hacia arriba (forma de V / Paz).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "w",
+    "name": "Letra W",
+    "name_es": "Letra W",
+    "name_en": "Letter W",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedos índice, medio y anular extendidos y separados en abanico (forma de W).",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "x",
+    "name": "Letra X",
+    "name_es": "Letra X",
+    "name_en": "Letter X",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedo índice flexionado en forma de gancho; demás dedos cerrados en puño.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "y",
+    "name": "Letra Y",
+    "name_es": "Letra Y",
+    "name_en": "Letter Y",
+    "type": "static",
+    "category": "alphabet",
+    "description": "Dedo pulgar y meñique completamente extendidos; dedos índice, medio y anular en puño.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "z",
+    "name": "Letra Z",
+    "name_es": "Letra Z",
+    "name_en": "Letter Z",
+    "type": "movement",
+    "category": "alphabet",
+    "description": "Dedo índice extendido trazando en el aire una Z en zigzag.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "cero",
+    "name": "0 / Cero",
+    "name_es": "0 / Cero",
+    "name_en": "0 / Zero",
+    "type": "static",
+    "category": "numbers",
+    "description": "Puntas de los 5 dedos unidas formando un óvalo cerrado.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "seis",
+    "name": "6 / Seis",
+    "name_es": "6 / Seis",
+    "name_en": "6 / Six",
+    "type": "static",
+    "category": "numbers",
+    "description": "Dedo meñique tocando la yema del pulgar; índice, medio y anular extendidos.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "siete",
+    "name": "7 / Siete",
+    "name_es": "7 / Siete",
+    "name_en": "7 / Seven",
+    "type": "static",
+    "category": "numbers",
+    "description": "Dedo anular tocando la yema del pulgar; índice, medio y meñique extendidos.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "ocho",
+    "name": "8 / Ocho",
+    "name_es": "8 / Ocho",
+    "name_en": "8 / Eight",
+    "type": "static",
+    "category": "numbers",
+    "description": "Dedo medio tocando la yema del pulgar; índice, anular y meñique extendidos.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "nueve",
+    "name": "9 / Nueve",
+    "name_es": "9 / Nueve",
+    "name_en": "9 / Nine",
+    "type": "static",
+    "category": "numbers",
+    "description": "Dedo índice tocando la yema del pulgar en círculo; medio, anular y meñique extendidos.",
+    "sample_count": 0,
+    "is_default": true
+  },
+  {
+    "id": "diez",
+    "name": "10 / Diez",
+    "name_es": "10 / Diez",
+    "name_en": "10 / Ten",
+    "type": "movement",
+    "category": "numbers",
+    "description": "Puño cerrado con pulgar hacia arriba y leve oscilación de muñeca.",
+    "sample_count": 0,
+    "is_default": true
   }
 ]

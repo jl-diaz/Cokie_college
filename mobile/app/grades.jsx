@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import api from '../src/utils/api';
-import { ChevronDown, ChevronUp, Award, Book } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Award, Book, Download } from 'lucide-react-native';
 import { useTheme } from '../src/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '../src/components/PageHeader';
@@ -112,7 +112,7 @@ export default function GradesScreen() {
     }
     try {
       setLoading(true);
-      await generateAndDownloadStudentReport(studentId, selectedPeriod, studentDetails || profile);
+      await generateAndDownloadStudentReport(isCoordinatorView ? studentId : null, selectedPeriod, studentDetails || profile);
       showAlert({
         type: 'success',
         title: t('grades.reportCardGeneratedTitle', 'Boletín Generado'),
@@ -260,20 +260,18 @@ export default function GradesScreen() {
         </View>
       </View>
 
-      {isCoordinatorView && (
-        <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-          <TouchableOpacity 
-            style={[styles.downloadBtn, { backgroundColor: Colors.primary }]} 
-            onPress={handleDownloadPDF}
-            activeOpacity={0.8}
-          >
-            <Book size={20} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
-              {t('grades.downloadReportCardPdf', { period: selectedPeriod, defaultValue: `Descargar Boletín P${selectedPeriod} (PDF)` })}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+        <TouchableOpacity 
+          style={[styles.downloadBtn, { backgroundColor: Colors.primary }]} 
+          onPress={handleDownloadPDF}
+          activeOpacity={0.8}
+        >
+          <Download size={20} color="#FFF" style={{ marginRight: 8 }} />
+          <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
+            {t('grades.downloadReportCardPdf', { period: selectedPeriod, defaultValue: `Descargar Boletín P${selectedPeriod} (PDF)` })}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.content}>
         <View style={styles.summaryCard}>

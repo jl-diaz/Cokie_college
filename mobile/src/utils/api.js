@@ -7,6 +7,7 @@ const baseURL = rawUrl.endsWith('/') ? rawUrl : `${rawUrl}/`;
 
 const api = axios.create({
   baseURL,
+  timeout: 15000,
 });
 
 // Interceptor para añadir el token de Supabase a todas las peticiones

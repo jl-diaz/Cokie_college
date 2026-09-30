@@ -92,6 +92,10 @@ export default function GestureStudioScreen() {
 
   // Búsqueda y filtrado de dialecto escolar
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all' | 'alphabet' | 'numbers' | 'school'
+  const [recorderCategory, setRecorderCategory] = useState('all'); // 'all' | 'alphabet' | 'numbers' | 'school'
+  const [modelStatus, setModelStatus] = useState(null);
+  const [rollingBack, setRollingBack] = useState(false);
 
   // Modal de configuración y prueba de IP de lentes
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
@@ -122,6 +126,7 @@ export default function GestureStudioScreen() {
   useEffect(() => {
     loadSavedSettings();
     fetchGestures();
+    fetchModelStatus();
 
     // Conectar WebSocket para recibir eventos de entrenamiento
     WebSocketService.connect(serverUrl);
@@ -137,6 +142,7 @@ export default function GestureStudioScreen() {
         setTrainingStatus('completed');
         setTrainingResult(data);
         fetchGestures();
+        fetchModelStatus();
       } else if (event === 'failed') {
         setTrainingStatus('failed');
         setTrainingResult(data);
@@ -188,6 +194,52 @@ export default function GestureStudioScreen() {
       console.warn('Error cargando gestos:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchModelStatus = async () => {
+    try {
+      const res = await fetch(`${serverUrl}/api/gestures/model-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setModelStatus(data);
+      }
+    } catch (e) {}
+  };
+
+  const handleRollback = async () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('gestureStudio.rollbackConfirmDesc', '¿Deseas restaurar la versión anterior del modelo neuronal en memoria?'))) {
+        await executeRollback();
+      }
+    } else {
+      Alert.alert(
+        t('gestureStudio.rollbackConfirmTitle', 'Restaurar Versión Anterior'),
+        t('gestureStudio.rollbackConfirmDesc', '¿Deseas restaurar la versión anterior del modelo neuronal en memoria?'),
+        [
+          { text: t('common.cancel', 'Cancelar'), style: 'cancel' },
+          { text: t('gestureStudio.rollbackAction', 'Restaurar'), style: 'destructive', onPress: () => executeRollback() }
+        ]
+      );
+    }
+  };
+
+  const executeRollback = async () => {
+    setRollingBack(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/gestures/rollback`, { method: 'POST' });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        Alert.alert(t('common.success', 'Éxito'), json.message || 'Modelo restaurado correctamente.');
+        await fetchModelStatus();
+        await fetchGestures();
+      } else {
+        Alert.alert(t('common.error', 'Error'), json.error || 'No se pudo restaurar el modelo.');
+      }
+    } catch (err) {
+      Alert.alert(t('common.error', 'Error'), 'Error de conexión con el servidor.');
+    } finally {
+      setRollingBack(false);
     }
   };
 
@@ -640,8 +692,12 @@ export default function GestureStudioScreen() {
   const selectedGesture = gestures.find(g => g.id === selectedGestureId);
   const eligibleGestures = gestures.filter(g => (g.sample_count || 0) >= 2);
 
-  // Filtrado reactivo para búsqueda en dialecto escolar
+  // Filtrado reactivo para búsqueda y categoría en dialecto escolar
   const filteredGestures = gestures.filter(item => {
+    if (categoryFilter !== 'all') {
+      const cat = item.category || 'school';
+      if (cat !== categoryFilter) return false;
+    }
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     const matchName = (item.name && item.name.toLowerCase().includes(q)) || false;
@@ -650,6 +706,12 @@ export default function GestureStudioScreen() {
     const matchDesc = (item.description && item.description.toLowerCase().includes(q)) || false;
     const matchType = (item.type && item.type.toLowerCase().includes(q)) || false;
     return matchName || matchNameEs || matchNameEn || matchDesc || matchType;
+  });
+
+  const recorderGestures = gestures.filter(g => {
+    if (recorderCategory === 'all') return true;
+    const cat = g.category || 'school';
+    return cat === recorderCategory;
   });
 
   return (
@@ -740,6 +802,42 @@ export default function GestureStudioScreen() {
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Filtros de Categoría */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryChipsScroll} contentContainerStyle={{ paddingBottom: 12 }}>
+            <TouchableOpacity
+              style={[styles.categoryChip, categoryFilter === 'all' && styles.categoryChipActive]}
+              onPress={() => setCategoryFilter('all')}
+            >
+              <Text style={[styles.categoryChipText, categoryFilter === 'all' && styles.categoryChipTextActive]}>
+                {t('gestureStudio.catAll', 'Todos')} ({gestures.length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.categoryChip, categoryFilter === 'alphabet' && styles.categoryChipActive]}
+              onPress={() => setCategoryFilter('alphabet')}
+            >
+              <Text style={[styles.categoryChipText, categoryFilter === 'alphabet' && styles.categoryChipTextActive]}>
+                {t('gestureStudio.catAlphabet', 'Abecedario A-Z')} ({gestures.filter(g => g.category === 'alphabet').length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.categoryChip, categoryFilter === 'numbers' && styles.categoryChipActive]}
+              onPress={() => setCategoryFilter('numbers')}
+            >
+              <Text style={[styles.categoryChipText, categoryFilter === 'numbers' && styles.categoryChipTextActive]}>
+                {t('gestureStudio.catNumbers', 'Números 0-10')} ({gestures.filter(g => g.category === 'numbers').length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.categoryChip, categoryFilter === 'school' && styles.categoryChipActive]}
+              onPress={() => setCategoryFilter('school')}
+            >
+              <Text style={[styles.categoryChipText, categoryFilter === 'school' && styles.categoryChipTextActive]}>
+                {t('gestureStudio.catSchool', 'Señas Escolares')} ({gestures.filter(g => g.category === 'school' || !g.category).length})
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
 
           {loading ? (
             <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
@@ -873,9 +971,46 @@ export default function GestureStudioScreen() {
 
           {/* Barra de selección de gesto a grabar */}
           <View style={styles.gestureSelectorBar}>
-            <Text style={styles.selectorLabel}>{t('gestureStudio.recordingFor', 'Grabando para:')}</Text>
+            <View style={styles.recorderCatBar}>
+              <Text style={styles.selectorLabel}>{t('gestureStudio.recordingFor', 'Grabando para:')}</Text>
+              <View style={styles.recorderCatPillsRow}>
+                <TouchableOpacity
+                  style={[styles.recorderCatPill, recorderCategory === 'all' && styles.recorderCatPillActive]}
+                  onPress={() => setRecorderCategory('all')}
+                >
+                  <Text style={[styles.recorderCatPillText, recorderCategory === 'all' && styles.recorderCatPillTextActive]}>
+                    {t('gestureStudio.catAll', 'Todos')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.recorderCatPill, recorderCategory === 'alphabet' && styles.recorderCatPillActive]}
+                  onPress={() => setRecorderCategory('alphabet')}
+                >
+                  <Text style={[styles.recorderCatPillText, recorderCategory === 'alphabet' && styles.recorderCatPillTextActive]}>
+                    {t('gestureStudio.catAlphabet', 'Abecedario')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.recorderCatPill, recorderCategory === 'numbers' && styles.recorderCatPillActive]}
+                  onPress={() => setRecorderCategory('numbers')}
+                >
+                  <Text style={[styles.recorderCatPillText, recorderCategory === 'numbers' && styles.recorderCatPillTextActive]}>
+                    {t('gestureStudio.catNumbers', 'Números')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.recorderCatPill, recorderCategory === 'school' && styles.recorderCatPillActive]}
+                  onPress={() => setRecorderCategory('school')}
+                >
+                  <Text style={[styles.recorderCatPillText, recorderCategory === 'school' && styles.recorderCatPillTextActive]}>
+                    {t('gestureStudio.catSchool', 'Escolares')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
-              {gestures.map((g) => {
+              {recorderGestures.map((g) => {
                 const isItemStatic = g.type === 'static';
                 const isSelected = selectedGestureId === g.id;
                 return (
@@ -1097,6 +1232,37 @@ export default function GestureStudioScreen() {
             )}
           </View>
 
+          {/* Tarjeta de Estado del Modelo Activo y Rollback */}
+          <View style={styles.modelStatusCard}>
+            <View style={styles.modelStatusHeader}>
+              <Layers size={18} color="#38bdf8" style={{ marginRight: 8 }} />
+              <Text style={styles.modelStatusTitle}>
+                {t('gestureStudio.activeModelStatus', 'Modelo Neuronal en Memoria')}
+              </Text>
+            </View>
+            <Text style={styles.modelStatusDesc}>
+              {modelStatus?.num_classes ? `${modelStatus.num_classes} clases activas.` : 'Cargando estado del modelo...'}
+              {modelStatus?.last_trained ? ` Última actualización: ${modelStatus.last_trained}` : ''}
+            </Text>
+
+            {modelStatus?.has_rollback_backup ? (
+              <TouchableOpacity
+                style={[styles.rollbackBtn, rollingBack && styles.startTrainBtnDisabled]}
+                onPress={handleRollback}
+                disabled={rollingBack}
+              >
+                {rollingBack ? (
+                  <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 6 }} />
+                ) : (
+                  <RotateCcw size={15} color="#FFF" style={{ marginRight: 6 }} />
+                )}
+                <Text style={styles.rollbackBtnText}>
+                  {rollingBack ? 'Restaurando...' : t('gestureStudio.rollbackBtn', 'Restaurar Versión Anterior (Rollback)')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           {/* Consola de Progreso de Épocas */}
           {trainingStatus === 'training' && (
             <View style={styles.progressCard}>
@@ -1126,14 +1292,38 @@ export default function GestureStudioScreen() {
             </View>
           )}
 
-          {/* Resultado de Entrenamiento Exitoso */}
+          {/* Resultado de Entrenamiento */}
           {trainingStatus === 'completed' && trainingResult && (
             <View style={styles.successCard}>
               <CheckCircle size={32} color="#10b981" style={{ marginBottom: 8 }} />
-              <Text style={styles.successTitle}>{t('gestureStudio.successfulTraining', '¡Entrenamiento Exitoso!')}</Text>
+              <Text style={styles.successTitle}>{t('gestureStudio.successfulTraining', '¡Entrenamiento Finalizado!')}</Text>
+              
+              {trainingResult.quality_gate_passed ? (
+                <View style={styles.qualityGateBadgeSuccess}>
+                  <CheckCircle size={15} color="#10b981" style={{ marginRight: 6 }} />
+                  <Text style={styles.qualityGateTextSuccess}>
+                    {t('gestureStudio.qgPassed', 'Quality Gate: Superado (Test Acc >= 70%)')}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.qualityGateBadgeWarn}>
+                  <AlertTriangle size={15} color="#f59e0b" style={{ marginRight: 6 }} />
+                  <Text style={styles.qualityGateTextWarn}>
+                    {t('gestureStudio.qgRejected', 'Quality Gate: No superado (< 70%). Se conservó el modelo previo.')}
+                  </Text>
+                </View>
+              )}
+
               <Text style={styles.successDesc}>
-                {t('gestureStudio.trainingSuccessDesc', { accuracy: trainingResult.accuracy, samples: trainingResult.total_samples, defaultValue: `La red neuronal alcanzó una precisión del ${trainingResult.accuracy}% con ${trainingResult.total_samples} muestras. El modelo ya fue recargado en memoria y está listo para interpretar.` })}
+                {trainingResult.message || t('gestureStudio.trainingSuccessDesc', { accuracy: trainingResult.accuracy, samples: trainingResult.total_samples, defaultValue: `Precisión final: ${trainingResult.accuracy}% con ${trainingResult.total_samples} muestras.` })}
               </Text>
+
+              {trainingResult.train_accuracy != null && trainingResult.test_accuracy != null && (
+                <View style={styles.accuracyComparisonRow}>
+                  <Text style={styles.accCompareLabel}>Train Acc: <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{trainingResult.train_accuracy}%</Text></Text>
+                  <Text style={styles.accCompareLabel}>Test Acc: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{trainingResult.test_accuracy}%</Text></Text>
+                </View>
+              )}
 
               <TouchableOpacity
                 style={styles.testInterpreterBtn}
@@ -1853,6 +2043,149 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
     marginRight: 6,
+  },
+
+  // Filtros de categoría en dialecto
+  categoryChipsScroll: {
+    flexGrow: 0,
+    marginBottom: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  categoryChipActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    borderColor: '#38bdf8',
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  categoryChipTextActive: {
+    color: '#38bdf8',
+    fontWeight: 'bold',
+  },
+
+  // Selector de categoría en el grabador
+  recorderCatBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  recorderCatPillsRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  recorderCatPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
+  },
+  recorderCatPillActive: {
+    backgroundColor: '#38bdf8',
+  },
+  recorderCatPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  recorderCatPillTextActive: {
+    color: '#0f172a',
+    fontWeight: 'bold',
+  },
+
+  // Tarjeta de Estado del Modelo y Rollback
+  modelStatusCard: {
+    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+  },
+  modelStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modelStatusTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: Colors.text.primary,
+  },
+  modelStatusDesc: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  rollbackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#dc2626',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  rollbackBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  // Quality Gate y Métricas
+  qualityGateBadgeSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  qualityGateTextSuccess: {
+    color: '#10b981',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  qualityGateBadgeWarn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  qualityGateTextWarn: {
+    color: '#f59e0b',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  accuracyComparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+    width: '100%',
+  },
+  accCompareLabel: {
+    fontSize: 13,
+    color: Colors.text.primary,
   },
 
   // Modal

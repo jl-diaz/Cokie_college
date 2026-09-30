@@ -125,7 +125,47 @@
     "passwordLabel": "Password",
     "loginBtn": "Log In",
     "fieldsRequired": "Please complete all required fields",
-    "invalidCredentials": "Invalid credentials or connection error"
+    "invalidCredentials": "Invalid credentials or connection error",
+    "biometricPrompt": "Log in with your fingerprint or Face ID",
+    "biometricBtn": "Log in with {{type}}",
+    "biometricQuickAccess": "Biometric Quick Login",
+    "biometricLoginAs": "Log in as {{name}}",
+    "biometricUseOther": "Use another account",
+    "biometricsSavePromptTitle": "Enable quick biometric login?",
+    "biometricsSavePromptMessage": "You will be able to log in instantly using {{type}} without typing your password.",
+    "biometricsSavePromptConfirm": "Yes, enable",
+    "biometricsSavePromptCancel": "Not now",
+    "biometricsSuccessEnabled": "Biometric access successfully enabled!",
+    "biometricsFailed": "Biometric authentication could not be completed.",
+    "biometricsNotEnrolled": "No fingerprint or Face ID enrolled on this device."
+  },
+  "biometrics": {
+    "title": "Biometric Authentication",
+    "touchId": "Touch ID",
+    "faceId": "Face ID",
+    "fingerprint": "Fingerprint",
+    "generic": "Biometrics",
+    "iris": "Iris Scanner",
+    "promptMessage": "Verify your identity to access Cokie College",
+    "cancel": "Cancel",
+    "fallback": "Use password",
+    "settingsTitle": "Security & Biometric Access",
+    "settingsSubtitle": "Use Face ID or fingerprint to unlock the app instantly",
+    "toggleLabel": "Log in with {{type}}",
+    "toggleActiveDesc": "Enabled on this device",
+    "toggleInactiveDesc": "Tap to enable fast and secure unlock",
+    "deviceNotSupported": "Not available on this device",
+    "disabledAlert": "Biometric login has been disabled.",
+    "enabledAlert": "Biometric login with {{type}} successfully enabled!",
+    "confirmIdentityToDisable": "Confirm your identity to disable",
+    "confirmIdentityToEnable": "Confirm your biometric identity to enable quick access",
+    "modalPasswordTitle": "Confirm your password",
+    "modalPasswordSubtitle": "To securely activate quick unlock, enter your current institutional password:",
+    "modalPasswordPlaceholder": "Your institutional password",
+    "modalPasswordConfirm": "Confirm & Enable",
+    "modalPasswordCancel": "Cancel",
+    "invalidPassword": "The password entered is invalid.",
+    "keychainNotice": "Your credentials are kept safe in your device's hardware-backed Keychain/Keystore."
   },
   "dashboard": {
     "welcome": "Welcome",
@@ -358,7 +398,8 @@
     "chooseAnotherCafetin": "Choose another cafeteria",
     "wantSomethingDelicious": "Want something delicious?",
     "step1BuildLunch": "Step 1. Build your lunch",
-    "orderCancelledSuccess": "Your order has been cancelled. You can now place a new order."
+    "orderCancelledSuccess": "Your order has been cancelled. You can now place a new order.",
+    "noTortillas": "No tortillas"
   },
   "events": {
     "title": "Institutional Events",
@@ -539,7 +580,8 @@
     "deleteGradeConfirm": "Are you sure you want to delete this grade?",
     "deleteGradeError": "Could not delete grade",
     "ticketSentTitle": "Ticket Sent",
-    "createTicketError": "Could not create extension ticket."
+    "createTicketError": "Could not create extension ticket.",
+    "compactTicketBtn": "+ Ticket"
   },
   "users": {
     "searchPlaceholder": "Search by name or code...",
@@ -773,7 +815,10 @@
       "sky": "Vibrant Sky",
       "lime": "Neon Lime",
       "purple": "Electric Purple"
-    }
+    },
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "accentColorTitle": "Primary Accent Color"
   },
   "days": {
     "monday": "Mon",
@@ -826,7 +871,14 @@
     "cancel": "Cancel",
     "volumeLabel": "Headphone / Voice Volume",
     "testAudioBtn": "Test Sound",
-    "testAudioPhrase": "CokieLens audio test at {{volume}} percent"
+    "testAudioPhrase": "CokieLens audio test at {{volume}} percent",
+    "cameraPermissionTitle": "Camera Permission Required",
+    "cameraPermissionDesc": "To translate sign language in real time, the app needs access to the camera.",
+    "grantPermissionBtn": "Grant Permission",
+    "openSettingsBtn": "Open Settings",
+    "aiConnected": "AI Connected",
+    "aiConnecting": "Connecting to AI...",
+    "aiReconnect": "Reconnect AI"
   },
   "gestureStudio": {
     "title": "Gesture & AI Studio",
@@ -963,7 +1015,18 @@
     "dynamicMovement": "Dynamic Movement",
     "staticGesture": "Static Sign",
     "testConnectionBtn": "Test Connection",
-    "saveIpBtn": "Save IP"
+    "saveIpBtn": "Save IP",
+    "rollbackConfirmTitle": "Restore Previous Version",
+    "rollbackConfirmDesc": "Do you want to restore the previous in-memory neural network model?",
+    "rollbackAction": "Restore",
+    "rollbackBtn": "Restore Previous Version (Rollback)",
+    "catAll": "All",
+    "catAlphabet": "Alphabet A-Z",
+    "catNumbers": "Numbers 0-10",
+    "catSchool": "School Signs",
+    "activeModelStatus": "Active Model Status",
+    "qgPassed": "Quality Gate: Passed (Test Acc >= 70%)",
+    "qgRejected": "Quality Gate: Failed (< 70%). Previous model preserved."
   },
   "signs": {
     "0": "0 (Zero)",
@@ -1224,7 +1287,9 @@
       "imageProcessError": "Could not process the selected image.",
       "docAttachError": "Could not attach document.",
       "docOpenError": "Could not open attached document."
-    }
+    },
+    "yesterday": "YESTERDAY",
+    "yesterdayFull": "YESTERDAY · {{date}}"
   },
   "bulkJustifications": {
     "mode": "Justification Mode",
@@ -1294,7 +1359,8 @@
     "note": "Note",
     "connectionError": "Connection Error",
     "requiredField": "Required Field",
-    "confirmDelete": "Confirm deletion"
+    "confirmDelete": "Confirm deletion",
+    "applyAndSave": "Apply and Save"
   },
   "roles": {
     "super_admin": "Administrator",

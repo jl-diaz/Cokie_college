@@ -588,7 +588,7 @@ const teacherController = {
             try {
                 const { data: coordinators } = await supabaseAdmin
                     .from('profiles')
-                    .select('id')
+                    .select('id, push_token')
                     .eq('role', 'coordinator')
                     .eq('level', level);
 
@@ -597,9 +597,8 @@ const teacherController = {
                     const title = 'Nuevo ticket de notas';
                     const body = `${teacherName} ha solicitado una extensión para ingresar notas del periodo ${period}.`;
                     
-                    const coordIds = coordinators.map(c => c.id);
                     await sendBulkNotification(
-                        coordIds,
+                        coordinators,
                         title,
                         body,
                         { type: 'ticket', ticketId: data.id }

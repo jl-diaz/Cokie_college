@@ -16,10 +16,21 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 SAMPLES_DIR = os.path.join(DATA_DIR, "samples")
 GESTURES_FILE = os.path.join(DATA_DIR, "gestures.json")
 MODEL_FILE = os.path.join(DATA_DIR, "cokie_gesture_model.npz")
+PREV_MODEL_FILE = os.path.join(DATA_DIR, "cokie_gesture_model_prev.npz")
 LABELS_FILE = os.path.join(DATA_DIR, "labels.json")
 
 # Asegurar directorios
 os.makedirs(SAMPLES_DIR, exist_ok=True)
+
+def rollback_model():
+    """Restaura el modelo previo si existe y recarga en caliente en memoria."""
+    if not os.path.exists(PREV_MODEL_FILE):
+        return {"success": False, "error": "No existe un modelo previo para restaurar."}
+    import shutil
+    shutil.copyfile(PREV_MODEL_FILE, MODEL_FILE)
+    success = reload_active_model()
+    return {"success": success, "message": "Modelo previo restaurado y recargado exitosamente."}
+
 
 # ── CATÁLOGO DE GESTOS PREDEFINIDOS Y PERSONALIZADOS ──────────────────────────
 DEFAULT_GESTURES = [
@@ -467,15 +478,23 @@ class FastGestureNeuralNet:
         self.num_classes = self.W3.shape[1]
         return True
 
-    def predict(self, feature_vector):
+    def predict_with_margin(self, feature_vector):
+        """Predice clase con confianza top-1 y margen respecto a la segunda clase (anti-ruido)."""
         if self.W1 is None:
-            return None, 0.0
+            return None, 0.0, 0.0
         X = np.array(feature_vector, dtype=np.float32).reshape(1, -1)
         _, _, probs = self.forward(X)
-        class_idx = np.argmax(probs[0])
-        confidence = float(probs[0][class_idx])
-        label = self.labels[class_idx] if class_idx < len(self.labels) else "unknown"
-        return label, confidence
+        sorted_indices = np.argsort(probs[0])[::-1]
+        top1_idx = sorted_indices[0]
+        top1 = float(probs[0][top1_idx])
+        top2 = float(probs[0][sorted_indices[1]]) if len(sorted_indices) > 1 else 0.0
+        margin = top1 - top2
+        label = self.labels[top1_idx] if top1_idx < len(self.labels) else "unknown"
+        return label, top1, margin
+
+    def predict(self, feature_vector):
+        label, conf, _ = self.predict_with_margin(feature_vector)
+        return label, conf
 
 # Instancia global del modelo entrenado
 _active_gesture_model = None
@@ -602,26 +621,69 @@ def train_dialect_model(epochs=40, on_progress=None):
     input_dim = X.shape[1]
     num_classes = len(labels)
 
-    print(f"[ENTRENAMIENTO] Iniciando con {X.shape[0]} muestras, {num_classes} clases y dimensión de entrada {input_dim}")
+    # Partición estratificada (75% train / 25% test para clases con >= 4 muestras)
+    np.random.seed(int(time.time()))
+    train_indices, test_indices = [], []
+    for c in range(num_classes):
+        c_idxs = np.where(y == c)[0]
+        if len(c_idxs) >= 4:
+            split_at = max(1, int(len(c_idxs) * 0.25))
+            shuffled = np.random.permutation(c_idxs)
+            test_indices.extend(shuffled[:split_at])
+            train_indices.extend(shuffled[split_at:])
+        else:
+            train_indices.extend(c_idxs)
+            test_indices.extend(c_idxs)
+
+    idx_tr = np.array(train_indices, dtype=np.int32)
+    idx_te = np.array(test_indices, dtype=np.int32)
 
     model = FastGestureNeuralNet(input_dim=input_dim, hidden1=128, hidden2=64, num_classes=num_classes)
     model.initialize_weights()
 
-    final_accuracy = model.train(X, y, epochs=epochs, lr=0.004, batch_size=8, on_progress=on_progress)
+    train_accuracy = model.train(X[idx_tr], y[idx_tr], epochs=epochs, lr=0.004, batch_size=8, on_progress=on_progress)
 
-    # Guardar modelo entrenado
-    model.save(MODEL_FILE, labels)
+    # Evaluación objetiva sobre el conjunto de prueba
+    _, _, probs_te = model.forward(X[idx_te])
+    preds_te = np.argmax(probs_te, axis=1)
+    test_accuracy = float(np.mean(preds_te == y[idx_te])) * 100
 
-    # Recargar en caliente
-    reload_active_model()
+    # Métricas detalladas por clase
+    per_class_metrics = {}
+    for c_idx, lbl in enumerate(labels):
+        mask = (y[idx_te] == c_idx)
+        total_c = int(np.sum(mask))
+        corr_c = int(np.sum((preds_te == c_idx) & mask))
+        acc_c = round((corr_c / total_c) * 100, 1) if total_c > 0 else 100.0
+        per_class_metrics[lbl] = {"samples": total_c, "correct": corr_c, "accuracy": acc_c}
+
+    # Puerta de calidad (Quality Gate): requiere test_accuracy >= 70% o primer modelo
+    quality_gate_passed = test_accuracy >= 70.0 or not os.path.exists(MODEL_FILE)
+
+    if quality_gate_passed:
+        # Respaldar modelo activo previo antes de sobrescribir
+        if os.path.exists(MODEL_FILE):
+            import shutil
+            shutil.copyfile(MODEL_FILE, PREV_MODEL_FILE)
+        model.save(MODEL_FILE, labels)
+        reload_active_model()
+        print(f"[QUALITY GATE PASSED] Modelo promovido exitosamente con Test Accuracy: {test_accuracy:.2f}%")
+    else:
+        print(f"[QUALITY GATE REJECTED] El modelo candidato obtuvo {test_accuracy:.2f}% (< 70%). Se conserva el modelo anterior.")
 
     return {
         "success": True,
+        "quality_gate_passed": quality_gate_passed,
         "classes": labels,
         "num_classes": num_classes,
         "total_samples": X.shape[0],
-        "final_accuracy": round(float(final_accuracy) * 100, 2),
-        "model_file": MODEL_FILE
+        "train_samples": len(idx_tr),
+        "test_samples": len(idx_te),
+        "train_accuracy": round(float(train_accuracy) * 100, 2),
+        "test_accuracy": round(test_accuracy, 2),
+        "final_accuracy": round(test_accuracy, 2),
+        "per_class_metrics": per_class_metrics,
+        "model_file": MODEL_FILE if quality_gate_passed else PREV_MODEL_FILE
     }
 
 
