@@ -120,12 +120,15 @@
     "heroSubtitle": "STUDENT PLATFORM",
     "welcome": "Welcome back!",
     "subWelcome": "Enter your institutional credentials",
-    "emailLabel": "Email Address",
-    "emailPlaceholder": "user@gmail.com",
+    "emailLabel": "Institutional Email or Carnet / ID",
+    "emailPlaceholder": "email@cokie.edu or Carnet (e.g. DA26001)",
     "passwordLabel": "Password",
     "loginBtn": "Log In",
     "fieldsRequired": "Please complete all required fields",
     "invalidCredentials": "Invalid credentials or connection error",
+    "carnetNotFound": "No account found matching this institutional carnet or ID.",
+    "invalidPassword": "Incorrect credentials. Please verify your password or carnet/email.",
+    "orManual": "or enter manually",
     "biometricPrompt": "Log in with your fingerprint or Face ID",
     "biometricBtn": "Log in with {{type}}",
     "biometricQuickAccess": "Biometric Quick Login",
@@ -167,7 +170,9 @@
     "invalidPassword": "The password entered is invalid.",
     "keychainNotice": "Your credentials are kept safe in your device's hardware-backed Keychain/Keystore.",
     "lockoutError": "Too many failed attempts. Unlock your device first.",
-    "permissionDenied": "Face ID does not have permission or is not set up in device Settings."
+    "permissionDenied": "Face ID does not have permission or is not set up in device Settings.",
+    "confirmDisableMessage": "Are you sure you want to disable biometric login on this device?",
+    "disableBtn": "Disable"
   },
   "dashboard": {
     "welcome": "Welcome",

@@ -12,17 +12,42 @@ const adminController = {
                 return res.status(400).json({ error: 'El código institucional es requerido' });
             }
 
-            const { data: profile, error } = await supabaseAdmin
+            const cleanCode = String(code).trim();
+
+            // 1. Intentar búsqueda directa insensible a mayúsculas/minúsculas
+            let { data: profile, error } = await supabaseAdmin
                 .from('profiles')
-                .select('email')
-                .ilike('institutional_code', String(code).trim())
+                .select('email, institutional_code')
+                .ilike('institutional_code', cleanCode)
                 .maybeSingle();
 
-            if (error || !profile?.email) {
+            // 2. Si no se encontró de forma directa, intentar búsqueda flexible ignorando guiones y espacios
+            // Por ejemplo: EST9A62026 vs EST9A6-2026
+            if (!profile?.email) {
+                const stripped = cleanCode.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                if (stripped.length >= 3) {
+                    const { data: allProfiles } = await supabaseAdmin
+                        .from('profiles')
+                        .select('email, institutional_code');
+
+                    if (allProfiles && allProfiles.length > 0) {
+                        const match = allProfiles.find(p => {
+                            if (!p.institutional_code) return false;
+                            const pStripped = p.institutional_code.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                            return pStripped === stripped;
+                        });
+                        if (match) {
+                            profile = match;
+                        }
+                    }
+                }
+            }
+
+            if (!profile?.email) {
                 return res.status(404).json({ error: 'Código institucional no encontrado' });
             }
 
-            res.json({ email: profile.email });
+            res.json({ email: profile.email, institutional_code: profile.institutional_code });
         } catch (error) {
             console.error('Error al resolver código institucional:', error);
             res.status(500).json({ error: 'Error interno al resolver código' });

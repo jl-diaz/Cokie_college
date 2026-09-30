@@ -61,6 +61,7 @@ app.get('/', (req, res) => {
 });
 
 // Import routes
+const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const coordinatorRoutes = require('./src/routes/coordinatorRoutes');
 const teacherRoutes = require('./src/routes/teacherRoutes');
@@ -73,6 +74,7 @@ const lunchRoutes = require('./src/routes/lunchRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
 const { startEventScheduler } = require('./src/utils/eventScheduler');
 
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/coordinator', coordinatorRoutes);
 app.use('/api/teacher', teacherRoutes);

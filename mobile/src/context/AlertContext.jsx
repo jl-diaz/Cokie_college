@@ -8,7 +8,8 @@ import {
   Platform,
   Keyboard,
   BackHandler,
-  Animated
+  Animated,
+  Modal
 } from 'react-native';
 import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react-native';
 import { useTheme } from './ThemeContext';
@@ -222,52 +223,59 @@ export const AlertProvider = ({ children }) => {
         {children}
 
         {visible && (
-          <Animated.View 
-            style={[styles.overlay, { opacity: fadeAnim }]}
-            pointerEvents={visible ? 'auto' : 'none'}
+          <Modal
+            transparent
+            visible={visible}
+            animationType="none"
+            statusBarTranslucent
+            onRequestClose={config.cancelText ? handleCancel : hideAlert}
           >
-            <Pressable 
-              style={StyleSheet.absoluteFillObject} 
-              onPress={config.cancelText ? undefined : hideAlert} 
-              accessibilityLabel="Cerrar alerta"
-            />
             <Animated.View 
-              style={[
-                styles.alertCard,
-                { transform: [{ scale: scaleAnim }] }
-              ]}
-              onStartShouldSetResponder={() => true}
+              style={[styles.overlay, { opacity: fadeAnim }]}
             >
-              {renderIconBadge()}
+              <Pressable 
+                style={StyleSheet.absoluteFillObject} 
+                onPress={config.cancelText ? undefined : hideAlert} 
+                accessibilityLabel="Cerrar alerta"
+              />
+              <Animated.View 
+                style={[
+                  styles.alertCard,
+                  { transform: [{ scale: scaleAnim }] }
+                ]}
+                onStartShouldSetResponder={() => true}
+              >
+                {renderIconBadge()}
 
-              {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
-              {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
+                {config.title ? <Text style={styles.title}>{config.title}</Text> : null}
+                {config.message ? <Text style={styles.message}>{config.message}</Text> : null}
 
-              <View style={[styles.buttonRow, !config.cancelText && styles.singleButtonRow]}>
-                {config.cancelText ? (
+                <View style={[styles.buttonRow, !config.cancelText && styles.singleButtonRow]}>
+                  {config.cancelText ? (
+                    <TouchableOpacity
+                      style={[styles.button, styles.cancelButton]}
+                      onPress={handleCancel}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+
                   <TouchableOpacity
-                    style={[styles.button, styles.cancelButton]}
-                    onPress={handleCancel}
-                    activeOpacity={0.7}
+                    style={[
+                      styles.button,
+                      styles.confirmButton,
+                      { backgroundColor: getConfirmBtnColor() }
+                    ]}
+                    onPress={handleConfirm}
+                    activeOpacity={0.85}
                   >
-                    <Text style={styles.cancelButtonText}>{config.cancelText}</Text>
+                    <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
                   </TouchableOpacity>
-                ) : null}
-
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.confirmButton,
-                    { backgroundColor: getConfirmBtnColor() }
-                  ]}
-                  onPress={handleConfirm}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.confirmButtonText}>{config.confirmText}</Text>
-                </TouchableOpacity>
-              </View>
+                </View>
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
+          </Modal>
         )}
       </View>
     </AlertContext.Provider>

@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 
 const resolveCodeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 40, // Máximo 40 intentos por IP cada 15 min para evitar enumeración de carnets
+    max: 1000, // Alto estrés para campus escolar
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Demasiadas consultas de resolución de código. Por favor espere unos minutos.' }

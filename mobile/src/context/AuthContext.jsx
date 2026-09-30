@@ -48,29 +48,50 @@ export const AuthProvider = ({ children }) => {
   const login = async (emailOrCode, password) => {
     let emailToUse = (emailOrCode || '').trim();
 
+    if (!emailToUse || !password) {
+      const err = new Error('FIELDS_REQUIRED');
+      err.code = 'FIELDS_REQUIRED';
+      throw err;
+    }
+
     // Si no contiene '@', buscar el correo asociado al carnet/código institucional mediante el backend
     if (!emailToUse.includes('@')) {
+      let resolvedEmail = null;
       try {
         const res = await api.post('/admin/resolve-code', { code: emailToUse });
         if (res.data?.email) {
-          emailToUse = res.data.email;
-        } else {
-          throw new Error('INVALID_CREDENTIALS');
+          resolvedEmail = res.data.email;
         }
-      } catch (codeErr) {
-        // Fallback a consulta directa si el backend no responde
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('email')
-          .ilike('institutional_code', emailToUse)
-          .maybeSingle();
-
-        if (profileData?.email) {
-          emailToUse = profileData.email;
-        } else {
-          throw new Error('INVALID_CREDENTIALS');
+      } catch (err1) {
+        if (err1.response?.status === 404) {
+          const err = new Error('CARNET_NOT_FOUND');
+          err.code = 'CARNET_NOT_FOUND';
+          throw err;
+        }
+        // Intentar ruta alternativa /auth/resolve-code si la primera no respondió
+        try {
+          const res2 = await api.post('/auth/resolve-code', { code: emailToUse });
+          if (res2.data?.email) {
+            resolvedEmail = res2.data.email;
+          }
+        } catch (err2) {
+          if (err2.response?.status === 404) {
+            const err = new Error('CARNET_NOT_FOUND');
+            err.code = 'CARNET_NOT_FOUND';
+            throw err;
+          }
         }
       }
+
+      if (resolvedEmail) {
+        emailToUse = resolvedEmail.trim().toLowerCase();
+      } else {
+        const err = new Error('CARNET_NOT_FOUND');
+        err.code = 'CARNET_NOT_FOUND';
+        throw err;
+      }
+    } else {
+      emailToUse = emailToUse.toLowerCase();
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({

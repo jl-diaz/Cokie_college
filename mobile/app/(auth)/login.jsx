@@ -155,7 +155,15 @@ export default function LoginScreen() {
       router.replace('/home');
     } catch (err) {
       hapticError();
-      setError(t('login.invalidCredentials', 'Credenciales inválidas o error de conexión'));
+      if (err.code === 'CARNET_NOT_FOUND' || err.message === 'CARNET_NOT_FOUND') {
+        setError(t('login.carnetNotFound', 'No se encontró ninguna cuenta asociada a este carnet o código institucional.'));
+      } else if (err.code === 'FIELDS_REQUIRED') {
+        setError(t('login.fieldsRequired', 'Por favor completa todos los campos'));
+      } else if (err.message?.toLowerCase().includes('invalid login credentials') || err.status === 400) {
+        setError(t('login.invalidPassword', 'Credenciales incorrectas. Verifica tu contraseña o carnet/correo.'));
+      } else {
+        setError(t('login.invalidCredentials', 'Credenciales inválidas o error de conexión'));
+      }
     } finally {
       setLoading(false);
     }
@@ -285,7 +293,7 @@ export default function LoginScreen() {
 
                   <View style={styles.dividerRow}>
                     <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>o ingresa manualmente</Text>
+                    <Text style={styles.dividerText}>{t('login.orManual', 'o ingresa manualmente')}</Text>
                     <View style={styles.dividerLine} />
                   </View>
                 </View>
@@ -295,11 +303,13 @@ export default function LoginScreen() {
                 <Text style={styles.label}>{t('login.emailLabel', 'Correo o Carnet Institucional')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={t('login.emailPlaceholder', 'usuario@gmail.com o DA26001')}
+                  placeholder={t('login.emailPlaceholder', 'correo@cokie.edu o Carnet (ej. DA26001)')}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  autoComplete="username"
+                  textContentType="username"
                   placeholderTextColor={theme === 'dark' ? '#5a5a5a' : '#A0AEC0'}
                 />
               </View>

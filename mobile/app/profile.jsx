@@ -97,10 +97,10 @@ export default function ProfileScreen() {
     if (!nextValue) {
       showConfirm({
         title: t('biometrics.confirmIdentityToDisable', 'Desactivar acceso biométrico'),
-        message: t('biometrics.disabledAlert', 'El inicio de sesión biométrico ha sido desactivado.'),
-        confirmText: t('dashboard.confirm', 'Desactivar'),
+        message: t('biometrics.confirmDisableMessage', '¿Estás seguro de que deseas desactivar el inicio de sesión biométrico en este dispositivo?'),
+        confirmText: t('biometrics.disableBtn', 'Desactivar'),
         cancelText: t('dashboard.cancel', 'Cancelar'),
-        type: 'warning',
+        type: 'danger',
         onConfirm: async () => {
           await clearBiometricCredentials();
           setIsBiometricsActive(false);
@@ -354,15 +354,17 @@ export default function ProfileScreen() {
         visible={passwordModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => setPasswordModalVisible(false)}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? -50 : 0}
           style={styles.modalOverlay}
         >
           <View style={styles.modalCard}>
             <View style={styles.modalIconCircle}>
-              <BiometryIcon size={32} color={Colors.primary} />
+              <BiometryIcon size={28} color={Colors.primary} />
             </View>
 
             <Text style={styles.modalTitle}>

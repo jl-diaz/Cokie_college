@@ -120,12 +120,15 @@
     "heroSubtitle": "PLATAFORMA ESTUDIANTIL",
     "welcome": "¡Hola de nuevo!",
     "subWelcome": "Ingresa tus credenciales institucionales",
-    "emailLabel": "Correo Electrónico",
-    "emailPlaceholder": "usuario@gmail.com",
+    "emailLabel": "Correo o Carnet Institucional",
+    "emailPlaceholder": "correo@cokie.edu o Carnet (ej. DA26001)",
     "passwordLabel": "Contraseña",
     "loginBtn": "Iniciar Sesión",
     "fieldsRequired": "Por favor completa todos los campos",
     "invalidCredentials": "Credenciales inválidas o error de conexión",
+    "carnetNotFound": "No se encontró ninguna cuenta asociada a este carnet o código institucional.",
+    "invalidPassword": "Credenciales incorrectas. Verifica tu contraseña o carnet/correo.",
+    "orManual": "o ingresa manualmente",
     "biometricPrompt": "Inicia sesión con tu huella o Face ID",
     "biometricBtn": "Entrar con {{type}}",
     "biometricQuickAccess": "Acceso Rápido Biométrico",
@@ -167,7 +170,9 @@
     "invalidPassword": "La contraseña ingresada no es válida.",
     "keychainNotice": "Tus credenciales están resguardadas en el enclave seguro (Keychain/Keystore) de tu dispositivo.",
     "lockoutError": "Demasiados intentos fallidos. Desbloquea tu teléfono primero.",
-    "permissionDenied": "Face ID no tiene permiso o no está configurado en los Ajustes del dispositivo."
+    "permissionDenied": "Face ID no tiene permiso o no está configurado en los Ajustes del dispositivo.",
+    "confirmDisableMessage": "¿Estás seguro de que deseas desactivar el inicio de sesión biométrico en este dispositivo?",
+    "disableBtn": "Desactivar"
   },
   "dashboard": {
     "welcome": "Bienvenido",

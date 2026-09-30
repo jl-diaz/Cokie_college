@@ -1,6 +1,11 @@
 import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+export const isRunningInExpoGo = 
+  Constants?.executionEnvironment === ExecutionEnvironment?.StoreClient ||
+  Constants?.appOwnership === 'expo';
 
 export const BIOMETRIC_KEYS = {
   ENABLED: 'cokie_biometrics_enabled',
@@ -57,6 +62,7 @@ export async function checkBiometricsAvailability() {
       enrolledLevel,
       biometryType,
       biometryLabel,
+      isExpoGo: isRunningInExpoGo,
     };
   } catch (error) {
     console.warn('[Biometrics] Error checking availability:', error);
@@ -66,13 +72,16 @@ export async function checkBiometricsAvailability() {
       enrolled: false,
       biometryType: null,
       biometryLabel: 'Biometría',
+      isExpoGo: isRunningInExpoGo,
     };
   }
 }
 
 /**
  * Solicita autenticación biométrica nativa exclusivamente con sensores biométricos
- * (Face ID, Touch ID, Reconocimiento Facial, Huella) sin solicitar el PIN/código del teléfono.
+ * (Face ID, Touch ID, Reconocimiento Facial, Huella).
+ * Maneja de forma inteligente el entorno de pruebas Expo Go en iOS (donde Apple restringe Face ID directo
+ * en apps de la App Store genéricas por falta de NSFaceIDUsageDescription en su binario).
  */
 export async function authenticateBiometrics({
   promptMessage = 'Verifica tu identidad con Face ID o Huella',
@@ -86,17 +95,30 @@ export async function authenticateBiometrics({
   }
 
   try {
-    // disableDeviceFallback: true obliga a iOS a usar LAPolicyDeviceOwnerAuthenticationWithBiometrics
-    // (exclusivamente el sensor de Face ID o Touch ID) sin saltar al teclado del PIN.
-    // fallbackLabel: '' (cadena vacía) le indica al sistema que oculte el botón de PIN.
+    // En Expo Go en iOS, Apple no permite invocar la cámara TrueDepth porque el binario de Expo Go
+    // de la App Store no tiene NSFaceIDUsageDescription compilado para la app del usuario.
+    // Para que las pruebas funcionen de inmediato sin trabar la interfaz, en Expo Go permitimos el desbloqueo del dispositivo.
+    const isStrictNative = !isRunningInExpoGo;
+
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage,
       cancelLabel,
-      fallbackLabel: fallbackLabel || '',
-      disableDeviceFallback: Boolean(disableDeviceFallback),
+      fallbackLabel: isStrictNative ? '' : fallbackLabel,
+      disableDeviceFallback: isStrictNative ? Boolean(disableDeviceFallback) : false,
       biometricsSecurityLevel: biometricsSecurityLevel || 'weak',
       requireConfirmation: false,
     });
+
+    // Si falló por limitación de permisos en Expo Go (missing_usage_description), reintentamos en modo compatible:
+    if (!result.success && (result.error === 'missing_usage_description' || String(result.warning || '').includes('NSFaceIDUsageDescription'))) {
+      const fallbackResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: `${promptMessage} (Expo Go)`,
+        cancelLabel,
+        disableDeviceFallback: false,
+      });
+      return fallbackResult;
+    }
+
     return result;
   } catch (error) {
     console.warn('[Biometrics] Authentication error:', error);
