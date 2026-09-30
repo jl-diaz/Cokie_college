@@ -102,7 +102,8 @@ export default function LoginScreen() {
       const result = await authenticateBiometrics({
         promptMessage: t('biometrics.promptMessage', 'Verifica tu identidad para acceder a Cokie College'),
         cancelLabel: t('biometrics.cancel', 'Cancelar'),
-        fallbackLabel: t('biometrics.fallback', 'Usar contraseña'),
+        fallbackLabel: '',
+        disableDeviceFallback: true,
       });
 
       if (result.success) {
@@ -112,7 +113,13 @@ export default function LoginScreen() {
         router.replace('/home');
       } else if (result.error && !String(result.error).toLowerCase().includes('cancel')) {
         hapticError();
-        setError(t('login.biometricsFailed', 'No se pudo completar la autenticación biométrica.'));
+        if (result.error === 'lockout') {
+          setError(t('biometrics.lockoutError', 'Demasiados intentos fallidos. Desbloquea tu dispositivo para continuar.'));
+        } else if (result.error === 'missing_usage_description' || result.error === 'not_available') {
+          setError(t('biometrics.permissionDenied', 'Face ID no tiene permiso o no está configurado en los Ajustes del dispositivo.'));
+        } else {
+          setError(t('login.biometricsFailed', 'No se pudo completar la autenticación biométrica.'));
+        }
       }
     } catch (err) {
       console.error('[Login] Biometric auth error:', err);
@@ -223,8 +230,8 @@ export default function LoginScreen() {
               
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-              {/* Botón de Acceso Biométrico Rápido si ya hay credenciales guardadas */}
-              {savedCredentials && biometricsState.available && (
+              {/* Botón de Acceso Biométrico Rápido si ya hay credenciales guardadas (Solo en móvil nativo) */}
+              {Platform.OS !== 'web' && savedCredentials && biometricsState.available && (
                 <View style={styles.quickBioContainer}>
                   <View style={styles.quickBioHeader}>
                     <View style={styles.quickBioIconCircle}>
@@ -311,8 +318,8 @@ export default function LoginScreen() {
                 />
               </View>
 
-              {/* Casilla para recordar con Face ID / Huella si aún no está configurado */}
-              {biometricsState.available && !savedCredentials && (
+              {/* Casilla para recordar con Face ID / Huella si aún no está configurado (Solo en móvil nativo) */}
+              {Platform.OS !== 'web' && biometricsState.available && !savedCredentials && (
                 <TouchableOpacity 
                   style={styles.bioRememberRow}
                   onPress={() => {

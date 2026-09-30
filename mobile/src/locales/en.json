@@ -165,7 +165,9 @@
     "modalPasswordConfirm": "Confirm & Enable",
     "modalPasswordCancel": "Cancel",
     "invalidPassword": "The password entered is invalid.",
-    "keychainNotice": "Your credentials are kept safe in your device's hardware-backed Keychain/Keystore."
+    "keychainNotice": "Your credentials are kept safe in your device's hardware-backed Keychain/Keystore.",
+    "lockoutError": "Too many failed attempts. Unlock your device first.",
+    "permissionDenied": "Face ID does not have permission or is not set up in device Settings."
   },
   "dashboard": {
     "welcome": "Welcome",

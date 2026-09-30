@@ -28,6 +28,13 @@ export async function checkBiometricsAvailability() {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
     const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+    
+    let enrolledLevel = 0;
+    try {
+      enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
+    } catch (e) {
+      // Ignorar si la plataforma no soporta getEnrolledLevelAsync
+    }
 
     let biometryType = 'BIOMETRIC';
     let biometryLabel = 'Biometría';
@@ -47,6 +54,7 @@ export async function checkBiometricsAvailability() {
       available: Boolean(hasHardware && isEnrolled),
       hasHardware: Boolean(hasHardware),
       enrolled: Boolean(isEnrolled),
+      enrolledLevel,
       biometryType,
       biometryLabel,
     };
@@ -63,23 +71,31 @@ export async function checkBiometricsAvailability() {
 }
 
 /**
- * Solicita autenticación biométrica nativa (Face ID, Touch ID, BiometricPrompt).
+ * Solicita autenticación biométrica nativa exclusivamente con sensores biométricos
+ * (Face ID, Touch ID, Reconocimiento Facial, Huella) sin solicitar el PIN/código del teléfono.
  */
 export async function authenticateBiometrics({
-  promptMessage = 'Verifica tu identidad',
+  promptMessage = 'Verifica tu identidad con Face ID o Huella',
   cancelLabel = 'Cancelar',
-  fallbackLabel = 'Ingresar contraseña',
+  fallbackLabel = '',
+  disableDeviceFallback = true,
+  biometricsSecurityLevel = 'weak',
 } = {}) {
   if (Platform.OS === 'web') {
     return { success: false, error: 'NOT_SUPPORTED_ON_WEB' };
   }
 
   try {
+    // disableDeviceFallback: true obliga a iOS a usar LAPolicyDeviceOwnerAuthenticationWithBiometrics
+    // (exclusivamente el sensor de Face ID o Touch ID) sin saltar al teclado del PIN.
+    // fallbackLabel: '' (cadena vacía) le indica al sistema que oculte el botón de PIN.
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage,
       cancelLabel,
-      fallbackLabel,
-      disableDeviceFallback: false,
+      fallbackLabel: fallbackLabel || '',
+      disableDeviceFallback: Boolean(disableDeviceFallback),
+      biometricsSecurityLevel: biometricsSecurityLevel || 'weak',
+      requireConfirmation: false,
     });
     return result;
   } catch (error) {

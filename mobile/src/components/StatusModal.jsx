@@ -1,28 +1,12 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform, Modal, Pressable } from 'react-native';
-import { Check, AlertTriangle, X, Info } from 'lucide-react-native';
+import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBar } from '../context/TabBarContext';
 import { useTranslation } from 'react-i18next';
 
 /**
- * StatusModal - Modal de estado y confirmación reutilizable.
- * Basado en el diseño minimalista de la referencia (tarjeta limpia, fondo gris atenuado,
- * imagen centrada personalizable y botón negro mate).
- * 
- * Props:
- * - visible: boolean
- * - onClose: () => void
- * - title: string
- * - message: string
- * - image: any (Image source, ej: require('../assets/...'))
- * - type: 'success' | 'warning' | 'error' | 'info' (default: 'success')
- * - buttonText: string (texto del botón único)
- * - onConfirm: () => void (opcional: si se pasa, habilita modo 2 botones)
- * - confirmText: string (texto botón confirmar)
- * - cancelText: string (texto botón cancelar)
- * - confirmLoading: boolean
- * - isDestructive: boolean (si el botón de confirmación debe resaltar peligro)
+ * StatusModal - Modal de estado y confirmación reutilizable con estética premium.
  */
 export default function StatusModal({
   visible,
@@ -40,7 +24,7 @@ export default function StatusModal({
 }) {
   const { t } = useTranslation();
   const resolvedButtonText = buttonText || t('common.done', 'Listo');
-  const resolvedConfirmText = confirmText || t('common.confirm', 'Aceptar');
+  const resolvedConfirmText = confirmText || t('common.confirm', 'Confirmar');
   const resolvedCancelText = cancelText || t('common.cancel', 'Cancelar');
   const { theme, colors: Colors } = useTheme();
   const isDark = theme === 'dark';
@@ -58,32 +42,37 @@ export default function StatusModal({
   if (!visible) return null;
 
   const renderBadgeFallback = () => {
-    const matteBg = isDark ? '#27272A' : '#18181B';
     switch (type) {
       case 'warning':
         return (
-          <View style={[styles.badgeContainer, { backgroundColor: matteBg }]}>
-            <AlertTriangle size={36} color="#FFFFFF" />
+          <View style={[styles.badgeOuter, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7' }]}>
+            <View style={[styles.badgeInner, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.25)' : '#FDE68A' }]}>
+              <AlertTriangle size={30} color={isDark ? '#FBBF24' : '#D97706'} strokeWidth={2.4} />
+            </View>
           </View>
         );
       case 'error':
         return (
-          <View style={[styles.badgeContainer, { backgroundColor: matteBg }]}>
-            <X size={36} color="#FFFFFF" />
+          <View style={[styles.badgeOuter, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}>
+            <View style={[styles.badgeInner, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FECACA' }]}>
+              <XCircle size={32} color={isDark ? '#F87171' : '#DC2626'} strokeWidth={2.4} />
+            </View>
           </View>
         );
       case 'info':
         return (
-          <View style={[styles.badgeContainer, { backgroundColor: matteBg }]}>
-            <Info size={36} color="#FFFFFF" />
+          <View style={[styles.badgeOuter, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#DBEAFE' }]}>
+            <View style={[styles.badgeInner, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.25)' : '#BFDBFE' }]}>
+              <Info size={30} color={isDark ? '#60A5FA' : '#2563EB'} strokeWidth={2.4} />
+            </View>
           </View>
         );
       case 'success':
       default:
         return (
-          <View style={[styles.badgeContainer, { backgroundColor: matteBg }]}>
-            <View style={[styles.innerSuccessBadge, { backgroundColor: Colors?.primary || '#10b981' }]}>
-              <Check size={32} color="#FFFFFF" strokeWidth={3} />
+          <View style={[styles.badgeOuter, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7' }]}>
+            <View style={[styles.badgeInner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#BBF7D0' }]}>
+              <CheckCircle2 size={32} color={isDark ? '#34D399' : '#16A34A'} strokeWidth={2.4} />
             </View>
           </View>
         );
@@ -108,11 +97,11 @@ export default function StatusModal({
         <View style={[
           styles.modalCard,
           { 
-            backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
           }
         ]}>
-          {/* Espacio para Imagen Centrada (o badge por defecto si image es null) */}
+          {/* Espacio para Imagen Centrada (o badge moderno por defecto) */}
           <View style={styles.imageWrapper}>
             {image ? (
               <Image 
@@ -134,7 +123,7 @@ export default function StatusModal({
 
           {/* Mensaje / Descripción */}
           {message ? (
-            <Text style={[styles.message, { color: isDark ? '#A1A1AA' : '#64748B' }]}>
+            <Text style={[styles.message, { color: isDark ? '#94A3B8' : '#64748B' }]}>
               {message}
             </Text>
           ) : null}
@@ -144,43 +133,46 @@ export default function StatusModal({
             <View style={styles.twoButtonsWrapper}>
               <TouchableOpacity
                 style={[
-                  styles.matteButton,
-                  isDestructive 
-                    ? { backgroundColor: '#DC2626' } 
-                    : { backgroundColor: Colors?.primary || (isDark ? '#27272A' : '#18181B') },
+                  styles.cancelButton,
+                  { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9' }
                 ]}
-                onPress={onConfirm}
-                disabled={confirmLoading}
-                activeOpacity={0.8}
-              >
-                {confirmLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.matteButtonText}>{resolvedConfirmText}</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cancelButton}
                 onPress={onClose}
                 disabled={confirmLoading}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cancelButtonText}>
+                <Text style={[styles.cancelButtonText, { color: isDark ? '#E2E8F0' : '#475569' }]}>
                   {resolvedCancelText}
                 </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  isDestructive 
+                    ? { backgroundColor: '#DC2626' } 
+                    : { backgroundColor: Colors?.primary || '#0B1956' },
+                ]}
+                onPress={onConfirm}
+                disabled={confirmLoading}
+                activeOpacity={0.85}
+              >
+                {confirmLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>{resolvedConfirmText}</Text>
+                )}
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
               style={[
-                styles.matteButton,
-                { backgroundColor: Colors?.primary || (isDark ? '#27272A' : '#18181B') }
+                styles.primaryButton,
+                { width: '100%', backgroundColor: Colors?.primary || '#0B1956' }
               ]}
               onPress={onClose}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.matteButtonText}>{resolvedButtonText}</Text>
+              <Text style={styles.primaryButtonText}>{resolvedButtonText}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -194,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -204,8 +196,8 @@ const styles = StyleSheet.create({
       top: 0, 
       left: 0, 
       right: 0, 
-      bottom: 0,
-      width: '100vw',
+      bottom: 0, 
+      width: '100vw', 
       height: '100vh',
     } : {}),
   },
@@ -213,85 +205,87 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     borderRadius: 28,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingHorizontal: 26,
+    paddingTop: 28,
+    paddingBottom: 22,
     alignItems: 'center',
     borderWidth: 1,
-    elevation: 8,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
   },
   imageWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    minHeight: 80,
+    marginBottom: 16,
   },
   customImage: {
-    width: 86,
-    height: 86,
-  },
-  badgeContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+  },
+  badgeOuter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  innerSuccessBadge: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: '#BBF7D0',
+  badgeInner: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   message: {
     fontSize: 14,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 26,
+    lineHeight: 21,
+    marginBottom: 24,
     paddingHorizontal: 4,
   },
-  matteButton: {
-    width: '100%',
-    paddingVertical: 14,
+  primaryButton: {
+    flex: 1,
+    height: 48,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  matteButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
   },
   twoButtonsWrapper: {
     width: '100%',
-    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
   },
   cancelButton: {
-    width: '100%',
-    paddingVertical: 14,
+    flex: 1,
+    height: 48,
     borderRadius: 14,
-    backgroundColor: '#18181B',
     borderWidth: 1,
-    borderColor: '#3F3F46',
+    borderColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
   },
   cancelButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

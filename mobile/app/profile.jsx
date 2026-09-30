@@ -155,12 +155,19 @@ export default function ProfileScreen() {
       const authResult = await authenticateBiometrics({
         promptMessage: t('biometrics.confirmIdentityToEnable', 'Confirma tu identidad biométrica'),
         cancelLabel: t('biometrics.cancel', 'Cancelar'),
-        fallbackLabel: t('biometrics.fallback', 'Usar contraseña'),
+        fallbackLabel: '',
+        disableDeviceFallback: true,
       });
 
       if (!authResult.success) {
         hapticError();
-        setPasswordError(t('biometrics.authFailed', 'No se pudo verificar la biometría.'));
+        if (authResult.error === 'lockout') {
+          setPasswordError(t('biometrics.lockoutError', 'Demasiados intentos fallidos. Desbloquea tu dispositivo para continuar.'));
+        } else if (authResult.error === 'missing_usage_description' || authResult.error === 'not_available') {
+          setPasswordError(t('biometrics.permissionDenied', 'Face ID no tiene permiso o no está configurado en los Ajustes del dispositivo.'));
+        } else {
+          setPasswordError(t('biometrics.authFailed', 'No se pudo verificar la biometría.'));
+        }
         setVerifyingPassword(false);
         return;
       }
@@ -259,11 +266,12 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Sección: Seguridad y Desbloqueo Biométrico */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeaderTitle}>
-            {t('biometrics.settingsTitle', 'Seguridad y Acceso Biométrico')}
-          </Text>
+        {/* Sección: Seguridad y Desbloqueo Biométrico (Solo en móvil nativo con hardware biométrico) */}
+        {Platform.OS !== 'web' && biometricsInfo.hasHardware && (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeaderTitle}>
+              {t('biometrics.settingsTitle', 'Seguridad y Acceso Biométrico')}
+            </Text>
           <Text style={styles.sectionHeaderSub}>
             {t('biometrics.settingsSubtitle', 'Usa Face ID o tu huella digital para desbloquear la app al instante')}
           </Text>
@@ -304,6 +312,7 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+        )}
 
         {/* Sección: Preferencias del Sistema */}
         <View style={styles.sectionCard}>
@@ -609,52 +618,58 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Password Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-    padding: 24,
+    maxWidth: 340,
+    backgroundColor: Colors.card || (theme === 'dark' ? '#1E293B' : '#FFFFFF'),
+    borderRadius: 28,
+    paddingHorizontal: 26,
+    paddingTop: 28,
+    paddingBottom: 22,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: theme === 'dark' ? 0.4 : 0.14,
+    shadowRadius: 28,
+    elevation: 12,
   },
   modalIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.text.primary,
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
   modalSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.text.secondary,
     textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 18,
+    lineHeight: 20,
+    paddingHorizontal: 4,
   },
   modalErrorBox: {
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FCA5A5',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 10,
     width: '100%',
     marginBottom: 14,
@@ -669,6 +684,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
+    height: 48,
     borderWidth: 1.5,
     borderColor: Colors.gray[200] || '#E2E8F0',
     borderRadius: 14,
@@ -678,7 +694,7 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalInput: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     fontSize: 15,
     color: Colors.text.primary,
     fontWeight: '600',
@@ -693,11 +709,13 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
+    height: 48,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
+    backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9',
+    borderWidth: 1,
+    borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
   },
   modalCancelBtnText: {
     fontSize: 14,
@@ -705,8 +723,8 @@ const createStyles = (Colors, theme) => StyleSheet.create({
     color: Colors.text.secondary,
   },
   modalConfirmBtn: {
-    flex: 1.4,
-    paddingVertical: 14,
+    flex: 1.2,
+    height: 48,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',

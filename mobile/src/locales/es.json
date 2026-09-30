@@ -165,7 +165,9 @@
     "modalPasswordConfirm": "Confirmar y Activar",
     "modalPasswordCancel": "Cancelar",
     "invalidPassword": "La contraseña ingresada no es válida.",
-    "keychainNotice": "Tus credenciales están resguardadas en el enclave seguro (Keychain/Keystore) de tu dispositivo."
+    "keychainNotice": "Tus credenciales están resguardadas en el enclave seguro (Keychain/Keystore) de tu dispositivo.",
+    "lockoutError": "Demasiados intentos fallidos. Desbloquea tu teléfono primero.",
+    "permissionDenied": "Face ID no tiene permiso o no está configurado en los Ajustes del dispositivo."
   },
   "dashboard": {
     "welcome": "Bienvenido",
