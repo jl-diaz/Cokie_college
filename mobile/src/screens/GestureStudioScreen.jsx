@@ -12,7 +12,8 @@ import {
   Platform,
   Dimensions,
   Image,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  SafeAreaView
 } from 'react-native';
 import { Stack, useRouter, useIsFocused, usePathname } from 'expo-router';
 import {
@@ -41,6 +42,7 @@ import {
   Camera
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +59,8 @@ export default function GestureStudioScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { colors: Colors, theme } = useTheme();
+  const isDark = theme === 'dark';
+  const inactiveColor = isDark ? '#64748B' : '#94A3B8';
   const { registerModal, unregisterModal } = useTabBar();
   const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
 
@@ -724,7 +728,6 @@ export default function GestureStudioScreen() {
           style={[styles.tabItem, activeTab === 'dialect' && styles.tabItemActive]}
           onPress={() => setActiveTab('dialect')}
         >
-          <BookOpen size={16} color={activeTab === 'dialect' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'dialect' && styles.tabTextActive]}>
             {t('gestureStudio.tabDialect', 'Dialecto Escolar')}
           </Text>
@@ -734,7 +737,6 @@ export default function GestureStudioScreen() {
           style={[styles.tabItem, activeTab === 'recorder' && styles.tabItemActive]}
           onPress={() => setActiveTab('recorder')}
         >
-          <Video size={16} color={activeTab === 'recorder' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'recorder' && styles.tabTextActive]}>
             {t('gestureStudio.tabRecorder', 'Grabador en Vivo')}
           </Text>
@@ -744,7 +746,6 @@ export default function GestureStudioScreen() {
           style={[styles.tabItem, activeTab === 'training' && styles.tabItemActive]}
           onPress={() => setActiveTab('training')}
         >
-          <Sparkles size={16} color={activeTab === 'training' ? '#38bdf8' : Colors.text.secondary} />
           <Text style={[styles.tabText, activeTab === 'training' && styles.tabTextActive]}>
             {t('gestureStudio.tabTraining', 'Entrenamiento IA')}
           </Text>
@@ -756,17 +757,17 @@ export default function GestureStudioScreen() {
         <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
           <View style={styles.topStatsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNum}>{gestures.length}</Text>
-              <Text style={styles.statLabel}>{t('gestureStudio.gesturesInDialect', 'Gestos en Dialecto')}</Text>
+              <Text style={styles.statNumOther}>{gestures.length}</Text>
+              <Text style={styles.statLabel}>{t('gestureStudio.gesturesInDialect', 'Gestos en dialecto')}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statNum}>
+              <Text style={styles.statNumOther}>
                 {gestures.reduce((acc, curr) => acc + (curr.sample_count || 0), 0)}
               </Text>
-              <Text style={styles.statLabel}>{t('gestureStudio.recordedSamples', 'Muestras Grabadas')}</Text>
+              <Text style={styles.statLabel}>{t('gestureStudio.recordedSamples', 'Muestras grabadas')}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={[styles.statNum, { color: eligibleGestures.length >= 2 ? '#10b981' : '#f59e0b' }]}>
+              <Text style={styles.statNumAi}>
                 {eligibleGestures.length}
               </Text>
               <Text style={styles.statLabel}>{t('gestureStudio.readyForAi', 'Listos para IA')}</Text>
@@ -774,23 +775,31 @@ export default function GestureStudioScreen() {
           </View>
 
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>{t('gestureStudio.gesturesAndMovements', 'Señas y Movimientos Corporales')}</Text>
+            <Text style={styles.sectionTitle}>{t('gestureStudio.gesturesAndMovements', 'Señas y movimientos corporales')}</Text>
             <TouchableOpacity 
-              style={styles.newGestureBtn}
+              style={styles.newGestureBtnWrapper}
               onPress={() => setIsNewModalOpen(true)}
+              activeOpacity={0.8}
             >
-              <Plus size={16} color="#FFF" style={{ marginRight: 4 }} />
-              <Text style={styles.newGestureBtnText}>{t('gestureStudio.newGestureBtn', 'Nuevo Gesto')}</Text>
+              <LinearGradient
+                colors={['#132472', '#426BC2']}
+                locations={[0.23, 0.69]}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.newGestureBtn}
+              >
+                <Plus size={18} color="#FFFFFF" strokeWidth={2.5} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
           {/* Barra de Búsqueda */}
           <View style={styles.searchBarContainer}>
-            <Search size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+            <Search size={18} color={theme === 'dark' ? '#64748B' : '#94A3B8'} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchBarInput}
-              placeholder={t('gestureStudio.searchPlaceholder', 'Buscar seña por nombre...')}
-              placeholderTextColor="#94a3b8"
+              placeholder={t('gestureStudio.searchPlaceholder', 'Buscar seña...')}
+              placeholderTextColor={theme === 'dark' ? '#64748B' : '#94A3B8'}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -798,7 +807,7 @@ export default function GestureStudioScreen() {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-                <X size={18} color="#94a3b8" />
+                <X size={18} color={theme === 'dark' ? '#64748B' : '#94A3B8'} />
               </TouchableOpacity>
             )}
           </View>
@@ -840,10 +849,10 @@ export default function GestureStudioScreen() {
           </ScrollView>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color="#426BC2" style={{ marginTop: 40 }} />
           ) : filteredGestures.length === 0 ? (
             <View style={styles.emptySearchContainer}>
-              <Search size={32} color="#64748b" style={{ marginBottom: 8 }} />
+              <Search size={32} color="#64748B" style={{ marginBottom: 8 }} />
               <Text style={styles.emptySearchText}>
                 {searchQuery ? `No se encontraron señas para "${searchQuery}"` : t('gestureStudio.noGesturesFound', 'No se encontraron gestos.')}
               </Text>
@@ -857,63 +866,81 @@ export default function GestureStudioScreen() {
             filteredGestures.map((item) => (
               <View key={item.id} style={styles.gestureCard}>
                 <View style={styles.gestureHeader}>
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.titleInfo}>
                     <Text style={styles.gestureCardTitle}>
-                      {item.name_es || item.name}
-                      {item.name_en ? (
-                        <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'normal' }}>
-                          {' '}({item.name_en})
-                        </Text>
-                      ) : null}
+                      Seña: {item.name_es || item.name}
                     </Text>
-                    <View style={styles.tagsRow}>
-                      <View style={[styles.badge, item.type === 'movement' ? styles.badgeMovement : styles.badgeStatic]}>
-                        <Text style={styles.badgeText}>
-                          {item.type === 'movement' ? t('gestureStudio.dynamicMovementMode', 'Movimiento Dinámico') : t('gestureStudio.staticGestureMode', 'Seña Estática')}
-                        </Text>
-                      </View>
-                      <View style={styles.sampleBadge}>
-                        <Text style={styles.sampleBadgeText}>
-                          {item.sample_count || 0} {t('gestureStudio.samples', 'muestras')}
-                        </Text>
-                      </View>
-                    </View>
+                    {item.name_en ? (
+                      <Text style={styles.gestureCardSubtitleEn}>
+                        EN: {item.name_en}
+                      </Text>
+                    ) : null}
                   </View>
+                </View>
 
-                  <TouchableOpacity
-                    onPress={() => handleDeleteGesture(item.id, item.name_es || item.name)}
-                    style={styles.deleteBtn}
-                  >
-                    <Trash2 size={18} color="#ef4444" />
-                  </TouchableOpacity>
+                <View style={styles.tagsRow}>
+                  <View style={[styles.badge, item.type === 'movement' ? styles.badgeMovement : styles.badgeStatic]}>
+                    <Text style={[styles.badgeText, item.type === 'movement' ? styles.badgeMovementText : styles.badgeStaticText]}>
+                      {item.type === 'movement' ? t('gestureStudio.dynamicMovementMode', 'Modo movimiento dinámico') : t('gestureStudio.staticGestureMode', 'Seña estática')}
+                    </Text>
+                  </View>
+                  <View style={styles.sampleBadge}>
+                    <Text style={styles.sampleBadgeText}>
+                      {item.sample_count || 0} {t('gestureStudio.samples', 'muestras')}
+                    </Text>
+                  </View>
                 </View>
 
                 {item.description ? (
                   <Text style={styles.gestureDesc}>{item.description}</Text>
                 ) : null}
 
+                <View style={styles.cardDivider} />
+
                 <View style={styles.gestureCardFooter}>
+                  {/* Botón eliminar colocado abajo a la izquierda con separación preventiva */}
                   <TouchableOpacity
-                    style={[
-                      styles.cardActionBtn,
-                      item.type === 'static' && { backgroundColor: 'rgba(16, 185, 129, 0.12)' }
-                    ]}
+                    onPress={() => handleDeleteGesture(item.id, item.name_es || item.name)}
+                    style={styles.deleteBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Trash2 size={18} color="#EF4444" />
+                  </TouchableOpacity>
+
+                  {/* Botón Grabar / Foto con borde gradiente y slot para icono */}
+                  <TouchableOpacity
+                    style={styles.recordActionBtnWrapper}
                     onPress={() => {
                       setSelectedGestureId(item.id);
                       setActiveTab('recorder');
                     }}
+                    activeOpacity={0.8}
                   >
-                    {item.type === 'static' ? (
-                      <Camera size={14} color="#10b981" style={{ marginRight: 6 }} />
-                    ) : (
-                      <Video size={14} color="#38bdf8" style={{ marginRight: 6 }} />
-                    )}
-                    <Text style={[
-                      styles.cardActionBtnText,
-                      item.type === 'static' && { color: '#059669' }
-                    ]}>
-                      {item.type === 'static' ? t('gestureStudio.capturePhotoAction', 'Capturar Foto') : t('gestureStudio.recordMovementAction', 'Grabar Movimiento')}
-                    </Text>
+                    <LinearGradient
+                      colors={['#426BC2', '#132472']}
+                      locations={[0.23, 0.69]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.gradientBorderBtn}
+                    >
+                      <View style={styles.gradientBorderBtnInner}>
+                        {item.type === 'static' ? (
+                          <>
+                            <Camera size={14} color={theme === 'dark' ? '#F1F5F9' : '#0F172A'} style={styles.recordBtnIcon} />
+                            <Text style={styles.recordBtnText}>
+                              Foto
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Video size={14} color={theme === 'dark' ? '#F1F5F9' : '#0F172A'} style={styles.recordBtnIcon} />
+                            <Text style={styles.recordBtnText}>
+                              Grabar
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -938,7 +965,7 @@ export default function GestureStudioScreen() {
                   }
                 }}
               >
-                <Smartphone size={15} color={recorderSource === 'phone' ? '#FFF' : Colors.text.secondary} />
+                <Smartphone size={15} color={recorderSource === 'phone' ? '#FFF' : (isDark ? '#94A3B8' : '#1E293B')} />
                 <Text style={[styles.sourceSegmentTxt, recorderSource === 'phone' && styles.sourceSegmentTxtActive]}>
                   {t('interpreter.sourcePhoneTab', 'Teléfono')}
                 </Text>
@@ -951,7 +978,7 @@ export default function GestureStudioScreen() {
                   await AsyncStorage.setItem('cokielens_studio_source', 'glasses');
                 }}
               >
-                <Glasses size={15} color={recorderSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
+                <Glasses size={15} color={recorderSource === 'glasses' ? '#FFF' : (isDark ? '#94A3B8' : '#1E293B')} />
                 <Text style={[styles.sourceSegmentTxt, recorderSource === 'glasses' && styles.sourceSegmentTxtActive]}>
                   {t('interpreter.sourceGlassesTab', 'Lentes')}
                 </Text>
@@ -973,7 +1000,12 @@ export default function GestureStudioScreen() {
           <View style={styles.gestureSelectorBar}>
             <View style={styles.recorderCatBar}>
               <Text style={styles.selectorLabel}>{t('gestureStudio.recordingFor', 'Grabando para:')}</Text>
-              <View style={styles.recorderCatPillsRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recorderCatPillsRow}
+                style={{ flexGrow: 0 }}
+              >
                 <TouchableOpacity
                   style={[styles.recorderCatPill, recorderCategory === 'all' && styles.recorderCatPillActive]}
                   onPress={() => setRecorderCategory('all')}
@@ -1006,7 +1038,7 @@ export default function GestureStudioScreen() {
                     {t('gestureStudio.catSchool', 'Escolares')}
                   </Text>
                 </TouchableOpacity>
-              </View>
+              </ScrollView>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
@@ -1023,9 +1055,9 @@ export default function GestureStudioScreen() {
                     onPress={() => setSelectedGestureId(g.id)}
                   >
                     {isItemStatic ? (
-                      <Camera size={13} color={isSelected ? '#FFF' : '#10b981'} style={{ marginRight: 5 }} />
+                      <Camera size={13} color={isSelected ? '#FFF' : (isDark ? '#94A3B8' : '#1E293B')} style={{ marginRight: 5 }} />
                     ) : (
-                      <Video size={13} color={isSelected ? '#FFF' : '#38bdf8'} style={{ marginRight: 5 }} />
+                      <Video size={13} color={isSelected ? '#FFF' : (isDark ? '#94A3B8' : '#1E293B')} style={{ marginRight: 5 }} />
                     )}
                     <Text style={[
                       styles.selectorPillText,
@@ -1044,16 +1076,16 @@ export default function GestureStudioScreen() {
             <View style={styles.gestureModeBanner}>
               {selectedGesture.type === 'static' ? (
                 <>
-                  <Camera size={14} color="#10b981" />
+                  <Camera size={14} color={isDark ? '#94A3B8' : '#1E293B'} />
                   <Text style={styles.gestureModeTextStatic}>
-                    {t('gestureStudio.staticGestureMode', 'Seña Estática (Modo Foto)')} — {selectedGesture.name_es || selectedGesture.name}
+                    {t('gestureStudio.staticGestureMode', 'Seña Estática')}: {selectedGesture.name_es || selectedGesture.name}
                   </Text>
                 </>
               ) : (
                 <>
-                  <Video size={14} color="#38bdf8" />
+                  <Video size={14} color={isDark ? '#94A3B8' : '#1E293B'} />
                   <Text style={styles.gestureModeTextMovement}>
-                    {t('gestureStudio.dynamicMovementMode', 'Movimiento Dinámico (Modo Grabación)')} — {selectedGesture.name_es || selectedGesture.name}
+                    {t('gestureStudio.dynamicMovementMode', 'Modo movimiento dinámico')}: {selectedGesture.name_es || selectedGesture.name}
                   </Text>
                 </>
               )}
@@ -1156,30 +1188,46 @@ export default function GestureStudioScreen() {
             {selectedGesture?.type === 'static' ? (
               <TouchableOpacity
                 style={[
-                  styles.photoActionButton,
+                  styles.gradientActionBtnWrapper,
                   recordingState !== 'idle' && styles.recordActionButtonDisabled
                 ]}
                 onPress={handleCaptureStaticPhoto}
                 disabled={recordingState !== 'idle'}
+                activeOpacity={0.85}
               >
-                <Camera size={20} color="#FFF" style={{ marginRight: 8 }} />
-                <Text style={styles.recordButtonText}>
-                  {recordingState === 'saving' ? t('gestureStudio.processingPhotoBtn', 'Procesando Foto...') : t('gestureStudio.takingPhoto', 'Tomar Foto de la Seña')}
-                </Text>
+                <LinearGradient
+                  colors={['#132472', '#426BC2']}
+                  start={{ x: 0.23, y: 0 }}
+                  end={{ x: 0.69, y: 1 }}
+                  style={styles.gradientActionBtn}
+                >
+                  <Camera size={20} color="#FFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.recordButtonText}>
+                    {recordingState === 'saving' ? t('gestureStudio.processingPhotoBtn', 'Procesando Foto...') : t('gestureStudio.takingPhoto', 'Tomar Foto de la Seña')}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={[
-                  styles.recordActionButton,
+                  styles.gradientActionBtnWrapper,
                   recordingState !== 'idle' && styles.recordActionButtonDisabled
                 ]}
                 onPress={startGuidedRecording}
                 disabled={recordingState !== 'idle'}
+                activeOpacity={0.85}
               >
-                <View style={styles.recordInnerCircle} />
-                <Text style={styles.recordButtonText}>
-                  {recordingState === 'idle' ? t('gestureStudio.startRecordingMovement', { count: TARGET_MOVEMENT_FRAMES, defaultValue: `Iniciar Grabación (${TARGET_MOVEMENT_FRAMES} cuadros)` }) : t('gestureStudio.recording', 'Grabando...')}
-                </Text>
+                <LinearGradient
+                  colors={['#132472', '#426BC2']}
+                  start={{ x: 0.23, y: 0 }}
+                  end={{ x: 0.69, y: 1 }}
+                  style={styles.gradientActionBtn}
+                >
+                  <View style={styles.recordInnerCircle} />
+                  <Text style={styles.recordButtonText}>
+                    {recordingState === 'idle' ? t('gestureStudio.startRecordingMovement', { count: TARGET_MOVEMENT_FRAMES, defaultValue: `Iniciar Grabación (${TARGET_MOVEMENT_FRAMES} cuadros)` }) : t('gestureStudio.recording', 'Grabando...')}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
 
@@ -1337,104 +1385,140 @@ export default function GestureStudioScreen() {
         </ScrollView>
       )}
 
-      {/* ── MODAL: NUEVO GESTO ── */}
+      {/* ── MODAL: NUEVO GESTO A COKIELENS (VISTA SÓLIDA A PANTALLA COMPLETA) ── */}
       <Modal
         visible={isNewModalOpen}
-        transparent
-        animationType="fade"
+        transparent={false}
+        animationType="slide"
         onRequestClose={() => setIsNewModalOpen(false)}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: 16 }}
-              >
-                <Text style={styles.modalTitle}>{t('gestureStudio.manageDialect', 'Agregar Gesto al Dialecto')}</Text>
-                <Text style={styles.modalSubtitle}>
-                  {t('gestureStudio.manageDialectDesc', 'Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.')}
-                </Text>
+        <SafeAreaView style={styles.fullScreenNewGestureView}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.fullScreenNewGestureScroll}
+            >
+              <Text style={styles.newGestureMainTitle}>
+                {t('gestureStudio.manageDialect', 'Agregar gesto a CokieLens')}
+              </Text>
+              <Text style={styles.newGestureMainSubtitle}>
+                {t('gestureStudio.manageDialectDesc', 'Crea una nueva expresión que la IA aprenderá a reconocer y pronunciar.')}
+              </Text>
 
-                <Text style={styles.fieldLabel}>{t('gestureStudio.modalNewNameEsLabel', 'Nombre en Español *')}</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newGestureName}
-                  onChangeText={setNewGestureName}
-                  placeholder={t('gestureStudio.nameEsPlaceholder', 'Ej: Puerta, Permiso para ir al baño')}
-                  placeholderTextColor="#94a3b8"
-                />
+              <Text style={styles.newGestureFieldLabel}>
+                {t('gestureStudio.modalNewNameEsLabel', 'Nombre en español')}
+              </Text>
+              <TextInput
+                style={styles.newGestureInput}
+                value={newGestureName}
+                onChangeText={setNewGestureName}
+                placeholder={t('gestureStudio.nameEsPlaceholder', 'Ej: Puerta, Permiso para ir al baño')}
+                placeholderTextColor={inactiveColor}
+              />
 
-                <Text style={styles.fieldLabel}>{t('gestureStudio.nameEnLabel', 'Nombre en Inglés (Traducción TTS / Subtítulos)')}</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newGestureNameEn}
-                  onChangeText={setNewGestureNameEn}
-                  placeholder={t('gestureStudio.nameEnPlaceholder', 'Ej: Door, Excuse me to go to bathroom')}
-                  placeholderTextColor="#94a3b8"
-                />
+              <Text style={styles.newGestureFieldLabel}>
+                {t('gestureStudio.nameEnLabel', 'Nombre en inglés')}
+              </Text>
+              <TextInput
+                style={styles.newGestureInput}
+                value={newGestureNameEn}
+                onChangeText={setNewGestureNameEn}
+                placeholder={t('gestureStudio.nameEnPlaceholder', 'Ej: Door, Excuse me to go to bathroom')}
+                placeholderTextColor={inactiveColor}
+              />
 
-                <Text style={styles.fieldLabel}>{t('gestureStudio.expressionType', 'Tipo de Expresión')}</Text>
-                <View style={styles.typeRow}>
-                  <TouchableOpacity
-                    style={[styles.typeOption, newGestureType === 'movement' && styles.typeOptionActive]}
-                    onPress={() => setNewGestureType('movement')}
+              <Text style={styles.newGestureFieldLabel}>
+                {t('gestureStudio.expressionType', 'Tipo de expresión')}
+              </Text>
+              <View style={styles.newGestureTypeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.newGestureTypeOption,
+                    newGestureType === 'movement' && styles.newGestureTypeOptionActive,
+                  ]}
+                  onPress={() => setNewGestureType('movement')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.newGestureTypeOptionText,
+                      newGestureType === 'movement' && styles.newGestureTypeOptionTextActive,
+                    ]}
                   >
-                    <Activity size={16} color={newGestureType === 'movement' ? '#38bdf8' : Colors.text.secondary} />
-                    <Text style={[styles.typeOptionText, newGestureType === 'movement' && styles.typeOptionTextActive]}>
-                      {t('gestureStudio.dynamicMovement', 'Movimiento Dinámico')}
-                    </Text>
-                  </TouchableOpacity>
+                    {t('gestureStudio.dynamicMovement', 'Movimiento Dinámico')}
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.typeOption, newGestureType === 'static' && styles.typeOptionActive]}
-                    onPress={() => setNewGestureType('static')}
+                <TouchableOpacity
+                  style={[
+                    styles.newGestureTypeOption,
+                    newGestureType === 'static' && styles.newGestureTypeOptionActive,
+                  ]}
+                  onPress={() => setNewGestureType('static')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.newGestureTypeOptionText,
+                      newGestureType === 'static' && styles.newGestureTypeOptionTextActive,
+                    ]}
                   >
-                    <Award size={16} color={newGestureType === 'static' ? '#38bdf8' : Colors.text.secondary} />
-                    <Text style={[styles.typeOptionText, newGestureType === 'static' && styles.typeOptionTextActive]}>
-                      {t('gestureStudio.staticGesture', 'Seña Estática')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    {t('gestureStudio.staticGesture', 'Seña estática')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-                <Text style={styles.fieldLabel}>{t('gestureStudio.instructionsOptional', 'Instrucciones de Movimiento (Opcional)')}</Text>
-                <TextInput
-                  style={[styles.textInput, { height: 60 }]}
-                  value={newGestureDesc}
-                  onChangeText={setNewGestureDesc}
-                  placeholder={t('gestureStudio.instructionsPlaceholder', 'Ej: Mano derecha en letra B sacudiéndose a la altura del pecho')}
-                  placeholderTextColor="#94a3b8"
-                  multiline
-                />
+              <Text style={styles.newGestureFieldLabel}>
+                {t('gestureStudio.instructionsOptional', 'Instrucciones de Movimiento (opcional)')}
+              </Text>
+              <TextInput
+                style={[styles.newGestureInput, styles.newGestureTextArea]}
+                value={newGestureDesc}
+                onChangeText={setNewGestureDesc}
+                placeholder={t('gestureStudio.instructionsPlaceholder', 'Ej: Mano derecha en letra B sacudiéndose a la altura del pecho')}
+                placeholderTextColor={inactiveColor}
+                multiline
+                textAlignVertical="top"
+              />
 
-                <View style={styles.modalButtonRow}>
-                  <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => setIsNewModalOpen(false)}
-                  >
-                    <Text style={styles.cancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
-                  </TouchableOpacity>
+              <View style={styles.newGestureActionButtonsRow}>
+                <TouchableOpacity
+                  style={styles.newGestureCancelNoBgBtn}
+                  onPress={() => setIsNewModalOpen(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.newGestureCancelNoBgBtnText}>{t('common.cancel', 'Cancelar')}</Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.confirmBtn}
-                    onPress={handleCreateGesture}
-                    disabled={creating}
+                <TouchableOpacity
+                  onPress={handleCreateGesture}
+                  disabled={creating}
+                  activeOpacity={0.85}
+                  style={styles.newGestureSubmitGradientWrapper}
+                >
+                  <LinearGradient
+                    colors={['#132472', '#426BC2']}
+                    start={{ x: 0.23, y: 0 }}
+                    end={{ x: 0.69, y: 1 }}
+                    style={styles.newGestureSubmitGradient}
                   >
                     {creating ? (
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
-                      <Text style={styles.confirmBtnText}>{t('gestureStudio.registerGesture', 'Registrar Gesto')}</Text>
+                      <Text style={styles.newGestureSubmitGradientText}>
+                        {t('gestureStudio.registerGesture', 'Añadir gesto')}
+                      </Text>
                     )}
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
 
       {/* ── MODAL: CONFIGURACIÓN DE IP DE LENTES COKIELENS ── */}
@@ -1517,979 +1601,1180 @@ export default function GestureStudioScreen() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#0B1956',
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-  },
-  tabItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabItemActive: {
-    borderBottomColor: '#38bdf8',
-  },
-  tabText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  tabTextActive: {
-    color: '#38bdf8',
-  },
-  content: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 120 },
+const createStyles = (Colors, theme) => {
+  const isDark = theme === 'dark';
+  const titleColor = isDark ? '#F1F5F9' : '#0F172A';
+  const secondaryColor = isDark ? '#94A3B8' : '#475569';
+  const inactiveColor = isDark ? '#64748B' : '#94A3B8';
+  const cardBgColor = isDark ? '#262626' : '#FFFFFF';
+  const cardBorderColor = isDark ? '#383838' : '#E2E8F0';
+  const screenBgColor = isDark ? '#141414' : '#F8FAFC';
+  const inputBgColor = isDark ? '#262626' : '#FFFFFF';
+  const inputBorderColor = isDark ? '#383838' : '#E2E8F0';
+  const dividerColor = isDark ? '#383838' : '#E2E8F0';
+  const activeMenuLineColor = isDark ? (Colors.primary || '#426BC2') : '#0B1956';
 
-  topStatsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#f8fafc',
-    padding: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  statNum: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#38bdf8',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: screenBgColor },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: isDark ? '#141414' : '#FFFFFF',
+      paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? '#1E293B' : '#E2E8F0',
+    },
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabItemActive: {
+      borderBottomColor: activeMenuLineColor,
+      borderBottomWidth: 3,
+    },
+    tabText: {
+      color: inactiveColor,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    tabTextActive: {
+      color: activeMenuLineColor,
+      fontWeight: '700',
+    },
+    content: { flex: 1 },
+    scrollContent: { padding: 16, paddingBottom: 120 },
 
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-  },
-  newGestureBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  newGestureBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
+    topStatsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 20,
+    },
+    statBox: {
+      flex: 1,
+      backgroundColor: cardBgColor,
+      padding: 16,
+      borderRadius: 14,
+      alignItems: 'center',
+      borderWidth: 0.8,
+      borderColor: cardBorderColor,
+    },
+    statNumOther: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: '#F7D8FF',
+      marginBottom: 4,
+    },
+    statNumAi: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: '#426BC2',
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: secondaryColor,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
 
-  gestureCard: {
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  gestureHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  gestureCardTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 6,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  badgeMovement: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-  },
-  badgeStatic: {
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#38bdf8',
-  },
-  sampleBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  sampleBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#10b981',
-  },
-  gestureDesc: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  deleteBtn: {
-    padding: 6,
-  },
-  gestureCardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: theme === 'dark' ? '#334155' : '#f1f5f9',
-    paddingTop: 10,
-    alignItems: 'flex-end',
-  },
-  cardActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 8,
-  },
-  cardActionBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0284c7',
-  },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: 'bold',
+      color: titleColor,
+    },
+    newGestureBtnWrapper: {
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(147, 197, 253, 0.4)',
+      overflow: 'hidden',
+      shadowColor: '#426BC2',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    newGestureBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    newGestureBtnText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      fontSize: 12,
+    },
 
-  // Grabador
-  recorderContainer: { flex: 1 },
-  gestureSelectorBar: {
-    padding: 12,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-  },
-  selectorLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-    marginBottom: 6,
-  },
-  selectorPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-    marginRight: 8,
-  },
-  selectorPillActive: {
-    backgroundColor: '#3b82f6',
-  },
-  selectorPillActiveStatic: {
-    backgroundColor: '#059669',
-  },
-  selectorPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-  },
-  selectorPillTextActive: {
-    color: '#FFF',
-  },
-  gestureModeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: theme === 'dark' ? '#0b1329' : '#f1f5f9',
-    borderBottomWidth: 1,
-    borderBottomColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-  },
-  gestureModeTextStatic: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10b981',
-    marginLeft: 6,
-  },
-  gestureModeTextMovement: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#38bdf8',
-    marginLeft: 6,
-  },
-  videoPreviewBox: {
-    flex: 1,
-    backgroundColor: '#020617',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noSignalBox: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  noSignalText: {
-    color: '#64748b',
-    fontSize: 13,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  countdownOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 30,
-  },
-  countdownNumber: {
-    fontSize: 80,
-    fontWeight: 'bold',
-    color: '#38bdf8',
-  },
-  countdownPrompt: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginTop: 10,
-  },
-  recordingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    zIndex: 30,
-  },
-  recordingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  redRecordingDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#ef4444',
-    marginRight: 8,
-  },
-  recordingTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ef4444',
-    letterSpacing: 1,
-  },
-  recordingSubtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  progressBarBg: {
-    width: '100%',
-    height: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressBarBgLarge: {
-    width: '100%',
-    height: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 7,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#38bdf8',
-  },
-  progressCounter: {
-    fontSize: 12,
-    color: '#94a3b8',
-  },
-  recorderControls: {
-    padding: 20,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-  },
-  recordActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ef4444',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: 10,
-  },
-  photoActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#059669',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 24,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
-    marginBottom: 10,
-  },
-  staticModeBanner: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    right: 68,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    zIndex: 20,
-  },
-  staticModeBannerText: {
-    color: '#34d399',
-    fontSize: 12,
-    fontWeight: '600',
-    flex: 1,
-  },
-  recordActionButtonDisabled: {
-    backgroundColor: '#64748b',
-  },
-  recordInnerCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FFF',
-    marginRight: 10,
-  },
-  recordButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  recorderHint: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+    searchBarContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: inputBgColor,
+      borderRadius: 22,
+      paddingHorizontal: 16,
+      paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+      marginBottom: 14,
+      borderWidth: 0.8,
+      borderColor: inputBorderColor,
+    },
+    searchBarInput: {
+      flex: 1,
+      fontSize: 14,
+      color: titleColor,
+    },
 
-  // Entrenamiento
-  trainingHeroCard: {
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  trainingHeroTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 8,
-  },
-  trainingHeroDesc: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  startTrainBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#8b5cf6',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 14,
-    shadowColor: '#8b5cf6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  startTrainBtnDisabled: {
-    backgroundColor: '#64748b',
-  },
-  startTrainBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  warningNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 16,
-  },
-  warningNoticeText: {
-    fontSize: 12,
-    color: '#f59e0b',
-    flex: 1,
-  },
+    categoryChipsScroll: {
+      flexGrow: 0,
+      marginBottom: 12,
+    },
+    categoryChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 20,
+      backgroundColor: cardBgColor,
+      marginRight: 8,
+      borderWidth: 0.8,
+      borderColor: inputBorderColor,
+    },
+    categoryChipActive: {
+      backgroundColor: isDark ? '#333333' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: isDark ? '#484848' : '#CBD5E1',
+    },
+    categoryChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: secondaryColor,
+    },
+    categoryChipTextActive: {
+      color: titleColor,
+      fontWeight: 'bold',
+    },
 
-  progressCard: {
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#38bdf8',
-  },
-  progressCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  progressCardTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-  },
-  progressCardPercent: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#38bdf8',
-  },
-  trainingMetricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  metricItem: {
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: Colors.text.secondary,
-    marginBottom: 2,
-  },
-  metricVal: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-  },
+    emptySearchContainer: {
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    emptySearchText: {
+      fontSize: 14,
+      color: inactiveColor,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    clearSearchBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    },
+    clearSearchBtnText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#0284C7',
+    },
 
-  successCard: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 18,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#10b981',
-  },
-  successTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#10b981',
-    marginBottom: 6,
-  },
-  successDesc: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 16,
-  },
-  testInterpreterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10b981',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  testInterpreterBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginRight: 6,
-  },
+    gestureCard: {
+      backgroundColor: cardBgColor,
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 14,
+      borderWidth: 0.8,
+      borderColor: cardBorderColor,
+    },
+    gestureHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    titleInfo: {
+      flex: 1,
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+    },
+    gestureCardTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: titleColor,
+    },
+    gestureCardSubtitleEn: {
+      fontSize: 13,
+      color: secondaryColor,
+      marginTop: 2,
+      fontWeight: '500',
+    },
+    deleteBtn: {
+      padding: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    tagsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 8,
+    },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 3.5,
+      borderRadius: 6,
+    },
+    badgeMovement: {
+      backgroundColor: isDark ? 'rgba(66, 107, 194, 0.18)' : 'rgba(66, 107, 194, 0.12)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(66, 107, 194, 0.4)' : 'rgba(66, 107, 194, 0.3)',
+    },
+    badgeMovementText: {
+      color: isDark ? '#89B2F8' : '#2550AD',
+      fontWeight: '600',
+      fontSize: 11,
+    },
+    badgeStatic: {
+      backgroundColor: isDark ? 'rgba(247, 216, 255, 0.14)' : 'rgba(147, 51, 234, 0.08)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(247, 216, 255, 0.3)' : 'rgba(147, 51, 234, 0.25)',
+    },
+    badgeStaticText: {
+      color: isDark ? '#F7D8FF' : '#7E22CE',
+      fontWeight: '600',
+      fontSize: 11,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    sampleBadge: {
+      borderWidth: 1,
+      borderColor: isDark ? '#484848' : '#CBD5E1',
+      backgroundColor: 'transparent',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+    },
+    sampleBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: titleColor,
+    },
+    gestureDesc: {
+      fontSize: 13,
+      color: secondaryColor,
+      lineHeight: 18,
+      marginTop: 4,
+    },
+    cardDivider: {
+      height: 1,
+      backgroundColor: dividerColor,
+      marginTop: 12,
+      marginBottom: 12,
+    },
+    gestureCardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 8,
+    },
+    recordActionBtnWrapper: {
+      borderRadius: 22,
+      overflow: 'hidden',
+    },
+    gradientBorderBtn: {
+      padding: 1.5,
+      borderRadius: 22,
+    },
+    gradientBorderBtnInner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: cardBgColor,
+      paddingVertical: 7,
+      paddingHorizontal: 16,
+      borderRadius: 20.5,
+    },
+    recordBtnIcon: {
+      marginRight: 6,
+    },
+    recordBtnText: {
+      color: titleColor,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    cardActionBtnText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
 
-  // Filtros de categoría en dialecto
-  categoryChipsScroll: {
-    flexGrow: 0,
-    marginBottom: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  categoryChipActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
-    borderColor: '#38bdf8',
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-  },
-  categoryChipTextActive: {
-    color: '#38bdf8',
-    fontWeight: 'bold',
-  },
+    // Grabador
+    recorderContainer: { flex: 1 },
+    gestureSelectorBar: {
+      padding: 12,
+      backgroundColor: cardBgColor,
+      borderBottomWidth: 1,
+      borderBottomColor: dividerColor,
+    },
+    selectorLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: secondaryColor,
+      marginBottom: 6,
+    },
+    selectorPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 14,
+      backgroundColor: isDark ? '#272B33' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: isDark ? '#3B4252' : '#CBD5E1',
+      marginRight: 8,
+    },
+    selectorPillActive: {
+      backgroundColor: '#426BC2',
+      borderColor: '#426BC2',
+    },
+    selectorPillActiveStatic: {
+      backgroundColor: '#426BC2',
+      borderColor: '#426BC2',
+    },
+    selectorPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: secondaryColor,
+    },
+    selectorPillTextActive: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    },
+    gestureModeBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: isDark ? '#141820' : '#F1F5F9',
+      borderBottomWidth: 1,
+      borderBottomColor: dividerColor,
+    },
+    gestureModeTextStatic: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: titleColor,
+      marginLeft: 6,
+    },
+    gestureModeTextMovement: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: titleColor,
+      marginLeft: 6,
+    },
+    videoPreviewBox: {
+      flex: 1,
+      backgroundColor: '#020617',
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    noSignalBox: {
+      alignItems: 'center',
+      padding: 20,
+    },
+    noSignalText: {
+      color: inactiveColor,
+      fontSize: 13,
+      marginTop: 10,
+      textAlign: 'center',
+    },
+    countdownOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 30,
+    },
+    countdownNumber: {
+      fontSize: 80,
+      fontWeight: 'bold',
+      color: '#06B6D4',
+    },
+    countdownPrompt: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#FFF',
+      marginTop: 10,
+    },
+    recordingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(15, 23, 42, 0.85)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+      zIndex: 30,
+    },
+    recordingHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    redRecordingDot: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: '#EF4444',
+      marginRight: 8,
+    },
+    recordingTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#EF4444',
+      letterSpacing: 1,
+    },
+    recordingSubtitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#FFF',
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    progressBarBg: {
+      width: '100%',
+      height: 10,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      borderRadius: 5,
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    progressBarBgLarge: {
+      width: '100%',
+      height: 14,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      borderRadius: 7,
+      overflow: 'hidden',
+      marginBottom: 16,
+    },
+    progressBarFill: {
+      height: '100%',
+      backgroundColor: '#06B6D4',
+    },
+    progressCounter: {
+      fontSize: 12,
+      color: secondaryColor,
+    },
+    recorderControls: {
+      padding: 20,
+      backgroundColor: cardBgColor,
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderTopColor: dividerColor,
+    },
+    gradientActionBtnWrapper: {
+      borderRadius: 24,
+      overflow: 'hidden',
+      marginBottom: 10,
+      shadowColor: '#426BC2',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    gradientActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      borderRadius: 24,
+    },
+    recordActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#426BC2',
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 24,
+      marginBottom: 10,
+    },
+    photoActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#426BC2',
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      borderRadius: 24,
+      marginBottom: 10,
+    },
+    staticModeBanner: {
+      position: 'absolute',
+      top: 14,
+      left: 14,
+      right: 68,
+      backgroundColor: 'rgba(15, 23, 42, 0.85)',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.4)',
+      zIndex: 20,
+    },
+    staticModeBannerText: {
+      color: '#34D399',
+      fontSize: 12,
+      fontWeight: '600',
+      flex: 1,
+    },
+    recordActionButtonDisabled: {
+      opacity: 0.5,
+    },
+    recordInnerCircle: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: '#EF4444',
+      marginRight: 10,
+    },
+    recordButtonText: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+      fontSize: 15,
+    },
+    recorderHint: {
+      fontSize: 12,
+      color: secondaryColor,
+      textAlign: 'center',
+    },
 
-  // Selector de categoría en el grabador
-  recorderCatBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  recorderCatPillsRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  recorderCatPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-  },
-  recorderCatPillActive: {
-    backgroundColor: '#38bdf8',
-  },
-  recorderCatPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-  },
-  recorderCatPillTextActive: {
-    color: '#0f172a',
-    fontWeight: 'bold',
-  },
+    // Entrenamiento
+    trainingHeroCard: {
+      backgroundColor: cardBgColor,
+      borderRadius: 16,
+      padding: 24,
+      alignItems: 'center',
+      marginBottom: 16,
+      borderWidth: 0.8,
+      borderColor: cardBorderColor,
+    },
+    trainingHeroTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: titleColor,
+      marginBottom: 8,
+    },
+    trainingHeroDesc: {
+      fontSize: 13,
+      color: secondaryColor,
+      textAlign: 'center',
+      lineHeight: 20,
+      marginBottom: 20,
+    },
+    startTrainBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#0284C7',
+      paddingVertical: 14,
+      paddingHorizontal: 28,
+      borderRadius: 14,
+      shadowColor: '#0284C7',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    startTrainBtnDisabled: {
+      backgroundColor: '#64748B',
+    },
+    startTrainBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 15,
+    },
+    warningNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+      padding: 10,
+      borderRadius: 10,
+      marginTop: 16,
+    },
+    warningNoticeText: {
+      fontSize: 12,
+      color: '#F59E0B',
+      flex: 1,
+    },
 
-  // Tarjeta de Estado del Modelo y Rollback
-  modelStatusCard: {
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  modelStatusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  modelStatusTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-  },
-  modelStatusDesc: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    lineHeight: 17,
-    marginBottom: 10,
-  },
-  rollbackBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#dc2626',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  rollbackBtnText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
+    progressCard: {
+      backgroundColor: cardBgColor,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: '#06B6D4',
+    },
+    progressCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    progressCardTitle: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: titleColor,
+    },
+    progressCardPercent: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#06B6D4',
+    },
+    trainingMetricsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    metricItem: {
+      alignItems: 'center',
+    },
+    metricLabel: {
+      fontSize: 11,
+      color: secondaryColor,
+      marginBottom: 2,
+    },
+    metricVal: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: titleColor,
+    },
 
-  // Quality Gate y Métricas
-  qualityGateBadgeSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  qualityGateTextSuccess: {
-    color: '#10b981',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  qualityGateBadgeWarn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  qualityGateTextWarn: {
-    color: '#f59e0b',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  accuracyComparisonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 12,
-    width: '100%',
-  },
-  accCompareLabel: {
-    fontSize: 13,
-    color: Colors.text.primary,
-  },
+    successCard: {
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      borderRadius: 16,
+      padding: 20,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#10B981',
+    },
+    successTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#10B981',
+      marginBottom: 6,
+    },
+    successDesc: {
+      fontSize: 13,
+      color: secondaryColor,
+      textAlign: 'center',
+      lineHeight: 19,
+      marginBottom: 16,
+    },
+    testInterpreterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#10B981',
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 10,
+    },
+    testInterpreterBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 13,
+      marginRight: 6,
+    },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 } : {}),
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 20,
-    padding: 22,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: Colors.text.secondary,
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: Colors.text.primary,
-    marginBottom: 6,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: Colors.text.primary,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
-  typeOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-  },
-  typeOptionActive: {
-    borderColor: '#38bdf8',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-  },
-  typeOptionText: {
-    fontSize: 11,
-    color: Colors.text.secondary,
-    marginLeft: 4,
-  },
-  typeOptionTextActive: {
-    color: '#38bdf8',
-    fontWeight: 'bold',
-  },
-  modalButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  cancelBtnText: {
-    color: Colors.text.secondary,
-    fontWeight: '600',
-  },
-  confirmBtn: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-  },
-  confirmBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
+    // Selector de categoría en el grabador
+    recorderCatBar: {
+      marginBottom: 10,
+    },
+    recorderCatPillsRow: {
+      flexDirection: 'row',
+      gap: 6,
+      paddingVertical: 2,
+    },
+    recorderCatPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 10,
+      backgroundColor: isDark ? '#272B33' : '#F1F5F9',
+    },
+    recorderCatPillActive: {
+      backgroundColor: '#426BC2',
+    },
+    recorderCatPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: secondaryColor,
+    },
+    recorderCatPillTextActive: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    },
 
-  // Búsqueda en Dialecto
-  searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#f1f5f9',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  searchBarInput: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.text.primary,
-  },
-  emptySearchContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptySearchText: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  clearSearchBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-  },
-  clearSearchBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#0284c7',
-  },
+    // Tarjeta de Estado del Modelo y Rollback
+    modelStatusCard: {
+      backgroundColor: cardBgColor,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 0.8,
+      borderColor: cardBorderColor,
+    },
+    modelStatusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    modelStatusTitle: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: titleColor,
+    },
+    modelStatusDesc: {
+      fontSize: 12,
+      color: secondaryColor,
+      lineHeight: 17,
+      marginBottom: 10,
+    },
+    rollbackBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: '#EF4444',
+      paddingVertical: 7,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+    },
+    rollbackBtnText: {
+      color: '#FFF',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
 
-  // Selector de Fuente en Grabador
-  recorderSourceBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: theme === 'dark' ? '#0b1329' : '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-  },
-  sourceSegmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#e2e8f0',
-    borderRadius: 10,
-    padding: 3,
-    gap: 4,
-  },
-  sourceSegmentBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  sourceSegmentBtnActive: {
-    backgroundColor: '#3b82f6',
-  },
-  sourceSegmentTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-    marginLeft: 6,
-  },
-  sourceSegmentTxtActive: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  glassesSettingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#0284c7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  statusMiniDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#FFF',
-  },
-  floatingRotateButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 25,
-  },
-  permissionBtn: {
-    marginTop: 14,
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  permissionBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  retrySettingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-  },
-  retrySettingsBtnText: {
-    color: '#38bdf8',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
+    qualityGateBadgeSuccess: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(16, 185, 129, 0.15)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    qualityGateTextSuccess: {
+      color: '#10B981',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    qualityGateBadgeWarn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    qualityGateTextWarn: {
+      color: '#F59E0B',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    accuracyComparisonRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 16,
+      backgroundColor: isDark ? '#141820' : '#F1F5F9',
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      marginBottom: 12,
+      width: '100%',
+    },
+    accCompareLabel: {
+      fontSize: 13,
+      color: titleColor,
+    },
 
-  // Modal de Lentes CokieLens
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  modalTitleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ipInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 14,
-  },
-  modalTextInput: {
-    flex: 1,
-    paddingVertical: 10,
-    color: Colors.text.primary,
-    fontSize: 16,
-  },
-  testResultBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 14,
-  },
-  testResultText: {
-    fontSize: 12,
-    fontWeight: '500',
-    flex: 1,
-  },
-  modalButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 6,
-  },
-  testBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  testBtnText: {
-    color: '#0284c7',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  saveBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-});
+    // Modal Pantalla Completa Sólida (Agregar Gesto a CokieLens)
+    fullScreenNewGestureView: {
+      flex: 1,
+      backgroundColor: screenBgColor,
+    },
+    fullScreenNewGestureScroll: {
+      paddingHorizontal: 24,
+      paddingVertical: 28,
+      maxWidth: 520,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    newGestureMainTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: titleColor,
+      marginBottom: 6,
+    },
+    newGestureMainSubtitle: {
+      fontSize: 13,
+      color: secondaryColor,
+      lineHeight: 19,
+      marginBottom: 26,
+    },
+    newGestureFieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: titleColor,
+      marginBottom: 8,
+    },
+    newGestureInput: {
+      backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+      borderWidth: 0.5,
+      borderColor: isDark ? '#8B8B90' : '#CBD5E1',
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: titleColor,
+      marginBottom: 20,
+    },
+    newGestureTextArea: {
+      height: 120,
+      paddingTop: 12,
+    },
+    newGestureTypeRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 22,
+    },
+    newGestureTypeOption: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 11,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      borderWidth: 0.5,
+      borderColor: isDark ? '#8B8B90' : '#CBD5E1',
+      backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+    },
+    newGestureTypeOptionActive: {
+      backgroundColor: '#426BC2',
+      borderColor: '#426BC2',
+      borderWidth: 0.5,
+    },
+    newGestureTypeOptionText: {
+      fontSize: 13,
+      color: secondaryColor,
+      fontWeight: '500',
+    },
+    newGestureTypeOptionTextActive: {
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    },
+    newGestureActionButtonsRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: 16,
+      marginTop: 10,
+      marginBottom: 40,
+    },
+    newGestureCancelNoBgBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      backgroundColor: 'transparent',
+    },
+    newGestureCancelNoBgBtnText: {
+      color: titleColor,
+      fontWeight: '600',
+      fontSize: 14,
+    },
+    newGestureSubmitGradientWrapper: {
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    newGestureSubmitGradient: {
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    newGestureSubmitGradientText: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+
+    // Modal CokieLens IP
+    modalOverlay: {
+      flex: 1,
+      ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 } : {}),
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 400,
+      backgroundColor: cardBgColor,
+      borderRadius: 16,
+      padding: 22,
+      borderWidth: 0.8,
+      borderColor: cardBorderColor,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: titleColor,
+      marginBottom: 4,
+    },
+    modalSubtitle: {
+      fontSize: 12,
+      color: secondaryColor,
+      marginBottom: 16,
+    },
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: titleColor,
+      marginBottom: 6,
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: inputBorderColor,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: titleColor,
+      backgroundColor: isDark ? '#0F1117' : '#F8FAFC',
+      marginBottom: 12,
+      fontSize: 15,
+    },
+    typeRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 14,
+    },
+    typeOption: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: inputBorderColor,
+    },
+    typeOptionActive: {
+      borderColor: '#06B6D4',
+      backgroundColor: 'rgba(6, 182, 212, 0.12)',
+    },
+    typeOptionText: {
+      fontSize: 11,
+      color: secondaryColor,
+      marginLeft: 4,
+    },
+    typeOptionTextActive: {
+      color: '#06B6D4',
+      fontWeight: 'bold',
+    },
+    modalButtonRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 10,
+      marginTop: 8,
+    },
+    cancelBtn: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+    },
+    cancelBtnText: {
+      color: secondaryColor,
+      fontWeight: '600',
+    },
+    confirmBtn: {
+      backgroundColor: '#0284C7',
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+      borderRadius: 10,
+    },
+    confirmBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+    },
+
+    // Selector de Fuente en Grabador
+    recorderSourceBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: isDark ? '#0F1117' : '#F8FAFC',
+      borderBottomWidth: 1,
+      borderBottomColor: dividerColor,
+    },
+    sourceSegmentedControl: {
+      flexDirection: 'row',
+      backgroundColor: isDark ? '#1E222A' : '#E2E8F0',
+      borderRadius: 10,
+      padding: 3,
+      gap: 4,
+    },
+    sourceSegmentBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    sourceSegmentBtnActive: {
+      backgroundColor: '#426BC2',
+    },
+    sourceSegmentTxt: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: secondaryColor,
+      marginLeft: 6,
+    },
+    sourceSegmentTxtActive: {
+      color: '#FFF',
+      fontWeight: 'bold',
+    },
+    glassesSettingsBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: isDark ? '#272B33' : '#426BC2',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+    },
+    statusMiniDot: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      borderWidth: 1.5,
+      borderColor: '#FFF',
+    },
+    floatingRotateButton: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 25,
+    },
+    permissionBtn: {
+      marginTop: 14,
+      backgroundColor: '#0284C7',
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 10,
+    },
+    permissionBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 13,
+    },
+    retrySettingsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+      backgroundColor: 'rgba(6, 182, 212, 0.15)',
+    },
+    retrySettingsBtnText: {
+      color: '#06B6D4',
+      fontWeight: 'bold',
+      fontSize: 12,
+    },
+
+    // Modal de Lentes CokieLens
+    modalHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    modalTitleBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    ipInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#0F1117' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: inputBorderColor,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      marginBottom: 14,
+    },
+    modalTextInput: {
+      flex: 1,
+      paddingVertical: 10,
+      color: titleColor,
+      fontSize: 15,
+    },
+    testResultBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+      borderRadius: 8,
+      marginBottom: 14,
+    },
+    testResultText: {
+      fontSize: 12,
+      fontWeight: '500',
+      flex: 1,
+    },
+    modalButtonsRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 10,
+      marginTop: 6,
+    },
+    testBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: 'rgba(6, 182, 212, 0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    testBtnText: {
+      color: '#0284C7',
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    saveBtn: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: '#0284C7',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    saveBtnText: {
+      color: '#FFF',
+      fontWeight: 'bold',
+      fontSize: 13,
+    },
+  });
+};

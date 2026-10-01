@@ -372,7 +372,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado con el pulgar apoyado al lado externo del dedo índice.",
-    "sample_count": 0,
+    "sample_count": 33,
     "is_default": true
   },
   {
@@ -394,7 +394,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos y pulgar curvados formando un arco cóncavo (forma de C).",
-    "sample_count": 0,
+    "sample_count": 21,
     "is_default": true
   },
   {
@@ -405,7 +405,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedo índice extendido hacia arriba; dedos medio, anular y meñique tocando la yema del pulgar.",
-    "sample_count": 0,
+    "sample_count": 17,
     "is_default": true
   },
   {
@@ -416,7 +416,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Cuatro dedos curvados hacia abajo; puntas descansando sobre el pulgar doblado transversalmente.",
-    "sample_count": 0,
+    "sample_count": 13,
     "is_default": true
   },
   {
@@ -438,7 +438,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedo índice y pulgar extendidos paralelamente hacia un lado (pinza horizontal).",
-    "sample_count": 0,
+    "sample_count": 15,
     "is_default": true
   },
   {
@@ -449,7 +449,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice y medio extendidos juntos horizontalmente; pulgar sobre anular y meñique.",
-    "sample_count": 0,
+    "sample_count": 13,
     "is_default": true
   },
   {
@@ -460,7 +460,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Solo dedo meñique extendido verticalmente hacia arriba; demás dedos y pulgar en puño.",
-    "sample_count": 0,
+    "sample_count": 17,
     "is_default": true
   },
   {
@@ -471,7 +471,7 @@
     "type": "movement",
     "category": "alphabet",
     "description": "Mano en postura de I trazando en el aire una curva de J con la muñeca hacia adentro.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -482,7 +482,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Índice vertical; medio extendido diagonal adelante; yema del pulgar en la articulación del medio.",
-    "sample_count": 0,
+    "sample_count": 13,
     "is_default": true
   },
   {
