@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { ChevronRight, ArrowUpRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
+import { decryptMessage } from '../../utils/chatCrypto';
 
 /**
  * Hook para animar números enteros ascendentes
@@ -486,85 +488,150 @@ export function WideBannerCard({
 }
 
 /**
- * Widget de Mensajes Recientes de CokieChat con ranuras de avatar
+ * Widget de Mensajes Recientes de CokieChat con soporte en tiempo real y badges
  */
 export function RecentMessagesWidget({ conversations = [], isDark = false, onPressChat }) {
   const { t } = useTranslation();
-  const incomingConversations = (conversations || []).filter(conv => {
-    if (!conv.last_message) return false;
-    // Si es un grupo, podríamos basarnos en sender_id no siendo nuestro ID, 
-    // pero si tenemos other_participant es más seguro
-    if (conv.other_participant && conv.last_message.sender_id === conv.other_participant.id) {
-      return true;
-    }
-    // Si tiene mensajes sin leer, seguro le cayeron a él
-    if (conv.unread_count && conv.unread_count > 0) {
-      return true;
-    }
-    return false;
-  });
+  const router = useRouter();
 
-  const recent = incomingConversations.slice(0, 3);
+  // Filtrar conversaciones que tengan un mensaje válido (no vacías / no 'Sin mensajes aún')
+  const validConversations = useMemo(() => {
+    return (conversations || []).filter(conv => {
+      if (!conv) return false;
+      const preview = typeof conv.last_message === 'string'
+        ? conv.last_message.trim()
+        : (conv.last_message?.content?.trim() || '');
+      if (!preview || preview === 'Sin mensajes aún') return false;
+      return true;
+    }).sort((a, b) => {
+      // Priorizar primero los no leídos, luego por fecha más reciente
+      const unreadA = (a.unread_count || 0) > 0 ? 1 : 0;
+      const unreadB = (b.unread_count || 0) > 0 ? 1 : 0;
+      if (unreadB !== unreadA) return unreadB - unreadA;
+      return new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime();
+    });
+  }, [conversations]);
+
+  const recent = validConversations.slice(0, 3);
+  const totalUnread = useMemo(() => {
+    return (conversations || []).reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  }, [conversations]);
+
+  const handleOpenGeneralChat = () => {
+    if (onPressChat) {
+      onPressChat();
+    } else {
+      router.push('/chat');
+    }
+  };
 
   return (
     <BentoCard 
       variant="default" 
       isDark={isDark} 
       style={styles.messagesCard} 
-      onPress={onPressChat}
+      onPress={handleOpenGeneralChat}
     >
       <View style={styles.messagesHeader}>
-        <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>{t('dashboard.recentMessages', 'Mensajes recientes')}</Text>
-        <View style={styles.openChatPill}>
+        <View style={styles.messagesHeaderTitleRow}>
+          <Text style={[styles.cardHeaderTitle, isDark && styles.textLight]}>
+            {t('dashboard.recentMessages', 'Mensajes recientes')}
+          </Text>
+          {totalUnread > 0 && (
+            <View style={styles.headerTotalUnreadBadge}>
+              <Text style={styles.headerTotalUnreadText}>
+                {totalUnread} {t('dashboard.unreadShort', 'nuevos')}
+              </Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={styles.openChatPill} 
+          onPress={handleOpenGeneralChat}
+          activeOpacity={0.7}
+        >
           <Text style={styles.openChatText}>CokieChat</Text>
           <ArrowUpRight size={13} color="#EC4899" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {recent.length === 0 ? (
         <Text style={[styles.emptyMessagesText, isDark && styles.textMuted]}>
-          {t('dashboard.noNewMessages', 'No tienes mensajes nuevos pendientes en CokieChat')}
+          {t('dashboard.noNewMessages', 'No tienes mensajes nuevos en CokieChat')}
         </Text>
       ) : (
         <View style={styles.messagesList}>
           {recent.map((conv, i) => {
-            const name = conv.name || conv.other_participant?.full_name || t('dashboard.user', 'Usuario');
-            const role = conv.other_participant?.role || (conv.is_group ? 'grupo' : 'chat');
-            const snippet = conv.last_message?.content || t('dashboard.tapToOpenChat', 'Toca para abrir la conversación...');
+            const name = conv.title || conv.name || conv.recipient?.full_name || t('dashboard.user', 'Usuario');
+            const role = conv.recipient_role || conv.recipient?.role || (conv.is_group ? t('chat.group', 'Grupo') : 'chat');
+            const rawSnippet = typeof conv.last_message === 'string'
+              ? conv.last_message
+              : (conv.last_message?.content || t('dashboard.tapToOpenChat', 'Toca para abrir la conversación...'));
+            const snippet = decryptMessage(rawSnippet);
             const initial = (name[0] || 'U').toUpperCase();
+            const hasUnread = (conv.unread_count || 0) > 0;
 
             return (
-              <View key={conv.id || i} style={[styles.messageItem, i < recent.length - 1 && styles.messageBorder]}>
+              <TouchableOpacity 
+                key={conv.id || i} 
+                style={[styles.messageItem, i < recent.length - 1 && styles.messageBorder]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (onPressChat) {
+                    onPressChat(conv);
+                  } else {
+                    router.push({ pathname: '/chat', params: { convId: conv.id } });
+                  }
+                }}
+              >
                 {/* Avatar / Ranura de imagen del remitente */}
                 <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#27272A' : '#F1F5F9' }]}>
-                  <Text style={[styles.avatarInitial, { color: isDark ? '#E4E4E7' : '#475569' }]}>
-                    {initial}
-                  </Text>
+                  {conv.avatar_url ? (
+                    <Image source={{ uri: conv.avatar_url }} style={styles.avatarImg} />
+                  ) : (
+                    <Text style={[styles.avatarInitial, { color: isDark ? '#E4E4E7' : '#475569' }]}>
+                      {initial}
+                    </Text>
+                  )}
+                  {hasUnread && <View style={styles.unreadDot} />}
                 </View>
 
                 {/* Columna de texto */}
                 <View style={styles.messageTextCol}>
                   <View style={styles.messageSenderRow}>
                     <Text 
-                      style={[styles.messageSenderName, isDark && styles.textLight]} 
+                      style={[styles.messageSenderName, isDark && styles.textLight, hasUnread && styles.unreadName]} 
                       numberOfLines={1} 
                       ellipsizeMode="tail"
                     >
                       {name}
                     </Text>
-                    <View style={[styles.rolePill, isDark && styles.rolePillDark]}>
-                      <Text style={styles.rolePillText}>{role.replace('_', ' ')}</Text>
+                    <View style={styles.messageRightPills}>
+                      <View style={[styles.rolePill, isDark && styles.rolePillDark]}>
+                        <Text style={styles.rolePillText}>{role.replace('_', ' ')}</Text>
+                      </View>
+                      {hasUnread && (
+                        <View style={styles.unreadCounterBadge}>
+                          <Text style={styles.unreadCounterText}>
+                            {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   <Text 
-                    style={[styles.messageSnippet, isDark && styles.textMuted]} 
+                    style={[
+                      styles.messageSnippet, 
+                      isDark && styles.textMuted,
+                      hasUnread && (isDark ? styles.unreadSnippetDark : styles.unreadSnippetLight)
+                    ]} 
                     numberOfLines={1} 
                     ellipsizeMode="tail"
                   >
                     {snippet}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -807,6 +874,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 14,
   },
+  messagesHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTotalUnreadBadge: {
+    backgroundColor: '#EC4899',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTotalUnreadText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
   cardHeaderTitle: {
     fontSize: 15,
     fontWeight: '800',
@@ -870,6 +955,26 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 6,
   },
+  messageRightPills: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unreadCounterBadge: {
+    backgroundColor: '#EC4899',
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadCounterText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    lineHeight: 12,
+  },
   rolePill: {
     backgroundColor: 'rgba(236,72,153,0.1)',
     paddingHorizontal: 8,
@@ -885,6 +990,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#EC4899',
     textTransform: 'capitalize',
+  },
+  avatarImg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EC4899',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  unreadName: {
+    fontWeight: '800',
+  },
+  unreadSnippetLight: {
+    color: '#0F172A',
+    fontWeight: '600',
+  },
+  unreadSnippetDark: {
+    color: '#F1F5F9',
+    fontWeight: '600',
   },
   messageSnippet: {
     fontSize: 13,

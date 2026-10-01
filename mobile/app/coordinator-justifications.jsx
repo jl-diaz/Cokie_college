@@ -313,11 +313,14 @@ export default function CoordinatorJustificationsScreen() {
         coordinator_message: observation
       });
       setModalVisible(false);
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', 'Éxito'),
-        message: `Justificación ${statusToSet === 'approved' ? 'aprobada' : 'rechazada'}.`
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', 'Éxito'),
+          message: `Justificación ${statusToSet === 'approved' ? 'aprobada' : 'rechazada'}.`
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
       setPage(1);
       fetchRequests(1, true);
     } catch (error) {

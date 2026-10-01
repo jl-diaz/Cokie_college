@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useRealtimeChats } from '../../hooks/useRealtimeChats';
 import { 
   BentoStatCard, 
   WideBannerCard, 
@@ -27,16 +28,16 @@ export default function CoordinatorDashboard({ isDark = false }) {
   const [pendingTicketsCount, setPendingTicketsCount] = useState(0);
   const [classrooms, setClassrooms] = useState([]);
   const [students, setStudents] = useState([]);
-  const [conversations, setConversations] = useState([]);
+  const { conversations, refetch: refetchChats } = useRealtimeChats();
 
   const fetchCoordinatorData = async () => {
     try {
-      const [justRes, ticketRes, classRes, studRes, chatRes] = await Promise.allSettled([
+      refetchChats?.(true);
+      const [justRes, ticketRes, classRes, studRes] = await Promise.allSettled([
         api.get('/coordinator/justifications', { params: { status: 'pending', limit: 100 } }),
         api.get('/coordinator/grade-tickets', { params: { status: 'pending', limit: 100 } }),
         api.get('/coordinator/classrooms'),
-        api.get('/coordinator/students'),
-        api.get('/chat/conversations')
+        api.get('/coordinator/students')
       ]);
 
       if (justRes.status === 'fulfilled' && justRes.value.data) {
@@ -64,10 +65,6 @@ export default function CoordinatorDashboard({ isDark = false }) {
       if (studRes.status === 'fulfilled' && studRes.value.data) {
         const sd = studRes.value.data;
         setStudents(Array.isArray(sd) ? sd : (sd.data || []));
-      }
-      if (chatRes.status === 'fulfilled' && chatRes.value.data) {
-        const chd = chatRes.value.data;
-        setConversations(Array.isArray(chd) ? chd : (chd.data || []));
       }
     } catch (err) {
       console.warn('Error loading coordinator dashboard:', err);

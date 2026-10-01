@@ -295,11 +295,14 @@ export default function JustificationsScreen() {
         start_time: '07:00 AM', 
         end_time: '09:30 AM' 
       });
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', '¡Enviado!'),
-        message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Enviado!'),
+          message: t('dashboard.requestSent', 'Solicitud enviada correctamente.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
       fetchJustifications();
     } catch (error) {
       console.error(error);

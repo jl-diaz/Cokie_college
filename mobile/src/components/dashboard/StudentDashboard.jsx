@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useRealtimeChats } from '../../hooks/useRealtimeChats';
 import { 
   LiveClassWidget, 
   BentoStatCard, 
@@ -29,7 +30,7 @@ export default function StudentDashboard({ isDark = false }) {
   const [schedules, setSchedules] = useState([]);
   const [averages, setAverages] = useState([]);
   const [diary, setDiary] = useState({ attendance: [], conduct: [] });
-  const [conversations, setConversations] = useState([]);
+  const { conversations, refetch: refetchChats } = useRealtimeChats();
   const [todayLunch, setTodayLunch] = useState(null);
 
   useEffect(() => {
@@ -60,11 +61,11 @@ export default function StudentDashboard({ isDark = false }) {
       setActivePeriod(resolvedPeriod);
 
       // 2. Cargar datos específicos del periodo activo
-      const [schedRes, avgRes, diaryRes, chatRes, lunchRes] = await Promise.allSettled([
+      refetchChats?.(true);
+      const [schedRes, avgRes, diaryRes, lunchRes] = await Promise.allSettled([
         api.get('/student/schedule'),
         api.get(`/student/averages?period=${resolvedPeriod}`),
         api.get(`/student/diary?period=${resolvedPeriod}`),
-        api.get('/chat/conversations'),
         api.get('/lunch/today')
       ]);
 
@@ -76,9 +77,6 @@ export default function StudentDashboard({ isDark = false }) {
       }
       if (diaryRes.status === 'fulfilled' && diaryRes.value.data) {
         setDiary(diaryRes.value.data);
-      }
-      if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
-        setConversations(chatRes.value.data);
       }
       if (lunchRes.status === 'fulfilled' && lunchRes.value.data) {
         setTodayLunch(lunchRes.value.data);

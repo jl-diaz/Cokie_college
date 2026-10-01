@@ -5,7 +5,7 @@ const morgan = require('morgan');
 
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,7 +19,7 @@ const generalLimiter = rateLimit({
     max: 5000, // Soportar alto estrés en campus escolar
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.headers.authorization || req.ip,
+    keyGenerator: (req) => req.headers.authorization || ipKeyGenerator(req.ip),
     message: { error: 'Demasiadas peticiones, por favor intente de nuevo en 15 minutos.' }
 });
 
@@ -28,7 +28,7 @@ const strictWriteLimiter = rateLimit({
     max: 1000, // Operaciones de escritura
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.headers.authorization || req.ip,
+    keyGenerator: (req) => req.headers.authorization || ipKeyGenerator(req.ip),
     message: { error: 'Límite de operaciones alcanzado temporalmente. Por favor intente más tarde.' }
 });
 
@@ -72,6 +72,7 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const cafetinRoutes = require('./src/routes/cafetinRoutes');
 const lunchRoutes = require('./src/routes/lunchRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
+const libraryRoutes = require('./src/routes/libraryRoutes');
 const { startEventScheduler } = require('./src/utils/eventScheduler');
 
 app.use('/api/auth', authRoutes);
@@ -85,6 +86,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/cafetin', cafetinRoutes);
 app.use('/api/lunch', lunchRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/library', libraryRoutes);
 
 // Middleware global para captura de errores no controlados y evitar crash serverless
 app.use((err, req, res, next) => {

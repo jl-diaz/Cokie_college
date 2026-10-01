@@ -15,6 +15,7 @@ import { CheckCircle2, XCircle, AlertTriangle, Info, Trash2 } from 'lucide-react
 import { useTheme } from './ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useTabBar } from './TabBarContext';
+import { modalTracker } from '../utils/modalTracker';
 
 const AlertContext = createContext({
   showAlert: () => {},
@@ -68,11 +69,21 @@ export const AlertProvider = ({ children }) => {
     }
   }, [visible, fadeAnim, scaleAnim]);
 
+  useEffect(() => {
+    return () => {
+      if (showTimerRef.current) {
+        clearTimeout(showTimerRef.current);
+      }
+      modalTracker.registerCloseEnd('alert');
+    };
+  }, []);
+
   const hideAlert = useCallback((callback) => {
     if (showTimerRef.current) {
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
+    modalTracker.registerCloseStart('alert');
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -86,8 +97,9 @@ export const AlertProvider = ({ children }) => {
       })
     ]).start(() => {
       setVisible(false);
+      modalTracker.registerCloseEnd('alert');
       if (typeof callback === 'function') {
-        setTimeout(callback, 50);
+        setTimeout(callback, 60);
       }
     });
   }, [fadeAnim, scaleAnim]);
@@ -108,11 +120,22 @@ export const AlertProvider = ({ children }) => {
       cancelText: null,
       onConfirm
     });
-    // Pequeño retardo para dar respiro a modales previos que estén cerrándose y evitar colisión en iOS/Android
-    const delay = Platform.OS === 'web' ? 0 : 180;
-    showTimerRef.current = setTimeout(() => {
+
+    const triggerShow = () => {
+      modalTracker.registerOpen('alert');
       setVisible(true);
-    }, delay);
+    };
+
+    if (Platform.OS === 'web') {
+      triggerShow();
+      return;
+    }
+
+    // En plataformas nativas (Android/iOS), se requiere un retardo mínimo de 350ms
+    // para asegurar que cualquier modal nativo previo (BottomModal, Dialog) haya terminado
+    // de desmontar su ventana nativa y el WindowManager de Android haya liberado el foco táctil.
+    const delay = Platform.OS === 'web' ? 0 : Math.max(350, modalTracker.getSafeAlertDelay(350));
+    showTimerRef.current = setTimeout(triggerShow, delay);
   }, [t]);
 
   const showConfirm = useCallback(({ type = 'danger', title, message, confirmText, cancelText, onConfirm, onCancel }) => {
@@ -132,10 +155,19 @@ export const AlertProvider = ({ children }) => {
       onConfirm,
       onCancel
     });
-    const delay = Platform.OS === 'web' ? 0 : 180;
-    showTimerRef.current = setTimeout(() => {
+
+    const triggerShow = () => {
+      modalTracker.registerOpen('alert');
       setVisible(true);
-    }, delay);
+    };
+
+    if (Platform.OS === 'web') {
+      triggerShow();
+      return;
+    }
+
+    const delay = Platform.OS === 'web' ? 0 : Math.max(350, modalTracker.getSafeAlertDelay(350));
+    showTimerRef.current = setTimeout(triggerShow, delay);
   }, [t]);
 
   const handleConfirm = () => {

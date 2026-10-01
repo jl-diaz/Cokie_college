@@ -421,20 +421,26 @@ export default function TeacherGradesScreen() {
 
       setTicketModalVisible(false);
       setTicketReason('');
-      showAlert({
-        type: 'success',
-        title: t('teacherGrades.ticketSentTitle', 'Ticket Enviado'),
-        message: t('teacherGrades.ticketSentSuccess', 'Tu solicitud de días extra ha sido enviada al coordinador de tu nivel. Recibirás una notificación cuando sea procesada.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('teacherGrades.ticketSentTitle', 'Ticket Enviado'),
+          message: t('teacherGrades.ticketSentSuccess', 'Tu solicitud de días extra ha sido enviada al coordinador de tu nivel. Recibirás una notificación cuando sea procesada.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
       fetchInitialData();
     } catch (error) {
       console.error('Error creating ticket:', error);
       setTicketModalVisible(false);
-      showAlert({
-        type: 'error',
-        title: t('common.error', 'Error'),
-        message: error.response?.data?.error || t('teacherGrades.createTicketError', 'No se pudo crear el ticket de extensión.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'error',
+          title: t('common.error', 'Error'),
+          message: error.response?.data?.error || t('teacherGrades.createTicketError', 'No se pudo crear el ticket de extensión.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } finally {
       setSubmittingTicket(false);
     }

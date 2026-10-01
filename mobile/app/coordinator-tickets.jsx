@@ -7,7 +7,9 @@ import {
   TouchableOpacity, 
   ActivityIndicator, 
   TextInput, 
-  ScrollView 
+  ScrollView,
+  Platform,
+  Keyboard 
 } from 'react-native';
 import api from '../src/utils/api';
 import { X, AlertCircle } from 'lucide-react-native';
@@ -112,22 +114,28 @@ export default function CoordinatorTicketsScreen() {
 
       setSelectedTicket(null);
       setActionType(null);
-      showAlert({
-        type: 'success',
-        title: t('coordinatorTickets.successTitle', 'Operación exitosa'),
-        message: t('coordinatorTickets.ticketProcessedSuccess', 'El ticket ha sido procesado correctamente.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('coordinatorTickets.successTitle', 'Operación exitosa'),
+          message: t('coordinatorTickets.ticketProcessedSuccess', 'El ticket ha sido procesado correctamente.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
       setPage(1);
       fetchTickets(1, true);
     } catch (error) {
       console.error('Error processing ticket:', error);
       setSelectedTicket(null);
       setActionType(null);
-      showAlert({
-        type: 'error',
-        title: t('dashboard.error', 'Error'),
-        message: error.response?.data?.error || 'No se pudo procesar la solicitud.'
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'error',
+          title: t('dashboard.error', 'Error'),
+          message: error.response?.data?.error || 'No se pudo procesar la solicitud.'
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } finally {
       setProcessing(false);
     }

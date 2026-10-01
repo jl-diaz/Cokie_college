@@ -9,7 +9,9 @@ import {
   Modal,
   RefreshControl,
   Platform,
-  useWindowDimensions
+  useWindowDimensions,
+  Pressable,
+  Keyboard
 } from 'react-native';
 import { 
   Store, 
@@ -24,7 +26,8 @@ import {
   ArrowLeft,
   Check,
   Plus,
-  Minus
+  Minus,
+  UtensilsCrossed
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +38,8 @@ import QRCodeDisplay from '../src/components/QRCodeDisplay';
 import { useAlert } from '../src/context/AlertContext';
 import { SkeletonCard } from '../src/components/Skeleton';
 import { hapticLight, hapticSuccess, hapticWarning } from '../src/utils/haptics';
+
+const cleanLabel = (text) => (text || '').replace(/:+$/, '').trim();
 
 export default function LunchScreen() {
   const router = useRouter();
@@ -190,11 +195,14 @@ export default function LunchScreen() {
       setConfirmModalVisible(false);
       setExistingOrder(res.data);
       hapticSuccess();
-      showAlert({
-        type: 'success',
-        title: t('lunch.orderPlacedTitle', '¡Pedido Exitoso!'),
-        message: t('lunch.orderPlacedMsg', 'Tu pedido de almuerzo ha sido registrado. Presenta tu código QR en el cafetín para retirar y pagar.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('lunch.orderPlacedTitle', '¡Pedido Exitoso!'),
+          message: t('lunch.orderPlacedMsg', 'Tu pedido de almuerzo ha sido registrado. Presenta tu código QR en el cafetín para retirar y pagar.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } catch (error) {
       console.error('Error al realizar el pedido:', error);
       hapticWarning();
@@ -325,28 +333,28 @@ export default function LunchScreen() {
             
             <View style={styles.summaryList}>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
+                <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.cafetinLabel', 'Cafetín'))}: </Text>
                 {existingOrder.cafetin?.full_name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
+                <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.platillo', 'Platillo Fuerte'))}: </Text>
                 {existingOrder.fuerte?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
+                <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.acomp1', 'Acompañamiento 1'))}: </Text>
                 {existingOrder.acompanamiento1?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
+                <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.acomp2', 'Acompañamiento 2'))}: </Text>
                 {existingOrder.acompanamiento2?.name}
               </Text>
               <Text style={styles.summaryLine}>
-                <Text style={styles.summaryLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
+                <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.tortillas', 'Cantidad de Tortillas'))}: </Text>
                 {existingOrder.tortillas_qty}
               </Text>
               {existingOrder.refresco?.name ? (
                 <Text style={styles.summaryLine}>
-                  <Text style={styles.summaryLineBold}>{t('lunch.bebida', 'Refresco')} (+ $0.25): </Text>
+                  <Text style={styles.summaryLineBold}>{cleanLabel(t('lunch.bebida', 'Refresco'))} (+ $0.25): </Text>
                   {existingOrder.refresco?.name}
                 </Text>
               ) : null}
@@ -657,75 +665,160 @@ export default function LunchScreen() {
           )}
         </ScrollView>
 
-        {/* --- MODAL DE CONFIRMACIÓN (IMAGEN 3) --- */}
-        {confirmModalVisible && (
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalDialog}>
-              <Text style={styles.modalTitle}>{t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}</Text>
-              
-              {/* Recuadro con bordes y la lista detallada */}
-              <View style={styles.modalInnerBox}>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.cafetinLabel', 'Cafetín')}: </Text>
-                  {selectedCafetin?.full_name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.platillo', 'Platillo Fuerte')}: </Text>
-                  {selectedFuerte?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.acomp1', 'Acompañamiento 1')}: </Text>
-                  {selectedAcomp1?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.acomp2', 'Acompañamiento 2')}: </Text>
-                  {selectedAcomp2?.name}
-                </Text>
-                <Text style={styles.modalLine}>
-                  <Text style={styles.modalLineBold}>{t('lunch.tortillas', 'Cantidad de Tortillas')}: </Text>
-                  {tortillasQty}
-                </Text>
-                {selectedRefresco && (
-                  <Text style={styles.modalLine}>
-                    <Text style={styles.modalLineBold}>{t('lunch.bebida', 'Refresco')}: </Text>
-                    {selectedRefresco.name}
-                  </Text>
-                )}
+        {/* --- MODAL DE CONFIRMACIÓN MODERNO --- */}
+        <Modal
+          transparent
+          visible={confirmModalVisible}
+          animationType="fade"
+          statusBarTranslucent
+          navigationBarTranslucent
+          onRequestClose={() => {
+            if (!submittingOrder) setConfirmModalVisible(false);
+          }}
+        >
+          <View style={styles.confirmModalOverlay}>
+            <Pressable 
+              style={StyleSheet.absoluteFillObject}
+              onPress={() => {
+                if (!submittingOrder) setConfirmModalVisible(false);
+              }}
+              accessibilityLabel={t('common.close', 'Cerrar')}
+            />
+
+            <View style={styles.confirmModalCard}>
+              {/* Badge con ícono UtensilsCrossed con doble aro brillante */}
+              <View style={styles.confirmBadgeOuter}>
+                <View style={styles.confirmBadgeInner}>
+                  <UtensilsCrossed size={30} color={isDark ? '#60A5FA' : '#2563EB'} strokeWidth={2.3} />
+                </View>
               </View>
 
-              {/* Banner azul: Se pagará en el momento del retiro */}
-              <View style={styles.modalBlueBanner}>
-                <Text style={styles.modalBlueBannerText}>
-                  {t('lunch.paymentNoticePickup', 'Se pagará al ir a recoger (${{amount}})', { amount: calculatedTotal.toFixed(2) })}
-                </Text>
+              <Text style={styles.confirmModalTitle}>
+                {t('lunch.confirmTitle', 'Confirmar pedido de almuerzo')}
+              </Text>
+              <Text style={styles.confirmModalSubtitle}>
+                {t('lunch.confirmSubtitle', 'Verifica los detalles de tu combo antes de enviar la orden')}
+              </Text>
+
+              {/* Recuadro de detalles estructurado sin colones dobles */}
+              <View style={styles.confirmDetailBox}>
+                <View style={styles.confirmDetailRow}>
+                  <Text style={styles.confirmDetailLabel}>
+                    {cleanLabel(t('lunch.cafetinLabel', 'Cafetín'))}
+                  </Text>
+                  <Text style={styles.confirmDetailValue} numberOfLines={1}>
+                    {selectedCafetin?.full_name}
+                  </Text>
+                </View>
+
+                <View style={styles.confirmDetailDivider} />
+
+                <View style={styles.confirmDetailRow}>
+                  <Text style={styles.confirmDetailLabel}>
+                    {cleanLabel(t('lunch.platillo', 'Platillo Fuerte'))}
+                  </Text>
+                  <Text style={styles.confirmDetailValue} numberOfLines={1}>
+                    {selectedFuerte?.name}
+                  </Text>
+                </View>
+
+                <View style={styles.confirmDetailDivider} />
+
+                <View style={styles.confirmDetailRow}>
+                  <Text style={styles.confirmDetailLabel}>
+                    {cleanLabel(t('lunch.acomp1', 'Acompañamiento 1'))}
+                  </Text>
+                  <Text style={styles.confirmDetailValue} numberOfLines={1}>
+                    {selectedAcomp1?.name}
+                  </Text>
+                </View>
+
+                <View style={styles.confirmDetailDivider} />
+
+                <View style={styles.confirmDetailRow}>
+                  <Text style={styles.confirmDetailLabel}>
+                    {cleanLabel(t('lunch.acomp2', 'Acompañamiento 2'))}
+                  </Text>
+                  <Text style={styles.confirmDetailValue} numberOfLines={1}>
+                    {selectedAcomp2?.name}
+                  </Text>
+                </View>
+
+                <View style={styles.confirmDetailDivider} />
+
+                <View style={styles.confirmDetailRow}>
+                  <Text style={styles.confirmDetailLabel}>
+                    {cleanLabel(t('lunch.tortillas', 'Cantidad de Tortillas'))}
+                  </Text>
+                  <Text style={styles.confirmDetailValue}>
+                    {tortillasQty} {tortillasQty === 1 ? t('lunch.tortillaSingle', 'unidad') : t('lunch.tortillasPlural', 'unidades')}
+                  </Text>
+                </View>
+
+                {selectedRefresco ? (
+                  <>
+                    <View style={styles.confirmDetailDivider} />
+                    <View style={styles.confirmDetailRow}>
+                      <Text style={styles.confirmDetailLabel}>
+                        {cleanLabel(t('lunch.bebida', 'Refresco'))}
+                      </Text>
+                      <Text style={styles.confirmDetailValue} numberOfLines={1}>
+                        {selectedRefresco.name} (+$0.25)
+                      </Text>
+                    </View>
+                  </>
+                ) : null}
+              </View>
+
+              {/* Banner de aviso de pago con precio total destacado */}
+              <View style={styles.confirmPaymentBanner}>
+                <View style={styles.confirmPaymentHeader}>
+                  <Info size={16} color={isDark ? '#60A5FA' : '#2563EB'} />
+                  <Text style={styles.confirmPaymentNotice}>
+                    {t('lunch.paymentNoticePickupOnly', 'Se pagará al momento de retirar en cafetín')}
+                  </Text>
+                </View>
+                <View style={styles.confirmPaymentPriceRow}>
+                  <Text style={styles.confirmPaymentPriceLabel}>
+                    {t('lunch.totalToPay', 'Total a pagar')}:
+                  </Text>
+                  <Text style={styles.confirmPaymentPriceValue}>
+                    ${calculatedTotal.toFixed(2)}
+                  </Text>
+                </View>
               </View>
 
               {/* Botones de acción */}
-              <View style={styles.modalActionsRow}>
+              <View style={styles.confirmActionsRow}>
                 <TouchableOpacity
-                  style={styles.modalCancelBtn}
+                  style={styles.confirmCancelBtn}
                   onPress={() => setConfirmModalVisible(false)}
+                  disabled={submittingOrder}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.modalCancelBtnText}>{t('common.cancel', 'Cancelar')}</Text>
+                  <Text style={styles.confirmCancelBtnText}>
+                    {t('common.cancel', 'Cancelar')}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.modalConfirmBtn, submittingOrder && { opacity: 0.6 }]}
+                  style={[styles.confirmSubmitBtn, submittingOrder && { opacity: 0.6 }]}
                   onPress={handleFinalizeOrder}
                   disabled={submittingOrder}
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                 >
                   {submittingOrder ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.modalConfirmBtnText}>{t('lunch.confirmBtn', 'Guardar')}</Text>
+                    <Text style={styles.confirmSubmitBtnText}>
+                      {t('lunch.confirmBtn', 'Confirmar Almuerzo')}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
             </View>
           </View>
-        )}
+        </Modal>
       </View>
     );
   }
@@ -1099,108 +1192,190 @@ const createStyles = (Colors, theme, screenWidth) => {
       fontSize: 14,
     },
 
-    // --- VISTA 2: MODAL DE CONFIRMACIÓN (IMAGEN 3) ---
-    modalOverlay: {
-      ...StyleSheet.absoluteFillObject,
+    // --- VISTA 2: MODAL DE CONFIRMACIÓN MODERNO ---
+    confirmModalOverlay: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.68)',
+      paddingHorizontal: 20,
+      zIndex: 999999,
+      elevation: 999999,
       ...(Platform.OS === 'web' && {
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100%',
-        height: '100%',
-        maxHeight: '100dvh',
+        width: '100vw',
+        height: '100vh',
       }),
-      backgroundColor: 'rgba(0, 0, 0, 0.65)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-      zIndex: 99999,
-      elevation: 99999,
     },
-    modalDialog: {
+    confirmModalCard: {
       width: '100%',
-      maxWidth: 380,
-      backgroundColor: isDark ? Colors.card : '#FFFFFF',
-      borderRadius: 22,
-      padding: 18,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.25,
-      shadowRadius: 20,
-      elevation: 10,
-    },
-    modalTitle: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: isDark ? Colors.text.primary : '#111827',
-      marginBottom: 14,
-      textAlign: 'left',
-    },
-    modalInnerBox: {
-      borderWidth: 1.5,
-      borderColor: cardBorderColor,
-      borderRadius: 16,
-      padding: 14,
-      backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-      marginBottom: 14,
-    },
-    modalLine: {
-      fontSize: 13,
-      color: isDark ? Colors.text.primary : '#1E293B',
-      marginBottom: 6,
-      lineHeight: 18,
-    },
-    modalLineBold: {
-      fontWeight: '700',
-    },
-    modalBlueBanner: {
-      backgroundColor: '#3b82f6',
-      borderRadius: 12,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
+      maxWidth: 390,
+      backgroundColor: Colors.card || (isDark ? '#1E293B' : '#FFFFFF'),
+      borderRadius: 28,
+      paddingHorizontal: 22,
+      paddingTop: 24,
+      paddingBottom: 20,
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 14 },
+      shadowOpacity: isDark ? 0.4 : 0.14,
+      shadowRadius: 28,
+      elevation: 12,
+    },
+    confirmBadgeOuter: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#DBEAFE',
       justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    confirmBadgeInner: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.25)' : '#BFDBFE',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    confirmModalTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: Colors.text.primary || (isDark ? '#F8FAFC' : '#0F172A'),
+      textAlign: 'center',
+      marginBottom: 4,
+      letterSpacing: -0.3,
+    },
+    confirmModalSubtitle: {
+      fontSize: 13,
+      color: Colors.text.secondary || (isDark ? '#94A3B8' : '#64748B'),
+      textAlign: 'center',
+      lineHeight: 18,
+      marginBottom: 16,
+      paddingHorizontal: 8,
+    },
+    confirmDetailBox: {
+      width: '100%',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E2E8F0',
+      paddingVertical: 4,
+      paddingHorizontal: 14,
+      marginBottom: 14,
+    },
+    confirmDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 9,
+    },
+    confirmDetailLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: isDark ? '#94A3B8' : '#64748B',
+      flex: 1,
+      marginRight: 8,
+    },
+    confirmDetailValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: Colors.text.primary || (isDark ? '#F1F5F9' : '#1E293B'),
+      flexShrink: 1,
+      textAlign: 'right',
+    },
+    confirmDetailDivider: {
+      height: 1,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9',
+    },
+    confirmPaymentBanner: {
+      width: '100%',
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(59, 130, 246, 0.28)' : '#BFDBFE',
+      paddingVertical: 10,
+      paddingHorizontal: 14,
       marginBottom: 16,
     },
-    modalBlueBannerText: {
-      color: '#FFFFFF',
-      fontSize: 12,
-      fontWeight: '700',
-      textAlign: 'center',
-    },
-    modalActionsRow: {
+    confirmPaymentHeader: {
       flexDirection: 'row',
-      gap: 12,
-    },
-    modalCancelBtn: {
-      flex: 1,
-      paddingVertical: 11,
-      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      borderWidth: 1.5,
-      borderColor: cardBorderColor,
-      backgroundColor: isDark ? '#18181B' : '#FFFFFF',
+      gap: 6,
+      marginBottom: 4,
     },
-    modalCancelBtnText: {
-      color: isDark ? '#FFFFFF' : '#1E293B',
-      fontWeight: 'bold',
+    confirmPaymentNotice: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: isDark ? '#93C5FD' : '#1D4ED8',
+      textAlign: 'center',
+    },
+    confirmPaymentPriceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 4,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+    },
+    confirmPaymentPriceLabel: {
       fontSize: 13,
+      fontWeight: '700',
+      color: isDark ? '#E2E8F0' : '#1E293B',
     },
-    modalConfirmBtn: {
+    confirmPaymentPriceValue: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: isDark ? '#60A5FA' : '#1D4ED8',
+    },
+    confirmActionsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    confirmCancelBtn: {
       flex: 1,
-      paddingVertical: 11,
-      borderRadius: 12,
+      paddingVertical: 12,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
+    },
+    confirmCancelBtnText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: Colors.text.primary || (isDark ? '#E2E8F0' : '#334155'),
+    },
+    confirmSubmitBtn: {
+      flex: 1.3,
+      paddingVertical: 12,
+      borderRadius: 14,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: Colors.primary || '#132361',
+      shadowColor: Colors.primary || '#132361',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
     },
-    modalConfirmBtnText: {
-      color: '#FFFFFF',
-      fontWeight: 'bold',
+    confirmSubmitBtnText: {
       fontSize: 13,
+      fontWeight: '800',
+      color: '#FFFFFF',
+      letterSpacing: 0.2,
     },
 
     // --- VISTA 3: PEDIDO REALIZADO (IMAGEN 4) ---

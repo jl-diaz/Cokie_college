@@ -95,7 +95,16 @@ export default function ModulesScreen() {
       image: IMAGES.img6
     };
 
-    const commonModules = [eventsModule, announcementsModule];
+    const libraryModule = { 
+      name: t('menu.library', 'Biblioteca'), 
+      path: '/library', 
+      icon: BookOpen, 
+      color: '#0284c7', 
+      desc: t('home.libraryDesc', 'Catálogo de libros y recursos educativos'),
+      image: IMAGES.img4
+    };
+
+    const commonModules = [eventsModule, announcementsModule, libraryModule];
 
     switch (profile?.role) {
       case 'super_admin':
@@ -107,8 +116,7 @@ export default function ModulesScreen() {
           { name: t('menu.subject_hours', 'Horas de materias'), path: '/subject-hours', icon: Clock, color: '#6366f1', desc: t('home.subjectHoursDesc', 'Carga horaria semanal para horarios'), image: IMAGES.img2 },
           { name: t('menu.conduct_catalog', 'Catálogo Conducta'), path: '/conduct', icon: FileText, color: '#a855f7', desc: t('home.conductCatalogDesc', 'Administrar códigos disciplinarios'), image: IMAGES.img3 },
           { name: t('menu.academic_periods', 'Periodos académicos'), path: '/academic-periods', icon: Calendar, color: '#0ea5e9', desc: t('home.academicPeriodsDesc', 'Fechas de inicio y fin de periodos'), image: IMAGES.img7 },
-          eventsModule,
-          announcementsModule
+          ...commonModules
         ];
       case 'coordinator':
         return [
@@ -118,8 +126,7 @@ export default function ModulesScreen() {
           { name: t('menu.grade_tickets', 'Tickets de Notas'), path: '/coordinator-tickets', icon: FileText, color: '#ec4899', desc: t('home.gradeTicketsDesc', 'Aprobar extensión de notas'), image: IMAGES.img4 },
           { name: t('menu.assign_classes', 'Asignar Clases'), path: '/assign', icon: BookOpen, color: Colors.primary, desc: t('home.assignDesc', 'Asignar docentes'), image: IMAGES.img3 },
           { name: t('menu.justifications', 'Justificaciones'), path: '/coordinator-justifications', icon: FileText, color: '#f59e0b', desc: t('home.coordinatorJustificationsDesc', 'Aprobar ausencias'), image: IMAGES.img7 },
-          eventsModule,
-          announcementsModule
+          ...commonModules
         ];
       case 'teacher':
         return [
@@ -127,8 +134,7 @@ export default function ModulesScreen() {
           { name: t('menu.schedule', 'Mi Horario'), path: '/schedule', icon: Calendar, color: '#3b82f6', desc: t('home.scheduleDesc', 'Clases programadas'), image: IMAGES.img2 },
           { name: t('menu.activeClass', 'Clase Activa'), path: '/class', icon: BookOpen, color: '#f59e0b', desc: t('home.activeClassDesc', 'Gestionar asistencia'), image: IMAGES.hapes },
           { name: t('menu.grades', 'Notas'), path: '/teacher-grades', icon: FileText, color: Colors.primary, desc: t('home.teacherGradesDesc', 'Calificar estudiantes'), image: IMAGES.img4 },
-          eventsModule,
-          announcementsModule
+          ...commonModules
         ];
       case 'student':
         return [
@@ -136,15 +142,13 @@ export default function ModulesScreen() {
           { name: t('menu.schedule', 'Horario'), path: '/schedule', icon: Calendar, color: '#3b82f6', desc: t('home.studentScheduleDesc', 'Ver tus clases'), image: IMAGES.img2 },
           { name: t('menu.diary', 'Diario Pedagógico'), path: '/diary', icon: BookOpen, color: '#8b5cf6', desc: t('home.diaryDesc', 'Inasistencias y códigos'), image: IMAGES.img3 },
           { name: t('menu.grades', 'Mis Notas'), path: '/grades', icon: FileText, color: Colors.primary, desc: t('home.gradesDesc', 'Ver calificaciones'), image: IMAGES.img4 },
-          eventsModule,
-          announcementsModule,
+          ...commonModules,
           { name: t('menu.justifications', 'Justificaciones'), path: '/justifications', icon: FileText, color: '#f59e0b', desc: t('home.justificationsDesc', 'Solicitar permisos'), image: IMAGES.img7 }
         ];
       case 'cafetin':
         return [
           { name: t('menu.cafetin', 'Gestión Cafetín'), path: '/cafetin', icon: Utensils, color: Colors.primary, desc: t('home.cafetinDesc', 'Menú del día, pedidos y despacho QR'), image: IMAGES.img1 },
-          eventsModule,
-          announcementsModule
+          ...commonModules
         ];
       default:
         return [
@@ -247,7 +251,7 @@ const createStyles = (Colors, isDark) => {
     imagePlaceholder: {
       width: '42%',
       height: 143,
-      backgroundColor: 'transparent',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6',
       borderRadius: 22,
       overflow: 'hidden',
       justifyContent: 'center',

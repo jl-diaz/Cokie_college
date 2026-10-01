@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useRealtimeChats } from '../../hooks/useRealtimeChats';
 import { 
   BentoStatCard, 
   WideBannerCard, 
@@ -26,7 +27,7 @@ export default function CafetinDashboard({ isDark = false }) {
   const [orders, setOrders] = useState([]);
   const [todayMenu, setTodayMenu] = useState([]);
   const [catalog, setCatalog] = useState([]);
-  const [conversations, setConversations] = useState([]);
+  const { conversations, refetch: refetchChats } = useRealtimeChats();
 
   useEffect(() => {
     fetchCafetinData();
@@ -35,11 +36,11 @@ export default function CafetinDashboard({ isDark = false }) {
   const fetchCafetinData = async () => {
     try {
       setLoading(true);
-      const [ordersRes, menuRes, catalogRes, chatRes] = await Promise.allSettled([
+      refetchChats?.(true);
+      const [ordersRes, menuRes, catalogRes] = await Promise.allSettled([
         api.get('/cafetin/orders?limit=50'),
         api.get('/cafetin/daily-menu'),
-        api.get('/cafetin/catalog'),
-        api.get('/chat/conversations')
+        api.get('/cafetin/catalog')
       ]);
 
       if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {
@@ -51,9 +52,6 @@ export default function CafetinDashboard({ isDark = false }) {
       }
       if (catalogRes.status === 'fulfilled' && Array.isArray(catalogRes.value.data)) {
         setCatalog(catalogRes.value.data);
-      }
-      if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
-        setConversations(chatRes.value.data);
       }
     } catch (err) {
       console.warn('Error loading cafetin dashboard:', err);

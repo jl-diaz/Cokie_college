@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Keyboard
 } from 'react-native';
 import api from '../src/utils/api';
 import { 
@@ -180,18 +181,24 @@ export default function SubjectHoursScreen() {
 
     try {
       await api.put(`/admin/subjects/${selectedSubjectForHours.id}`, { weekly_hours: hours });
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', '¡Éxito!'),
-        message: t('subjectHours.updateSuccess', 'Horas semanales actualizadas correctamente')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Éxito!'),
+          message: t('subjectHours.updateSuccess', 'Horas semanales actualizadas correctamente')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } catch (error) {
       setSubjects(prevSubjects);
-      showAlert({
-        type: 'error',
-        title: t('dashboard.error', 'Error'),
-        message: error.response?.data?.error || 'No se pudieron actualizar las horas'
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'error',
+          title: t('dashboard.error', 'Error'),
+          message: error.response?.data?.error || 'No se pudieron actualizar las horas'
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } finally {
       setUpdatingId(null);
       setSelectedSubjectForHours(null);
