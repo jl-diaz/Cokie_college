@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useRealtimeChats } from '../../hooks/useRealtimeChats';
 import { 
   LiveClassWidget, 
   BentoStatCard, 
@@ -25,7 +26,7 @@ export default function TeacherDashboard({ isDark = false }) {
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
-  const [conversations, setConversations] = useState([]);
+  const { conversations, refetch: refetchChats } = useRealtimeChats();
 
   useEffect(() => {
     fetchTeacherData();
@@ -34,10 +35,10 @@ export default function TeacherDashboard({ isDark = false }) {
   const fetchTeacherData = async () => {
     try {
       setLoading(true);
-      const [schedRes, classRes, chatRes] = await Promise.allSettled([
+      refetchChats?.(true);
+      const [schedRes, classRes] = await Promise.allSettled([
         api.get('/teacher/schedule'),
-        api.get('/teacher/classrooms'),
-        api.get('/chat/conversations')
+        api.get('/teacher/classrooms')
       ]);
 
       if (schedRes.status === 'fulfilled' && schedRes.value.data) {
@@ -47,10 +48,6 @@ export default function TeacherDashboard({ isDark = false }) {
       if (classRes.status === 'fulfilled' && classRes.value.data) {
         const cd = classRes.value.data;
         setClassrooms(Array.isArray(cd) ? cd : (cd.data || []));
-      }
-      if (chatRes.status === 'fulfilled' && chatRes.value.data) {
-        const chd = chatRes.value.data;
-        setConversations(Array.isArray(chd) ? chd : (chd.data || []));
       }
     } catch (err) {
       console.warn('Error loading teacher dashboard:', err);

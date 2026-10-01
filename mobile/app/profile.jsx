@@ -10,7 +10,8 @@ import {
   TextInput, 
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Keyboard
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -183,11 +184,14 @@ export default function ProfileScreen() {
         hapticSuccess();
         setIsBiometricsActive(true);
         setPasswordModalVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('biometrics.title', 'Autenticación Biométrica'),
-          message: t('biometrics.enabledAlert', { type: biometricsInfo.biometryLabel || 'Biometría' }),
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('biometrics.title', 'Autenticación Biométrica'),
+            message: t('biometrics.enabledAlert', { type: biometricsInfo.biometryLabel || 'Biometría' }),
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       } else {
         setPasswordError(t('biometrics.authFailed', 'Error al guardar credenciales en el llavero.'));
       }
@@ -620,10 +624,21 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   // Password Modal
   modalOverlay: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+    ...(Platform.OS === 'web' && {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+    }),
   },
   modalCard: {
     width: '100%',

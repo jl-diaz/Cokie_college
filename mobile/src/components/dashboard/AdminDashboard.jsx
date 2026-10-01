@@ -13,6 +13,7 @@ import {
 } from 'lucide-react-native';
 import api from '../../utils/api';
 import { useTranslation } from 'react-i18next';
+import { useRealtimeChats } from '../../hooks/useRealtimeChats';
 import { 
   BentoStatCard, 
   WideBannerCard, 
@@ -27,7 +28,7 @@ export default function AdminDashboard({ isDark = false }) {
   const [userStats, setUserStats] = useState({ total: 0, users: [] });
   const [classrooms, setClassrooms] = useState([]);
   const [periods, setPeriods] = useState([]);
-  const [conversations, setConversations] = useState([]);
+  const { conversations, refetch: refetchChats } = useRealtimeChats();
 
   useEffect(() => {
     fetchAdminData();
@@ -36,11 +37,11 @@ export default function AdminDashboard({ isDark = false }) {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      const [usersRes, classRes, periodsRes, chatRes] = await Promise.allSettled([
+      refetchChats?.(true);
+      const [usersRes, classRes, periodsRes] = await Promise.allSettled([
         api.get('/admin/users?limit=100'),
         api.get('/coordinator/classrooms'),
-        api.get('/admin/academic-periods'),
-        api.get('/chat/conversations')
+        api.get('/admin/academic-periods')
       ]);
 
       if (usersRes.status === 'fulfilled' && usersRes.value.data) {
@@ -55,9 +56,6 @@ export default function AdminDashboard({ isDark = false }) {
       }
       if (periodsRes.status === 'fulfilled' && Array.isArray(periodsRes.value.data)) {
         setPeriods(periodsRes.value.data);
-      }
-      if (chatRes.status === 'fulfilled' && Array.isArray(chatRes.value.data)) {
-        setConversations(chatRes.value.data);
       }
     } catch (err) {
       console.warn('Error loading admin dashboard:', err);

@@ -199,11 +199,14 @@ export default function CafetinScreen() {
       setModalAddItem(false);
       setNewItemName('');
       setNewItemDesc('');
-      showAlert({
-        type: 'success',
-        title: t('common.success', '¡Éxito!'),
-        message: t('cafetin.foodAddedSuccess', 'Alimento añadido al catálogo correctamente')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('common.success', '¡Éxito!'),
+          message: t('cafetin.foodAddedSuccess', 'Alimento añadido al catálogo correctamente')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
     } catch (error) {
       console.error('Error al agregar ítem:', error);
       showAlert({

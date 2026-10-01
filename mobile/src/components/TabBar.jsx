@@ -241,9 +241,13 @@ export default function TabBar({ currentRoute }) {
                     }
                     strokeWidth={isActive ? 2.4 : 1.9}
                   />
-                  {/* Punto rojo de notificación para Chat si y solo si hay mensajes no leídos */}
+                  {/* Bolita roja de notificación para Chat con contador si hay mensajes no leídos */}
                   {tab.key === 'chat' && (unreadChatCount || 0) > 0 && (
-                    <View style={styles.redDot} />
+                    <View style={styles.redDotBadge}>
+                      <Text style={styles.redDotBadgeText}>
+                        {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                      </Text>
+                    </View>
                   )}
                 </View>
               </Animated.View>
@@ -320,15 +324,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  redDot: {
+  redDotBadge: {
     position: 'absolute',
-    top: 1,
-    right: 1,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    top: -2,
+    right: -4,
+    minWidth: 15,
+    height: 15,
+    borderRadius: 7.5,
     backgroundColor: '#EF4444',
-    borderWidth: 1,
-    borderColor: '#121216',
+    borderWidth: 1.5,
+    borderColor: '#0B1956',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+    zIndex: 10,
+  },
+  redDotBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
+    lineHeight: 11,
+    textAlign: 'center',
   },
 });

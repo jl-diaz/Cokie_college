@@ -13,9 +13,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useTabBar } from '../context/TabBarContext';
+import { modalTracker } from '../utils/modalTracker';
 
 export default function BottomModal({ visible, onClose, children }) {
-  const [showModal, setShowModal] = useState(visible);
   const insets = useSafeAreaInsets();
   const { colors, theme } = useTheme();
   const { registerModal, unregisterModal } = useTabBar?.() || {};
@@ -122,61 +122,85 @@ export default function BottomModal({ visible, onClose, children }) {
     return () => backSub.remove();
   }, [visible]);
 
+  const [rendered, setRendered] = useState(visible);
+  const isClosingRef = useRef(false);
+  const closeTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+      modalTracker.registerCloseEnd('bottom-modal');
+    };
+  }, []);
+
   useEffect(() => {
     const currentHeight = screenHeightRef.current || screenHeight;
     if (visible) {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      isClosingRef.current = false;
+      modalTracker.registerOpen('bottom-modal');
+      setRendered(true);
       if (Platform.OS !== 'web') {
         Keyboard.dismiss();
       }
-      setShowModal(true);
       slideAnim.setValue(currentHeight);
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 200,
+          duration: 180,
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
-          friction: 9,
+          friction: 8.5,
           tension: 70,
           useNativeDriver: true,
         })
       ]).start();
-    } else {
+    } else if (rendered && !isClosingRef.current) {
+      isClosingRef.current = true;
+      modalTracker.registerCloseStart('bottom-modal');
       if (Platform.OS !== 'web') {
         Keyboard.dismiss();
       }
-      let finishedCalled = false;
-      const finish = () => {
-        if (!finishedCalled) {
-          finishedCalled = true;
-          setShowModal(false);
-          setKeyboardHeight(0);
-          keyboardAnim.setValue(0);
-        }
-      };
-
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 180,
+          duration: 120,
           useNativeDriver: true,
         }),
         Animated.timing(slideAnim, {
           toValue: currentHeight,
-          duration: 200,
+          duration: 150,
           useNativeDriver: true,
         })
-      ]).start(finish);
+      ]).start(() => {
+        isClosingRef.current = false;
+        setRendered(false);
+        setKeyboardHeight(0);
+        keyboardAnim.setValue(0);
+        modalTracker.registerCloseEnd('bottom-modal');
+      });
 
-      // Fallback para garantizar que el modal siempre se desmonte aun si la animación nativa se interrumpe
-      const timer = setTimeout(finish, 230);
-      return () => clearTimeout(timer);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = setTimeout(() => {
+        if (isClosingRef.current) {
+          isClosingRef.current = false;
+          setRendered(false);
+          setKeyboardHeight(0);
+          keyboardAnim.setValue(0);
+          modalTracker.registerCloseEnd('bottom-modal');
+        }
+      }, 200);
     }
   }, [visible]);
 
-  if (!showModal) return null;
+  if (!rendered) return null;
 
   const isWeb = Platform.OS === 'web';
   const isIOS = Platform.OS === 'ios';
@@ -186,11 +210,7 @@ export default function BottomModal({ visible, onClose, children }) {
   );
 
   const bottomInset = Math.max(insets?.bottom || 0, 0);
-  // El contenido interno de cada modal ya provee su propio espaciado inferior (paddingBottom de 12 a 20px).
-  // Solo se requiere holgura adicional si el dispositivo tiene barra física/gestos (Home Indicator en iOS)
-  // para que los botones de acción no queden cubiertos por el indicador del sistema.
   const bottomClearance = bottomInset > 16 ? Math.max(bottomInset - 16, 0) : 0;
-
   const topSafe = (insets?.top || 0) > 0 ? insets.top + 20 : (isWeb ? 36 : 50);
 
   // Limitar altura máxima para que nunca se desborde fuera de la pantalla visible
@@ -201,33 +221,70 @@ export default function BottomModal({ visible, onClose, children }) {
       : (screenHeight - topSafe);
 
   const handleClose = () => {
+    if (isClosingRef.current) return;
     if (Platform.OS !== 'web') {
       Keyboard.dismiss();
     }
-    if (onClose) onClose();
+    const currentHeight = screenHeightRef.current || screenHeight;
+    isClosingRef.current = true;
+    modalTracker.registerCloseStart('bottom-modal');
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: currentHeight,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      isClosingRef.current = false;
+      setRendered(false);
+      setKeyboardHeight(0);
+      keyboardAnim.setValue(0);
+      modalTracker.registerCloseEnd('bottom-modal');
+      onClose?.();
+    });
+
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      if (isClosingRef.current) {
+        isClosingRef.current = false;
+        setRendered(false);
+        setKeyboardHeight(0);
+        keyboardAnim.setValue(0);
+        modalTracker.registerCloseEnd('bottom-modal');
+        onClose?.();
+      }
+    }, 200);
   };
+
+  const isInteracting = visible && !isClosingRef.current;
 
   return (
     <Modal
       transparent
-      visible={showModal}
+      visible={rendered}
       onRequestClose={handleClose}
       animationType="none"
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <View style={styles.overlayContainer}>
+      <View style={styles.overlayContainer} pointerEvents={isInteracting ? 'auto' : 'none'}>
         {/* Fondo gris oscuro con tap para cerrar fuera del modal */}
         <Animated.View 
           style={[
             styles.backdrop, 
             { opacity: fadeAnim }
           ]} 
+          pointerEvents={isInteracting ? 'auto' : 'none'}
         >
           <Pressable 
             style={StyleSheet.absoluteFillObject}
             onPress={handleClose}
-            disabled={!visible}
+            disabled={!isInteracting}
             accessibilityLabel="Cerrar modal"
           />
         </Animated.View>
@@ -244,8 +301,7 @@ export default function BottomModal({ visible, onClose, children }) {
               borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
             }
           ]} 
-          onStartShouldSetResponder={() => visible && Platform.OS !== 'web'}
-          onResponderTerminationRequest={() => true}
+          pointerEvents={isInteracting ? 'auto' : 'none'}
         >
           <View style={styles.contentWrapper}>
             {children}

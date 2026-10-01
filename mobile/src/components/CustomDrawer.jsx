@@ -1,5 +1,19 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions, StatusBar, Platform, ScrollView } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Modal, 
+  TouchableOpacity, 
+  Animated, 
+  Dimensions, 
+  StatusBar, 
+  Platform, 
+  ScrollView,
+  Pressable,
+  BackHandler,
+  PanResponder
+} from 'react-native';
 import { Home, Users, FileText, BookOpen, Calendar, LogOut, X, Utensils, Bell, Clock, Sparkles, MessageSquare, Glasses } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
@@ -7,8 +21,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabBar } from '../context/TabBarContext';
+import { modalTracker } from '../utils/modalTracker';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.75, 320);
 
 export default function CustomDrawer({ visible, onClose }) {
@@ -22,8 +37,11 @@ export default function CustomDrawer({ visible, onClose }) {
     ? Math.max(insets.bottom + 20, 24)
     : Math.max(insets.bottom + 20, 24);
 
+  const [showModal, setShowModal] = useState(visible);
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const isClosingRef = useRef(false);
+
   const router = useRouter();
   const pathname = usePathname();
   const { profile, logout } = useAuth();
@@ -40,47 +58,135 @@ export default function CustomDrawer({ visible, onClose }) {
   const avatarText = theme === 'dark' ? colors.primary : '#0B1956';
 
   useEffect(() => {
-    if (visible) {
-      registerModal?.();
+    if (visible && registerModal) {
+      registerModal();
       return () => unregisterModal?.();
     }
   }, [visible, registerModal, unregisterModal]);
 
   useEffect(() => {
+    return () => {
+      modalTracker.registerCloseEnd('custom-drawer');
+    };
+  }, []);
+
+  // Animación de entrada con física de resorte fluido y salida animada
+  useEffect(() => {
     if (visible) {
+      isClosingRef.current = false;
+      modalTracker.registerOpen('custom-drawer');
+      setShowModal(true);
+      slideAnim.setValue(-DRAWER_WIDTH);
+      fadeAnim.setValue(0);
       Animated.parallel([
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 0,
-          duration: 300,
+          friction: 9,
+          tension: 70,
+          overshootClamping: true,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 220,
           useNativeDriver: true,
         })
       ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -DRAWER_WIDTH,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        })
-      ]).start();
+    } else if (showModal && !isClosingRef.current) {
+      animateClose();
     }
   }, [visible]);
 
-  if (!profile) return null;
+  const animateClose = (callback) => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    modalTracker.registerCloseStart('custom-drawer');
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -DRAWER_WIDTH,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setShowModal(false);
+      isClosingRef.current = false;
+      modalTracker.registerCloseEnd('custom-drawer');
+      if (onClose) onClose();
+      if (typeof callback === 'function') callback();
+    });
+
+    const timer = setTimeout(() => {
+      if (isClosingRef.current) {
+        setShowModal(false);
+        isClosingRef.current = false;
+        modalTracker.registerCloseEnd('custom-drawer');
+        if (onClose) onClose();
+        if (typeof callback === 'function') callback();
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  };
+
+  // Soporte para botón físico 'Atrás' en Android
+  useEffect(() => {
+    if (!visible || !showModal || Platform.OS !== 'android') return;
+    const onBackPress = () => {
+      animateClose();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [visible, showModal]);
+
+  // Gesto PanResponder para arrastrar a la izquierda y cerrar
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          const newPos = Math.max(-DRAWER_WIDTH, gestureState.dx);
+          slideAnim.setValue(newPos);
+          const ratio = Math.max(0, 1 - Math.abs(newPos) / DRAWER_WIDTH);
+          fadeAnim.setValue(ratio);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -DRAWER_WIDTH * 0.28 || gestureState.vx < -0.45) {
+          animateClose();
+        } else {
+          Animated.parallel([
+            Animated.spring(slideAnim, {
+              toValue: 0,
+              friction: 9,
+              tension: 70,
+              overshootClamping: true,
+              useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 150,
+              useNativeDriver: true,
+            })
+          ]).start();
+        }
+      }
+    })
+  ).current;
+
+  if (!profile || !showModal) return null;
 
   const commonMenuItems = [
     { name: t('menu.interpreter', 'Intérprete CokieLens'), path: '/interpreter', icon: Glasses },
     { name: t('menu.chat', 'CokieChat'), path: '/chat', icon: MessageSquare },
+    { name: t('menu.library', 'Biblioteca'), path: '/library', icon: BookOpen },
     { name: t('menu.events', 'Eventos'), path: '/events', icon: Calendar },
     { name: t('menu.announcements', 'Avisos'), path: '/announcements', icon: Bell }
   ];
@@ -131,8 +237,7 @@ export default function CustomDrawer({ visible, onClose }) {
   const currentMenu = menuItems[profile.role] || [];
 
   const handleNavigate = (path) => {
-    onClose();
-    setTimeout(() => {
+    animateClose(() => {
       if (pathname === path) return;
       const ROOT_ROUTES = ['/home', '/interpreter', '/chat', '/modules', '/profile'];
       if (ROOT_ROUTES.includes(path)) {
@@ -140,46 +245,82 @@ export default function CustomDrawer({ visible, onClose }) {
       } else {
         router.push(path);
       }
-    }, 150);
+    });
   };
 
-  const handleLogout = async () => {
-    onClose();
-    await logout();
-    router.replace('/(auth)/login');
+  const handleLogout = () => {
+    animateClose(async () => {
+      await logout();
+      router.replace('/(auth)/login');
+    });
   };
 
   return (
     <Modal
       transparent
-      visible={visible}
-      onRequestClose={onClose}
+      visible={showModal}
+      onRequestClose={animateClose}
       animationType="none"
       statusBarTranslucent
       navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
+        {/* Fondo oscurecido animado con detección táctil completa */}
         <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={onClose} activeOpacity={1} />
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill} 
+            onPress={animateClose} 
+            activeOpacity={1}
+            accessibilityLabel={t('common.close', 'Cerrar menú')} 
+          />
         </Animated.View>
         
-        <Animated.View style={[styles.drawer, { transform: [{ translateX: slideAnim }], zIndex: 100, backgroundColor: drawerBg, paddingTop: topPadding }]}>
-           <View style={[styles.header, { borderBottomColor: borderColor }]}>
-             <View style={{ flex: 1 }}>
-               <Text style={[styles.brand, { color: textColor }]}>Cokie<Text style={[styles.brandAccent, { color: theme === 'dark' ? colors.primary : '#FFF' }]}>College</Text></Text>
-               <Text style={[styles.subBrand, { color: subTextColor }]}>{t('drawer.subBrand', 'Plataforma Estudiantil')}</Text>
-             </View>
-             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-               <X size={24} color={textColor} />
-             </TouchableOpacity>
-           </View>
+        {/* Área táctil de pantalla completa para cerrar al tocar fuera del drawer */}
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill} 
+          onPress={animateClose} 
+          activeOpacity={1}
+        />
+        
+        <Animated.View 
+          {...panResponder.panHandlers}
+          style={[
+            styles.drawer, 
+            { 
+              transform: [{ translateX: slideAnim }], 
+              zIndex: 100, 
+              backgroundColor: drawerBg, 
+              paddingTop: topPadding,
+              paddingBottom: bottomPadding
+            }
+          ]}
+        >
+          {/* Bloque extensor a la izquierda para garantizar que nunca se vea espacio en blanco */}
+          <View style={[styles.drawerLeftExtension, { backgroundColor: drawerBg }]} />
+          <View style={[styles.header, { borderBottomColor: borderColor }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.brand, { color: textColor }]}>
+                Cokie<Text style={[styles.brandAccent, { color: theme === 'dark' ? colors.primary : '#FFF' }]}>College</Text>
+              </Text>
+              <Text style={[styles.subBrand, { color: subTextColor }]}>
+                {t('drawer.subBrand', 'Plataforma Estudiantil')}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={animateClose} style={styles.closeBtn} activeOpacity={0.7}>
+              <X size={24} color={textColor} />
+            </TouchableOpacity>
+          </View>
 
           <View style={[styles.profileSection, { borderBottomColor: borderColor, backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)' }]}>
             <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
-              <Text style={[styles.avatarText, { color: avatarText }]}>{profile.full_name.charAt(0)}</Text>
+              <Text style={[styles.avatarText, { color: avatarText }]}>
+                {profile.full_name ? profile.full_name.charAt(0) : ''}
+              </Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: textColor }]} numberOfLines={1}>{profile.full_name}</Text>
+              <Text style={[styles.profileName, { color: textColor }]} numberOfLines={1}>
+                {profile.full_name}
+              </Text>
               <Text style={[styles.profileRole, { color: subTextColor }]}>
                 {profile?.role ? t('roles.' + profile.role, profile.role.replace('_', ' ')) : ''}
               </Text>
@@ -196,13 +337,19 @@ export default function CustomDrawer({ visible, onClose }) {
                     key={index}
                     style={[
                       styles.navItem, 
-                      isActive && { backgroundColor: activeItemBg, borderLeftColor: theme === 'dark' ? colors.primary : '#FFF', borderLeftWidth: 4 }
+                      isActive && { 
+                        backgroundColor: activeItemBg, 
+                        borderLeftColor: theme === 'dark' ? colors.primary : '#FFF', 
+                        borderLeftWidth: 4 
+                      }
                     ]}
                     onPress={() => handleNavigate(item.path)}
                     activeOpacity={0.7}
                   >
                     <Icon size={22} color={isActive ? activeItemText : inactiveItemText} style={styles.navIcon} />
-                    <Text style={[styles.navText, { color: isActive ? activeItemText : inactiveItemText }, isActive && { fontWeight: '800' }]}>{item.name}</Text>
+                    <Text style={[styles.navText, { color: isActive ? activeItemText : inactiveItemText }, isActive && { fontWeight: '800' }]}>
+                      {item.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -224,6 +371,9 @@ export default function CustomDrawer({ visible, onClose }) {
 const styles = StyleSheet.create({
   overlayContainer: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 } : {}),
   },
   backdrop: {
@@ -239,6 +389,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 20,
+    zIndex: 100,
+  },
+  drawerLeftExtension: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: -150,
+    width: 150,
+    height: '100%',
   },
   header: {
     flexDirection: 'row',

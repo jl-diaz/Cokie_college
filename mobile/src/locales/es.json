@@ -39,6 +39,8 @@
     "academicPeriodsSubtitle": "Gestión de fechas de inicio y fin de periodos",
     "chat": "CokieChat",
     "chatSubtitle": "Mensajería institucional en tiempo real",
+    "library": "Biblioteca",
+    "librarySubtitle": "Catálogo de libros y recursos educativos",
     "modules": "Módulos"
   },
   "home": {
@@ -66,6 +68,7 @@
     "cafetinDesc": "Menú del día, pedidos y despacho QR",
     "eventsDesc": "Fechas y actividades institucionales",
     "announcementsDesc": "Comunicados oficiales",
+    "libraryDesc": "Catálogo de libros y recursos educativos",
     "interpreterDesc": "Traducción de lenguaje de señas en tiempo real",
     "gestureStudioDesc": "Gestionar dialecto, grabar señas y entrenar la IA",
     "chatDesc": "Mensajería institucional en tiempo real",
@@ -109,6 +112,7 @@
     "academic_periods": "Periodos Académicos",
     "logout": "Cerrar Sesión",
     "chat": "CokieChat",
+    "library": "Biblioteca",
     "mySchedule": "Mi horario",
     "modules": "Módulos",
     "justification": "Justificación"
@@ -1428,5 +1432,26 @@
   },
   "students": {
     "loadStudentsError": "No se pudo cargar el listado de estudiantes."
+  },
+  "library": {
+    "title": "Biblioteca",
+    "subtitle": "Catálogo de libros y recursos educativos",
+    "searchPlaceholder": "Buscar por título o autor...",
+    "allCategories": "Todas",
+    "emptyTitle": "No se encontraron libros",
+    "emptyMessage": "No hay libros que coincidan con la búsqueda o filtro seleccionado.",
+    "newBook": "Nuevo Libro",
+    "editBook": "Editar Libro",
+    "manageCategories": "Categorías",
+    "downloadPdf": "Descargar PDF",
+    "visitLink": "Visitar enlace",
+    "resourceType": "Tipo de Recurso",
+    "pdfFile": "Archivo PDF",
+    "externalLink": "Enlace Web",
+    "uploadPdf": "Subir PDF (Máx. 20MB)",
+    "uploadCover": "Portada (Opcional)",
+    "changeCover": "Cambiar portada",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar este libro?",
+    "deleteCategoryConfirm": "¿Eliminar esta categoría?"
   }
 }

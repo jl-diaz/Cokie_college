@@ -139,11 +139,14 @@ export default function AnnouncementsScreen() {
 
       await api.post('/announcements', payload);
       setModalVisible(false);
-      showAlert({
-        type: 'success',
-        title: t('dashboard.success', '¡Aviso Enviado!'),
-        message: t('announcements.publishSuccess', 'El aviso ha sido enviado y notificado instantáneamente a los destinatarios.')
-      });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({
+          type: 'success',
+          title: t('dashboard.success', '¡Aviso Enviado!'),
+          message: t('announcements.publishSuccess', 'El aviso ha sido enviado y notificado instantáneamente a los destinatarios.')
+        });
+      }, Platform.OS === 'web' ? 50 : 350);
       fetchAnnouncements();
     } catch (error) {
       console.error('Error sending announcement:', error);

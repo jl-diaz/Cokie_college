@@ -223,11 +223,14 @@ export default function UsersScreen() {
           materia_principal: formData.role === 'teacher' ? formData.materia_principal : null
         });
         setModalVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('users.userUpdated', 'Usuario actualizado correctamente.')
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('users.userUpdated', 'Usuario actualizado correctamente.')
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       } else {
         // Create Mode
         const res = await api.post('/admin/users', {
@@ -237,24 +240,27 @@ export default function UsersScreen() {
         const resData = res.data || {};
         
         setModalVisible(false);
-        if (resData.email_sent === false) {
-          showAlert({
-            type: 'warning',
-            title: t('users.userCreatedTitle', 'Usuario Creado (Aviso de Correo)'),
-            message: t('users.userCreatedEmailNotice', {
-              code: resData.institutional_code || '',
-              pass: resData.temp_password || '',
-              err: resData.email_error || 'revisa la contraseña de aplicación de correo',
-              defaultValue: `Usuario creado con éxito.\nCódigo: ${resData.institutional_code || ''}\nContraseña temporal: ${resData.temp_password || ''}\n\nNota: No se pudo enviar el correo con credenciales (${resData.email_error || 'revisa la contraseña de aplicación de correo'}). Asegúrate de entregar estas credenciales.`
-            })
-          });
-        } else {
-          showAlert({
-            type: 'success',
-            title: t('dashboard.success', '¡Éxito!'),
-            message: t('users.userCreated', 'Usuario creado exitosamente y credenciales enviadas.')
-          });
-        }
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          if (resData.email_sent === false) {
+            showAlert({
+              type: 'warning',
+              title: t('users.userCreatedTitle', 'Usuario Creado (Aviso de Correo)'),
+              message: t('users.userCreatedEmailNotice', {
+                code: resData.institutional_code || '',
+                pass: resData.temp_password || '',
+                err: resData.email_error || 'revisa la contraseña de aplicación de correo',
+                defaultValue: `Usuario creado con éxito.\nCódigo: ${resData.institutional_code || ''}\nContraseña temporal: ${resData.temp_password || ''}\n\nNota: No se pudo enviar el correo con credenciales (${resData.email_error || 'revisa la contraseña de aplicación de correo'}). Asegúrate de entregar estas credenciales.`
+              })
+            });
+          } else {
+            showAlert({
+              type: 'success',
+              title: t('dashboard.success', '¡Éxito!'),
+              message: t('users.userCreated', 'Usuario creado exitosamente y credenciales enviadas.')
+            });
+          }
+        }, Platform.OS === 'web' ? 50 : 350);
       }
       setPage(1);
       fetchUsers(1, true);

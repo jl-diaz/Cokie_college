@@ -265,20 +265,26 @@ export default function EventsScreen() {
         await api.put(`/events/${editingEvent.id}`, payload);
         setModalVisible(false);
         setTimePickerVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('events.updateSuccess', 'Evento actualizado correctamente')
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('events.updateSuccess', 'Evento actualizado correctamente')
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       } else {
         await api.post('/events', payload);
         setModalVisible(false);
         setTimePickerVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('events.createSuccess', 'Evento creado correctamente. Se enviará una notificación 24h antes del inicio.')
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('events.createSuccess', 'Evento creado correctamente. Se enviará una notificación 24h antes del inicio.')
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       }
 
       fetchEvents();

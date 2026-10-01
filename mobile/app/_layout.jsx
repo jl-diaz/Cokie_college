@@ -1,10 +1,10 @@
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 import '../src/utils/textDecoderPolyfill';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { TouchableOpacity, View, Text, Platform, Pressable } from 'react-native';
+import { TouchableOpacity, View, Text, Platform, Pressable, PanResponder, Keyboard } from 'react-native';
 import { Menu, Sun, Moon, Bell, Globe, ArrowLeft } from 'lucide-react-native';
 import { useRouter, useRootNavigationState, useSegments, usePathname } from 'expo-router';
 import '../src/i18n';
@@ -17,7 +17,8 @@ import CustomDrawer from '../src/components/CustomDrawer';
 import DarkColorModal from '../src/components/DarkColorModal';
 import NotificationsModal from '../src/components/NotificationsModal';
 import TabBar from '../src/components/TabBar';
-import { TabBarProvider, useTabBar, TAB_SCREEN_NAMES } from '../src/context/TabBarContext';
+import { TabBarProvider, useTabBar, TAB_SCREEN_NAMES, TAB_ROUTES } from '../src/context/TabBarContext';
+import { hapticLight } from '../src/utils/haptics';
 import api from '../src/utils/api';
 
 function LayoutInner() {
@@ -31,7 +32,7 @@ function LayoutInner() {
   const rootNavigationState = useRootNavigationState();
   const segments = useSegments();
   const { user, loading: authLoading } = useAuth();
-  const { tabAnimation, registerModal, unregisterModal } = useTabBar();
+  const { tabAnimation, registerModal, unregisterModal, isTabBarHidden, modalCount, navigateTab } = useTabBar();
 
   useEffect(() => {
     if (drawerVisible) {
@@ -302,6 +303,7 @@ function LayoutInner() {
           <Stack.Screen name="teacher-grades" options={{ title: ('') }} />
           <Stack.Screen name="events" options={{ title: ('') }} />
           <Stack.Screen name="announcements" options={{ title: ('') }} />
+          <Stack.Screen name="library" options={{ title: ('') }} />
           <Stack.Screen name="cafetin" options={{ title: ('') }} />
           <Stack.Screen name="lunch" options={{ title: ('') }} />
           <Stack.Screen 
@@ -349,9 +351,121 @@ function LayoutInner() {
   const pathname = usePathname();
   const showTabBar = ['/home', '/interpreter', '/chat', '/modules', '/profile'].includes(pathname);
 
+  // Detección de teclado visible para prevenir cambios accidentales de pestaña al escribir
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Referencia actualizada del estado de la interfaz para el PanResponder
+  const gestureStateRef = useRef({
+    pathname,
+    showTabBar,
+    isTabBarHidden,
+    modalCount,
+    isKeyboardVisible,
+  });
+
+  useEffect(() => {
+    gestureStateRef.current = {
+      pathname,
+      showTabBar,
+      isTabBarHidden,
+      modalCount,
+      isKeyboardVisible,
+    };
+  }, [pathname, showTabBar, isTabBarHidden, modalCount, isKeyboardVisible]);
+
+  const isNavigatingRef = useRef(false);
+
+  // PanResponder para navegación por deslizamiento horizontal estilo Instagram
+  const tabSwipeResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const { pathname, showTabBar, isTabBarHidden, modalCount, isKeyboardVisible } = gestureStateRef.current;
+        if (!showTabBar || isTabBarHidden || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
+          return false;
+        }
+
+        const absDx = Math.abs(gestureState.dx);
+        const absDy = Math.abs(gestureState.dy);
+
+        // Criterio de gesto puramente horizontal estilo Instagram:
+        // - Desplazamiento horizontal mínimo de 26px
+        // - El desplazamiento horizontal debe ser al menos 2.2 veces mayor que el vertical
+        //   (Garantiza que el scroll vertical de listas y dashboards nunca se interrumpa)
+        if (absDx < 26 || absDx < absDy * 2.2) {
+          return false;
+        }
+
+        const currentIndex = TAB_ROUTES.indexOf(pathname);
+        if (currentIndex === -1) return false;
+
+        // Deslizar hacia la izquierda (dx < 0): sólo permitido si no estamos en la última pestaña
+        if (gestureState.dx < 0 && currentIndex >= TAB_ROUTES.length - 1) return false;
+
+        // Deslizar hacia la derecha (dx > 0): sólo permitido si no estamos en la primera pestaña
+        if (gestureState.dx > 0 && currentIndex <= 0) return false;
+
+        return true;
+      },
+
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderRelease: (evt, gestureState) => {
+        const { pathname, showTabBar, isTabBarHidden, modalCount, isKeyboardVisible } = gestureStateRef.current;
+        if (!showTabBar || isTabBarHidden || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
+          return;
+        }
+
+        const currentIndex = TAB_ROUTES.indexOf(pathname);
+        if (currentIndex === -1) return;
+
+        const swipeThreshold = 38;
+        const velocityThreshold = 0.25;
+
+        // Deslizar hacia la izquierda (dx < 0) -> avanza a la siguiente pestaña
+        if (gestureState.dx < -swipeThreshold || gestureState.vx < -velocityThreshold) {
+          if (currentIndex < TAB_ROUTES.length - 1) {
+            isNavigatingRef.current = true;
+            hapticLight();
+            const nextRoute = TAB_ROUTES[currentIndex + 1];
+            navigateTab(nextRoute, router, pathname);
+            setTimeout(() => {
+              isNavigatingRef.current = false;
+            }, 360);
+          }
+        }
+        // Deslizar hacia la derecha (dx > 0) -> regresa a la pestaña anterior
+        else if (gestureState.dx > swipeThreshold || gestureState.vx > velocityThreshold) {
+          if (currentIndex > 0) {
+            isNavigatingRef.current = true;
+            hapticLight();
+            const prevRoute = TAB_ROUTES[currentIndex - 1];
+            navigateTab(prevRoute, router, pathname);
+            setTimeout(() => {
+              isNavigatingRef.current = false;
+            }, 360);
+          }
+        }
+      },
+    })
+  ).current;
+
   return (
     <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
       <View 
+        {...tabSwipeResponder.panHandlers}
         key={Platform.OS === 'web' && showTabBar ? pathname : undefined}
         style={[
           { flex: 1 },

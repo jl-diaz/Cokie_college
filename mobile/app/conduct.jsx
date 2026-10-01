@@ -157,19 +157,25 @@ export default function ConductCatalogScreen() {
       if (editingCode) {
         await api.put(`/admin/conduct-codes/${editingCode.id}`, formData);
         setModalVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('conduct.codeUpdatedSuccess', 'Código actualizado correctamente.')
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('conduct.codeUpdatedSuccess', 'Código actualizado correctamente.')
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       } else {
         await api.post('/admin/conduct-codes', formData);
         setModalVisible(false);
-        showAlert({
-          type: 'success',
-          title: t('dashboard.success', '¡Éxito!'),
-          message: t('conduct.codeCreatedSuccess', 'Código creado correctamente.')
-        });
+        if (Platform.OS !== 'web') Keyboard.dismiss();
+        setTimeout(() => {
+          showAlert({
+            type: 'success',
+            title: t('dashboard.success', '¡Éxito!'),
+            message: t('conduct.codeCreatedSuccess', 'Código creado correctamente.')
+          });
+        }, Platform.OS === 'web' ? 50 : 350);
       }
       fetchCodes();
     } catch (error) {

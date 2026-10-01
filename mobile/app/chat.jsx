@@ -17,7 +17,8 @@ import {
   StatusBar,
   Keyboard,
   BackHandler,
-  Animated
+  Animated,
+  Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -46,8 +47,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Linking from 'expo-linking';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
@@ -109,6 +109,7 @@ export default function ChatScreen() {
   const isDesktop = width >= 768;
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { convId } = useLocalSearchParams();
   const { user, profile } = useAuth();
   const { colors: Colors, theme } = useTheme();
   const { showAlert } = useAlert();
@@ -180,7 +181,7 @@ export default function ChatScreen() {
       () => {
         setIsKeyboardVisible(true);
         triggerInputLift();
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 60);
       }
     );
     const hideSub = Keyboard.addListener(
@@ -193,6 +194,7 @@ export default function ChatScreen() {
           tension: 80,
           useNativeDriver: true,
         }).start();
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 60);
       }
     );
     return () => {
@@ -278,8 +280,13 @@ export default function ChatScreen() {
       }));
       setConversations(decryptedData);
 
-      // Si estamos en escritorio y no hay activa, seleccionar la primera
-      if (isDesktop && !activeConv && decryptedData.length > 0) {
+      // Si se especificó una conversación vía parámetros o estamos en escritorio
+      if (convId && decryptedData.length > 0) {
+        const found = decryptedData.find(c => c.id === convId);
+        if (found) {
+          setActiveConv(found);
+        }
+      } else if (isDesktop && !activeConv && decryptedData.length > 0) {
         setActiveConv(decryptedData[0]);
       }
     } catch (err) {
@@ -446,6 +453,16 @@ export default function ChatScreen() {
     };
   }, [user?.id, activeConv?.id]);
 
+  // Si se navega a chat con convId en la URL o params, abrir esa conversación de inmediato
+  useEffect(() => {
+    if (convId && conversations.length > 0 && (!activeConv || activeConv.id !== convId)) {
+      const found = conversations.find(c => c.id === convId);
+      if (found) {
+        setActiveConv(found);
+      }
+    }
+  }, [convId, conversations]);
+
   // Sincronizar de forma segura el contador total de mensajes no leídos con la barra de navegación (TabBar)
   useEffect(() => {
     if (setUnreadChatCount && Array.isArray(conversations)) {
@@ -478,8 +495,11 @@ export default function ChatScreen() {
     if (activeConv?.id) {
       fetchMessages(activeConv.id);
     } else {
-      setMessages([]);
-      setActiveParticipants([]);
+      const timer = setTimeout(() => {
+        setMessages([]);
+        setActiveParticipants([]);
+      }, 350);
+      return () => clearTimeout(timer);
     }
   }, [activeConv?.id]);
 
@@ -877,10 +897,16 @@ export default function ChatScreen() {
           is_group: true
         });
       }
-      showAlert({ type: 'success', title: t('chat.createGroup', 'Grupo Creado'), message: t('chat.alerts.groupCreatedSuccess', { name: groupName, defaultValue: `El grupo "${groupName}" ha sido creado con éxito.` }) });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({ type: 'success', title: t('chat.createGroup', 'Grupo Creado'), message: t('chat.alerts.groupCreatedSuccess', { name: groupName, defaultValue: `El grupo "${groupName}" ha sido creado con éxito.` }) });
+      }, Platform.OS === 'web' ? 50 : 350);
     } catch (err) {
       console.error('Error creating group:', err);
-      showAlert({ type: 'error', title: t('common.error', 'Error'), message: t('chat.alerts.groupCreatedError', 'No se pudo crear el grupo.') });
+      if (Platform.OS !== 'web') Keyboard.dismiss();
+      setTimeout(() => {
+        showAlert({ type: 'error', title: t('common.error', 'Error'), message: t('chat.alerts.groupCreatedError', 'No se pudo crear el grupo.') });
+      }, Platform.OS === 'web' ? 50 : 350);
     } finally {
       setCreatingGroup(false);
     }
@@ -1563,12 +1589,13 @@ export default function ChatScreen() {
               <FlatList
                 ref={flatListRef}
                 data={messages}
-                keyExtractor={item => item.id || String(Math.random())}
+                keyExtractor={(item, index) => item.id || item.temp_id || `msg-${index}`}
                 contentContainerStyle={styles.messagesListContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
                 ListHeaderComponent={null}
                 renderItem={({ item, index }) => {
                   const isMine = item.is_mine || item.sender_id === user?.id;

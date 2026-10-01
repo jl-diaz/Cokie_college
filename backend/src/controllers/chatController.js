@@ -595,15 +595,15 @@ const chatController = {
                 if (type === 'document') previewText = `📄 ${attachment_name || 'Documento adjunto'}`;
                 if (convInfo?.type === 'group') previewText = `${senderName}: ${previewText}`;
 
-                // Despacho no bloqueante de notificaciones
-                for (const p of otherParticipants) {
+                // Despacho confiable en Vercel Serverless (await para evitar que la lambda congele la promesa)
+                await Promise.allSettled(otherParticipants.map(p =>
                     sendNotification(
                         p.user_id,
                         notifTitle,
                         previewText.substring(0, 120),
                         { type: 'chat', conversation_id: conversationId }
-                    ).catch(e => console.error('Error enviando notificación push de chat:', e));
-                }
+                    ).catch(e => console.error('Error enviando notificación push de chat:', e))
+                ));
             }
 
             res.status(201).json({
