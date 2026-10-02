@@ -234,7 +234,14 @@ class WebSocketService {
   }
 
   sendFrame(base64Image) {
+    if (!base64Image) return;
     if (this.socket && (this.socket.connected || this.isConnected)) {
+      const now = Date.now();
+      // Limitar a máximo ~14 FPS hacia el servidor para evitar acumulación de buffer y retrasos
+      if (this.lastFrameSentTime && now - this.lastFrameSentTime < 70) {
+        return;
+      }
+      this.lastFrameSentTime = now;
       this.socket.emit('process_frame', base64Image);
     }
   }

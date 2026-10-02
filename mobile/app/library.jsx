@@ -509,12 +509,22 @@ export default function LibraryScreen() {
 
   // Helper para convertir base64 a Uint8Array de forma nativa en JS
   const base64ToUint8Array = (base64) => {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+    try {
+      const b64Data = base64.includes('base64,') ? base64.split('base64,')[1] : base64;
+      if (typeof Buffer !== 'undefined') {
+        return new Uint8Array(Buffer.from(b64Data, 'base64'));
+      }
+      const binary = atob(b64Data);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    } catch (e) {
+      console.warn('Error in base64ToUint8Array:', e);
+      return new Uint8Array(0);
     }
-    return bytes;
   };
 
   // Guardar libro (Crear / Actualizar con subida y respaldo a Supabase)
@@ -590,33 +600,95 @@ export default function LibraryScreen() {
       // 2. Subir PDF si se seleccionó uno nuevo
       if (formResourceType === 'pdf' && formPdfBase64) {
         let uploaded = false;
+
+        // A. Intento 1: URL firmada directa a Supabase Storage (soporta archivos de más de 4MB sin límite de Vercel)
         try {
-          const pdfRes = await api.post('/library/upload', {
-            base64: formPdfBase64,
+          const signRes = await api.post('/library/signed-upload-url', {
             filename: formResourceName || 'document.pdf',
             mimeType: 'application/pdf',
             resourceType: 'pdf',
           });
-          if (pdfRes.data?.url) {
-            finalResourceUrl = pdfRes.data.url;
-            uploaded = true;
+          if (signRes.data?.signedUrl && signRes.data?.publicUrl) {
+            const { signedUrl, publicUrl } = signRes.data;
+            if (Platform.OS === 'web') {
+              const resp = await fetch(formResourceUrl);
+              const blob = await resp.blob();
+              const upResp = await fetch(signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/pdf' },
+                body: blob,
+              });
+              if (upResp.ok) {
+                finalResourceUrl = publicUrl;
+                uploaded = true;
+              }
+            } else {
+              const upResp = await FileSystem.uploadAsync(signedUrl, formResourceUrl, {
+                httpMethod: 'PUT',
+                headers: { 'Content-Type': 'application/pdf' },
+                uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+              });
+              if (upResp.status >= 200 && upResp.status < 300) {
+                finalResourceUrl = publicUrl;
+                uploaded = true;
+              }
+            }
           }
-        } catch {
-          // Fallback a Supabase Storage directo
+        } catch (errSign) {
+          console.warn('Signed upload URL attempt failed, trying backend upload fallback:', errSign?.message);
         }
 
+        // B. Intento 2: Subida por backend multipart/base64
         if (!uploaded) {
-          const cleanName = (formResourceName || 'document.pdf').replace(/[^a-zA-Z0-9.-]/g, '_');
-          const path = `library/pdfs/${Date.now()}_${cleanName}`;
-          const bytes = base64ToUint8Array(formPdfBase64);
-          const { error: upErr } = await supabase.storage.from('cokiechat').upload(path, bytes, {
-            contentType: 'application/pdf',
-            upsert: true,
-          });
-          if (!upErr) {
-            const { data } = supabase.storage.from('cokiechat').getPublicUrl(path);
-            finalResourceUrl = data.publicUrl;
+          try {
+            const pdfRes = await api.post('/library/upload', {
+              base64: formPdfBase64,
+              filename: formResourceName || 'document.pdf',
+              mimeType: 'application/pdf',
+              resourceType: 'pdf',
+            });
+            if (pdfRes.data?.url) {
+              finalResourceUrl = pdfRes.data.url;
+              uploaded = true;
+            }
+          } catch (errUpload) {
+            console.warn('Backend upload failed, trying direct Supabase fallback:', errUpload?.message);
           }
+        }
+
+        // C. Intento 3: Supabase Storage directo en cliente
+        if (!uploaded) {
+          try {
+            const cleanName = (formResourceName || 'document.pdf').replace(/[^a-zA-Z0-9.-]/g, '_');
+            const path = `library/pdfs/${Date.now()}_${cleanName}`;
+            const bytes = base64ToUint8Array(formPdfBase64);
+            if (bytes.length > 0) {
+              const { error: upErr } = await supabase.storage.from('cokiechat').upload(path, bytes, {
+                contentType: 'application/pdf',
+                upsert: true,
+              });
+              if (!upErr) {
+                const { data } = supabase.storage.from('cokiechat').getPublicUrl(path);
+                if (data?.publicUrl) {
+                  finalResourceUrl = data.publicUrl;
+                  uploaded = true;
+                }
+              }
+            }
+          } catch (errDirect) {
+            console.warn('Direct Supabase upload failed:', errDirect?.message);
+          }
+        }
+
+        // D. Verificación estricta: Si falló la subida, NUNCA guardar el libro roto
+        if (!uploaded || !finalResourceUrl || finalResourceUrl.startsWith('blob:') || finalResourceUrl.startsWith('file://')) {
+          setSubmittingForm(false);
+          showAlert({
+            type: 'error',
+            title: t('common.error', 'Error al subir documento'),
+            message: 'No se pudo subir el archivo PDF a la nube. Por favor verifica tu conexión a internet o intenta con un archivo más ligero (máximo 20 MB).',
+          });
+          return;
         }
       }
 

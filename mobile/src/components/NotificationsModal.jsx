@@ -30,11 +30,49 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  const getViewportDimensions = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return {
+        width: window.innerWidth,
+        height: window.visualViewport?.height || window.innerHeight || Dimensions.get('window').height,
+      };
+    }
+    return Dimensions.get('window');
+  };
+
+  const [windowDimensions, setWindowDimensions] = useState(getViewportDimensions);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const updateDim = () => {
+        setWindowDimensions(getViewportDimensions());
+      };
+      window.addEventListener('resize', updateDim);
+      window.visualViewport?.addEventListener('resize', updateDim);
+      return () => {
+        window.removeEventListener('resize', updateDim);
+        window.visualViewport?.removeEventListener('resize', updateDim);
+      };
+    } else {
+      const sub = Dimensions.addEventListener('change', ({ window }) => {
+        setWindowDimensions(window);
+      });
+      return () => sub?.remove?.();
+    }
+  }, []);
+
+  const isWeb = Platform.OS === 'web';
+  const isMobileWeb = isWeb && (
+    typeof navigator !== 'undefined' && 
+    /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '')
+  );
+
   const [notificationsList, setNotificationsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const currentScreenHeight = windowDimensions.height || SCREEN_HEIGHT;
+  const slideAnim = useRef(new Animated.Value(currentScreenHeight)).current;
 
   // PanResponder para permitir cerrar arrastrando hacia abajo
   const panResponder = useRef(
@@ -67,10 +105,14 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
     };
   }, []);
 
+  const isVisibleRef = useRef(false);
+
   const handleClose = () => {
+    if (!isVisibleRef.current && !showModal) return;
+    isVisibleRef.current = false;
     modalTracker.registerCloseStart('notifications-modal');
     Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
+      toValue: currentScreenHeight,
       duration: 180,
       useNativeDriver: true,
     }).start(() => {
@@ -82,17 +124,18 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
 
   useEffect(() => {
     if (visible) {
+      isVisibleRef.current = true;
       modalTracker.registerOpen('notifications-modal');
       setShowModal(true);
       fetchNotifications();
-      slideAnim.setValue(SCREEN_HEIGHT);
+      slideAnim.setValue(currentScreenHeight);
       Animated.spring(slideAnim, {
         toValue: 0,
         friction: 8.5,
         tension: 65,
         useNativeDriver: true,
       }).start();
-    } else {
+    } else if (showModal) {
       handleClose();
     }
   }, [visible]);
@@ -207,7 +250,9 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
               transform: [{ translateY: slideAnim }], 
               backgroundColor: isDark ? '#18181B' : '#FFFFFF',
               borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
-              paddingBottom: Math.max(insets.bottom, 20),
+              paddingBottom: isMobileWeb ? Math.max(insets.bottom || 0, 80) : Math.max(insets.bottom, 24),
+              height: Math.min(currentScreenHeight * 0.72, 560),
+              maxHeight: isWeb ? '82dvh' : '85%',
             }
           ]}
         >
@@ -341,7 +386,8 @@ const styles = StyleSheet.create({
       right: 0,
       bottom: 0,
       width: '100vw',
-      height: '100vh',
+      height: '100dvh',
+      maxHeight: '100dvh',
     }),
   },
   panel: {
@@ -466,7 +512,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifListContent: {
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'web' ? 100 : 48,
     gap: 10,
   },
   notifCard: {

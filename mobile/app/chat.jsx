@@ -157,6 +157,29 @@ export default function ChatScreen() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
+  const isAtBottomRef = useRef(true);
+  const isExitingChatRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
+
+  const safeScrollToEnd = (animated = true, force = false) => {
+    if (isExitingChatRef.current) return;
+    if (!force && !isAtBottomRef.current) return;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (!isExitingChatRef.current && flatListRef.current) {
+        try {
+          flatListRef.current.scrollToEnd({ animated });
+        } catch {}
+      }
+    }, 60);
+  };
+
+  const handleMessagesScroll = (event) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 80;
+    isAtBottomRef.current = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+  };
+
   const triggerInputLift = () => {
     Animated.sequence([
       Animated.spring(inputElevationAnim, {
@@ -181,7 +204,9 @@ export default function ChatScreen() {
       () => {
         setIsKeyboardVisible(true);
         triggerInputLift();
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 60);
+        if (isAtBottomRef.current && !isExitingChatRef.current) {
+          safeScrollToEnd(true, false);
+        }
       }
     );
     const hideSub = Keyboard.addListener(
@@ -194,12 +219,15 @@ export default function ChatScreen() {
           tension: 80,
           useNativeDriver: true,
         }).start();
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 60);
+        if (isAtBottomRef.current && !isExitingChatRef.current) {
+          safeScrollToEnd(true, false);
+        }
       }
     );
     return () => {
       showSub.remove();
       hideSub.remove();
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
 
@@ -370,6 +398,7 @@ export default function ChatScreen() {
       }
     } finally {
       setLoadingMessages(false);
+      safeScrollToEnd(false, true);
     }
   };
 
@@ -1385,7 +1414,11 @@ export default function ChatScreen() {
             return (
               <TouchableOpacity
                 style={[styles.convItem, isSelected && styles.convItemActive]}
-                onPress={() => setActiveConv(item)}
+                onPress={() => {
+                  isExitingChatRef.current = false;
+                  isAtBottomRef.current = true;
+                  setActiveConv(item);
+                }}
                 activeOpacity={0.7}
               >
                 {/* Avatar con Punto de Conexión Verde */}
@@ -1593,10 +1626,13 @@ export default function ChatScreen() {
                 contentContainerStyle={styles.messagesListContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-                ListHeaderComponent={null}
+                onScroll={handleMessagesScroll}
+                scrollEventThrottle={16}
+                onContentSizeChange={() => {
+                  if (isAtBottomRef.current || messages[messages.length - 1]?.is_mine) {
+                    safeScrollToEnd(true, false);
+                  }
+                }}
                 renderItem={({ item, index }) => {
                   const isMine = item.is_mine || item.sender_id === user?.id;
                   const itemDate = item.created_at || new Date().toISOString();
@@ -2198,6 +2234,8 @@ export default function ChatScreen() {
   };
 
   const handleChatBack = () => {
+    isExitingChatRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     if (Platform.OS !== 'web') Keyboard.dismiss();
     if (previewImage) {
       setPreviewImage(null);

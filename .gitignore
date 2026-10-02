@@ -40,7 +40,8 @@ Estudio-backend.md
 Estudio-base-de-datos.md
 Estudio-mobile.md
 Estudio-web.md
-/.agents/
+.agents
+.kilo
 *.apk
 CokieHall/JS/*.apk
 
@@ -48,4 +49,4 @@ CokieHall/JS/*.apk
 __pycache__/
 *.py[cod]
 *$py.class
-backend/sign_language_service/data_backup_*
+backend/sign_language_service/data_backup_*

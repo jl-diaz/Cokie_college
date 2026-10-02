@@ -23,7 +23,8 @@ router.delete('/books/:id', authorize(MANAGE_ROLES), libraryController.deleteBoo
 router.post('/categories', authorize(MANAGE_ROLES), libraryController.createCategory);
 router.delete('/categories/:id', authorize(MANAGE_ROLES), libraryController.deleteCategory);
 
-// Subida de Recursos (Portadas e imágenes ≤ 5MB, Documentos PDF ≤ 20MB)
+// Subida de Recursos (Portadas e imágenes ≤ 10MB, Documentos PDF ≤ 50MB)
 router.post('/upload', authorize(MANAGE_ROLES), libraryController.uploadResource);
+router.post('/signed-upload-url', authorize(MANAGE_ROLES), libraryController.createSignedUploadUrl);
 
 module.exports = router;

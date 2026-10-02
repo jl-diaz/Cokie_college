@@ -277,8 +277,49 @@ const libraryController = {
     },
 
     /**
+     * Generar URL firmada para subida directa desde el cliente a Supabase Storage
+     * Evita el límite de 4.5MB de Vercel y procesa archivos grandes sin saturar memoria
+     */
+    createSignedUploadUrl: async (req, res) => {
+        try {
+            const { filename, mimeType, resourceType = 'pdf' } = req.body;
+            if (!filename) {
+                return res.status(400).json({ error: 'El nombre de archivo es obligatorio' });
+            }
+            const cleanName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const subfolder = resourceType === 'pdf' ? 'library/pdfs' : 'library/covers';
+            const filePath = `${subfolder}/${Date.now()}_${cleanName}`;
+
+            const { data, error } = await supabaseAdmin
+                .storage
+                .from(STORAGE_BUCKET)
+                .createSignedUploadUrl(filePath);
+
+            if (error || !data) {
+                console.error('Error generating signed upload URL:', error);
+                return res.status(500).json({ error: 'Error al generar enlace seguro de subida' });
+            }
+
+            const { data: publicData } = supabaseAdmin
+                .storage
+                .from(STORAGE_BUCKET)
+                .getPublicUrl(filePath);
+
+            res.json({
+                signedUrl: data.signedUrl,
+                token: data.token,
+                path: filePath,
+                publicUrl: publicData.publicUrl
+            });
+        } catch (error) {
+            console.error('Unexpected error in createSignedUploadUrl:', error);
+            res.status(500).json({ error: 'Error interno del servidor al crear URL firmada' });
+        }
+    },
+
+    /**
      * Subida segura de portadas de libros y documentos PDF a Supabase Storage
-     * Valida tipos MIME, extensiones y límites de tamaño (Imágenes ≤ 5MB, PDF ≤ 20MB)
+     * Valida tipos MIME, extensiones y límites de tamaño (Imágenes ≤ 10MB, PDF ≤ 50MB)
      */
     uploadResource: async (req, res) => {
         try {
@@ -309,9 +350,9 @@ const libraryController = {
                 if (ext !== 'pdf' && !mimeType?.includes('pdf')) {
                     return res.status(400).json({ error: 'El archivo debe ser un documento PDF válido' });
                 }
-                const MAX_PDF_SIZE = 20 * 1024 * 1024; // 20 MB
+                const MAX_PDF_SIZE = 50 * 1024 * 1024; // 50 MB
                 if (buffer.length > MAX_PDF_SIZE) {
-                    return res.status(400).json({ error: 'El documento PDF excede el tamaño máximo permitido (20 MB)' });
+                    return res.status(400).json({ error: 'El documento PDF excede el tamaño máximo permitido (50 MB)' });
                 }
             } else {
                 // Portada
@@ -319,7 +360,7 @@ const libraryController = {
                 if (!ALLOWED_IMG_EXTS.includes(ext) && !mimeType?.startsWith('image/')) {
                     return res.status(400).json({ error: 'La portada debe ser una imagen válida (JPG, PNG o WEBP)' });
                 }
-                const MAX_IMG_SIZE = 5 * 1024 * 1024; // 5 MB
+                const MAX_IMG_SIZE = 10 * 1024 * 1024; // 10 MB
                 if (buffer.length > MAX_IMG_SIZE) {
                     return res.status(400).json({ error: 'La imagen de portada excede el tamaño máximo permitido (5 MB)' });
                 }

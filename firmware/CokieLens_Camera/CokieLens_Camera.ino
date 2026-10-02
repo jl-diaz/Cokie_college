@@ -162,15 +162,17 @@ static esp_err_t status_handler(httpd_req_t *req) {
 
 // ── HANDLER 4: AUDIO / NOTIFICACIÓN (/play) ────────────────────────────────
 static esp_err_t audio_play_handler(httpd_req_t *req) {
-    char content[100];
+    char content[100] = {0};
     int total_len = req->content_len;
     if (total_len >= sizeof(content)) {
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
+        total_len = sizeof(content) - 1;
     }
-    int received = httpd_req_recv(req, content, total_len);
-    if (received <= 0) return ESP_FAIL;
-    content[total_len] = '\0';
+    if (total_len > 0) {
+        int received = httpd_req_recv(req, content, total_len);
+        if (received > 0) {
+            content[received] = '\0';
+        }
+    }
 
     // Leer cabecera opcional de volumen
     char vol_hdr[10];
