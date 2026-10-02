@@ -234,7 +234,6 @@ export default function NotificationsModal({ visible, onClose, onReadChange }) {
       onRequestClose={handleClose}
       animationType="fade"
       statusBarTranslucent
-      navigationBarTranslucent
     >
       <View style={styles.overlayContainer}>
         <Pressable 

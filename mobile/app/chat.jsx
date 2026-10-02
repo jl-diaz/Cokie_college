@@ -59,6 +59,7 @@ import { encryptMessage, decryptMessage } from '../src/utils/chatCrypto';
 import { enqueueOutbox, subscribeOutbox, startOutboxAutoFlush } from '../src/utils/outboxQueue';
 import PageHeader from '../src/components/PageHeader';
 import BottomModal from '../src/components/BottomModal';
+import { modalTracker } from '../src/utils/modalTracker';
 
 // Animación de burbuja emergente para mensajes enviados
 const AnimatedMessageBubble = React.memo(({ children, style }) => {
@@ -163,10 +164,11 @@ export default function ChatScreen() {
 
   const safeScrollToEnd = (animated = true, force = false) => {
     if (isExitingChatRef.current) return;
+    if (modalTracker.hasActiveModals()) return;
     if (!force && !isAtBottomRef.current) return;
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
-      if (!isExitingChatRef.current && flatListRef.current) {
+      if (!isExitingChatRef.current && !modalTracker.hasActiveModals() && flatListRef.current) {
         try {
           flatListRef.current.scrollToEnd({ animated });
         } catch {}
@@ -204,7 +206,7 @@ export default function ChatScreen() {
       () => {
         setIsKeyboardVisible(true);
         triggerInputLift();
-        if (isAtBottomRef.current && !isExitingChatRef.current) {
+        if (isAtBottomRef.current && !isExitingChatRef.current && !modalTracker.hasActiveModals()) {
           safeScrollToEnd(true, false);
         }
       }
@@ -219,9 +221,6 @@ export default function ChatScreen() {
           tension: 80,
           useNativeDriver: true,
         }).start();
-        if (isAtBottomRef.current && !isExitingChatRef.current) {
-          safeScrollToEnd(true, false);
-        }
       }
     );
     return () => {
@@ -484,9 +483,10 @@ export default function ChatScreen() {
 
   // Si se navega a chat con convId en la URL o params, abrir esa conversación de inmediato
   useEffect(() => {
-    if (convId && conversations.length > 0 && (!activeConv || activeConv.id !== convId)) {
+    if (convId && conversations.length > 0 && !isExitingChatRef.current && (!activeConv || activeConv.id !== convId)) {
       const found = conversations.find(c => c.id === convId);
       if (found) {
+        isExitingChatRef.current = false;
         setActiveConv(found);
       }
     }
@@ -522,8 +522,10 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (activeConv?.id) {
+      isExitingChatRef.current = false;
       fetchMessages(activeConv.id);
     } else {
+      isExitingChatRef.current = true;
       const timer = setTimeout(() => {
         setMessages([]);
         setActiveParticipants([]);
@@ -1626,10 +1628,14 @@ export default function ChatScreen() {
                 contentContainerStyle={styles.messagesListContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="none"
+                scrollsToTop={false}
+                focusable={false}
+                maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
                 onScroll={handleMessagesScroll}
                 scrollEventThrottle={16}
                 onContentSizeChange={() => {
-                  if (isAtBottomRef.current || messages[messages.length - 1]?.is_mine) {
+                  if (!modalTracker.hasActiveModals() && (isAtBottomRef.current || messages[messages.length - 1]?.is_mine)) {
                     safeScrollToEnd(true, false);
                   }
                 }}
@@ -1641,7 +1647,7 @@ export default function ChatScreen() {
                   const showDateSeparator = !prevItem || !isSameDay(prevDate, itemDate);
 
                   return (
-                    <View key={item.id || `msg-${index}`}>
+                    <View key={item.id || `msg-${index}`} focusable={false}>
                       {showDateSeparator && (
                         <View style={styles.dateSeparatorWrapper}>
                           <View style={styles.dateSeparatorPill}>
@@ -2236,7 +2242,6 @@ export default function ChatScreen() {
   const handleChatBack = () => {
     isExitingChatRef.current = true;
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    if (Platform.OS !== 'web') Keyboard.dismiss();
     if (previewImage) {
       setPreviewImage(null);
       return;
@@ -2256,11 +2261,17 @@ export default function ChatScreen() {
     if (activeConv) {
       setAttachmentModalVisible(false);
       setActiveConv(null);
+      if (convId) {
+        try {
+          router.setParams({ convId: '' });
+        } catch {}
+      }
     } else if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/home');
     }
+    if (Platform.OS !== 'web') Keyboard.dismiss();
   };
 
   return (
