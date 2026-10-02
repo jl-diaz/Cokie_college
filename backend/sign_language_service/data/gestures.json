@@ -372,7 +372,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado con el pulgar apoyado al lado externo del dedo índice.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -383,7 +383,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Cuatro dedos extendidos verticalmente y juntos; pulgar plegado sobre la palma.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -427,7 +427,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puntas de pulgar e índice tocándose en círculo; dedos medio, anular y meñique extendidos hacia arriba.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -493,7 +493,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedo índice vertical y pulgar horizontal a 90° formando una L.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -504,7 +504,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Índice, medio y anular doblados sobre el pulgar (el pulgar asoma entre anular y meñique).",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -515,7 +515,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Índice y medio doblados sobre el pulgar (el pulgar asoma entre medio y anular).",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -526,7 +526,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Todas las puntas de los dedos tocando la yema del pulgar formando un óvalo cerrado.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -537,7 +537,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Misma postura que K pero orientada verticalmente hacia abajo con la muñeca.",
-    "sample_count": 0,
+    "sample_count": 8,
     "is_default": true
   },
   {
@@ -548,7 +548,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Misma postura que G (pinza índice-pulgar) orientada hacia abajo.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -559,7 +559,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice y medio extendidos verticalmente y cruzados (medio cruzando sobre índice).",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -570,7 +570,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado compacto con el pulgar cruzado por encima de los dedos índice y medio.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -581,7 +581,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado con el pulgar insertado y asomando entre dedo índice y dedo medio.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   },
   {
@@ -592,7 +592,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice y medio extendidos hacia arriba, paralelos y pegados entre sí.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -603,7 +603,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice y medio extendidos y separados hacia arriba (forma de V / Paz).",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -614,7 +614,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice, medio y anular extendidos y separados en abanico (forma de W).",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -625,7 +625,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedo índice flexionado en forma de gancho; demás dedos cerrados en puño.",
-    "sample_count": 0,
+    "sample_count": 8,
     "is_default": true
   },
   {
@@ -636,7 +636,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedo pulgar y meñique completamente extendidos; dedos índice, medio y anular en puño.",
-    "sample_count": 0,
+    "sample_count": 8,
     "is_default": true
   },
   {
@@ -647,7 +647,7 @@
     "type": "movement",
     "category": "alphabet",
     "description": "Dedo índice extendido trazando en el aire una Z en zigzag.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -658,7 +658,7 @@
     "type": "static",
     "category": "numbers",
     "description": "Puntas de los 5 dedos unidas formando un óvalo cerrado.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -669,7 +669,7 @@
     "type": "static",
     "category": "numbers",
     "description": "Dedo meñique tocando la yema del pulgar; índice, medio y anular extendidos.",
-    "sample_count": 0,
+    "sample_count": 8,
     "is_default": true
   },
   {
@@ -680,7 +680,7 @@
     "type": "static",
     "category": "numbers",
     "description": "Dedo anular tocando la yema del pulgar; índice, medio y meñique extendidos.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -691,7 +691,7 @@
     "type": "static",
     "category": "numbers",
     "description": "Dedo medio tocando la yema del pulgar; índice, anular y meñique extendidos.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -702,7 +702,7 @@
     "type": "static",
     "category": "numbers",
     "description": "Dedo índice tocando la yema del pulgar en círculo; medio, anular y meñique extendidos.",
-    "sample_count": 0,
+    "sample_count": 7,
     "is_default": true
   },
   {
@@ -713,7 +713,7 @@
     "type": "movement",
     "category": "numbers",
     "description": "Puño cerrado con pulgar hacia arriba y leve oscilación de muñeca.",
-    "sample_count": 0,
+    "sample_count": 6,
     "is_default": true
   }
 ]
