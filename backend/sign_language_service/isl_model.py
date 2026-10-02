@@ -572,27 +572,41 @@ class ISLModel:
                     diffs = np.diff(recent, axis=0)
                     motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
-                    if max_motion < 0.07:
+                    # Mano reposando / fija: bajo desplazamiento
+                    if max_motion < 0.065 and motion_energy < 0.040:
                         is_holding_static = True
-                    elif max_motion >= 0.09:
+                    # Mano moviéndose con intención
+                    elif max_motion >= 0.095 or motion_energy >= 0.060:
                         is_moving_dynamically = True
 
                 # Estrategia de asignación priorizada:
-                # A) Si la mano está quieta y coincide con una seña estática geométrica clara
-                if static_candidate and (is_holding_static or not is_moving_dynamically):
+                # A) Si la mano está quieta o fija, evaluar señas estáticas (Alfabeto A-Z, números fijos)
+                if static_candidate and is_holding_static:
                     current_prediction = static_candidate
 
-                # B) Evaluar modelo neuronal aprendido (gestos dinámicos o dialecto personalizado)
-                if current_prediction is None and len(self.sequence_buffer) >= 6:
+                # B) Evaluar modelo neuronal aprendido (solo si hay evidencia clara y no es reposo)
+                if current_prediction is None and len(self.sequence_buffer) >= 8:
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
                         try:
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
                             pred_label, confidence, margin = active_model.predict_with_margin(feats)
-                            # Umbral calibrado con margen frente a la segunda clase más probable
-                            min_conf = 0.65 if is_moving_dynamically else 0.80
-                            min_margin = 0.15
-                            if pred_label and confidence >= min_conf and margin >= min_margin:
+                            gesture_type = gesture_trainer.get_gesture_type(pred_label)
+
+                            # COMPUERTA DE MOVIMIENTO:
+                            # 1. Si la seña es dinámica (hola, gracias, etc.), la mano DEBE estar moviéndose
+                            # 2. Si la mano está en reposo, una seña de movimiento queda PROHIBIDA
+                            valid_motion = True
+                            if gesture_type == "movement":
+                                valid_motion = is_moving_dynamically and motion_energy >= 0.055
+                            elif gesture_type == "static":
+                                valid_motion = is_holding_static or not is_moving_dynamically
+
+                            # Umbral de confianza estricto (Anti-Random)
+                            min_conf = 0.82 if is_moving_dynamically else 0.88
+                            min_margin = 0.22
+
+                            if valid_motion and pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
                                 current_prediction = {
                                     "id": f"sign.{info['id']}",
@@ -603,8 +617,8 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # C) Fallback a seña estática
-                if current_prediction is None and static_candidate:
+                # C) Fallback a seña estática si la mano está quieta
+                if current_prediction is None and static_candidate and (is_holding_static or not is_moving_dynamically):
                     current_prediction = static_candidate
 
                 # D) Normalizar predicción a diccionario enriquecido con metadatos bilingües

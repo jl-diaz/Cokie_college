@@ -73,8 +73,13 @@ class SentenceBuilder:
         if self.is_finalized:
             self._archive_and_reset(now)
 
-        # Anti-rebote: Si es el mismo token y ocurrió hace menos de debounce_seconds, ignorar
-        if token_id == self.last_token_id and (now - self.last_token_time) < self.debounce_seconds:
+        is_letter = self._is_single_letter(name_es, token_id)
+
+        # Anti-rebote:
+        # Para palabras completas (no letras), evitar repeticiones consecutivas en un lapso corto (3.5s)
+        # Para letras individuales, mantener el debounce regular
+        effective_debounce = self.debounce_seconds if is_letter else max(self.debounce_seconds, 3.5)
+        if token_id == self.last_token_id and (now - self.last_token_time) < effective_debounce:
             self.last_token_time = now
             return None
 
@@ -82,7 +87,6 @@ class SentenceBuilder:
         if not self.tokens_es:
             self.sentence_start_time = now
 
-        is_letter = self._is_single_letter(name_es, token_id)
         prev_was_letter = (
             bool(self.raw_tokens) and 
             self._is_single_letter(self.raw_tokens[-1].get("name_es", ""), self.raw_tokens[-1].get("id", ""))
