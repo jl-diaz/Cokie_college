@@ -10,6 +10,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 import gesture_trainer
+from sentence_builder import SentenceBuilder
 
 # ─────────────────────────────────────────────────────────────────
 # Mapeo de gestos MediaPipe → Translation Keys
@@ -448,6 +449,7 @@ class ISLModel:
         self.no_detection_count = 0
         self.frame_count = 0
         self.cached_pose_landmarks = None
+        self.sentence_builder = SentenceBuilder(inactivity_timeout=3.5)
 
     def extract_landmarks_from_base64(self, base64_img):
         """
@@ -637,9 +639,19 @@ class ISLModel:
                             self.recent_predictions = []
                             stable_result = candidate
 
+            # 5. Formulación de oraciones y gestión de tiempo de inactividad
+            sentence_update = None
+            if stable_result:
+                sentence_update = self.sentence_builder.add_token(stable_result)
+
+            sentence_complete = self.sentence_builder.check_inactivity()
+
             return {
                 "translation": stable_result,
-                "landmarks": landmarks_payload
+                "landmarks": landmarks_payload,
+                "sentence_update": sentence_update,
+                "sentence_complete": sentence_complete,
+                "sentence_status": self.sentence_builder.get_status()
             }
 
         except Exception as e:

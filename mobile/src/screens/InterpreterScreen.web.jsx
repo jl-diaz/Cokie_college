@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -6,28 +6,33 @@ import {
   TouchableOpacity, 
   Modal, 
   TextInput, 
-  ActivityIndicator,
-  useWindowDimensions 
+  Image, 
+  ActivityIndicator, 
+  useWindowDimensions,
+  Animated,
+  Easing,
+  ScrollView
 } from 'react-native';
 import { useRouter, Stack, useIsFocused, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  Mic, 
-  MicOff, 
   SwitchCamera, 
   Volume2, 
-  Volume1,
-  VolumeX,
-  Plus,
-  Minus,
-  Sparkles, 
+  VolumeX, 
   Glasses, 
-  Monitor, 
   Settings, 
-  Headphones, 
-  Wifi, 
   Check, 
-  AlertCircle 
+  AlertCircle, 
+  X,
+  Activity,
+  CheckCircle2,
+  Video,
+  VideoOff,
+  RotateCcw,
+  Languages,
+  Sun,
+  Moon
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -41,22 +46,24 @@ export default function InterpreterScreenWeb() {
   const isFocused = screenFocused && (pathname === '/interpreter' || pathname.startsWith('/interpreter'));
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { colors: Colors, theme } = useTheme();
-  const { registerModal, unregisterModal } = useTabBar();
+  const { colors: Colors, theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+  const { isTabBarHidden, setIsTabBarHidden, registerModal, unregisterModal } = useTabBar();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const isDesktopOrTablet = width >= 768;
-  // En móvil web, se eleva para quedar por encima de la TabBar flotante inferior
-  const subtitleBottomOffset = isDesktopOrTablet 
-    ? 24 
-    : (Math.max(insets.bottom, 16) + 12 + 56 + 12);
-  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
+  const isLargeScreen = width >= 768;
+  const styles = useMemo(() => createStyles(Colors, isDark, insets, isLargeScreen), [Colors, isDark, insets, isLargeScreen]);
 
   const [hasPermission, setHasPermission] = useState(null);
-  const [isActive, setIsActive] = useState(true);
-  const [facing, setFacing] = useState('front');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facing, setFacing] = useState('user'); // 'user' | 'environment'
+  const [isCameraReady, setIsCameraReady] = useState(false);
+
+  // Estados de IA y traducción
+  const [aiServerStatus, setAiServerStatus] = useState('connecting');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState('');
   const [lastTranslation, setLastTranslation] = useState('');
-  const [subtitleHistory, setSubtitleHistory] = useState([]);
   const [liveLandmarks, setLiveLandmarks] = useState(null);
 
   // Selectores de fuente de video y salida de audio
@@ -64,13 +71,6 @@ export default function InterpreterScreenWeb() {
   const [audioOutput, setAudioOutput] = useState('browser'); // 'browser' | 'glasses'
   const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
-
-  useEffect(() => {
-    if (isConfigModalVisible) {
-      registerModal();
-      return () => unregisterModal();
-    }
-  }, [isConfigModalVisible, registerModal, unregisterModal]);
   const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -86,76 +86,140 @@ export default function InterpreterScreenWeb() {
   const audioOutputRef = useRef(audioOutput);
   const esp32IpRef = useRef(esp32Ip);
   const audioVolumeRef = useRef(audioVolume);
-  const trackWidthRef = useRef(200);
+  const soundCapsuleHeightRef = useRef(220);
+  const analyzingTimeoutRef = useRef(null);
+
+  // Animaciones para botón de activación
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const buttonPressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isConfigModalVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isConfigModalVisible, registerModal, unregisterModal]);
 
   useEffect(() => {
     audioOutputRef.current = audioOutput;
   }, [audioOutput]);
-
   useEffect(() => {
     esp32IpRef.current = esp32Ip;
   }, [esp32Ip]);
-
   useEffect(() => {
     audioVolumeRef.current = audioVolume;
   }, [audioVolume]);
 
-  // Cargar configuración guardada en localStorage
+  // Al entrar al intérprete, ocultar la barra de navegación en móviles
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedIp = localStorage.getItem('cokielens_ip');
-      if (savedIp) {
-        setEsp32Ip(savedIp);
-        setIpInput(savedIp);
-      }
-      const savedAudio = localStorage.getItem('cokielens_audio_output');
-      if (savedAudio) {
-        setAudioOutput(savedAudio);
-      }
-      const savedSource = localStorage.getItem('cokielens_video_source');
-      if (savedSource) {
-        setVideoSource(savedSource);
-      }
-      const savedVol = localStorage.getItem('cokielens_volume');
-      if (savedVol) {
-        const parsed = Number(savedVol);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
-          setAudioVolume(parsed);
-          audioVolumeRef.current = parsed;
-        }
-      }
+    if (isFocused && !isLargeScreen) {
+      setIsTabBarHidden(true);
+      return () => {
+        setIsTabBarHidden(false);
+      };
     }
-  }, []);
+  }, [isFocused, isLargeScreen, setIsTabBarHidden]);
 
-  // Función para desbloquear audio en navegadores al primer clic
-  const unlockWebAudio = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.resume();
-        const silentUtterance = new SpeechSynthesisUtterance('');
-        window.speechSynthesis.speak(silentUtterance);
-      } catch (e) {}
+  // Animación continua del botón de activación
+  useEffect(() => {
+    if (!isCameraActive) {
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1100,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1100,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+      return () => pulseLoop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isCameraActive, pulseAnim]);
+
+  // Cambiar idioma (Sistema de traducción i18n)
+  const toggleLanguage = () => {
+    const current = i18n?.language || 'es';
+    const nextLang = current.startsWith('es') ? 'en' : 'es';
+    i18n.changeLanguage(nextLang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', nextLang);
     }
   };
 
+  // Cargar configuración de localStorage en Web
   useEffect(() => {
-    if (!isFocused && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (typeof window !== 'undefined') {
+      try {
+        const savedIp = localStorage.getItem('cokielens_ip');
+        if (savedIp) {
+          setEsp32Ip(savedIp);
+          setIpInput(savedIp);
+        }
+        const savedAudio = localStorage.getItem('cokielens_audio_output');
+        if (savedAudio) setAudioOutput(savedAudio);
+        const savedSource = localStorage.getItem('cokielens_video_source');
+        if (savedSource) setVideoSource(savedSource);
+        const savedVol = localStorage.getItem('cokielens_volume');
+        if (savedVol) {
+          const parsed = Number(savedVol);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+            setAudioVolume(parsed);
+            audioVolumeRef.current = parsed;
+          }
+        }
+      } catch (e) {}
     }
+  }, []);
+
+  // Suscripción al estado de conexión de la IA
+  useEffect(() => {
+    if (!isFocused) return;
+    const updateStatus = (status) => setAiServerStatus(status);
+    WebSocketService.addStatusListener(updateStatus);
+    return () => WebSocketService.removeStatusListener(updateStatus);
   }, [isFocused]);
 
+  // WebSocket y oraciones formuladas
   useEffect(() => {
     if (!isFocused) return;
 
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
 
-    // ── GESTIÓN DE TRADUCCIÓN Y SALIDA DE AUDIO ──
+    const handleSentenceEvent = (eventType, data) => {
+      if (eventType === 'update') {
+        setIsAnalyzing(true);
+        if (data?.sentence) setCurrentSentence(data.sentence);
+        if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+        analyzingTimeoutRef.current = setTimeout(() => setIsAnalyzing(false), 3200);
+      } else if (eventType === 'complete') {
+        setIsAnalyzing(false);
+        if (data?.sentence) {
+          setCurrentSentence(data.sentence);
+          speakSentence(data.sentence);
+        }
+      } else if (eventType === 'cleared') {
+        setCurrentSentence('');
+        setIsAnalyzing(false);
+      }
+    };
+
     const handleTranslation = (text, rawData) => {
       let translatedText = text;
-      // Priorizar traducción bilingüe si el servidor envía metadata
+      const currentLang = i18n?.language || 'es';
+
       if (rawData && typeof rawData === 'object') {
-        if (i18n.language === 'en' && rawData.name_en) {
+        if (currentLang === 'en' && rawData.name_en) {
           translatedText = rawData.name_en;
         } else if (rawData.name_es) {
           translatedText = rawData.name_es;
@@ -168,159 +232,155 @@ export default function InterpreterScreenWeb() {
         if (i18nVal) {
           translatedText = i18nVal;
         } else {
-          // Limpiar formato técnico si es un gesto nuevo (ej: 'sign.puerta' -> 'Puerta')
           const raw = translatedText.replace('sign.', '').replace(/_/g, ' ');
           translatedText = raw.charAt(0).toUpperCase() + raw.slice(1);
         }
       }
 
       setLastTranslation(translatedText);
-      setSubtitleHistory(prev => {
-        if (prev.length > 0 && prev[0] === translatedText) return prev;
-        return [translatedText, ...prev].slice(0, 5);
-      });
-
-      if (lastSpokenRef.current === translatedText) {
-        return;
-      }
-      lastSpokenRef.current = translatedText;
-
-      // 1. SALIDA DE AUDIO: Navegador / Audífonos del dispositivo
-      if (audioOutputRef.current === 'browser') {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          try {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(translatedText);
-            const targetLang = i18n.language === 'en' ? 'en-US' : 'es-MX';
-            utterance.lang = targetLang;
-            const voices = window.speechSynthesis.getVoices();
-            const matchingVoice = voices.find(v => v.lang.startsWith(i18n.language === 'en' ? 'en' : 'es'));
-            if (matchingVoice) utterance.voice = matchingVoice;
-            utterance.rate = 1.0;
-            utterance.volume = audioVolumeRef.current / 100;
-            window.speechSynthesis.speak(utterance);
-            window.speechSynthesis.resume();
-          } catch (e) {
-            console.warn('Error en Web Speech:', e);
-          }
-        }
-      } 
-      // 2. SALIDA DE AUDIO: Lentes CokieLens (ESP32)
-      else if (audioOutputRef.current === 'glasses') {
-        try {
-          const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-          fetch(`http://${clean}/play`, {
-            method: 'POST',
-            body: translatedText,
-            headers: { 
-              'Content-Type': 'text/plain',
-              'X-Audio-Volume': String(audioVolumeRef.current)
-            }
-          }).catch(e => console.log('Envío a lentes:', e));
-        } catch (err) {
-          console.warn('Error enviando audio a los lentes:', err);
-        }
-      }
+      setIsAnalyzing(true);
+      if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+      analyzingTimeoutRef.current = setTimeout(() => setIsAnalyzing(false), 2800);
     };
 
     const handleLandmarks = (landmarksData) => {
       setLiveLandmarks(landmarksData);
+      if (landmarksData?.detected) {
+        setIsAnalyzing(true);
+        if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+        analyzingTimeoutRef.current = setTimeout(() => setIsAnalyzing(false), 2500);
+      }
     };
 
+    WebSocketService.addSentenceListener(handleSentenceEvent);
     WebSocketService.addListener(handleTranslation);
     WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
+      WebSocketService.removeSentenceListener(handleSentenceEvent);
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.removeLandmarksListener(handleLandmarks);
       WebSocketService.disconnect();
+      if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
     };
-  }, [isFocused, t, i18n.language]);
+  }, [isFocused, t, i18n]);
 
-  // ── GESTIÓN DE WEBCAM DEL NAVEGADOR ──
+  const speakSentence = (textToSpeak) => {
+    if (!textToSpeak || lastSpokenRef.current === textToSpeak) return;
+    lastSpokenRef.current = textToSpeak;
+
+    if (audioOutputRef.current === 'browser' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = i18n?.language === 'en' ? 'en-US' : 'es-MX';
+        utterance.volume = audioVolumeRef.current / 100;
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {}
+    } else if (audioOutputRef.current === 'glasses') {
+      try {
+        const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+        fetch(`http://${clean}/play`, {
+          method: 'POST',
+          body: textToSpeak,
+          headers: { 
+            'Content-Type': 'text/plain',
+            'X-Audio-Volume': String(audioVolumeRef.current)
+          }
+        }).catch(e => console.log('Envío a lentes:', e));
+      } catch (err) {}
+    }
+  };
+
+  // Inicializar o pausar Webcam
   useEffect(() => {
-    let currentStream = null;
+    let stream = null;
 
-    if (isFocused && isActive && videoSource === 'webcam') {
-      const constraints = {
-        video: { 
-          facingMode: facing === 'front' ? 'user' : 'environment',
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      };
-
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then((stream) => {
-          currentStream = stream;
-          setHasPermission(true);
+    if (isFocused && isCameraActive && videoSource === 'webcam') {
+      const startWebcam = async () => {
+        try {
+          const constraints = {
+            video: {
+              facingMode: facing,
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            },
+            audio: false
+          };
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.play().catch(e => console.warn('Auto-play error:', e));
+            videoRef.current.play();
+            setHasPermission(true);
+            setIsCameraReady(true);
           }
-        })
-        .catch((err) => {
-          console.error("Error pidiendo cámara en web:", err);
+        } catch (err) {
           setHasPermission(false);
-        });
+        }
+      };
+      startWebcam();
+    } else {
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      setIsCameraReady(false);
     }
 
     return () => {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
       }
     };
-  }, [isFocused, isActive, facing, videoSource]);
+  }, [isFocused, isCameraActive, videoSource, facing]);
 
-  // ── BUCLE 1: CAPTURA DESDE WEBCAM A TRAVÉS DE CANVAS ──
+  // Captura periódica de fotogramas Webcam
   useEffect(() => {
     let intervalId;
+    if (isFocused && isCameraActive && videoSource === 'webcam' && isCameraReady) {
+      if (!canvasRef.current && typeof document !== 'undefined') {
+        canvasRef.current = document.createElement('canvas');
+      }
 
-    if (isFocused && hasPermission && isActive && videoSource === 'webcam') {
       intervalId = setInterval(() => {
         if (!videoRef.current || isCapturingRef.current) return;
         const video = videoRef.current;
-        
-        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-          isCapturingRef.current = true;
-          try {
-            if (!canvasRef.current) {
-              canvasRef.current = document.createElement('canvas');
-            }
-            const canvas = canvasRef.current;
-            if (canvas.width !== 360) {
-              canvas.width = 360;
-              canvas.height = Math.round(360 * (video.videoHeight / video.videoWidth));
-            }
+        if (video.readyState < 2) return;
 
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.35);
-            const base64 = dataUrl.split(',')[1];
-            
-            if (base64) {
-              WebSocketService.sendFrame(base64);
-            }
-          } catch (e) {
-            console.warn('Error capturando frame web:', e);
-          } finally {
-            isCapturingRef.current = false;
+        isCapturingRef.current = true;
+        try {
+          const canvas = canvasRef.current;
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          const commaIdx = dataUrl.indexOf(',');
+          const base64 = commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
+          if (base64) {
+            WebSocketService.sendFrame(base64);
           }
+        } catch (e) {
+        } finally {
+          isCapturingRef.current = false;
         }
       }, 120);
     }
-
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isFocused, hasPermission, isActive, videoSource]);
+  }, [isFocused, isCameraActive, videoSource, isCameraReady]);
 
-  // ── BUCLE 2: CAPTURA FLUIDA DESDE LENTES COKIELENS (ESP32-CAM) EN WEB ──
+  // Captura periódica de fotogramas Lentes (ESP32)
   useEffect(() => {
     let intervalId;
     let consecutiveErrors = 0;
 
-    if (isFocused && isActive && videoSource === 'glasses') {
+    if (isFocused && isCameraActive && videoSource === 'glasses') {
       const cleanIp = esp32Ip.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim() || '192.168.4.1';
       const captureUrl = `http://${cleanIp}/capture`;
 
@@ -331,27 +391,18 @@ export default function InterpreterScreenWeb() {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 1400);
-
-          const res = await fetch(captureUrl, { 
-            signal: controller.signal,
-            cache: 'no-store' 
-          });
+          const response = await fetch(captureUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
 
-          if (res.ok) {
+          if (response.ok) {
             consecutiveErrors = 0;
             setGlassesConnected(true);
-            const blob = await res.blob();
+            const blob = await response.blob();
+            if (glassesBlobUrlRef.current) URL.revokeObjectURL(glassesBlobUrlRef.current);
+            const objectUrl = URL.createObjectURL(blob);
+            glassesBlobUrlRef.current = objectUrl;
+            setGlassesFrameUri(objectUrl);
 
-            // Actualizar vista previa en vivo liberando URL anterior
-            if (glassesBlobUrlRef.current) {
-              URL.revokeObjectURL(glassesBlobUrlRef.current);
-            }
-            const blobUrl = URL.createObjectURL(blob);
-            glassesBlobUrlRef.current = blobUrl;
-            setGlassesFrameUri(blobUrl);
-
-            // Conversión atómica garantizada a base64
             const base64Data = await new Promise((resolve) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result);
@@ -359,33 +410,18 @@ export default function InterpreterScreenWeb() {
               reader.readAsDataURL(blob);
             });
 
-            if (typeof base64Data === 'string' && base64Data.length > 50) {
-              const rawBase64 = base64Data.split(',')[1];
-              if (rawBase64) {
-                WebSocketService.sendFrame(rawBase64);
-              }
+            if (typeof base64Data === 'string') {
+              const commaIdx = base64Data.indexOf(',');
+              const rawBase64 = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
+              if (rawBase64) WebSocketService.sendFrame(rawBase64);
             }
           } else {
             consecutiveErrors++;
-            if (consecutiveErrors >= 3) {
-              setGlassesConnected(false);
-            }
+            if (consecutiveErrors >= 3) setGlassesConnected(false);
           }
-        } catch (e) {
+        } catch (err) {
           consecutiveErrors++;
-          if (consecutiveErrors >= 3) {
-            setGlassesConnected(false);
-            // Fallback automático si cokielens.local falla en la red local
-            if (cleanIp === 'cokielens.local') {
-              console.log('[CokieLens Web] Fallback automático a 192.168.4.1');
-              setEsp32Ip('192.168.4.1');
-              setIpInput('192.168.4.1');
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('cokielens_ip', '192.168.4.1');
-              }
-              consecutiveErrors = 0;
-            }
-          }
+          if (consecutiveErrors >= 3) setGlassesConnected(false);
         } finally {
           isCapturingRef.current = false;
         }
@@ -394,94 +430,56 @@ export default function InterpreterScreenWeb() {
 
     return () => {
       if (intervalId) clearInterval(intervalId);
-      if (glassesBlobUrlRef.current) {
-        URL.revokeObjectURL(glassesBlobUrlRef.current);
-        glassesBlobUrlRef.current = null;
-      }
+      if (glassesBlobUrlRef.current) URL.revokeObjectURL(glassesBlobUrlRef.current);
     };
-  }, [isFocused, isActive, videoSource, esp32Ip]);
+  }, [isFocused, isCameraActive, videoSource, esp32Ip]);
 
-  function toggleCameraType() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  }
+  const toggleCameraFacing = () => {
+    setFacing(prev => (prev === 'user' ? 'environment' : 'user'));
+  };
+
+  const handleToggleCameraActivation = () => {
+    Animated.sequence([
+      Animated.timing(buttonPressScale, { toValue: 0.92, duration: 100, useNativeDriver: true }),
+      Animated.spring(buttonPressScale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
+    ]).start();
+    setIsCameraActive(prev => !prev);
+  };
 
   const handleSaveIp = () => {
     let clean = ipInput.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
     if (!clean) clean = '192.168.4.1';
     setEsp32Ip(clean);
     setIpInput(clean);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cokielens_ip', clean);
-    }
+    if (typeof window !== 'undefined') localStorage.setItem('cokielens_ip', clean);
     setIsConfigModalVisible(false);
   };
 
   const handleTestConnection = async () => {
     setIsTestingConnection(true);
     setTestResult(null);
-
-    // Advertencia amigable si la página web corre bajo HTTPS
-    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    if (isHttps) {
-      setIsTestingConnection(false);
-      setTestResult({ 
-        success: false, 
-        message: 'Aviso Navegador HTTPS: Los navegadores restringen peticiones fetch hacia IPs locales no cifradas (192.168.4.1). Abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS para conectarte a los lentes.' 
-      });
-      return;
-    }
-
     try {
-      let clean = ipInput.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+      let clean = ipInput.replace('http://', '').replace('/', '').trim();
       if (!clean) clean = '192.168.4.1';
-
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      let res;
-      try {
-        res = await fetch(`http://${clean}/status`, { signal: controller.signal });
-      } catch (err) {
-        if (clean === 'cokielens.local') {
-          clean = '192.168.4.1';
-          const retryController = new AbortController();
-          const retryTimeout = setTimeout(() => retryController.abort(), 3500);
-          res = await fetch(`http://${clean}/status`, { signal: retryController.signal });
-          clearTimeout(retryTimeout);
-          setIpInput(clean);
-          setEsp32Ip(clean);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('cokielens_ip', clean);
-          }
-        } else {
-          throw err;
-        }
-      }
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(`http://${clean}/status`, { signal: controller.signal });
       clearTimeout(timeoutId);
+
       if (res && res.ok) {
         const json = await res.json();
-        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (${json.ip || clean})` });
+        setTestResult({ 
+          success: true, 
+          message: t('interpreter.connectedToDevice', { device: json.device || 'CokieLens', ip: json.ip || clean, defaultValue: `Conectado a ${json.device || 'CokieLens'} (${json.ip || clean})` })
+        });
         setGlassesConnected(true);
       } else {
-        setTestResult({ success: false, message: 'Respuesta inválida del dispositivo' });
+        setTestResult({ success: false, message: t('interpreter.invalidDeviceResponse', 'Respuesta inválida del dispositivo') });
       }
     } catch (e) {
-      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.' });
+      setTestResult({ success: false, message: t('interpreter.connectionFailedCheckWifi', 'No se pudo conectar. Verifica que estés en el Wi-Fi de los lentes o que la IP sea correcta.') });
     } finally {
       setIsTestingConnection(false);
-    }
-  };
-
-  const selectVideoSource = (source) => {
-    setVideoSource(source);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cokielens_video_source', source);
-    }
-  };
-
-  const selectAudioOutput = (output) => {
-    setAudioOutput(output);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cokielens_audio_output', output);
     }
   };
 
@@ -489,392 +487,432 @@ export default function InterpreterScreenWeb() {
     const clamped = Math.max(0, Math.min(100, Math.round(newVol)));
     setAudioVolume(clamped);
     audioVolumeRef.current = clamped;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cokielens_volume', String(clamped));
-    }
-    const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-    if (clean) {
-      fetch(`http://${clean}/volume?level=${clamped}`, { method: 'POST' }).catch(() => {});
-    }
+    if (typeof window !== 'undefined') localStorage.setItem('cokielens_volume', String(clamped));
   };
 
-  const handleSliderTouch = (evt) => {
-    const locationX = evt.nativeEvent.locationX;
-    const width = trackWidthRef.current || 200;
-    const ratio = Math.max(0, Math.min(1, locationX / width));
-    updateVolume(ratio * 100);
+  const handleIPhoneSliderTouch = (evt) => {
+    const locationY = evt.nativeEvent.locationY;
+    const totalHeight = soundCapsuleHeightRef.current || 220;
+    const fillRatio = Math.max(0, Math.min(1, (totalHeight - locationY) / totalHeight));
+    updateVolume(fillRatio * 100);
   };
 
-  const handleTestAudio = () => {
-    const testText = t('interpreter.testAudioPhrase', { 
-      volume: audioVolume, 
-      defaultValue: `Prueba de audio CokieLens al ${audioVolume} por ciento` 
-    });
-
-    if (audioOutput === 'browser') {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(testText);
-          utterance.lang = i18n.language === 'en' ? 'en-US' : 'es-MX';
-          utterance.volume = audioVolume / 100;
-          window.speechSynthesis.speak(utterance);
-          window.speechSynthesis.resume();
-        } catch (e) {
-          console.warn('Error en Web Speech:', e);
-        }
-      }
-    } else {
-      try {
-        const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-        fetch(`http://${clean}/play`, {
-          method: 'POST',
-          body: testText,
-          headers: { 
-            'Content-Type': 'text/plain',
-            'X-Audio-Volume': String(audioVolume)
-          }
-        }).catch(e => console.log('Envío a lentes:', e));
-      } catch (err) {
-        console.warn('Error enviando audio a los lentes:', err);
-      }
-    }
-  };
-
-  if (hasPermission === null && videoSource === 'webcam') {
-    return <View style={styles.container} />;
-  }
-  
-  if (hasPermission === false && videoSource === 'webcam') {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.text}>{t('interpreter.noPermission', 'No hay permisos de cámara o no se encontró webcam')}</Text>
-      </View>
-    );
-  }
-
-  const cleanIp = esp32Ip.replace('http://', '').replace('/', '');
+  const displayedText = currentSentence || lastTranslation || '';
+  const currentLangCode = (i18n?.language || 'es').startsWith('es') ? 'ES' : 'EN';
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: '' }} />
+      <Stack.Screen options={{ headerShown: false }} />
 
-      {/* ── BARRA DE CONTROL SUPERIOR (CÁMARA Y AUDIO) ── */}
-      <View style={styles.controlBar}>
-        {/* Selector de Entrada de Video */}
-        <View style={styles.segmentedControl}>
+      {/* ── BARRA SUPERIOR: [ IDIOMA / TRADUCIR ] | [ WEBCAM / LENTES ] | [ MODO OSCURO / CLARO ] [ AJUSTES ] ── */}
+      <View style={styles.topBar}>
+        <TouchableOpacity 
+          style={styles.languagePillButton}
+          onPress={toggleLanguage}
+          activeOpacity={0.7}
+          accessibilityLabel={t('interpreter.switchLanguage', 'Cambiar idioma')}
+        >
+          <Languages size={17} color={isDark ? '#F1F5F9' : '#0F172A'} style={{ marginRight: 5 }} />
+          <Text style={styles.languagePillText}>{currentLangCode}</Text>
+        </TouchableOpacity>
+
+        <View style={styles.segmentedCapsule}>
           <TouchableOpacity 
-            style={[styles.segmentBtn, videoSource === 'webcam' && styles.segmentBtnActive]}
-            onPress={() => { unlockWebAudio(); selectVideoSource('webcam'); }}
+            style={[styles.segmentPill, videoSource === 'webcam' && styles.segmentPillActive]}
+            onPress={() => setVideoSource('webcam')}
+            activeOpacity={0.8}
           >
-            <Monitor size={15} color={videoSource === 'webcam' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, videoSource === 'webcam' && styles.segmentTxtActive]}>
+            <Text style={[styles.segmentPillText, videoSource === 'webcam' && styles.segmentPillTextActive]}>
               {t('interpreter.sourceWebcamTab', 'Webcam')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.segmentBtn, videoSource === 'glasses' && styles.segmentBtnActive]}
-            onPress={() => { unlockWebAudio(); selectVideoSource('glasses'); }}
+            style={[styles.segmentPill, videoSource === 'glasses' && styles.segmentPillActive]}
+            onPress={() => setVideoSource('glasses')}
+            activeOpacity={0.8}
           >
-            <Glasses size={16} color={videoSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, videoSource === 'glasses' && styles.segmentTxtActive]}>
+            <Text style={[styles.segmentPillText, videoSource === 'glasses' && styles.segmentPillTextActive]}>
               {t('interpreter.sourceGlassesTab', 'Lentes')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Selector de Salida de Audio */}
-        <View style={styles.segmentedControl}>
+        <View style={styles.topRightActions}>
           <TouchableOpacity 
-            style={[styles.segmentBtn, audioOutput === 'browser' && styles.segmentBtnActive]}
-            onPress={() => { unlockWebAudio(); selectAudioOutput('browser'); }}
+            style={styles.topBarIconButton}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+            accessibilityLabel={isDark ? t('interpreter.themeLight', 'Modo claro') : t('interpreter.themeDark', 'Modo oscuro')}
           >
-            <Volume2 size={15} color={audioOutput === 'browser' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, audioOutput === 'browser' && styles.segmentTxtActive]}>
-              {t('interpreter.audioSpeakerTab', 'Altavoz')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.segmentBtn, audioOutput === 'glasses' && styles.segmentBtnActive]}
-            onPress={() => { unlockWebAudio(); selectAudioOutput('glasses'); }}
-          >
-            <Headphones size={15} color={audioOutput === 'glasses' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, audioOutput === 'glasses' && styles.segmentTxtActive]}>
-              {t('interpreter.audioGlassesTab', 'Lentes')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Botón de Ajustes de Lentes */}
-        <TouchableOpacity 
-          style={styles.settingsIconBtn} 
-          onPress={() => setIsConfigModalVisible(true)}
-        >
-          <Settings size={18} color="#FFF" />
-          {videoSource === 'glasses' && (
-            <View style={[styles.statusDot, { backgroundColor: glassesConnected ? '#10b981' : '#ef4444' }]} />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* ── ÁREA DE VIDEO ── */}
-      <View style={styles.cameraContainer}>
-        {videoSource === 'webcam' ? (
-          <>
-            <video 
-              ref={videoRef}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              autoPlay
-              playsInline
-              muted
-            />
-            <TouchableOpacity onPress={() => { unlockWebAudio(); toggleCameraType(); }} style={styles.floatingRotateButton}>
-              <SwitchCamera color="#fff" size={24} />
-            </TouchableOpacity>
-          </>
-        ) : (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#020617', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {glassesFrameUri ? (
-              <img 
-                src={glassesFrameUri}
-                alt="CokieLens Feed"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+            {isDark ? (
+              <Sun size={20} color="#F1F5F9" />
             ) : (
-              <View style={styles.glassesPlaceholder}>
-                <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={styles.glassesPlaceholderText}>
-                  {t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes CokieLens en ${esp32Ip}...` })}
-                </Text>
-              </View>
+              <Moon size={20} color="#0F172A" />
             )}
+          </TouchableOpacity>
 
-            <View style={styles.glassesBadge}>
-              <Glasses size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-              <Text style={styles.glassesBadgeText}>
-                {glassesConnected ? 'Lentes CokieLens en Vivo' : 'Buscando Lentes...'}
-              </Text>
-              <View style={[styles.miniDot, { backgroundColor: glassesConnected ? '#10b981' : '#ef4444' }]} />
-            </View>
-          </div>
-        )}
-
-        {/* Trazado de esqueleto y puntos en tiempo real (Manos y Pose) */}
-        <SkeletonOverlay
-          landmarks={liveLandmarks}
-          mirrored={videoSource === 'webcam' && facing === 'front'}
-          active={isActive && isFocused}
-        />
-
-        {/* Subtítulos gigantes (elevado por encima de la TabBar) */}
-        <View style={[styles.subtitleOverlay, { bottom: subtitleBottomOffset }]}>
-          <View style={styles.subtitleHeader}>
-            <Volume2 color="#10b981" size={18} />
-            <Text style={styles.subtitleHeaderTitle}>
-              {liveLandmarks?.detected
-                ? (liveLandmarks.is_static ? 'SEÑA DETECTADA (IA LOCAL)' : 'RASTREANDO GESTOS...')
-                : t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}
-            </Text>
-          </View>
-
-          {lastTranslation ? (
-            <Text style={styles.subtitleMainText}>
-              "{lastTranslation}"
-            </Text>
-          ) : (
-            <Text style={styles.subtitlePlaceholder}>
-              {t('interpreter.waitingGestures', 'Esperando señas o movimientos...')}
-            </Text>
-          )}
-
-          {subtitleHistory.length > 1 && (
-            <View style={styles.historyContainer}>
-              <Text style={styles.historyText} numberOfLines={1}>
-                {t('interpreter.previousSubtitles', { history: subtitleHistory.slice(1).join(' • '), defaultValue: `Anterior: ${subtitleHistory.slice(1).join(' • ')}` })}
-              </Text>
-            </View>
-          )}
+          <TouchableOpacity 
+            style={styles.topBarIconButton} 
+            onPress={() => setIsConfigModalVisible(true)}
+            activeOpacity={0.7}
+            accessibilityLabel={t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}
+          >
+            <Settings size={20} color={isDark ? '#F1F5F9' : '#0F172A'} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── MODAL DE CONFIGURACIÓN DE LOS LENTES (ESP32-CAM) ── */}
-      <Modal
-        visible={isConfigModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsConfigModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
-              <Text style={styles.modalTitle}>{t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}</Text>
-            </View>
-
-            {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
-              <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', borderWidth: 1, borderColor: '#ef4444', borderRadius: 8, padding: 8, marginBottom: 12 }}>
-                <Text style={{ color: '#f87171', fontSize: 11, lineHeight: 15 }}>
-                  Aviso - Navegador en HTTPS: Los navegadores restringen llamadas hacia IPs locales HTTP (192.168.4.1). Para conectar tus lentes en web, abre la app vía HTTP (http://localhost:8081) o usa la app Android/iOS.
-                </Text>
-              </View>
-            )}
-
-            <Text style={styles.modalHelp}>
-              {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida:')}
-            </Text>
-
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-              <TouchableOpacity 
-                onPress={() => setIpInput('192.168.4.1')}
-                style={{
-                  flex: 1,
-                  paddingVertical: 7,
-                  paddingHorizontal: 8,
-                  backgroundColor: ipInput === '192.168.4.1' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: ipInput === '192.168.4.1' ? '#38bdf8' : 'transparent',
-                  alignItems: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>192.168.4.1</Text>
-                <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.wifiApLabel', 'Wi-Fi de Lentes (AP)')}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => setIpInput('cokielens.local')}
-                style={{
-                  flex: 1,
-                  paddingVertical: 7,
-                  paddingHorizontal: 8,
-                  backgroundColor: ipInput === 'cokielens.local' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: ipInput === 'cokielens.local' ? '#38bdf8' : 'transparent',
-                  alignItems: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>cokielens.local</Text>
-                <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.mdnsLocalLabel', 'mDNS Local')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              value={ipInput}
-              onChangeText={setIpInput}
-              placeholder="Ej: 192.168.4.1 o 192.168.1.50"
-              placeholderTextColor="#94a3b8"
-            />
-
-            {testResult && (
-              <View style={[styles.testBadge, testResult.success ? styles.testSuccess : styles.testFail]}>
-                {testResult.success ? <Check size={16} color="#10b981" /> : <AlertCircle size={16} color="#ef4444" />}
-                <Text style={styles.testBadgeText}>{testResult.message}</Text>
-              </View>
-            )}
-
-            {/* Control de Volumen (Voz / Audífono de Lentes) */}
-            <View style={styles.volumeCard}>
-              <View style={styles.volumeHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  {audioVolume === 0 ? (
-                    <VolumeX size={16} color="#ef4444" />
-                  ) : (
-                    <Volume1 size={16} color="#38bdf8" />
-                  )}
-                  <Text style={styles.volumeTitle}>{t('interpreter.volumeLabel', 'Volumen de Audífono / Voz')}</Text>
-                </View>
-                <View style={styles.volumeBadge}>
-                  <Text style={styles.volumeBadgeText}>{audioVolume}%</Text>
-                </View>
-              </View>
-
-              {/* Slider interactivo */}
-              <View style={styles.sliderRow}>
-                <TouchableOpacity 
-                  style={styles.stepBtn}
-                  onPress={() => updateVolume(audioVolume - 10)}
-                  activeOpacity={0.7}
-                >
-                  <Minus size={14} color="#FFF" />
-                </TouchableOpacity>
-
-                <View 
-                  style={[styles.trackContainer, { cursor: 'pointer' }]}
-                  onLayout={(e) => {
-                    trackWidthRef.current = e.nativeEvent.layout.width;
-                  }}
-                  onStartShouldSetResponder={() => true}
-                  onMoveShouldSetResponder={() => true}
-                  onResponderGrant={handleSliderTouch}
-                  onResponderMove={handleSliderTouch}
-                >
-                  <View style={styles.trackBackground} />
-                  <View style={[styles.trackFill, { width: `${audioVolume}%` }]} />
-                  <View style={[styles.thumb, { left: `${Math.max(0, Math.min(94, audioVolume - 4))}%` }]} />
-                </View>
-
-                <TouchableOpacity 
-                  style={styles.stepBtn}
-                  onPress={() => updateVolume(audioVolume + 10)}
-                  activeOpacity={0.7}
-                >
-                  <Plus size={14} color="#FFF" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Presets de Volumen */}
-              <View style={styles.presetRow}>
-                {[0, 25, 50, 75, 100].map((val) => (
-                  <TouchableOpacity
-                    key={val}
-                    style={[styles.presetBtn, audioVolume === val && styles.presetBtnActive]}
-                    onPress={() => updateVolume(val)}
+      {/* ── CONTENIDO PRINCIPAL: HORIZONTAL EN DISPOSITIVOS GRANDES / VERTICAL EN TELÉFONOS ── */}
+      <View style={[styles.mainLayout, isLargeScreen && styles.mainLayoutLarge]}>
+        <View style={[styles.cameraWrapper, isLargeScreen && styles.cameraWrapperLarge]}>
+          <View style={styles.cameraFrame}>
+            {isCameraActive ? (
+              videoSource === 'webcam' ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transform: facing === 'user' ? 'scaleX(-1)' : 'none'
+                    }}
+                  />
+                  {/* UN SOLO CÍRCULO PARA INVERTIR CÁMARA */}
+                  <TouchableOpacity 
+                    onPress={toggleCameraFacing} 
+                    style={styles.floatingFlipCircle}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, audioVolume === val && styles.presetTextActive]}>
-                      {val === 0 ? 'Mute' : `${val}%`}
-                    </Text>
+                    <SwitchCamera color="#FFFFFF" size={20} />
                   </TouchableOpacity>
-                ))}
+
+                  <TouchableOpacity 
+                    onPress={() => setIsCameraActive(false)} 
+                    style={styles.floatingPauseCircle}
+                    activeOpacity={0.7}
+                  >
+                    <VideoOff color="#FFFFFF" size={17} />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.glassesLiveContainer}>
+                  {glassesFrameUri ? (
+                    <Image source={{ uri: glassesFrameUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.glassesWaitingBox}>
+                      <ActivityIndicator size="large" color="#426BC2" />
+                      <Text style={styles.glassesWaitingText}>
+                        {glassesConnected 
+                          ? t('interpreter.receivingGlassesVideo', 'Recibiendo video de CokieLens...') 
+                          : t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes en ${esp32Ip}...` })}
+                      </Text>
+                    </View>
+                  )}
+                  <TouchableOpacity 
+                    onPress={() => setIsCameraActive(false)} 
+                    style={styles.floatingPauseCircle}
+                    activeOpacity={0.7}
+                  >
+                    <VideoOff color="#FFFFFF" size={17} />
+                  </TouchableOpacity>
+                </View>
+              )
+            ) : (
+              <View style={styles.cameraInactiveContainer}>
+                <View style={styles.inactiveIconCircle}>
+                  <Video size={40} color={isDark ? '#426BC2' : '#132472'} />
+                </View>
+                <Text style={styles.inactiveTitle}>
+                  {videoSource === 'webcam' 
+                    ? t('interpreter.deviceCamera', 'Cámara de Dispositivo') 
+                    : t('interpreter.sourceGlasses', 'Lentes CokieLens')}
+                </Text>
+                <Text style={styles.inactiveSubtitle}>
+                  {videoSource === 'webcam' 
+                    ? t('interpreter.activateCameraDesc', 'Activa la cámara para comenzar la interpretación de señas en tiempo real')
+                    : t('interpreter.readySyncGlasses', { ip: esp32Ip, defaultValue: `Listo para sincronizar con ESP32-CAM en ${esp32Ip}` })}
+                </Text>
+
+                <Animated.View style={{ transform: [{ scale: Animated.multiply(pulseAnim, buttonPressScale) }] }}>
+                  <TouchableOpacity
+                    style={styles.activateButton}
+                    onPress={handleToggleCameraActivation}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['#132472', '#426BC2']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.activateButtonGradient}
+                    >
+                      <Video size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.activateButtonText}>
+                        {t('interpreter.activateCamera', 'Activar Cámara')}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            )}
+
+            <SkeletonOverlay
+              landmarks={liveLandmarks}
+              mirrored={videoSource === 'webcam' && facing === 'user'}
+              active={isCameraActive && isFocused}
+            />
+          </View>
+        </View>
+
+        {/* ── CAJA DE TRADUCCIÓN (HORIZONTAL EN DISPOSITIVOS GRANDES / SIN SOMBRA Y BORDE 0.5PX EN TELÉFONOS) ── */}
+        <View style={[styles.translationCard, isLargeScreen && styles.translationCardLarge]}>
+          <View style={styles.translationCardHeader}>
+            <Text style={styles.translationHeaderStatus}>
+              {isAnalyzing 
+                ? t('interpreter.detectingSigns', 'Detectando señas...') 
+                : t('interpreter.readyToTranslate', 'Listo para traducir')}
+            </Text>
+            {displayedText ? (
+              <TouchableOpacity onPress={() => WebSocketService.clearSentence()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <RotateCcw size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <View style={styles.cardDivider} />
+
+          <View style={[styles.translationCardBody, isLargeScreen && styles.translationCardBodyLarge]}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+            >
+              <Text 
+                style={[styles.translationMainSentence, isLargeScreen && styles.translationMainSentenceLarge]} 
+                numberOfLines={isLargeScreen ? 6 : 3}
+              >
+                {displayedText ? `“${displayedText}”` : t('interpreter.waitingGestures', '“Esperando señas o movimientos...”')}
+              </Text>
+            </ScrollView>
+
+            <View style={styles.translationStatusRow}>
+              {isAnalyzing ? (
+                <>
+                  <View style={styles.statusIconSlot}>
+                    <Activity size={16} color="#426BC2" />
+                  </View>
+                  <Text style={styles.translationStatusLabel}>
+                    {t('interpreter.detectingSigns', 'Detectando señas...')}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.statusIconSlot}>
+                    <CheckCircle2 size={16} color="#10B981" />
+                  </View>
+                  <Text style={[styles.translationStatusLabel, { color: '#10B981' }]}>
+                    {t('interpreter.readyToTranslate', 'Listo para traducir')}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ── TRIGGER INFERIOR PARA REVELAR TABBAR EN MÓVIL ── */}
+      {!isLargeScreen && (
+        <TouchableOpacity 
+          style={styles.bottomNavTrigger}
+          onPress={() => setIsTabBarHidden(!isTabBarHidden)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.bottomNavIndicatorBar} />
+        </TouchableOpacity>
+      )}
+
+      {/* ── MODAL FULLSCREEN DE AJUSTES (COKIELENS - MOCKUP 2) ── */}
+      <Modal
+        visible={isConfigModalVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setIsConfigModalVisible(false)}
+      >
+        <View style={styles.fullscreenModalContainer}>
+          <View style={styles.modalHeaderRow}>
+            <View style={styles.modalTitleContainer}>
+              <Text style={styles.modalBrandTitle}>CokieLens</Text>
+              <View 
+                style={[
+                  styles.modalStatusDot, 
+                  { backgroundColor: glassesConnected ? '#10B981' : '#EF4444' }
+                ]} 
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setIsConfigModalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <X size={22} color={isDark ? '#F1F5F9' : '#0F172A'} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.topCardsRow}>
+            <View style={styles.glassesCard}>
+              <Image 
+                source={require('../../assets/glasses.png')} 
+                style={styles.glassesImage} 
+                resizeMode="contain" 
+              />
+            </View>
+
+            {/* Slider de sonido vertical estilo iPhone */}
+            <View 
+              style={styles.soundCapsule}
+              onLayout={(e) => {
+                soundCapsuleHeightRef.current = e.nativeEvent.layout.height;
+              }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={handleIPhoneSliderTouch}
+              onResponderMove={handleIPhoneSliderTouch}
+            >
+              <View style={[styles.soundFillBar, { height: `${audioVolume}%` }]}>
+                <LinearGradient
+                  colors={['#426BC2', '#132472']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                {audioVolume >= 12 && (
+                  <Text style={styles.soundPercentageTextInside}>{audioVolume}%</Text>
+                )}
               </View>
 
-              {/* Botón Probar Sonido */}
-              <TouchableOpacity 
-                style={styles.testAudioBtn}
-                onPress={handleTestAudio}
-                activeOpacity={0.8}
-              >
-                <Volume2 size={15} color="#38bdf8" style={{ marginRight: 6 }} />
-                <Text style={styles.testAudioBtnText}>{t('interpreter.testAudioBtn', 'Probar Sonido')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.testBtn} 
-                onPress={handleTestConnection}
-                disabled={isTestingConnection}
-              >
-                {isTestingConnection ? (
-                  <ActivityIndicator size="small" color="#38bdf8" />
+              <View style={styles.soundIconContainer} pointerEvents="none">
+                {audioVolume === 0 ? (
+                  <VolumeX size={22} color={isDark ? '#94A3B8' : '#64748B'} />
                 ) : (
-                  <>
-                    <Wifi size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-                    <Text style={styles.testBtnText}>{t('interpreter.testConnectionBtn', 'Probar Conexión')}</Text>
-                  </>
+                  <Volume2 size={22} color="#FFFFFF" />
                 )}
-              </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                <Text style={styles.saveBtnText}>{t('common.save', 'Guardar')}</Text>
-              </TouchableOpacity>
+              {audioVolume < 12 && (
+                <View style={styles.soundPercentageContainerBelow} pointerEvents="none">
+                  <Text style={styles.soundPercentageTextBelow}>{audioVolume}%</Text>
+                </View>
+              )}
             </View>
+          </View>
+
+          <Text style={styles.modalInstructionText}>
+            {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida')}
+          </Text>
+
+          <View style={styles.quickIpSegmentContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.quickIpPill, 
+                ipInput === '192.168.4.1' && styles.quickIpPillActive
+              ]}
+              onPress={() => setIpInput('192.168.4.1')}
+              activeOpacity={0.8}
+            >
+              <Text 
+                style={[
+                  styles.quickIpPillText, 
+                  ipInput === '192.168.4.1' && styles.quickIpPillTextActive
+                ]}
+              >
+                {t('interpreter.wifiGlasses', 'Wi-Fi de lentes')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.quickIpPill, 
+                ipInput === 'cokielens.local' && styles.quickIpPillActive
+              ]}
+              onPress={() => setIpInput('cokielens.local')}
+              activeOpacity={0.8}
+            >
+              <Text 
+                style={[
+                  styles.quickIpPillText, 
+                  ipInput === 'cokielens.local' && styles.quickIpPillTextActive
+                ]}
+              >
+                {t('interpreter.mdnsLocal', 'mDNS Local')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.ipInputContainer}>
+            <TextInput
+              style={styles.ipInputField}
+              value={ipInput}
+              onChangeText={setIpInput}
+              placeholder="192.168.4.1"
+              placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+              keyboardType="default"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          {testResult && (
+            <View 
+              style={[
+                styles.testResultBadge, 
+                testResult.success ? styles.testSuccess : styles.testFail
+              ]}
+            >
+              {testResult.success ? (
+                <Check size={16} color="#10B981" />
+              ) : (
+                <AlertCircle size={16} color="#EF4444" />
+              )}
+              <Text style={styles.testResultBadgeText}>{testResult.message}</Text>
+            </View>
+          )}
+
+          <View style={styles.modalFooterActions}>
+            <TouchableOpacity 
+              style={styles.testGhostButton}
+              onPress={handleTestConnection}
+              disabled={isTestingConnection}
+              activeOpacity={0.7}
+            >
+              {isTestingConnection ? (
+                <ActivityIndicator size="small" color="#426BC2" />
+              ) : (
+                <Text style={styles.testGhostButtonText}>
+                  {t('interpreter.testConnectionBtn', 'Probar conexión')}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.saveGradientButtonContainer}
+              onPress={handleSaveIp}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#132472', '#426BC2']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveGradientButton}
+              >
+                <Text style={styles.saveGradientButtonText}>
+                  {t('common.save', 'Guardar')}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -882,255 +920,465 @@ export default function InterpreterScreenWeb() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  text: { color: Colors.text.primary },
-
-  // Barra de control superior
-  controlBar: {
+// ── ESTILOS ADAPTADOS (PALETA IA TRAINING + LAYOUT RESPONSIVO HORIZONTAL) ───────
+const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: isDark ? '#141414' : '#F8FAFC',
+    paddingTop: Math.max(insets.top, 16),
+    maxWidth: isLargeScreen ? 1120 : '100%',
+    width: '100%',
+    alignSelf: 'center',
+  },
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#0B1956',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 16,
-    padding: 2,
-  },
-  segmentBtn: {
+  languagePillButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
   },
-  segmentBtnActive: {
-    backgroundColor: '#3b82f6',
-  },
-  segmentTxt: {
-    color: 'rgba(255,255,255,0.7)',
+  languagePillText: {
     fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
+    fontWeight: '700',
+    color: isDark ? '#F1F5F9' : '#0F172A',
   },
-  segmentTxtActive: {
-    color: '#FFF',
+  segmentedCapsule: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    padding: 3,
+    width: 190,
   },
-  settingsIconBtn: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    position: 'relative',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    position: 'absolute',
-    top: 3,
-    right: 3,
-  },
-
-  cameraContainer: { flex: 1, overflow: 'hidden', position: 'relative' },
-  glassesPlaceholder: {
+  segmentPill: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
   },
-  glassesPlaceholderText: {
-    color: '#94a3b8',
+  segmentPillActive: {
+    backgroundColor: isDark ? '#FFFFFF' : '#0F172A',
+  },
+  segmentPillText: {
     fontSize: 13,
-    marginTop: 12,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
   },
-  glassesBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
+  segmentPillTextActive: {
+    color: isDark ? '#000000' : '#FFFFFF',
+    fontWeight: '700',
+  },
+  topRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    gap: 8,
   },
-  glassesBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginRight: 8,
+  topBarIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
   },
-  miniDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+
+  // Contenedor Principal (Vertical en Móvil, Horizontal en PC/Tablets)
+  mainLayout: {
+    flex: 1,
+    flexDirection: 'column',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
   },
-  floatingRotateButton: {
+  mainLayoutLarge: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 16,
+    paddingBottom: Math.max(insets.bottom, 16),
+  },
+
+  // Marco de Cámara
+  cameraWrapper: {
+    flex: 1,
+    paddingBottom: 12,
+  },
+  cameraWrapperLarge: {
+    flex: 1.35,
+    paddingBottom: 0,
+    minHeight: 460,
+  },
+  cameraFrame: {
+    flex: 1,
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+
+  // Controles dentro de la cámara activa
+  floatingFlipCircle: {
     position: 'absolute',
     top: 16,
     right: 16,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(11, 25, 86, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 20,
+  },
+  floatingPauseCircle: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 20,
   },
 
-  // Subtítulos
-  subtitleOverlay: {
-    position: 'absolute',
-    bottom: 96,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(11, 25, 86, 0.88)',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  subtitleHeader: {
-    flexDirection: 'row',
+  // Estado Inactivo de Cámara
+  cameraInactiveContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  subtitleHeaderTitle: {
-    color: '#10b981',
-    fontWeight: 'bold',
-    fontSize: 11,
-    letterSpacing: 1,
-    marginLeft: 6,
-  },
-  subtitleMainText: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 4,
-  },
-  subtitlePlaceholder: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginVertical: 6,
-  },
-  historyContainer: {
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 6,
-  },
-  historyText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  // Footer
-  footer: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  micButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#10b981',
     justifyContent: 'center',
+    padding: 30,
+  },
+  inactiveIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
     alignItems: 'center',
-    marginBottom: 6,
-    shadowColor: '#10b981',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  },
+  inactiveTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: isDark ? '#F1F5F9' : '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  inactiveSubtitle: {
+    fontSize: 13,
+    color: isDark ? '#94A3B8' : '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 24,
+    maxWidth: 280,
+  },
+  activateButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#132472',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 6,
   },
-  micButtonDisabled: {
-    backgroundColor: '#64748b',
+  activateButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
-  footerText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.text.secondary,
+  activateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 
-  // Modal
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
+  // Contenedor Live Lentes
+  glassesLiveContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassesWaitingBox: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  glassesWaitingText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+
+  // Caja de Traducción (Sin sombra en móvil, borde 0.5px gris #8B8B90, horizontal en PC)
+  translationCard: {
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    overflow: 'hidden',
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    marginBottom: 6,
+  },
+  translationCardLarge: {
+    flex: 1,
+    marginBottom: 0,
+    justifyContent: 'space-between',
+    minHeight: 460,
+  },
+  translationCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  translationHeaderStatus: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  cardDivider: {
+    height: 0.5,
+    backgroundColor: '#8B8B90',
+  },
+  translationCardBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  translationCardBodyLarge: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    justifyContent: 'space-between',
+  },
+  translationMainSentence: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: isDark ? '#FFFFFF' : '#0F172A',
+    marginBottom: 14,
+    lineHeight: 28,
+  },
+  translationMainSentenceLarge: {
+    fontSize: 26,
+    lineHeight: 36,
+  },
+  translationStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  statusIconSlot: {
+    marginRight: 8,
+  },
+  translationStatusLabel: {
+    fontSize: 12,
+    color: isDark ? '#94A3B8' : '#64748B',
+    fontWeight: '500',
+  },
+
+  // Trigger interactivo inferior para revelar TabBar en móvil
+  bottomNavTrigger: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingBottom: Math.max(insets.bottom, 10),
+  },
+  bottomNavIndicatorBar: {
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+  },
+
+  // Modal Fullscreen CokieLens
+  fullscreenModalContainer: {
+    flex: 1,
+    backgroundColor: isDark ? '#141414' : '#F8FAFC',
+    paddingTop: Math.max(insets.top, 20),
+    paddingHorizontal: 22,
+    paddingBottom: Math.max(insets.bottom, 24),
+    maxWidth: isLargeScreen ? 560 : '100%',
+    width: '100%',
+    alignSelf: 'center',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalBrandTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: isDark ? '#FFFFFF' : '#0F172A',
+    marginRight: 10,
+    letterSpacing: -0.5,
+  },
+  modalStatusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+  },
+  topCardsRow: {
+    flexDirection: 'row',
+    gap: 14,
+    marginBottom: 24,
+    height: 220,
+  },
+  glassesCard: {
+    flex: 1,
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+  glassesImage: {
+    width: '90%',
+    height: '80%',
+  },
+  soundCapsule: {
+    width: 72,
+    height: '100%',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'flex-end',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+  soundFillBar: {
+    position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    zIndex: 99999,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  soundIconContainer: {
+    position: 'absolute',
+    top: 24,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    padding: 20,
+    zIndex: 10,
   },
-  modalCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 20,
-    padding: 22,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 17,
+  soundPercentageTextInside: {
+    color: '#FFFFFF',
     fontWeight: 'bold',
-    color: theme === 'dark' ? '#ffffff' : '#0f172a',
-  },
-  modalHelp: {
     fontSize: 13,
-    color: theme === 'dark' ? '#94a3b8' : '#64748b',
-    marginBottom: 14,
-    lineHeight: 18,
+    marginBottom: 8,
   },
-  input: {
-    height: 46,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: theme === 'dark' ? '#ffffff' : '#0f172a',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    marginBottom: 14,
+  soundPercentageContainerBelow: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
-  testBadge: {
+  soundPercentageTextBelow: {
+    color: isDark ? '#94A3B8' : '#64748B',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  modalInstructionText: {
+    fontSize: 14,
+    color: isDark ? '#A0A0A5' : '#64748B',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  quickIpSegmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 28,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    padding: 3,
+    marginBottom: 16,
+  },
+  quickIpPill: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickIpPillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickIpPillText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: isDark ? '#A0A0A5' : '#64748B',
+  },
+  quickIpPillTextActive: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+  ipInputContainer: {
+    marginBottom: 20,
+  },
+  ipInputField: {
+    height: 52,
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+    borderRadius: 26,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    paddingHorizontal: 20,
+    fontSize: 15,
+    color: isDark ? '#FFFFFF' : '#0F172A',
+  },
+  testResultBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 14,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 18,
   },
   testSuccess: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -1138,163 +1386,41 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   testFail: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
-  testBadgeText: {
+  testResultBadgeText: {
     fontSize: 12,
     marginLeft: 8,
-    color: theme === 'dark' ? '#f1f5f9' : '#0f172a',
+    color: isDark ? '#F1F5F9' : '#0F172A',
     flex: 1,
   },
-  modalActions: {
+  modalFooterActions: {
+    marginTop: 'auto',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 10,
+    gap: 16,
   },
-  testBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  testGhostButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  testBtnText: {
-    color: '#0284c7',
+  testGhostButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    fontSize: 13,
+    color: isDark ? '#F1F5F9' : '#0F172A',
   },
-  saveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#3b82f6',
-    cursor: 'pointer',
-  },
-  saveBtnText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  // Controles de volumen
-  volumeCard: {
-    backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.65)' : 'rgba(241, 245, 249, 0.8)',
+  saveGradientButtonContainer: {
     borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
   },
-  volumeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  saveGradientButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  volumeTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-  },
-  volumeBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  volumeBadgeText: {
-    fontSize: 12,
+  saveGradientButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#38bdf8',
-  },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
-  },
-  stepBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  trackContainer: {
-    flex: 1,
-    height: 30,
-    justifyContent: 'center',
-  },
-  trackBackground: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  trackFill: {
-    position: 'absolute',
-    left: 0,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#38bdf8',
-  },
-  thumb: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#0284c7',
-    borderWidth: 3,
-    borderColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 6,
-    marginBottom: 12,
-  },
-  presetBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  presetBtnActive: {
-    backgroundColor: '#38bdf8',
-  },
-  presetText: {
-    fontSize: 11,
-    color: theme === 'dark' ? '#94a3b8' : '#64748b',
-    fontWeight: '600',
-  },
-  presetTextActive: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  testAudioBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    cursor: 'pointer',
-  },
-  testAudioBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0284c7',
   },
 });

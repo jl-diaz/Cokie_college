@@ -889,7 +889,22 @@
     "openSettingsBtn": "Abrir Configuración",
     "aiConnected": "IA Conectada",
     "aiConnecting": "Conectando con IA...",
-    "aiReconnect": "Reconectar IA"
+    "aiReconnect": "Reconectar IA",
+    "detectingSigns": "Detectando señas...",
+    "readyToTranslate": "Listo para traducir",
+    "activateCamera": "Activar Cámara",
+    "deviceCamera": "Cámara de Dispositivo",
+    "activateCameraDesc": "Activa la cámara para comenzar la interpretación de señas en tiempo real",
+    "readySyncGlasses": "Listo para sincronizar con ESP32-CAM en {{ip}}",
+    "receivingGlassesVideo": "Recibiendo video de CokieLens...",
+    "wifiGlasses": "Wi-Fi de lentes",
+    "mdnsLocal": "mDNS Local",
+    "connectedToDevice": "Conectado a {{device}} ({{ip}})",
+    "invalidDeviceResponse": "Respuesta inválida del dispositivo",
+    "connectionFailedCheckWifi": "No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.",
+    "switchLanguage": "Cambiar idioma",
+    "themeLight": "Modo claro",
+    "themeDark": "Modo oscuro"
   },
   "gestureStudio": {
     "title": "Estudio de Gestos e IA",

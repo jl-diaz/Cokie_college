@@ -11,6 +11,7 @@ class WebSocketService {
     this.landmarksListeners = [];
     this.trainingListeners = [];
     this.statusListeners = [];
+    this.sentenceListeners = [];
   }
 
   // Conexión al servidor de IA y Lenguaje de Señas
@@ -100,6 +101,43 @@ class WebSocketService {
       }
     });
 
+    // ── EVENTO: Actualización y formulación de oraciones en tiempo real ──
+    this.socket.on('sentence_update', (data) => {
+      if (this.sentenceListeners && this.sentenceListeners.length > 0) {
+        this.sentenceListeners.forEach(cb => {
+          try {
+            cb('update', data);
+          } catch (err) {
+            console.warn('[SOCKET.IO] Error en sentence listener (update):', err);
+          }
+        });
+      }
+    });
+
+    this.socket.on('sentence_complete', (data) => {
+      if (this.sentenceListeners && this.sentenceListeners.length > 0) {
+        this.sentenceListeners.forEach(cb => {
+          try {
+            cb('complete', data);
+          } catch (err) {
+            console.warn('[SOCKET.IO] Error en sentence listener (complete):', err);
+          }
+        });
+      }
+    });
+
+    this.socket.on('sentence_cleared', (data) => {
+      if (this.sentenceListeners && this.sentenceListeners.length > 0) {
+        this.sentenceListeners.forEach(cb => {
+          try {
+            cb('cleared', data);
+          } catch (err) {
+            console.warn('[SOCKET.IO] Error en sentence listener (cleared):', err);
+          }
+        });
+      }
+    });
+
     // ── EVENTOS DEL MÓDULO ADMINISTRADOR: Progreso de Entrenamiento de IA ──
     this.socket.on('training_started', (data) => {
       this.notifyTrainingListeners('started', data);
@@ -121,6 +159,23 @@ class WebSocketService {
   notifyTrainingListeners(event, data) {
     if (this.trainingListeners && this.trainingListeners.length > 0) {
       this.trainingListeners.forEach(cb => cb(event, data));
+    }
+  }
+
+  addSentenceListener(callback) {
+    if (!this.sentenceListeners) this.sentenceListeners = [];
+    this.sentenceListeners.push(callback);
+  }
+
+  removeSentenceListener(callback) {
+    if (this.sentenceListeners) {
+      this.sentenceListeners = this.sentenceListeners.filter(cb => cb !== callback);
+    }
+  }
+
+  clearSentence() {
+    if (this.socket && (this.socket.connected || this.isConnected)) {
+      this.socket.emit('clear_sentence');
     }
   }
 

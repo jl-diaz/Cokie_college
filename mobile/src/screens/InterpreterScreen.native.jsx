@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -7,34 +7,37 @@ import {
   Modal, 
   TextInput, 
   Image, 
-  ActivityIndicator,
-  ScrollView,
-  Platform,
-  KeyboardAvoidingView,
-  Linking
+  ActivityIndicator, 
+  Platform, 
+  KeyboardAvoidingView, 
+  Linking,
+  Animated,
+  Easing,
+  useWindowDimensions,
+  ScrollView
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack, useIsFocused, usePathname } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  Mic, 
-  MicOff, 
   SwitchCamera, 
   Volume2, 
-  Volume1,
-  VolumeX,
-  Plus,
-  Minus,
-  Sparkles, 
+  VolumeX, 
   Glasses, 
-  Smartphone, 
   Settings, 
-  Headphones, 
-  Radio, 
   Check, 
-  AlertCircle,
-  Wifi
+  AlertCircle, 
+  X,
+  Activity,
+  CheckCircle2,
+  Video,
+  VideoOff,
+  RotateCcw,
+  Languages,
+  Sun,
+  Moon
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
@@ -50,44 +53,36 @@ export default function InterpreterScreenNative() {
   const isFocused = screenFocused && (pathname === '/interpreter' || pathname.startsWith('/interpreter'));
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { colors: Colors, theme } = useTheme();
-  const { registerModal, unregisterModal } = useTabBar();
+  const { colors: Colors, theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+  const { isTabBarHidden, setIsTabBarHidden, registerModal, unregisterModal } = useTabBar();
   const insets = useSafeAreaInsets();
-  // Elevado para quedar exactamente por encima del TabBar inferior flotante (altura 56 + offset)
-  const tabBarBottom = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 16) + 12;
-  const subtitleBottomOffset = tabBarBottom + 56 + 12;
-  const styles = React.useMemo(() => createStyles(Colors, theme), [Colors, theme]);
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= 768;
+  const styles = useMemo(() => createStyles(Colors, isDark, insets, isLargeScreen), [Colors, isDark, insets, isLargeScreen]);
 
   const [permission, requestPermission] = useCameraPermissions();
   const hasPermission = permission?.granted ?? null;
-  const [isActive, setIsActive] = useState(true);
+
+  // ── ESTADO DE ACTIVACIÓN DE CÁMARA ────────────────────────────────────────
+  // La cámara sólo se activa si el usuario lo solicita explícitamente desde el dispositivo o lentes
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [facingMode, setFacingMode] = useState('front');
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [aiServerStatus, setAiServerStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected' | 'error'
-  const [lastTranslation, setLastTranslation] = useState('');
-  const [subtitleHistory, setSubtitleHistory] = useState([]);
-  const [liveLandmarks, setLiveLandmarks] = useState(null);
   const [pictureSize, setPictureSize] = useState(undefined);
 
-  const tRef = useRef(t);
-  const i18nRef = useRef(i18n);
-  useEffect(() => {
-    tRef.current = t;
-    i18nRef.current = i18n;
-  }, [t, i18n]);
+  // ── ESTADOS DE IA Y TRADUCCIÓN ───────────────────────────────────────────
+  const [aiServerStatus, setAiServerStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected'
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState('');
+  const [lastTranslation, setLastTranslation] = useState('');
+  const [liveLandmarks, setLiveLandmarks] = useState(null);
 
-  // ── SELECTORES DE FUENTE DE VIDEO Y SALIDA DE AUDIO ───────────────────────
+  // ── FUENTE DE VIDEO Y DISPOSITIVOS ───────────────────────────────────────
   const [videoSource, setVideoSource] = useState('phone'); // 'phone' | 'glasses'
   const [audioOutput, setAudioOutput] = useState('phone'); // 'phone' | 'glasses'
   const [esp32Ip, setEsp32Ip] = useState('192.168.4.1');
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
-
-  useEffect(() => {
-    if (isConfigModalVisible) {
-      registerModal();
-      return () => unregisterModal();
-    }
-  }, [isConfigModalVisible, registerModal, unregisterModal]);
   const [ipInput, setIpInput] = useState('192.168.4.1');
   const [glassesConnected, setGlassesConnected] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -95,27 +90,85 @@ export default function InterpreterScreenNative() {
   const [glassesFrameUri, setGlassesFrameUri] = useState(null);
   const [audioVolume, setAudioVolume] = useState(80); // 0 a 100%
 
+  // ── REFERENCIAS Y TIMERS ──────────────────────────────────────────────────
   const cameraRef = useRef(null);
   const isCapturingRef = useRef(false);
   const lastSpokenRef = useRef('');
   const audioOutputRef = useRef(audioOutput);
   const esp32IpRef = useRef(esp32Ip);
   const audioVolumeRef = useRef(audioVolume);
-  const trackWidthRef = useRef(200);
+  const soundCapsuleHeightRef = useRef(220);
+  const analyzingTimeoutRef = useRef(null);
 
+  // Animaciones para botón de activación
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const buttonPressScale = useRef(new Animated.Value(1)).current;
+
+  // Registrar modal con TabBarContext para evitar solapamientos
+  useEffect(() => {
+    if (isConfigModalVisible) {
+      registerModal();
+      return () => unregisterModal();
+    }
+  }, [isConfigModalVisible, registerModal, unregisterModal]);
+
+  // Sincronizar referencias
   useEffect(() => {
     audioOutputRef.current = audioOutput;
   }, [audioOutput]);
-
   useEffect(() => {
     esp32IpRef.current = esp32Ip;
   }, [esp32Ip]);
-
   useEffect(() => {
     audioVolumeRef.current = audioVolume;
   }, [audioVolume]);
 
-  // Cargar configuración guardada de los lentes
+  // ── GESTIÓN DE OCULTAMIENTO DE LA BARRA DE NAVEGACIÓN ─────────────────────
+  // Al entrar al intérprete en teléfonos, la barra de navegación se oculta por defecto
+  useEffect(() => {
+    if (isFocused && !isLargeScreen) {
+      setIsTabBarHidden(true);
+      return () => {
+        setIsTabBarHidden(false);
+      };
+    }
+  }, [isFocused, isLargeScreen, setIsTabBarHidden]);
+
+  // ── ANIMACIÓN CONTINUA DE BOTÓN DE ACTIVACIÓN ─────────────────────────────
+  useEffect(() => {
+    if (!isCameraActive) {
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1100,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1100,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+      return () => pulseLoop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isCameraActive, pulseAnim]);
+
+  // ── CAMBIAR IDIOMA (SISTEMA DE TRADUCCIÓN I18N) ───────────────────────────
+  const toggleLanguage = async () => {
+    const current = i18n?.language || 'es';
+    const nextLang = current.startsWith('es') ? 'en' : 'es';
+    await i18n.changeLanguage(nextLang);
+    await AsyncStorage.setItem('language', nextLang);
+  };
+
+  // ── CARGAR CONFIGURACIÓN PERSISTENTE ──────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -144,7 +197,7 @@ export default function InterpreterScreenNative() {
     })();
   }, []);
 
-  // Al perder el foco, resetear estados y parar locución
+  // Al perder el foco, pausar cámara y detener voz
   useEffect(() => {
     if (!isFocused) {
       setIsCameraReady(false);
@@ -152,17 +205,10 @@ export default function InterpreterScreenNative() {
     }
   }, [isFocused]);
 
-  // Configurar audio y solicitar permiso solo si está en pantalla
+  // Audio setup y permisos de cámara
   useEffect(() => {
     if (!isFocused) return;
     (async () => {
-      if (!permission?.granted) {
-        try {
-          await requestPermission();
-        } catch (e) {
-          console.warn("Error solicitando permisos de cámara:", e);
-        }
-      }
       try {
         await setAudioModeAsync({
           allowsRecording: false,
@@ -173,9 +219,9 @@ export default function InterpreterScreenNative() {
         console.warn("No se pudo configurar el audio:", e);
       }
     })();
-  }, [isFocused, permission?.granted]);
+  }, [isFocused]);
 
-  // Suscripción al estado de conexión de la IA
+  // ── ESTADO DEL SERVIDOR IA VÍA WEBSOCKET ──────────────────────────────────
   useEffect(() => {
     if (!isFocused) return;
     const updateStatus = (status) => setAiServerStatus(status);
@@ -185,20 +231,41 @@ export default function InterpreterScreenNative() {
     };
   }, [isFocused]);
 
-  // Inicializar WebSocket sólo cuando la pantalla esté enfocada
+  // ── WEBSOCKET Y PROCESAMIENTO DE ORACIONES / SUBTÍTULOS ───────────────────
   useEffect(() => {
     if (!isFocused) return;
 
     const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
     WebSocketService.connect(serverUrl);
 
-    // ── GESTIÓN DE TRADUCCIONES Y LOCUCIÓN INSTANTÁNEA ───────────────────────
+    // Manejador de oraciones formuladas por el backend
+    const handleSentenceEvent = async (eventType, data) => {
+      if (eventType === 'update') {
+        setIsAnalyzing(true);
+        if (data?.sentence) {
+          setCurrentSentence(data.sentence);
+        }
+        if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+        analyzingTimeoutRef.current = setTimeout(() => {
+          setIsAnalyzing(false);
+        }, 3200);
+      } else if (eventType === 'complete') {
+        setIsAnalyzing(false);
+        if (data?.sentence) {
+          setCurrentSentence(data.sentence);
+          speakSentence(data.sentence);
+        }
+      } else if (eventType === 'cleared') {
+        setCurrentSentence('');
+        setIsAnalyzing(false);
+      }
+    };
+
+    // Manejador de token único o traducción directa
     const handleTranslation = async (text, rawData) => {
       let translatedText = text;
-      const currentLang = i18nRef.current?.language || 'es';
-      const currentT = tRef.current;
+      const currentLang = i18n?.language || 'es';
 
-      // Priorizar traducción bilingüe si el servidor envía metadata
       if (rawData && typeof rawData === 'object') {
         if (currentLang === 'en' && rawData.name_en) {
           translatedText = rawData.name_en;
@@ -209,74 +276,82 @@ export default function InterpreterScreenNative() {
 
       if (translatedText.startsWith('sign.')) {
         const translationKey = translatedText.replace('sign.', 'signs.');
-        const i18nVal = currentT(translationKey, { defaultValue: '' });
+        const i18nVal = t(translationKey, { defaultValue: '' });
         if (i18nVal) {
           translatedText = i18nVal;
         } else {
-          // Limpiar formato técnico si es un gesto nuevo (ej: 'sign.puerta' -> 'Puerta')
           const raw = translatedText.replace('sign.', '').replace(/_/g, ' ');
           translatedText = raw.charAt(0).toUpperCase() + raw.slice(1);
         }
       }
-      
-      setLastTranslation(translatedText);
-      setSubtitleHistory(prev => {
-        if (prev.length > 0 && prev[0] === translatedText) return prev;
-        return [translatedText, ...prev].slice(0, 5);
-      });
-      
-      // Evitar repetir la misma palabra dos veces seguidas
-      if (lastSpokenRef.current === translatedText) {
-        return;
-      }
-      lastSpokenRef.current = translatedText;
 
-      // 1. SALIDA DE AUDIO: Teléfono / Audífonos conectados
-      if (audioOutputRef.current === 'phone') {
-        try {
-          await Speech.stop();
-          Speech.speak(translatedText, {
-            language: currentLang === 'en' ? 'en-US' : 'es-MX',
-            pitch: 1.0,
-            rate: 1.0,
-            volume: audioVolumeRef.current / 100,
-          });
-        } catch (err) {
-          console.warn('Error en Speech nativo:', err);
-        }
-      } 
-      // 2. SALIDA DE AUDIO: Lentes CokieLens (ESP32)
-      else if (audioOutputRef.current === 'glasses') {
-        try {
-          const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
-          fetch(`http://${clean}/play`, {
-            method: 'POST',
-            body: translatedText,
-            headers: { 
-              'Content-Type': 'text/plain',
-              'X-Audio-Volume': String(audioVolumeRef.current)
-            }
-          }).catch(e => console.log('Envío a lentes:', e));
-        } catch (err) {
-          console.warn('Error enviando audio a los lentes:', err);
-        }
-      }
+      setLastTranslation(translatedText);
+      setIsAnalyzing(true);
+
+      if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+      analyzingTimeoutRef.current = setTimeout(() => {
+        setIsAnalyzing(false);
+      }, 2800);
     };
 
     const handleLandmarks = (landmarksData) => {
       setLiveLandmarks(landmarksData);
+      if (landmarksData?.detected) {
+        setIsAnalyzing(true);
+        if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
+        analyzingTimeoutRef.current = setTimeout(() => {
+          setIsAnalyzing(false);
+        }, 2500);
+      }
     };
 
+    WebSocketService.addSentenceListener(handleSentenceEvent);
     WebSocketService.addListener(handleTranslation);
     WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
+      WebSocketService.removeSentenceListener(handleSentenceEvent);
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.removeLandmarksListener(handleLandmarks);
       WebSocketService.disconnect();
+      if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
       Speech.stop().catch(() => {});
     };
-  }, [isFocused]);
+  }, [isFocused, t, i18n]);
+
+  // Locución con síntesis de voz o envío a lentes
+  const speakSentence = async (textToSpeak) => {
+    if (!textToSpeak || lastSpokenRef.current === textToSpeak) return;
+    lastSpokenRef.current = textToSpeak;
+
+    if (audioOutputRef.current === 'phone') {
+      try {
+        await Speech.stop();
+        Speech.speak(textToSpeak, {
+          language: i18n?.language === 'en' ? 'en-US' : 'es-MX',
+          pitch: 1.0,
+          rate: 1.0,
+          volume: audioVolumeRef.current / 100,
+        });
+      } catch (err) {
+        console.warn('Error en Speech nativo:', err);
+      }
+    } else if (audioOutputRef.current === 'glasses') {
+      try {
+        const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+        fetch(`http://${clean}/play`, {
+          method: 'POST',
+          body: textToSpeak,
+          headers: { 
+            'Content-Type': 'text/plain',
+            'X-Audio-Volume': String(audioVolumeRef.current)
+          }
+        }).catch(e => console.log('Envío a lentes:', e));
+      } catch (err) {
+        console.warn('Error enviando audio a los lentes:', err);
+      }
+    }
+  };
 
   const handleCameraReady = async () => {
     setIsCameraReady(true);
@@ -284,7 +359,7 @@ export default function InterpreterScreenNative() {
       if (cameraRef.current?.getAvailablePictureSizesAsync) {
         const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
         if (sizes && sizes.length > 0) {
-          const preferredSizes = ['352x288', '640x480', '480x360', '320x240', 'VGA', 'CIF', 'QVGA'];
+          const preferredSizes = ['352x288', '640x480', '480x360', '320x240', 'VGA', 'CIF'];
           let chosen = sizes.find(s => preferredSizes.includes(s));
           if (!chosen) {
             chosen = sizes.find(s => {
@@ -296,21 +371,17 @@ export default function InterpreterScreenNative() {
               return false;
             }) || sizes[sizes.length - 1];
           }
-          if (chosen) {
-            setPictureSize(chosen);
-          }
+          if (chosen) setPictureSize(chosen);
         }
       }
-    } catch (e) {
-      console.log('Seleccionando resolución óptima:', e);
-    }
+    } catch (e) {}
   };
 
   // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO ────────────────────────────
   useEffect(() => {
     let intervalId;
 
-    if (isFocused && isActive && videoSource === 'phone' && isCameraReady && hasPermission) {
+    if (isFocused && isCameraActive && videoSource === 'phone' && isCameraReady && hasPermission) {
       intervalId = setInterval(async () => {
         if (!cameraRef.current || isCapturingRef.current) return;
         
@@ -340,15 +411,14 @@ export default function InterpreterScreenNative() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isFocused, isActive, videoSource, isCameraReady, hasPermission]);
+  }, [isFocused, isCameraActive, videoSource, isCameraReady, hasPermission]);
 
-  // ── BUCLE 2: CAPTURA ULTRA RÁPIDA DESDE LENTES COKIELENS (ESP32-CAM) ───────
-  // No utiliza takePictureAsync. Consume fotogramas JPEG directamente del ESP32 en 15ms.
+  // ── BUCLE 2: CAPTURA DESDE LENTES COKIELENS (ESP32-CAM) ───────────────────
   useEffect(() => {
     let intervalId;
     let consecutiveErrors = 0;
 
-    if (isFocused && isActive && videoSource === 'glasses') {
+    if (isFocused && isCameraActive && videoSource === 'glasses') {
       const cleanIp = esp32Ip.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim() || '192.168.4.1';
       const captureUrl = `http://${cleanIp}/capture`;
 
@@ -371,7 +441,6 @@ export default function InterpreterScreenNative() {
             setGlassesConnected(true);
             const blob = await response.blob();
             
-            // Conversión atómica y secuencial a base64
             const base64Data = await new Promise((resolve) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result);
@@ -389,17 +458,13 @@ export default function InterpreterScreenNative() {
             }
           } else {
             consecutiveErrors++;
-            if (consecutiveErrors >= 3) {
-              setGlassesConnected(false);
-            }
+            if (consecutiveErrors >= 3) setGlassesConnected(false);
           }
         } catch (err) {
           consecutiveErrors++;
           if (consecutiveErrors >= 3) {
             setGlassesConnected(false);
-            // Fallback automático en streaming si cokielens.local no responde en Android
             if (cleanIp === 'cokielens.local') {
-              console.log('[CokieLens] Fallback automático a 192.168.4.1 tras fallos en mDNS');
               setEsp32Ip('192.168.4.1');
               setIpInput('192.168.4.1');
               AsyncStorage.setItem('cokielens_ip', '192.168.4.1');
@@ -415,11 +480,34 @@ export default function InterpreterScreenNative() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isFocused, isActive, videoSource, esp32Ip]);
+  }, [isFocused, isCameraActive, videoSource, esp32Ip]);
 
   function toggleCameraType() {
     setFacingMode(current => (current === 'front' ? 'back' : 'front'));
   }
+
+  // Animación al presionar botón de activación
+  const handleToggleCameraActivation = async () => {
+    Animated.sequence([
+      Animated.timing(buttonPressScale, {
+        toValue: 0.92,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(buttonPressScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (!isCameraActive && videoSource === 'phone' && !permission?.granted) {
+      const res = await requestPermission();
+      if (!res.granted) return;
+    }
+    setIsCameraActive(prev => !prev);
+  };
 
   const handleSaveIp = async () => {
     let clean = ipInput.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
@@ -444,7 +532,6 @@ export default function InterpreterScreenNative() {
       try {
         res = await fetch(`http://${clean}/status`, { signal: controller.signal });
       } catch (err) {
-        // Fallback automático si cokielens.local falla en Android: intentar con IP AP
         if (clean === 'cokielens.local') {
           clean = '192.168.4.1';
           const retryController = new AbortController();
@@ -462,13 +549,16 @@ export default function InterpreterScreenNative() {
       
       if (res && res.ok) {
         const json = await res.json();
-        setTestResult({ success: true, message: `Conectado a ${json.device || 'CokieLens'} (${json.ip || clean})` });
+        setTestResult({ 
+          success: true, 
+          message: t('interpreter.connectedToDevice', { device: json.device || 'CokieLens', ip: json.ip || clean, defaultValue: `Conectado a ${json.device || 'CokieLens'} (${json.ip || clean})` })
+        });
         setGlassesConnected(true);
       } else {
-        setTestResult({ success: false, message: 'Respuesta inválida del dispositivo' });
+        setTestResult({ success: false, message: t('interpreter.invalidDeviceResponse', 'Respuesta inválida del dispositivo') });
       }
     } catch (e) {
-      setTestResult({ success: false, message: 'No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.' });
+      setTestResult({ success: false, message: t('interpreter.connectionFailedCheckWifi', 'No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.') });
     } finally {
       setIsTestingConnection(false);
     }
@@ -477,11 +567,6 @@ export default function InterpreterScreenNative() {
   const selectVideoSource = async (source) => {
     setVideoSource(source);
     await AsyncStorage.setItem('cokielens_video_source', source);
-  };
-
-  const selectAudioOutput = async (output) => {
-    setAudioOutput(output);
-    await AsyncStorage.setItem('cokielens_audio_output', output);
   };
 
   const updateVolume = async (newVol) => {
@@ -497,452 +582,477 @@ export default function InterpreterScreenNative() {
     } catch (e) {}
   };
 
-  const handleSliderTouch = (evt) => {
-    const locationX = evt.nativeEvent.locationX;
-    const width = trackWidthRef.current || 200;
-    const ratio = Math.max(0, Math.min(1, locationX / width));
-    updateVolume(ratio * 100);
+  // ── SLIDER VERTICAL ESTILO IPHONE ─────────────────────────────────────────
+  const handleIPhoneSliderTouch = (evt) => {
+    const locationY = evt.nativeEvent.locationY;
+    const totalHeight = soundCapsuleHeightRef.current || 220;
+    const fillRatio = Math.max(0, Math.min(1, (totalHeight - locationY) / totalHeight));
+    updateVolume(fillRatio * 100);
   };
 
-  const handleTestAudio = async () => {
-    const testText = t('interpreter.testAudioPhrase', { 
-      volume: audioVolume, 
-      defaultValue: `Prueba de audio CokieLens al ${audioVolume} por ciento` 
-    });
-
-    if (audioOutput === 'phone') {
-      try {
-        Speech.stop();
-        Speech.speak(testText, {
-          language: i18n.language === 'en' ? 'en-US' : 'es-MX',
-          pitch: 1.0,
-          rate: 1.0,
-          volume: audioVolume / 100,
-        });
-      } catch (err) {
-        console.warn('Error en Speech nativo:', err);
-      }
-    } else {
-      try {
-        const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-        fetch(`http://${clean}/play`, {
-          method: 'POST',
-          body: testText,
-          headers: { 
-            'Content-Type': 'text/plain',
-            'X-Audio-Volume': String(audioVolume)
-          }
-        }).catch(e => console.log('Envío a lentes:', e));
-      } catch (err) {
-        console.warn('Error enviando audio a los lentes:', err);
-      }
-    }
-  };
-
-  if (hasPermission === null && videoSource === 'phone') {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  }
-  
-  if (hasPermission === false && videoSource === 'phone') {
-    return (
-      <View style={[styles.container, styles.centered, { padding: 24 }]}>
-        <AlertCircle size={56} color="#ef4444" style={{ marginBottom: 16 }} />
-        <Text style={[styles.text, { fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }]}>
-          {t('interpreter.cameraPermissionTitle', 'Permiso de Cámara Requerido')}
-        </Text>
-        <Text style={[styles.subText, { textAlign: 'center', marginBottom: 24, color: '#94a3b8' }]}>
-          {t('interpreter.cameraPermissionDesc', 'Para traducir el lenguaje de señas en tiempo real, la aplicación necesita acceder a la cámara.')}
-        </Text>
-        <TouchableOpacity 
-          style={{ backgroundColor: '#3b82f6', paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginBottom: 14, minWidth: 200, alignItems: 'center' }}
-          onPress={async () => {
-            const res = await requestPermission();
-            if (!res.granted && !res.canAskAgain) {
-              Linking.openSettings();
-            }
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>
-            {t('interpreter.grantPermissionBtn', 'Conceder Permiso')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={{ paddingVertical: 10, alignItems: 'center' }}
-          onPress={() => Linking.openSettings()}
-        >
-          <Text style={{ color: '#60a5fa', fontSize: 14, textDecorationLine: 'underline' }}>
-            {t('interpreter.openSettingsBtn', 'Abrir Configuración de la App')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Texto de la oración actual a mostrar
+  const displayedText = currentSentence || lastTranslation || '';
+  const currentLangCode = (i18n?.language || 'es').startsWith('es') ? 'ES' : 'EN';
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: '' }} />
+      <Stack.Screen options={{ headerShown: false }} />
 
-      {/* ── BARRA SUPERIOR DE SELECTORES (CÁMARA Y AUDIO) ── */}
-      <View style={styles.controlBar}>
-        {/* Selector de Entrada de Video */}
-        <View style={styles.segmentedControl}>
+      {/* ── BARRA SUPERIOR: [ IDIOMA / TRADUCIR ] | [ WEBCAM / LENTES ] | [ MODO OSCURO / CLARO ] [ AJUSTES ] ── */}
+      <View style={styles.topBar}>
+        {/* Lado Izquierdo: Botón para Traducir / Cambiar Idioma */}
+        <TouchableOpacity 
+          style={styles.languagePillButton}
+          onPress={toggleLanguage}
+          activeOpacity={0.7}
+          accessibilityLabel={t('interpreter.switchLanguage', 'Cambiar idioma')}
+        >
+          <Languages size={17} color={isDark ? '#F1F5F9' : '#0F172A'} style={{ marginRight: 5 }} />
+          <Text style={styles.languagePillText}>{currentLangCode}</Text>
+        </TouchableOpacity>
+
+        {/* Centro: Segmentado [ Webcam | Lentes ] */}
+        <View style={styles.segmentedCapsule}>
           <TouchableOpacity 
-            style={[styles.segmentBtn, videoSource === 'phone' && styles.segmentBtnActive]}
+            style={[styles.segmentPill, videoSource === 'phone' && styles.segmentPillActive]}
             onPress={() => selectVideoSource('phone')}
+            activeOpacity={0.8}
           >
-            <Smartphone size={15} color={videoSource === 'phone' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, videoSource === 'phone' && styles.segmentTxtActive]}>
-              {t('interpreter.sourcePhoneTab', 'Teléfono')}
+            <Text style={[styles.segmentPillText, videoSource === 'phone' && styles.segmentPillTextActive]}>
+              {t('interpreter.sourceWebcamTab', 'Webcam')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.segmentBtn, videoSource === 'glasses' && styles.segmentBtnActive]}
+            style={[styles.segmentPill, videoSource === 'glasses' && styles.segmentPillActive]}
             onPress={() => selectVideoSource('glasses')}
+            activeOpacity={0.8}
           >
-            <Glasses size={16} color={videoSource === 'glasses' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, videoSource === 'glasses' && styles.segmentTxtActive]}>
+            <Text style={[styles.segmentPillText, videoSource === 'glasses' && styles.segmentPillTextActive]}>
               {t('interpreter.sourceGlassesTab', 'Lentes')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Selector de Salida de Audio */}
-        <View style={styles.segmentedControl}>
+        {/* Lado Derecho: Botón Modo Claro/Oscuro y Botón Ajustes */}
+        <View style={styles.topRightActions}>
           <TouchableOpacity 
-            style={[styles.segmentBtn, audioOutput === 'phone' && styles.segmentBtnActive]}
-            onPress={() => selectAudioOutput('phone')}
+            style={styles.topBarIconButton}
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+            accessibilityLabel={isDark ? t('interpreter.themeLight', 'Modo claro') : t('interpreter.themeDark', 'Modo oscuro')}
           >
-            <Volume2 size={15} color={audioOutput === 'phone' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, audioOutput === 'phone' && styles.segmentTxtActive]}>
-              {t('interpreter.audioSpeakerTab', 'Altavoz')}
-            </Text>
+            {isDark ? (
+              <Sun size={20} color="#F1F5F9" />
+            ) : (
+              <Moon size={20} color="#0F172A" />
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.segmentBtn, audioOutput === 'glasses' && styles.segmentBtnActive]}
-            onPress={() => selectAudioOutput('glasses')}
+            style={styles.topBarIconButton} 
+            onPress={() => setIsConfigModalVisible(true)}
+            activeOpacity={0.7}
+            accessibilityLabel={t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}
           >
-            <Headphones size={15} color={audioOutput === 'glasses' ? '#FFF' : Colors.text.secondary} />
-            <Text style={[styles.segmentTxt, audioOutput === 'glasses' && styles.segmentTxtActive]}>
-              {t('interpreter.audioGlassesTab', 'Lentes')}
-            </Text>
+            <Settings size={20} color={isDark ? '#F1F5F9' : '#0F172A'} />
           </TouchableOpacity>
         </View>
-
-        {/* Botón de Ajustes de Lentes */}
-        <TouchableOpacity 
-          style={styles.settingsIconBtn} 
-          onPress={() => setIsConfigModalVisible(true)}
-        >
-          <Settings size={18} color="#FFF" />
-          {videoSource === 'glasses' && (
-            <View style={[styles.statusDot, { backgroundColor: glassesConnected ? '#10b981' : '#ef4444' }]} />
-          )}
-        </TouchableOpacity>
       </View>
 
-      {/* ── ÁREA DE VIDEO (TELÉFONO O LENTES) ── */}
-      <View style={styles.cameraContainer}>
-        {/* Indicador flotante de Estado del Servidor de IA */}
-        <TouchableOpacity 
-          style={[
-            styles.aiStatusBadge, 
-            aiServerStatus === 'connected' ? styles.aiStatusConnected :
-            aiServerStatus === 'connecting' ? styles.aiStatusConnecting :
-            styles.aiStatusDisconnected
-          ]}
-          onPress={() => {
-            if (aiServerStatus !== 'connected') {
-              const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
-              WebSocketService.connect(serverUrl);
-            }
-          }}
-          activeOpacity={0.8}
-        >
-          {aiServerStatus === 'connecting' ? (
-            <ActivityIndicator size="small" color="#f59e0b" style={{ marginRight: 6 }} />
-          ) : (
-            <View 
-              style={[
-                styles.miniDot, 
-                { backgroundColor: aiServerStatus === 'connected' ? '#10b981' : '#ef4444', marginRight: 6 }
-              ]} 
-            />
-          )}
-          <Text style={styles.aiStatusText}>
-            {aiServerStatus === 'connected' 
-              ? t('interpreter.aiConnected', 'IA Conectada')
-              : aiServerStatus === 'connecting'
-              ? t('interpreter.aiConnecting', 'Conectando con IA...')
-              : t('interpreter.aiReconnect', 'Reconectar IA')}
-          </Text>
-        </TouchableOpacity>
+      {/* ── CONTENIDO PRINCIPAL: HORIZONTAL EN DISPOSITIVOS GRANDES / VERTICAL EN TELÉFONOS ── */}
+      <View style={[styles.mainLayout, isLargeScreen && styles.mainLayoutLarge]}>
+        {/* FRAME DE CÁMARA */}
+        <View style={[styles.cameraWrapper, isLargeScreen && styles.cameraWrapperLarge]}>
+          <View style={styles.cameraFrame}>
+            {isCameraActive ? (
+              // CÁMARA ACTIVA
+              videoSource === 'phone' ? (
+                isFocused ? (
+                  <>
+                    <CameraView 
+                      ref={cameraRef}
+                      style={StyleSheet.absoluteFill} 
+                      facing={facingMode}
+                      pictureSize={pictureSize}
+                      onCameraReady={handleCameraReady}
+                      animateShutter={false}
+                    />
 
-        {videoSource === 'phone' ? (
-          isFocused ? (
-            <>
-              <CameraView 
-                ref={cameraRef}
-                style={StyleSheet.absoluteFill} 
-                facing={facingMode}
-                pictureSize={pictureSize}
-                onCameraReady={handleCameraReady}
-                animateShutter={false}
-              />
-              {/* Botón flotante para alternar frontal / trasera */}
-              <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
-                <SwitchCamera color="#fff" size={24} />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
-          )
-        ) : (
-          <View style={styles.glassesPreviewContainer}>
-            {glassesFrameUri ? (
-              <Image 
-                source={{ uri: glassesFrameUri }} 
-                style={StyleSheet.absoluteFill} 
-                resizeMode="cover"
-              />
+                    {/* UN SOLO CÍRCULO PARA INVERTIR LA CÁMARA */}
+                    <TouchableOpacity 
+                      onPress={toggleCameraType} 
+                      style={styles.floatingFlipCircle}
+                      activeOpacity={0.7}
+                    >
+                      <SwitchCamera color="#FFFFFF" size={20} />
+                    </TouchableOpacity>
+
+                    {/* Botón sutil para pausar/desactivar cámara */}
+                    <TouchableOpacity 
+                      onPress={() => setIsCameraActive(false)} 
+                      style={styles.floatingPauseCircle}
+                      activeOpacity={0.7}
+                    >
+                      <VideoOff color="#FFFFFF" size={17} />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1C1C1C' }]} />
+                )
+              ) : (
+                // VISTA DE LENTES COKIELENS
+                <View style={styles.glassesLiveContainer}>
+                  {glassesFrameUri ? (
+                    <Image 
+                      source={{ uri: glassesFrameUri }} 
+                      style={StyleSheet.absoluteFill} 
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.glassesWaitingBox}>
+                      <ActivityIndicator size="large" color="#426BC2" />
+                      <Text style={styles.glassesWaitingText}>
+                        {glassesConnected 
+                          ? t('interpreter.receivingGlassesVideo', 'Recibiendo video de CokieLens...') 
+                          : t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes en ${esp32Ip}...` })}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Botón flotante para pausar cámara de lentes */}
+                  <TouchableOpacity 
+                    onPress={() => setIsCameraActive(false)} 
+                    style={styles.floatingPauseCircle}
+                    activeOpacity={0.7}
+                  >
+                    <VideoOff color="#FFFFFF" size={17} />
+                  </TouchableOpacity>
+                </View>
+              )
             ) : (
-              <View style={styles.glassesPlaceholder}>
-                <ActivityIndicator size="large" color="#38bdf8" />
-                <Text style={styles.glassesPlaceholderText}>
-                  {t('interpreter.connectingGlasses', { ip: esp32Ip, defaultValue: `Conectando con Lentes CokieLens en ${esp32Ip}...` })}
+              // CÁMARA INACTIVA: PANTALLA DE ACTIVACIÓN CON ANIMACIÓN
+              <View style={styles.cameraInactiveContainer}>
+                <View style={styles.inactiveIconCircle}>
+                  <Video size={40} color={isDark ? '#426BC2' : '#132472'} />
+                </View>
+                <Text style={styles.inactiveTitle}>
+                  {videoSource === 'phone' 
+                    ? t('interpreter.deviceCamera', 'Cámara de Dispositivo') 
+                    : t('interpreter.sourceGlasses', 'Lentes CokieLens')}
                 </Text>
+                <Text style={styles.inactiveSubtitle}>
+                  {videoSource === 'phone' 
+                    ? t('interpreter.activateCameraDesc', 'Activa la cámara para comenzar la interpretación de señas en tiempo real')
+                    : t('interpreter.readySyncGlasses', { ip: esp32Ip, defaultValue: `Listo para sincronizar con ESP32-CAM en ${esp32Ip}` })}
+                </Text>
+
+                {/* Botón animado de activación */}
+                <Animated.View style={{ transform: [{ scale: Animated.multiply(pulseAnim, buttonPressScale) }] }}>
+                  <TouchableOpacity
+                    style={styles.activateButton}
+                    onPress={handleToggleCameraActivation}
+                    activeOpacity={0.85}
+                  >
+                    <LinearGradient
+                      colors={['#132472', '#426BC2']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.activateButtonGradient}
+                    >
+                      <Video size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.activateButtonText}>
+                        {t('interpreter.activateCamera', 'Activar Cámara')}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
             )}
 
-            {/* Indicador flotante de los lentes */}
-            <View style={styles.glassesBadge}>
-              <Glasses size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-              <Text style={styles.glassesBadgeText}>
-                {glassesConnected ? 'Lentes CokieLens en Vivo' : 'Buscando Lentes...'}
+            {/* Trazado esquelético de puntos MediaPipe */}
+            <SkeletonOverlay
+              landmarks={liveLandmarks}
+              mirrored={videoSource === 'phone' && facingMode === 'front'}
+              active={isCameraActive && isFocused}
+            />
+          </View>
+        </View>
+
+        {/* ── CAJA DE TRADUCCIÓN (HORIZONTAL EN DISPOSITIVOS GRANDES / SIN SOMBRA Y BORDE 0.5PX EN TELÉFONO) ── */}
+        <View style={[styles.translationCard, isLargeScreen && styles.translationCardLarge]}>
+          {/* Cabecera superior de la caja */}
+          <View style={styles.translationCardHeader}>
+            <Text style={styles.translationHeaderStatus}>
+              {isAnalyzing 
+                ? t('interpreter.detectingSigns', 'Detectando señas...') 
+                : t('interpreter.readyToTranslate', 'Listo para traducir')}
+            </Text>
+            {displayedText ? (
+              <TouchableOpacity 
+                onPress={() => WebSocketService.clearSentence()}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <RotateCcw size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* Separador fino */}
+          <View style={styles.cardDivider} />
+
+          {/* Cuerpo principal: Oración formulada */}
+          <View style={[styles.translationCardBody, isLargeScreen && styles.translationCardBodyLarge]}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+            >
+              <Text 
+                style={[styles.translationMainSentence, isLargeScreen && styles.translationMainSentenceLarge]} 
+                numberOfLines={isLargeScreen ? 6 : 3}
+              >
+                {displayedText ? `“${displayedText}”` : t('interpreter.waitingGestures', '“Esperando señas o movimientos...”')}
               </Text>
-              <View style={[styles.miniDot, { backgroundColor: glassesConnected ? '#10b981' : '#ef4444' }]} />
+            </ScrollView>
+
+            {/* Fila de estado con slots de íconos */}
+            <View style={styles.translationStatusRow}>
+              {isAnalyzing ? (
+                <>
+                  {/* ────────────────────────────────────────────────────────── */}
+                  {/* SLOT DE ÍCONO: INTERPRETANDO / ANALIZANDO (Reemplazable)   */}
+                  {/* ────────────────────────────────────────────────────────── */}
+                  <View style={styles.statusIconSlot}>
+                    <Activity size={16} color="#426BC2" />
+                  </View>
+                  <Text style={styles.translationStatusLabel}>
+                    {t('interpreter.detectingSigns', 'Detectando señas...')}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  {/* ────────────────────────────────────────────────────────── */}
+                  {/* SLOT DE ÍCONO: TRADUCCIÓN COMPLETADA / LISTO (Reemplazable)*/}
+                  {/* ────────────────────────────────────────────────────────── */}
+                  <View style={styles.statusIconSlot}>
+                    <CheckCircle2 size={16} color="#10B981" />
+                  </View>
+                  <Text style={[styles.translationStatusLabel, { color: '#10B981' }]}>
+                    {t('interpreter.readyToTranslate', 'Listo para traducir')}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
-        )}
-
-        {/* Trazado de esqueleto y puntos en tiempo real (Manos y Pose) */}
-        <SkeletonOverlay
-          landmarks={liveLandmarks}
-          mirrored={videoSource === 'phone' && facingMode === 'front'}
-          active={isActive && isFocused}
-        />
-
-        {/* Banner de subtítulos en vivo (elevado por encima de la TabBar) */}
-        <View style={[styles.subtitleOverlay, { bottom: subtitleBottomOffset }]}>
-          <View style={styles.subtitleHeader}>
-            <Volume2 color="#10b981" size={18} />
-            <Text style={styles.subtitleHeaderTitle}>
-              {liveLandmarks?.detected
-                ? (liveLandmarks.is_static ? 'SEÑA DETECTADA (IA LOCAL)' : 'RASTREANDO GESTOS...')
-                : t('interpreter.realTimeTranslationTitle', 'TRADUCCIÓN EN TIEMPO REAL')}
-            </Text>
-          </View>
-
-          {lastTranslation ? (
-            <Text style={styles.subtitleMainText}>
-              "{lastTranslation}"
-            </Text>
-          ) : (
-            <Text style={styles.subtitlePlaceholder}>
-              {t('interpreter.waitingGestures', 'Esperando señas o movimientos...')}
-            </Text>
-          )}
-
-          {subtitleHistory.length > 1 && (
-            <View style={styles.historyContainer}>
-              <Text style={styles.historyText} numberOfLines={1}>
-                {t('interpreter.previousSubtitles', { history: subtitleHistory.slice(1).join(' • '), defaultValue: `Anterior: ${subtitleHistory.slice(1).join(' • ')}` })}
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
-      {/* ── MODAL DE CONFIGURACIÓN DE LOS LENTES (ESP32-CAM) ── */}
+      {/* ── ZONA INTERACTIVA INFERIOR: REVELAR / OCULTAR TAB BAR EN MÓVILES AL TOCAR ── */}
+      {!isLargeScreen && (
+        <TouchableOpacity 
+          style={styles.bottomNavTrigger}
+          onPress={() => setIsTabBarHidden(!isTabBarHidden)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.bottomNavIndicatorBar} />
+        </TouchableOpacity>
+      )}
+
+      {/* ── MODAL FULLSCREEN DE AJUSTES (DISEÑO MOCKUP 2: COKIELENS) ── */}
       <Modal
         visible={isConfigModalVisible}
-        transparent
-        animationType="fade"
+        animationType="slide"
+        presentationStyle="fullScreen"
         onRequestClose={() => setIsConfigModalVisible(false)}
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Glasses color="#38bdf8" size={24} style={{ marginRight: 8 }} />
-                <Text style={styles.modalTitle}>{t('interpreter.configGlassesTitle', 'Configurar Lentes CokieLens')}</Text>
+          <View style={styles.fullscreenModalContainer}>
+            {/* Header CokieLens con Status Dot y botón Cerrar */}
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.modalTitleContainer}>
+                <Text style={styles.modalBrandTitle}>CokieLens</Text>
+                <View 
+                  style={[
+                    styles.modalStatusDot, 
+                    { backgroundColor: glassesConnected ? '#10B981' : '#EF4444' }
+                  ]} 
+                />
               </View>
 
-              <Text style={styles.modalHelp}>
-                {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida:')}
-              </Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setIsConfigModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <X size={22} color={isDark ? '#F1F5F9' : '#0F172A'} />
+              </TouchableOpacity>
+            </View>
 
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                <TouchableOpacity 
-                  onPress={() => setIpInput('192.168.4.1')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 7,
-                    paddingHorizontal: 8,
-                    backgroundColor: ipInput === '192.168.4.1' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: ipInput === '192.168.4.1' ? '#38bdf8' : 'transparent',
-                    alignItems: 'center'
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>192.168.4.1</Text>
-                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.wifiApLabel', 'Wi-Fi de Lentes (AP)')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  onPress={() => setIpInput('cokielens.local')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 7,
-                    paddingHorizontal: 8,
-                    backgroundColor: ipInput === 'cokielens.local' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255,255,255,0.08)',
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: ipInput === 'cokielens.local' ? '#38bdf8' : 'transparent',
-                    alignItems: 'center'
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 11, color: '#FFF', fontWeight: 'bold' }}>cokielens.local</Text>
-                  <Text style={{ fontSize: 9, color: '#94a3b8' }}>{t('interpreter.mdnsLocalLabel', 'mDNS Local')}</Text>
-                </TouchableOpacity>
+            {/* Fila de Cards: Lentes a la izquierda + Barra de sonido estilo iPhone a la derecha */}
+            <View style={styles.topCardsRow}>
+              {/* Card de los Lentes (Izquierda) */}
+              <View style={styles.glassesCard}>
+                <Image 
+                  source={require('../../assets/glasses.png')} 
+                  style={styles.glassesImage} 
+                  resizeMode="contain" 
+                />
               </View>
 
+              {/* Barra de Sonido vertical estilo iPhone (Derecha) */}
+              <View 
+                style={styles.soundCapsule}
+                onLayout={(e) => {
+                  soundCapsuleHeightRef.current = e.nativeEvent.layout.height;
+                }}
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderGrant={handleIPhoneSliderTouch}
+                onResponderMove={handleIPhoneSliderTouch}
+              >
+                {/* Relleno de volumen desde abajo con gradiente azul */}
+                <View style={[styles.soundFillBar, { height: `${audioVolume}%` }]}>
+                  <LinearGradient
+                    colors={['#426BC2', '#132472']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  {/* Porcentaje numérico dentro de la barra azul si hay volumen suficiente */}
+                  {audioVolume >= 12 && (
+                    <Text style={styles.soundPercentageTextInside}>{audioVolume}%</Text>
+                  )}
+                </View>
+
+                {/* Ícono de altavoz en la parte superior del slider */}
+                <View style={styles.soundIconContainer} pointerEvents="none">
+                  {audioVolume === 0 ? (
+                    <VolumeX size={22} color={isDark ? '#94A3B8' : '#64748B'} />
+                  ) : (
+                    <Volume2 size={22} color="#FFFFFF" />
+                  )}
+                </View>
+
+                {/* Porcentaje en la parte inferior si el volumen es muy bajo */}
+                {audioVolume < 12 && (
+                  <View style={styles.soundPercentageContainerBelow} pointerEvents="none">
+                    <Text style={styles.soundPercentageTextBelow}>{audioVolume}%</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Texto instructivo */}
+            <Text style={styles.modalInstructionText}>
+              {t('interpreter.configGlassesInstruction', 'Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida')}
+            </Text>
+
+            {/* Selector rápido tipo pastilla (Wi-Fi de lentes / mDNS Local) */}
+            <View style={styles.quickIpSegmentContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.quickIpPill, 
+                  ipInput === '192.168.4.1' && styles.quickIpPillActive
+                ]}
+                onPress={() => setIpInput('192.168.4.1')}
+                activeOpacity={0.8}
+              >
+                <Text 
+                  style={[
+                    styles.quickIpPillText, 
+                    ipInput === '192.168.4.1' && styles.quickIpPillTextActive
+                  ]}
+                >
+                  {t('interpreter.wifiGlasses', 'Wi-Fi de lentes')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.quickIpPill, 
+                  ipInput === 'cokielens.local' && styles.quickIpPillActive
+                ]}
+                onPress={() => setIpInput('cokielens.local')}
+                activeOpacity={0.8}
+              >
+                <Text 
+                  style={[
+                    styles.quickIpPillText, 
+                    ipInput === 'cokielens.local' && styles.quickIpPillTextActive
+                  ]}
+                >
+                  {t('interpreter.mdnsLocal', 'mDNS Local')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Input de IP con estilo redondeado exacto */}
+            <View style={styles.ipInputContainer}>
               <TextInput
-                style={styles.input}
+                style={styles.ipInputField}
                 value={ipInput}
                 onChangeText={setIpInput}
-                placeholder="Ej: 192.168.4.1 o 192.168.1.50"
-                placeholderTextColor="#94a3b8"
+                placeholder="192.168.4.1"
+                placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                 keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+            </View>
 
-              {testResult && (
-                <View style={[styles.testBadge, testResult.success ? styles.testSuccess : styles.testFail]}>
-                  {testResult.success ? <Check size={16} color="#10b981" /> : <AlertCircle size={16} color="#ef4444" />}
-                  <Text style={styles.testBadgeText}>{testResult.message}</Text>
-                </View>
-              )}
-
-              {/* Control de Volumen (Voz / Audífono de Lentes) */}
-              <View style={styles.volumeCard}>
-                <View style={styles.volumeHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    {audioVolume === 0 ? (
-                      <VolumeX size={16} color="#ef4444" />
-                    ) : (
-                      <Volume1 size={16} color="#38bdf8" />
-                    )}
-                    <Text style={styles.volumeTitle}>{t('interpreter.volumeLabel', 'Volumen de Audífono / Voz')}</Text>
-                  </View>
-                  <View style={styles.volumeBadge}>
-                    <Text style={styles.volumeBadgeText}>{audioVolume}%</Text>
-                  </View>
-                </View>
-
-                {/* Slider interactivo */}
-                <View style={styles.sliderRow}>
-                  <TouchableOpacity 
-                    style={styles.stepBtn}
-                    onPress={() => updateVolume(audioVolume - 10)}
-                    activeOpacity={0.7}
-                  >
-                    <Minus size={14} color="#FFF" />
-                  </TouchableOpacity>
-
-                  <View 
-                    style={styles.trackContainer}
-                    onLayout={(e) => {
-                      trackWidthRef.current = e.nativeEvent.layout.width;
-                    }}
-                    onStartShouldSetResponder={() => true}
-                    onMoveShouldSetResponder={() => true}
-                    onResponderGrant={handleSliderTouch}
-                    onResponderMove={handleSliderTouch}
-                  >
-                    <View style={styles.trackBackground} />
-                    <View style={[styles.trackFill, { width: `${audioVolume}%` }]} />
-                    <View style={[styles.thumb, { left: `${Math.max(0, Math.min(94, audioVolume - 4))}%` }]} />
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.stepBtn}
-                    onPress={() => updateVolume(audioVolume + 10)}
-                    activeOpacity={0.7}
-                  >
-                    <Plus size={14} color="#FFF" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Presets de Volumen */}
-                <View style={styles.presetRow}>
-                  {[0, 25, 50, 75, 100].map((val) => (
-                    <TouchableOpacity
-                      key={val}
-                      style={[styles.presetBtn, audioVolume === val && styles.presetBtnActive]}
-                      onPress={() => updateVolume(val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.presetText, audioVolume === val && styles.presetTextActive]}>
-                        {val === 0 ? 'Mute' : `${val}%`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Botón Probar Sonido */}
-                <TouchableOpacity 
-                  style={styles.testAudioBtn}
-                  onPress={handleTestAudio}
-                  activeOpacity={0.8}
-                >
-                  <Volume2 size={15} color="#38bdf8" style={{ marginRight: 6 }} />
-                  <Text style={styles.testAudioBtnText}>{t('interpreter.testAudioBtn', 'Probar Sonido')}</Text>
-                </TouchableOpacity>
+            {/* Resultado de prueba de conexión si existe */}
+            {testResult && (
+              <View 
+                style={[
+                  styles.testResultBadge, 
+                  testResult.success ? styles.testSuccess : styles.testFail
+                ]}
+              >
+                {testResult.success ? (
+                  <Check size={16} color="#10B981" />
+                ) : (
+                  <AlertCircle size={16} color="#EF4444" />
+                )}
+                <Text style={styles.testResultBadgeText}>{testResult.message}</Text>
               </View>
+            )}
 
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.testBtn} 
-                  onPress={handleTestConnection}
-                  disabled={isTestingConnection}
+            {/* Footer de Acciones: Probar Conexión (ghost) y Guardar (gradiente azul) */}
+            <View style={styles.modalFooterActions}>
+              <TouchableOpacity 
+                style={styles.testGhostButton}
+                onPress={handleTestConnection}
+                disabled={isTestingConnection}
+                activeOpacity={0.7}
+              >
+                {isTestingConnection ? (
+                  <ActivityIndicator size="small" color="#426BC2" />
+                ) : (
+                  <Text style={styles.testGhostButtonText}>
+                    {t('interpreter.testConnectionBtn', 'Probar conexión')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.saveGradientButtonContainer}
+                onPress={handleSaveIp}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#132472', '#426BC2']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.saveGradientButton}
                 >
-                  {isTestingConnection ? (
-                    <ActivityIndicator size="small" color="#38bdf8" />
-                  ) : (
-                    <>
-                      <Wifi size={16} color="#38bdf8" style={{ marginRight: 6 }} />
-                      <Text style={styles.testBtnText}>{t('interpreter.testConnectionBtn', 'Probar Conexión')}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveIp}>
-                  <Text style={styles.saveBtnText}>{t('common.save', 'Guardar')}</Text>
-                </TouchableOpacity>
-              </View>
+                  <Text style={styles.saveGradientButtonText}>
+                    {t('common.save', 'Guardar')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -951,287 +1061,473 @@ export default function InterpreterScreenNative() {
   );
 }
 
-const createStyles = (Colors, theme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { justifyContent: 'center', alignItems: 'center' },
-  text: { color: Colors.text.primary },
+// ── ESTILOS ADAPTADOS (PALETA IA TRAINING + LAYOUT RESPONSIVO HORIZONTAL) ───────
+const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: isDark ? '#141414' : '#F8FAFC',
+    paddingTop: Math.max(insets.top, 16),
+  },
 
-  // Barra de control superior
-  controlBar: {
+  // Barra Superior
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#0B1956',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 16,
-    padding: 2,
-  },
-  segmentBtn: {
+  languagePillButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  segmentBtnActive: {
-    backgroundColor: '#3b82f6',
-  },
-  segmentTxt: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  segmentTxtActive: {
-    color: '#FFF',
-  },
-  settingsIconBtn: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    position: 'relative',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    position: 'absolute',
-    top: 3,
-    right: 3,
-  },
-
-  // Contenedor de cámara y vista de lentes
-  cameraContainer: { flex: 1, overflow: 'hidden', position: 'relative' },
-  glassesPreviewContainer: {
-    flex: 1,
-    backgroundColor: '#020617',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glassesPlaceholder: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  glassesPlaceholderText: {
-    color: '#94a3b8',
-    fontSize: 13,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  aiStatusBadge: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    zIndex: 25,
-    elevation: 8,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
   },
-  aiStatusConnected: {
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-  },
-  aiStatusConnecting: {
-    borderColor: 'rgba(245, 158, 11, 0.5)',
-  },
-  aiStatusDisconnected: {
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-  },
-  aiStatusText: {
-    color: '#FFF',
+  languagePillText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: isDark ? '#F1F5F9' : '#0F172A',
   },
-  glassesBadge: {
-    position: 'absolute',
-    top: 54,
-    left: 16,
+  segmentedCapsule: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    padding: 3,
+    width: 190,
+  },
+  segmentPill: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentPillActive: {
+    backgroundColor: isDark ? '#FFFFFF' : '#0F172A',
+  },
+  segmentPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  segmentPillTextActive: {
+    color: isDark ? '#000000' : '#FFFFFF',
+    fontWeight: '700',
+  },
+  topRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-    zIndex: 24,
+    gap: 8,
   },
-  glassesBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  miniDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  topBarIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
   },
 
-  floatingRotateButton: {
+  // Contenedor Principal (Vertical en Móvil, Horizontal en PC/Tablets)
+  mainLayout: {
+    flex: 1,
+    flexDirection: 'column',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  mainLayoutLarge: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 16,
+    paddingBottom: Math.max(insets.bottom, 16),
+  },
+
+  // Marco de Cámara
+  cameraWrapper: {
+    flex: 1,
+    paddingBottom: 12,
+  },
+  cameraWrapperLarge: {
+    flex: 1.35,
+    paddingBottom: 0,
+    minHeight: 460,
+  },
+  cameraFrame: {
+    flex: 1,
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+
+  // Controles dentro de la cámara activa
+  floatingFlipCircle: {
     position: 'absolute',
     top: 16,
     right: 16,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(11, 25, 86, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 20,
+  },
+  floatingPauseCircle: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 8,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 20,
   },
 
-  // Subtítulos
-  subtitleOverlay: {
-    position: 'absolute',
-    bottom: 96,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(11, 25, 86, 0.88)',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  subtitleHeader: {
-    flexDirection: 'row',
+  // Estado Inactivo de Cámara
+  cameraInactiveContainer: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  subtitleHeaderTitle: {
-    color: '#10b981',
-    fontWeight: 'bold',
-    fontSize: 11,
-    letterSpacing: 1,
-    marginLeft: 6,
-  },
-  subtitleMainText: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 4,
-  },
-  subtitlePlaceholder: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginVertical: 6,
-  },
-  historyContainer: {
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 6,
-  },
-  historyText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-
-  // Footer
-  footer: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  micButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#10b981',
     justifyContent: 'center',
+    padding: 30,
+  },
+  inactiveIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
     alignItems: 'center',
-    marginBottom: 6,
-    shadowColor: '#10b981',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  },
+  inactiveTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: isDark ? '#F1F5F9' : '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  inactiveSubtitle: {
+    fontSize: 13,
+    color: isDark ? '#94A3B8' : '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 24,
+    maxWidth: 280,
+  },
+  activateButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#132472',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 6,
   },
-  micButtonDisabled: {
-    backgroundColor: '#64748b',
+  activateButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
   },
-  footerText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.text.secondary,
+  activateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 
-  // Modal
-  modalOverlay: {
+  // Contenedor Live Lentes
+  glassesLiveContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: '#000000',
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  glassesWaitingBox: {
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
-  modalCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-    borderRadius: 20,
-    padding: 22,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: theme === 'dark' ? '#ffffff' : '#0f172a',
-  },
-  modalHelp: {
+  glassesWaitingText: {
+    color: '#94A3B8',
     fontSize: 13,
-    color: theme === 'dark' ? '#94a3b8' : '#64748b',
-    marginBottom: 14,
-    lineHeight: 18,
+    marginTop: 12,
+    textAlign: 'center',
   },
-  input: {
-    height: 46,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: theme === 'dark' ? '#ffffff' : '#0f172a',
-    backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-    marginBottom: 14,
+
+  // Caja de Traducción (Sin sombra en móvil, borde 0.5px gris #8B8B90, horizontal en PC)
+  translationCard: {
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    overflow: 'hidden',
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    marginBottom: 6,
   },
-  testBadge: {
+  translationCardLarge: {
+    flex: 1,
+    marginBottom: 0,
+    justifyContent: 'space-between',
+    minHeight: 460,
+  },
+  translationCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  translationHeaderStatus: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  cardDivider: {
+    height: 0.5,
+    backgroundColor: '#8B8B90',
+  },
+  translationCardBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  translationCardBodyLarge: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    justifyContent: 'space-between',
+  },
+  translationMainSentence: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: isDark ? '#FFFFFF' : '#0F172A',
     marginBottom: 14,
+    lineHeight: 28,
+  },
+  translationMainSentenceLarge: {
+    fontSize: 26,
+    lineHeight: 36,
+  },
+  translationStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  statusIconSlot: {
+    marginRight: 8,
+  },
+  translationStatusLabel: {
+    fontSize: 12,
+    color: isDark ? '#94A3B8' : '#64748B',
+    fontWeight: '500',
+  },
+
+  // Trigger interactivo inferior para revelar TabBar en móvil
+  bottomNavTrigger: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingBottom: Math.max(insets.bottom, 10),
+  },
+  bottomNavIndicatorBar: {
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+  },
+
+  // ── MODAL FULLSCREEN DE AJUSTES (COKIELENS - MOCKUP 2) ───────────────────
+  fullscreenModalContainer: {
+    flex: 1,
+    backgroundColor: isDark ? '#141414' : '#F8FAFC',
+    paddingTop: Math.max(insets.top, 20),
+    paddingHorizontal: 22,
+    paddingBottom: Math.max(insets.bottom, 24),
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalBrandTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: isDark ? '#FFFFFF' : '#0F172A',
+    marginRight: 10,
+    letterSpacing: -0.5,
+  },
+  modalStatusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+  },
+
+  // Fila superior de cards
+  topCardsRow: {
+    flexDirection: 'row',
+    gap: 14,
+    marginBottom: 24,
+    height: 220,
+  },
+  glassesCard: {
+    flex: 1,
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+  glassesImage: {
+    width: '90%',
+    height: '80%',
+  },
+
+  // Barra de sonido estilo iPhone
+  soundCapsule: {
+    width: 72,
+    height: '100%',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'flex-end',
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+  },
+  soundFillBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  soundIconContainer: {
+    position: 'absolute',
+    top: 24,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  soundPercentageTextInside: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  soundPercentageContainerBelow: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  soundPercentageTextBelow: {
+    color: isDark ? '#94A3B8' : '#64748B',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+
+  // Texto instructivo
+  modalInstructionText: {
+    fontSize: 14,
+    color: isDark ? '#A0A0A5' : '#64748B',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+
+  // Segmentador rápido de IP
+  quickIpSegmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 28,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    padding: 3,
+    marginBottom: 16,
+  },
+  quickIpPill: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickIpPillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickIpPillText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: isDark ? '#A0A0A5' : '#64748B',
+  },
+  quickIpPillTextActive: {
+    color: '#000000',
+    fontWeight: '700',
+  },
+
+  // Input IP
+  ipInputContainer: {
+    marginBottom: 20,
+  },
+  ipInputField: {
+    height: 52,
+    backgroundColor: isDark ? '#1C1C1C' : '#FFFFFF',
+    borderRadius: 26,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    paddingHorizontal: 20,
+    fontSize: 15,
+    color: isDark ? '#FFFFFF' : '#0F172A',
+  },
+
+  // Badge de resultado
+  testResultBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 18,
   },
   testSuccess: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -1239,159 +1535,43 @@ const createStyles = (Colors, theme) => StyleSheet.create({
   testFail: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
-  testBadgeText: {
+  testResultBadgeText: {
     fontSize: 12,
     marginLeft: 8,
-    color: theme === 'dark' ? '#f1f5f9' : '#0f172a',
+    color: isDark ? '#F1F5F9' : '#0F172A',
     flex: 1,
   },
-  modalActions: {
+
+  // Footer Actions
+  modalFooterActions: {
+    marginTop: 'auto',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 10,
+    gap: 16,
   },
-  testBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  testGhostButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  testBtnText: {
-    color: '#0284c7',
+  testGhostButtonText: {
+    fontSize: 14,
     fontWeight: '600',
-    fontSize: 13,
+    color: isDark ? '#F1F5F9' : '#0F172A',
   },
-  saveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#3b82f6',
-  },
-  saveBtnText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  // Controles de volumen
-  volumeCard: {
-    backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.65)' : 'rgba(241, 245, 249, 0.8)',
+  saveGradientButtonContainer: {
     borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    overflow: 'hidden',
   },
-  volumeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  saveGradientButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  volumeTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-  },
-  volumeBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  volumeBadgeText: {
-    fontSize: 12,
+  saveGradientButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#38bdf8',
-  },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 10,
-  },
-  stepBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: theme === 'dark' ? '#334155' : '#cbd5e1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trackContainer: {
-    flex: 1,
-    height: 30,
-    justifyContent: 'center',
-  },
-  trackBackground: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-  },
-  trackFill: {
-    position: 'absolute',
-    left: 0,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#38bdf8',
-  },
-  thumb: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#0284c7',
-    borderWidth: 3,
-    borderColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 6,
-    marginBottom: 12,
-  },
-  presetBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presetBtnActive: {
-    backgroundColor: '#38bdf8',
-  },
-  presetText: {
-    fontSize: 11,
-    color: theme === 'dark' ? '#94a3b8' : '#64748b',
-    fontWeight: '600',
-  },
-  presetTextActive: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  testAudioBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-  },
-  testAudioBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0284c7',
   },
 });

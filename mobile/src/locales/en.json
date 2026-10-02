@@ -889,7 +889,22 @@
     "openSettingsBtn": "Open Settings",
     "aiConnected": "AI Connected",
     "aiConnecting": "Connecting to AI...",
-    "aiReconnect": "Reconnect AI"
+    "aiReconnect": "Reconnect AI",
+    "detectingSigns": "Detecting signs...",
+    "readyToTranslate": "Ready to translate",
+    "activateCamera": "Activate Camera",
+    "deviceCamera": "Device Camera",
+    "activateCameraDesc": "Activate the camera to begin real-time sign language interpretation",
+    "readySyncGlasses": "Ready to sync with ESP32-CAM at {{ip}}",
+    "receivingGlassesVideo": "Receiving video from CokieLens...",
+    "wifiGlasses": "Glasses Wi-Fi",
+    "mdnsLocal": "Local mDNS",
+    "connectedToDevice": "Connected to {{device}} ({{ip}})",
+    "invalidDeviceResponse": "Invalid response from device",
+    "connectionFailedCheckWifi": "Could not connect. Verify you are connected to the glasses Wi-Fi or that the IP is correct.",
+    "switchLanguage": "Switch language",
+    "themeLight": "Light mode",
+    "themeDark": "Dark mode"
   },
   "gestureStudio": {
     "title": "Gesture & AI Studio",
