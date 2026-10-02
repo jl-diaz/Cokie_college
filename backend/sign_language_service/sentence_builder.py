@@ -43,6 +43,9 @@ class SentenceBuilder:
         cleaned = text.strip()
         if len(cleaned) == 1 and cleaned.isalpha():
             return True
+        clean_id = token_id.replace("sign.", "").replace("alphabet_", "").replace("letter_", "").strip()
+        if len(clean_id) == 1 and clean_id.isalpha():
+            return True
         if token_id.startswith("sign.alphabet_") or token_id.startswith("sign.letter_"):
             return True
         return False

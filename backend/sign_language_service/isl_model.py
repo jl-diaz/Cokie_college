@@ -9,8 +9,12 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-import gesture_trainer
-from sentence_builder import SentenceBuilder
+try:
+    import gesture_trainer
+    from sentence_builder import SentenceBuilder
+except ImportError:
+    from . import gesture_trainer
+    from .sentence_builder import SentenceBuilder
 
 # ─────────────────────────────────────────────────────────────────
 # Mapeo de gestos MediaPipe → Translation Keys
@@ -304,11 +308,11 @@ def classify_sign_from_landmarks(landmarks):
         return "sign.3"
 
     # B: Cuatro dedos extendidos hacia arriba y juntos con pulgar cruzado sobre palma
-    if (not thumb or thumb_across) and index and middle and ring and pinky and not spread and orientation == 'vertical':
+    if (not thumb or thumb_across) and index and middle and ring and pinky and not spread and landmarks[12].y < landmarks[0].y:
         return "sign.b"
 
     # 4: Cuatro dedos extendidos y separados, pulgar plegado
-    if not thumb and index and middle and ring and pinky and orientation == 'vertical':
+    if not thumb and index and middle and ring and pinky and landmarks[12].y < landmarks[0].y:
         return "sign.4"
 
     # 5: Cinco dedos completamente extendidos y separados en abanico
@@ -316,22 +320,18 @@ def classify_sign_from_landmarks(landmarks):
         return "sign.5"
 
     # 1: Solo índice extendido vertical hacia arriba
-    if not thumb and index and not middle and not ring and not pinky and orientation == 'vertical':
+    if not thumb and index and not middle and not ring and not pinky and landmarks[8].y < landmarks[0].y:
         return "sign.1"
 
-    # I: Solo meñique extendido vertical hacia arriba
-    if not thumb and not index and not middle and not ring and pinky and orientation == 'vertical':
+    # I: Solo meñique extendido vertical hacia arriba (la letra J se aprende dinámicamente)
+    if not thumb and not index and not middle and not ring and pinky and landmarks[20].y < landmarks[0].y:
         return "sign.i"
 
-    # J: Meñique extendido en orientación diagonal (o dinámica)
-    if not thumb and not index and not middle and not ring and pinky and orientation == 'diagonal':
-        return "sign.j"
-
     # X: Solo índice flexionado en gancho (half bent)
-    if not thumb and not middle and not ring and not pinky and index_half and orientation == 'vertical':
+    if not thumb and not middle and not ring and not pinky and index_half:
         return "sign.x"
 
-    # Z: Índice apuntando diagonalmente
+    # Z: Solo índice apuntando diagonalmente
     if not thumb and index and not middle and not ring and not pinky and orientation == 'diagonal':
         return "sign.z"
 
@@ -362,7 +362,7 @@ def classify_sign_from_landmarks(landmarks):
             return "sign.e"
 
         # A: Puño cerrado con pulgar vertical descansando al lado externo del índice
-        if not thumb_across and landmarks[4].y < landmarks[6].y:
+        if not thumb_across and landmarks[4].y < landmarks[9].y:
             return "sign.a"
 
     # Rechazo por defecto para posturas intermedias, ambiguas o de reposo
@@ -578,20 +578,20 @@ class ISLModel:
                         is_moving_dynamically = True
 
                 # Estrategia de asignación priorizada:
-                # A) Si la mano está quieta o muestra una forma fija definida (Te quiero, Y, L, etc.), la seña estática manda
+                # A) Si la mano está quieta y coincide con una seña estática geométrica clara
                 if static_candidate and (is_holding_static or not is_moving_dynamically):
                     current_prediction = static_candidate
 
-                # B) Evaluar modelo dinámico aprendido solo cuando hay movimiento activo intencional
-                if current_prediction is None and len(self.sequence_buffer) >= 6 and (is_moving_dynamically or motion_energy > 0.05):
+                # B) Evaluar modelo neuronal aprendido (gestos dinámicos o dialecto personalizado)
+                if current_prediction is None and len(self.sequence_buffer) >= 6:
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
                         try:
                             feats = gesture_trainer.extract_spatiotemporal_features(list(self.sequence_buffer))
                             pred_label, confidence, margin = active_model.predict_with_margin(feats)
-                            # Umbral calibrado con margen de separación frente a la segunda clase (anti-ruido)
-                            min_conf = 0.65 if is_moving_dynamically else 0.78
-                            min_margin = 0.18
+                            # Umbral calibrado con margen frente a la segunda clase más probable
+                            min_conf = 0.65 if is_moving_dynamically else 0.80
+                            min_margin = 0.15
                             if pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
                                 current_prediction = {
@@ -603,9 +603,20 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # C) Fallback a seña estática si la mano está estable y no hubo disparo dinámico
-                if current_prediction is None and static_candidate and is_holding_static:
+                # C) Fallback a seña estática
+                if current_prediction is None and static_candidate:
                     current_prediction = static_candidate
+
+                # D) Normalizar predicción a diccionario enriquecido con metadatos bilingües
+                if current_prediction is not None and isinstance(current_prediction, str):
+                    clean_id = current_prediction.replace("sign.", "")
+                    info = gesture_trainer.get_gesture_display_info(clean_id)
+                    current_prediction = {
+                        "id": f"sign.{info['id']}",
+                        "text": info["name_es"],
+                        "name_es": info["name_es"],
+                        "name_en": info["name_en"]
+                    }
             else:
                 self.sequence_buffer.append(np.zeros(126, dtype=np.float32))
 
