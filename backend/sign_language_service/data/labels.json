@@ -7,7 +7,6 @@
     "te_quiero",
     "si",
     "no",
-    "me_llamo___mi_nombre_es",
     "yo",
     "uno",
     "dos",
@@ -62,7 +61,9 @@
     "siete",
     "ocho",
     "nueve",
-    "diez"
+    "diez",
+    "como_estas",
+    "mi_nombre_es"
   ],
-  "trained_at": "2026-10-03 11:37:21"
+  "trained_at": "2026-10-03 17:36:00"
 }

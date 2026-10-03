@@ -77,18 +77,6 @@
     "category": "school"
   },
   {
-    "id": "me_llamo___mi_nombre_es",
-    "name": "Me llamo / Mi nombre es",
-    "name_es": "Me llamo / Mi nombre es",
-    "name_en": "My name is",
-    "type": "movement",
-    "description": "Dedos índice y medio de ambas manos hacen una cruz (una mano sobre la otra)",
-    "sample_count": 6,
-    "is_default": false,
-    "created_at": "2026-09-22 15:20:51",
-    "category": "school"
-  },
-  {
     "id": "yo",
     "name": "Yo",
     "name_es": "Yo",
@@ -715,5 +703,27 @@
     "description": "Puño cerrado con pulgar hacia arriba y leve oscilación de muñeca.",
     "sample_count": 6,
     "is_default": true
+  },
+  {
+    "id": "como_estas",
+    "name": "¿Cómo estás?",
+    "name_es": "¿Cómo estás?",
+    "name_en": "How are you?",
+    "type": "movement",
+    "description": "",
+    "sample_count": 10,
+    "is_default": false,
+    "created_at": "2026-10-03 15:56:19"
+  },
+  {
+    "id": "mi_nombre_es",
+    "name": "Mi nombre es",
+    "name_es": "Mi nombre es",
+    "name_en": "My names is",
+    "type": "movement",
+    "description": "",
+    "sample_count": 15,
+    "is_default": false,
+    "created_at": "2026-10-03 17:17:54"
   }
 ]
