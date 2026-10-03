@@ -42,6 +42,11 @@ import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 import { useTabBar } from '../context/TabBarContext';
 import SkeletonOverlay from '../components/SkeletonOverlay';
+import {
+  getAiServerUrl,
+  subscribeAiServerUrl,
+  getCurrentAiServerUrlSync
+} from '../services/aiServerConfig';
 
 export default function InterpreterScreenWeb() {
   const pathname = usePathname();
@@ -91,6 +96,7 @@ export default function InterpreterScreenWeb() {
   const audioVolumeRef = useRef(audioVolume);
   const soundCapsuleHeightRef = useRef(220);
   const analyzingTimeoutRef = useRef(null);
+  const clearLastSpokenTimeoutRef = useRef(null);
 
   // Animaciones para botón de activación
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -196,8 +202,14 @@ export default function InterpreterScreenWeb() {
   useEffect(() => {
     if (!isFocused) return;
 
-    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
-    WebSocketService.connect(serverUrl);
+    let isMounted = true;
+    getAiServerUrl().then(url => {
+      if (isMounted) WebSocketService.connect(url);
+    });
+
+    const unsub = subscribeAiServerUrl((newUrl) => {
+      if (isMounted) WebSocketService.connect(newUrl);
+    });
 
     const handleSentenceEvent = (eventType, data) => {
       if (eventType === 'update') {
@@ -257,6 +269,12 @@ export default function InterpreterScreenWeb() {
         setIsAnalyzing(true);
         if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
         analyzingTimeoutRef.current = setTimeout(() => setIsAnalyzing(false), 2500);
+      } else {
+        // Al bajar las manos o pausar, limpiar el texto previo para permitir pronunciar la misma seña nuevamente
+        if (clearLastSpokenTimeoutRef.current) clearTimeout(clearLastSpokenTimeoutRef.current);
+        clearLastSpokenTimeoutRef.current = setTimeout(() => {
+          lastSpokenRef.current = '';
+        }, 1800);
       }
     };
 
@@ -265,6 +283,8 @@ export default function InterpreterScreenWeb() {
     WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
+      isMounted = false;
+      unsub();
       WebSocketService.removeSentenceListener(handleSentenceEvent);
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.removeLandmarksListener(handleLandmarks);
@@ -309,7 +329,7 @@ export default function InterpreterScreenWeb() {
             'X-Audio-Volume': String(audioVolumeRef.current || 80)
           }
         }).catch(e => {
-          const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+          const serverUrl = getCurrentAiServerUrlSync();
           fetch(`${serverUrl}/api/esp32/audio`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -410,7 +430,12 @@ export default function InterpreterScreenWeb() {
           const commaIdx = dataUrl.indexOf(',');
           const base64 = commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
           if (base64) {
-            WebSocketService.sendFrame(base64);
+            WebSocketService.sendFrame({
+              image: base64,
+              platform: 'web',
+              facing: facing,
+              source: 'phone'
+            });
           }
         } catch (e) {
         } finally {
@@ -461,7 +486,14 @@ export default function InterpreterScreenWeb() {
             if (typeof base64Data === 'string') {
               const commaIdx = base64Data.indexOf(',');
               const rawBase64 = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
-              if (rawBase64) WebSocketService.sendFrame(rawBase64);
+              if (rawBase64) {
+                WebSocketService.sendFrame({
+                  image: rawBase64,
+                  platform: 'web',
+                  facing: 'environment',
+                  source: 'glasses'
+                });
+              }
             }
           } else {
             consecutiveErrors++;
@@ -730,9 +762,11 @@ export default function InterpreterScreenWeb() {
           <View style={styles.translationCardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.translationHeaderStatus}>
-                {isAnalyzing 
-                  ? t('interpreter.detectingSigns', 'Detectando señas...') 
-                  : t('interpreter.readyToTranslate', 'Listo para traducir')}
+                {aiServerStatus === 'connecting'
+                  ? t('interpreter.connectingServer', 'Conectando con Servidor IA...')
+                  : isAnalyzing 
+                    ? t('interpreter.detectingSigns', 'Detectando señas...') 
+                    : t('interpreter.readyToTranslate', 'Listo para traducir')}
               </Text>
               {/* Badge selector rápido de bocina activa */}
               <TouchableOpacity 

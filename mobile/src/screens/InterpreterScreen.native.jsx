@@ -49,6 +49,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebSocketService from '../services/WebSocketService';
 import { useTabBar } from '../context/TabBarContext';
 import SkeletonOverlay from '../components/SkeletonOverlay';
+import {
+  getAiServerUrl,
+  subscribeAiServerUrl,
+  getCurrentAiServerUrlSync
+} from '../services/aiServerConfig';
 
 export default function InterpreterScreenNative() {
   const pathname = usePathname();
@@ -102,6 +107,7 @@ export default function InterpreterScreenNative() {
   const audioVolumeRef = useRef(audioVolume);
   const soundCapsuleHeightRef = useRef(220);
   const analyzingTimeoutRef = useRef(null);
+  const clearLastSpokenTimeoutRef = useRef(null);
 
   // Animaciones para botón de activación
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -238,8 +244,14 @@ export default function InterpreterScreenNative() {
   useEffect(() => {
     if (!isFocused) return;
 
-    const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
-    WebSocketService.connect(serverUrl);
+    let isMounted = true;
+    getAiServerUrl().then(url => {
+      if (isMounted) WebSocketService.connect(url);
+    });
+
+    const unsub = subscribeAiServerUrl((newUrl) => {
+      if (isMounted) WebSocketService.connect(newUrl);
+    });
 
     // Manejador de oraciones formuladas por el backend
     const handleSentenceEvent = async (eventType, data) => {
@@ -310,6 +322,12 @@ export default function InterpreterScreenNative() {
         analyzingTimeoutRef.current = setTimeout(() => {
           setIsAnalyzing(false);
         }, 2500);
+      } else {
+        // Al bajar las manos o pausar, limpiar el texto previo para permitir pronunciar la misma seña nuevamente
+        if (clearLastSpokenTimeoutRef.current) clearTimeout(clearLastSpokenTimeoutRef.current);
+        clearLastSpokenTimeoutRef.current = setTimeout(() => {
+          lastSpokenRef.current = '';
+        }, 1800);
       }
     };
 
@@ -318,6 +336,8 @@ export default function InterpreterScreenNative() {
     WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
+      isMounted = false;
+      unsub();
       WebSocketService.removeSentenceListener(handleSentenceEvent);
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.removeLandmarksListener(handleLandmarks);
@@ -363,7 +383,7 @@ export default function InterpreterScreenNative() {
             'X-Audio-Volume': String(audioVolumeRef.current || 80)
           }
         }).catch(e => {
-          const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+          const serverUrl = getCurrentAiServerUrlSync();
           fetch(`${serverUrl}/api/esp32/audio`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -429,14 +449,20 @@ export default function InterpreterScreenNative() {
         try {
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.15,
+            quality: 0.10,
+            skipProcessing: true,
             fastMode: true,
             shutterSound: false,
             exif: false,
           });
 
           if (photo?.base64) {
-            WebSocketService.sendFrame(photo.base64);
+            WebSocketService.sendFrame({
+              image: photo.base64,
+              platform: Platform.OS,
+              facing: facingMode,
+              source: 'phone'
+            });
           }
         } catch (e) {
           if (!e.message?.includes('unmounted')) {
@@ -445,13 +471,13 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 120);
+      }, 100);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isFocused, isCameraActive, videoSource, isCameraReady, hasPermission]);
+  }, [isFocused, isCameraActive, videoSource, isCameraReady, hasPermission, facingMode]);
 
   // ── BUCLE 2: CAPTURA DESDE LENTES COKIELENS (ESP32-CAM) ───────────────────
   useEffect(() => {
@@ -493,7 +519,12 @@ export default function InterpreterScreenNative() {
               const commaIdx = base64Data.indexOf(',');
               const rawBase64 = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
               if (rawBase64) {
-                WebSocketService.sendFrame(rawBase64);
+                WebSocketService.sendFrame({
+                  image: rawBase64,
+                  platform: Platform.OS,
+                  facing: 'environment',
+                  source: 'glasses'
+                });
               }
             }
           } else {
@@ -714,7 +745,7 @@ export default function InterpreterScreenNative() {
                       ref={cameraRef}
                       style={StyleSheet.absoluteFill} 
                       facing={facingMode}
-                      pictureSize={pictureSize}
+                      pictureSize={pictureSize || '640x480'}
                       onCameraReady={handleCameraReady}
                       animateShutter={false}
                     />
@@ -825,9 +856,11 @@ export default function InterpreterScreenNative() {
           <View style={styles.translationCardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.translationHeaderStatus}>
-                {isAnalyzing 
-                  ? t('interpreter.detectingSigns', 'Detectando señas...') 
-                  : t('interpreter.readyToTranslate', 'Listo para traducir')}
+                {aiServerStatus === 'connecting'
+                  ? t('interpreter.connectingServer', 'Conectando con Servidor IA...')
+                  : isAnalyzing 
+                    ? t('interpreter.detectingSigns', 'Detectando señas...') 
+                    : t('interpreter.readyToTranslate', 'Listo para traducir')}
               </Text>
               {/* Badge selector rápido de bocina activa */}
               <TouchableOpacity 

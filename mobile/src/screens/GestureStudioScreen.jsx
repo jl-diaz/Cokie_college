@@ -39,7 +39,11 @@ import {
   Wifi,
   Check,
   AlertCircle,
-  Camera
+  Camera,
+  Server,
+  Globe,
+  Laptop,
+  RefreshCw
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -48,6 +52,14 @@ import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import WebSocketService from '../services/WebSocketService';
 import { useTabBar } from '../context/TabBarContext';
+import {
+  getAiServerUrl,
+  setAiServerUrl,
+  DEFAULT_AI_SERVER_URL,
+  testAiServerConnection,
+  subscribeAiServerUrl,
+  resetAiServerUrl
+} from '../services/aiServerConfig';
 
 const { width } = Dimensions.get('window');
 const TARGET_MOVEMENT_FRAMES = 15;
@@ -101,15 +113,28 @@ export default function GestureStudioScreen() {
   const [modelStatus, setModelStatus] = useState(null);
   const [rollingBack, setRollingBack] = useState(false);
 
-  // Modal de configuración y prueba de IP de lentes
+  // Modal de configuración y prueba de IP de lentes CokieLens
   const [isConfigModalVisible, setIsConfigModalVisible] = useState(false);
 
+  // Modal de configuración de Servidor de IA (Local vs Nube)
+  const [isAiConfigModalVisible, setIsAiConfigModalVisible] = useState(false);
+  const [serverUrl, setServerUrlState] = useState(DEFAULT_AI_SERVER_URL);
+  const [serverInput, setServerInput] = useState(DEFAULT_AI_SERVER_URL);
+  const [isTestingAiServer, setIsTestingAiServer] = useState(false);
+  const [aiServerTestResult, setAiServerTestResult] = useState(null);
+  const [aiHealthOnline, setAiHealthOnline] = useState(null);
+  const [serverLatency, setServerLatency] = useState(null);
+
+  // Referencias para cámara Web (HTML5 Video & Canvas)
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
   useEffect(() => {
-    if (isNewModalOpen || isConfigModalVisible) {
+    if (isNewModalOpen || isConfigModalVisible || isAiConfigModalVisible) {
       registerModal();
       return () => unregisterModal();
     }
-  }, [isNewModalOpen, isConfigModalVisible, registerModal, unregisterModal]);
+  }, [isNewModalOpen, isConfigModalVisible, isAiConfigModalVisible, registerModal, unregisterModal]);
 
   const [ipInput, setIpInput] = useState('cokielens.local');
   const [glassesConnected, setGlassesConnected] = useState(false);
@@ -121,20 +146,35 @@ export default function GestureStudioScreen() {
   const [trainingProgress, setTrainingProgress] = useState({ epoch: 0, total_epochs: 40, accuracy: 0, loss: 0, percent: 0 });
   const [trainingResult, setTrainingResult] = useState(null);
 
-  const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
-
   useEffect(() => {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
 
   useEffect(() => {
     loadSavedSettings();
-    fetchGestures();
-    fetchModelStatus();
 
-    // Conectar WebSocket para recibir eventos de entrenamiento
-    WebSocketService.connect(serverUrl);
-    
+    let isMounted = true;
+    getAiServerUrl().then((initialUrl) => {
+      if (isMounted) {
+        setServerUrlState(initialUrl);
+        setServerInput(initialUrl);
+        fetchGestures(initialUrl);
+        fetchModelStatus(initialUrl);
+        checkServerHealth(initialUrl);
+        WebSocketService.connect(initialUrl);
+      }
+    });
+
+    const unsub = subscribeAiServerUrl((newUrl) => {
+      if (isMounted) {
+        setServerUrlState(newUrl);
+        setServerInput(newUrl);
+        fetchGestures(newUrl);
+        fetchModelStatus(newUrl);
+        checkServerHealth(newUrl);
+      }
+    });
+
     const handleTrainingEvents = (event, data) => {
       if (event === 'started') {
         setTrainingStatus('training');
@@ -156,9 +196,22 @@ export default function GestureStudioScreen() {
     WebSocketService.addTrainingListener(handleTrainingEvents);
 
     return () => {
+      isMounted = false;
+      unsub();
       WebSocketService.removeTrainingListener(handleTrainingEvents);
     };
   }, []);
+
+  const checkServerHealth = async (targetUrl) => {
+    const url = targetUrl || serverUrl;
+    try {
+      const res = await testAiServerConnection(url);
+      setAiHealthOnline(res.ok);
+      if (res.ok) setServerLatency(res.latency);
+    } catch (e) {
+      setAiHealthOnline(false);
+    }
+  };
 
   const loadSavedSettings = async () => {
     try {
@@ -174,10 +227,11 @@ export default function GestureStudioScreen() {
     } catch (e) {}
   };
 
-  const fetchGestures = async () => {
+  const fetchGestures = async (overrideUrl) => {
+    const activeUrl = overrideUrl || serverUrl;
     setLoading(true);
     try {
-      const res = await fetch(`${serverUrl}/api/gestures`);
+      const res = await fetch(`${activeUrl}/api/gestures`);
       if (res.ok) {
         const data = await res.json();
         setGestures(data);
@@ -201,9 +255,10 @@ export default function GestureStudioScreen() {
     }
   };
 
-  const fetchModelStatus = async () => {
+  const fetchModelStatus = async (overrideUrl) => {
+    const activeUrl = overrideUrl || serverUrl;
     try {
-      const res = await fetch(`${serverUrl}/api/gestures/model-status`);
+      const res = await fetch(`${activeUrl}/api/gestures/model-status`);
       if (res.ok) {
         const data = await res.json();
         setModelStatus(data);
@@ -311,6 +366,7 @@ export default function GestureStudioScreen() {
     setFacingMode(current => (current === 'front' ? 'back' : 'front'));
   }
 
+  // ── GESTIÓN DE IP DE LENTES COKIELENS ──
   const handleSaveIp = async () => {
     const clean = ipInput.replace('http://', '').replace('/', '').trim();
     setEsp32Ip(clean);
@@ -324,7 +380,7 @@ export default function GestureStudioScreen() {
     try {
       const clean = ipInput.replace('http://', '').replace('/', '').trim();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
 
       const res = await fetch(`http://${clean}/status`, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -343,6 +399,146 @@ export default function GestureStudioScreen() {
     }
   };
 
+  // ── GESTIÓN DE SERVIDOR IA (LOCAL VS NUBE) ──
+  const handleTestAiServer = async () => {
+    setIsTestingAiServer(true);
+    setAiServerTestResult(null);
+    try {
+      const res = await testAiServerConnection(serverInput);
+      setAiServerTestResult(res);
+      if (res.ok) {
+        setAiHealthOnline(true);
+        setServerLatency(res.latency);
+      } else {
+        setAiHealthOnline(false);
+      }
+    } catch (e) {
+      setAiServerTestResult({ ok: false, error: e.message || 'Error desconocido' });
+      setAiHealthOnline(false);
+    } finally {
+      setIsTestingAiServer(false);
+    }
+  };
+
+  const handleSaveAiServer = async () => {
+    const saved = await setAiServerUrl(serverInput);
+    setServerUrlState(saved);
+    setIsAiConfigModalVisible(false);
+    setAiServerTestResult(null);
+    await fetchGestures(saved);
+    await fetchModelStatus(saved);
+    await checkServerHealth(saved);
+    Alert.alert(t('common.success', 'Éxito'), `Servidor de IA configurado en: ${saved}`);
+  };
+
+  const handleResetAiServer = async () => {
+    const def = await resetAiServerUrl();
+    setServerUrlState(def);
+    setServerInput(def);
+    setAiServerTestResult(null);
+    await fetchGestures(def);
+    await fetchModelStatus(def);
+    await checkServerHealth(def);
+  };
+
+  // ── INICIALIZACIÓN DE WEBCAM EN PLATAFORMA WEB ──
+  useEffect(() => {
+    let stream = null;
+    if (Platform.OS === 'web' && isFocused && activeTab === 'recorder' && recorderSource === 'phone') {
+      const startWebcam = async () => {
+        try {
+          const constraints = {
+            video: {
+              facingMode: facingMode === 'front' ? 'user' : 'environment',
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            },
+            audio: false
+          };
+          if (navigator?.mediaDevices?.getUserMedia) {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.play().catch(() => {});
+              setIsCameraReady(true);
+            }
+          }
+        } catch (err) {
+          console.warn('[Webcam GestureStudio] Error:', err);
+        }
+      };
+      startWebcam();
+    } else if (Platform.OS === 'web') {
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+        videoRef.current.srcObject = null;
+      }
+      setIsCameraReady(false);
+    }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [isFocused, activeTab, recorderSource, facingMode]);
+
+  // ── FUNCIÓN UNIVERSAL PARA EXTRAER UN FOTOGRAMA BASE64 (WEB, NATIVE, COKIELENS) ──
+  const getFrameBase64 = async () => {
+    if (recorderSource === 'glasses') {
+      if (!liveFrameUri) return null;
+      const comma = liveFrameUri.indexOf(',');
+      return comma >= 0 ? liveFrameUri.substring(comma + 1) : liveFrameUri;
+    }
+
+    if (Platform.OS === 'web') {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) return null;
+      if (!canvasRef.current && typeof document !== 'undefined') {
+        canvasRef.current = document.createElement('canvas');
+      }
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      const w = 480;
+      const h = Math.round(((video.videoHeight || 480) / (video.videoWidth || 640)) * w) || 360;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (facingMode === 'front') {
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.restore();
+      } else {
+        ctx.drawImage(video, 0, 0, w, h);
+      }
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+      const comma = dataUrl.indexOf(',');
+      return comma >= 0 ? dataUrl.substring(comma + 1) : dataUrl;
+    }
+
+    // Native CameraView (Expo / APK)
+    if (!cameraRef.current) return null;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.12,
+        skipProcessing: true,
+        fastMode: true,
+        shutterSound: false,
+        exif: false,
+      });
+      return photo?.base64 || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   // ── CAPTURA FOTOGRÁFICA PARA SEÑAS ESTÁTICAS ─────────────────────────────
   const handleCaptureStaticPhoto = async () => {
     if (!selectedGestureId) {
@@ -353,125 +549,71 @@ export default function GestureStudioScreen() {
       return;
     }
 
-    if (recorderSource === 'phone' && !permission?.granted) {
+    if (Platform.OS !== 'web' && recorderSource === 'phone' && !permission?.granted) {
       const res = await requestPermission();
       if (!res?.granted) return;
-    }
-
-    if (recorderSource === 'phone' && !cameraRef.current) {
-      Alert.alert(
-        t('gestureStudio.cameraNotReadyTitle', 'Cámara no lista'),
-        t('gestureStudio.cameraNotReadyDesc', 'La cámara aún se está inicializando. Intenta en un momento.')
-      );
-      return;
     }
 
     setRecordingState('saving');
 
     try {
-      let imageBase64 = null;
-
-      if (recorderSource === 'phone') {
-        const photo = await cameraRef.current.takePictureAsync({
-          base64: true,
-          quality: 0.25,
-          fastMode: true,
-          shutterSound: true,
-          exif: false,
-        });
-        imageBase64 = photo?.base64;
-      } else {
-        if (!liveFrameUri) {
-          Alert.alert(
-            t('gestureStudio.noSignalTitle', 'Sin señal'),
-            t('gestureStudio.noSignalDesc', 'No se ha recibido señal de video de los lentes CokieLens.')
-          );
-          setRecordingState('idle');
-          return;
-        }
-        imageBase64 = liveFrameUri;
-      }
-
+      const imageBase64 = await getFrameBase64();
       if (!imageBase64) {
         Alert.alert(
           t('gestureStudio.captureErrorTitle', 'Error'),
-          t('gestureStudio.captureErrorDesc', 'No se pudo capturar la foto.')
+          t('gestureStudio.captureErrorDesc', 'No se pudo capturar la foto de la cámara. Verifica que la cámara esté activa.')
         );
         setRecordingState('idle');
         return;
       }
 
-      // Enviar al extractor para validar presencia de manos
-      const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: imageBase64 })
-      });
-
-      if (!extractRes.ok) {
-        Alert.alert(
-          t('gestureStudio.serverErrorTitle', 'Error de servidor'),
-          t('gestureStudio.serverProcessErrorDesc', 'No se pudo procesar la foto con el servidor.')
-        );
-        setRecordingState('idle');
-        return;
-      }
-
-      const data = await extractRes.json();
-      const hasHand = data.detected && data.vector && data.vector.some(v => v !== 0);
-
-      if (!hasHand) {
-        Alert.alert(
-          t('gestureStudio.handNotDetectedTitle', 'Mano no detectada'),
-          t('gestureStudio.handNotDetectedDesc', 'No se detectaron manos visibles en la foto. Coloca tu mano fija frente a la cámara mostrando la seña con buena luz e inténtalo de nuevo.')
-        );
-        setRecordingState('idle');
-        return;
-      }
-
-      // Guardar muestra para la seña estática (secuencia replicada a 30 fotogramas)
-      const staticSequence = Array.from({ length: 30 }, () => data.vector);
+      // Enviar directamente el fotograma al endpoint de guardado en el servidor con metadatos
       const saveRes = await fetch(`${serverUrl}/api/gestures/record-sample`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gesture_id: selectedGestureId,
-          sequence: staticSequence
+          frames: [imageBase64],
+          platform: Platform.OS,
+          facing: facingMode,
+          source: recorderSource,
         })
       });
+
+      const resJson = await saveRes.json().catch(() => ({}));
 
       if (saveRes.ok) {
         await fetchGestures();
         Alert.alert(
           t('gestureStudio.photoSavedTitle', '¡Foto Guardada!'),
-          t('gestureStudio.photoSavedDesc', 'Muestra guardada correctamente.')
+          `Muestra registrada correctamente para "${selectedGesture?.name_es || selectedGesture?.name}". Total: ${resJson.sample_count || 1} muestras.`
         );
       } else {
         Alert.alert(
-          t('gestureStudio.captureErrorTitle', 'Error'),
-          t('gestureStudio.saveSampleErrorDesc', 'No se pudo guardar la muestra en el servidor.')
+          t('gestureStudio.captureErrorTitle', 'Error al Guardar'),
+          resJson.detail || resJson.error || t('gestureStudio.saveSampleErrorDesc', 'No se pudo guardar la muestra en el servidor.')
         );
       }
     } catch (err) {
       console.warn('Error capturando foto:', err);
       Alert.alert(
-        t('gestureStudio.captureErrorTitle', 'Error'),
-        t('gestureStudio.connectionErrorDesc', 'Hubo un fallo de conexión al procesar la foto.')
+        t('gestureStudio.captureErrorTitle', 'Error de Conexión'),
+        `No se pudo comunicar con el servidor en ${serverUrl}. Revisa la configuración del servidor de IA.`
       );
     } finally {
       setRecordingState('idle');
     }
   };
 
-  // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO DURANTE GRABACIÓN DE MOVIMIENTO ──
+  // ── BUCLE DE CAPTURA RÁPIDA EN MEMORIA DURANTE GRABACIÓN DE MOVIMIENTO ──
   useEffect(() => {
     let isRunning = true;
 
-    if (activeTab === 'recorder' && recorderSource === 'phone' && recordingState === 'recording') {
-      const capturePhoneLoop = async () => {
+    if (activeTab === 'recorder' && recordingState === 'recording') {
+      const captureLoop = async () => {
         while (isRunning && recordingStateRef.current === 'recording') {
-          if (!cameraRef.current || isFetchingFrameRef.current) {
-            await new Promise(r => setTimeout(r, 40));
+          if (isFetchingFrameRef.current) {
+            await new Promise(r => setTimeout(r, 25));
             continue;
           }
 
@@ -481,39 +623,21 @@ export default function GestureStudioScreen() {
 
           isFetchingFrameRef.current = true;
           try {
-            const photo = await cameraRef.current.takePictureAsync({
-              base64: true,
-              quality: 0.15,
-              fastMode: true,
-              shutterSound: false,
-              exif: false,
-            });
-
-            if (photo?.base64 && isRunning && recordingStateRef.current === 'recording') {
-              const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image_base64: photo.base64 })
-              });
-
-              if (extractRes.ok) {
-                const data = await extractRes.json();
-                if (data.detected && data.vector && data.vector.some(v => v !== 0)) {
-                  recordedFramesRef.current.push(data.vector);
-                  setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100)));
-                  if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
-                    break;
-                  }
-                }
-              }
+            const b64 = await getFrameBase64();
+            if (b64 && isRunning && recordingStateRef.current === 'recording') {
+              recordedFramesRef.current.push(b64);
+              setRecordingProgress(
+                Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100))
+              );
             }
           } catch (e) {
-            // Ignorar errores transitorios de fotograma
+            // Ignorar
           } finally {
             isFetchingFrameRef.current = false;
           }
 
-          await new Promise(r => setTimeout(r, 20));
+          // Intervalo entre fotogramas (~8 FPS)
+          await new Promise(r => setTimeout(r, Platform.OS === 'web' ? 120 : 130));
         }
 
         if (isRunning && recordingStateRef.current === 'recording') {
@@ -521,15 +645,15 @@ export default function GestureStudioScreen() {
         }
       };
 
-      capturePhoneLoop();
+      captureLoop();
     }
 
     return () => {
       isRunning = false;
     };
-  }, [activeTab, recorderSource, recordingState]);
+  }, [activeTab, recordingState, recorderSource]);
 
-  // ── BUCLE 2: PREVISUALIZACIÓN Y CAPTURA DESDE LENTES (ESP32-CAM) ─────────────
+  // ── PREVISUALIZACIÓN DESDE LENTES (ESP32-CAM) ─────────────────────────────
   useEffect(() => {
     let intervalId;
     if (activeTab === 'recorder' && recorderSource === 'glasses') {
@@ -549,30 +673,8 @@ export default function GestureStudioScreen() {
             setGlassesConnected(true);
             const blob = await res.blob();
             const reader = new FileReader();
-            reader.onloadend = async () => {
-              const base64Uri = reader.result;
-              setLiveFrameUri(base64Uri);
-
-              // Si estamos en grabación activa, extraer puntos y acumular cuadro
-              if (recordingStateRef.current === 'recording' && base64Uri) {
-                try {
-                  const extractRes = await fetch(`${serverUrl}/api/gestures/extract-frame`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image_base64: base64Uri })
-                  });
-                  if (extractRes.ok) {
-                    const data = await extractRes.json();
-                    if (data.detected && data.vector && data.vector.some(v => v !== 0)) {
-                      recordedFramesRef.current.push(data.vector);
-                      setRecordingProgress(Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100)));
-                      if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
-                        await saveRecordedSequence();
-                      }
-                    }
-                  }
-                } catch (e) {}
-              }
+            reader.onloadend = () => {
+              setLiveFrameUri(reader.result);
             };
             reader.readAsDataURL(blob);
           } else {
@@ -583,7 +685,7 @@ export default function GestureStudioScreen() {
         } finally {
           isFetchingFrameRef.current = false;
         }
-      }, 110);
+      }, 120);
     }
 
     return () => {
@@ -592,7 +694,7 @@ export default function GestureStudioScreen() {
   }, [activeTab, recorderSource, esp32Ip]);
 
   // ── INICIAR GRABACIÓN GUIADA CON CUENTA REGRESIVA (MOVIMIENTO) ────────────────
-  const startGuidedRecording = () => {
+  const startGuidedRecording = async () => {
     if (!selectedGestureId) {
       Alert.alert(
         t('gestureStudio.selectionRequiredTitle', 'Selección requerida'),
@@ -601,9 +703,9 @@ export default function GestureStudioScreen() {
       return;
     }
 
-    if (recorderSource === 'phone' && !permission?.granted) {
-      requestPermission();
-      return;
+    if (recorderSource === 'phone' && Platform.OS !== 'web' && !permission?.granted) {
+      const res = await requestPermission();
+      if (!res?.granted) return;
     }
 
     setRecordingState('countdown');
@@ -621,12 +723,12 @@ export default function GestureStudioScreen() {
         // ¡Empezar a grabar!
         setRecordingState('recording');
 
-        // Temporizador de seguridad de 14s (suficiente para capturar los fotogramas en móvil)
+        // Temporizador de seguridad (5.5s para capturar 15 cuadros a ~8 FPS)
         setTimeout(async () => {
           if (recordingStateRef.current === 'recording') {
             await saveRecordedSequence();
           }
-        }, 14000);
+        }, 5500);
       }
     }, 1000);
   };
@@ -636,40 +738,46 @@ export default function GestureStudioScreen() {
     setRecordingState('saving');
     try {
       const frames = recordedFramesRef.current;
-      if (frames.length < 4) {
+      if (frames.length < 3) {
         Alert.alert(
           t('gestureStudio.insufficientSamplesTitle', 'Muestras insuficientes'),
-          t('gestureStudio.insufficientSamplesDesc', 'No se detectaron suficientes movimientos de manos en la cámara (mínimo 4 cuadros). Asegúrate de colocarte frente a la cámara mostrando torso y manos con buena luz.')
+          'No se detectaron suficientes movimientos de manos en la cámara (mínimo 3 cuadros). Asegúrate de colocarte frente a la cámara mostrando torso y manos con buena luz e intenta nuevamente.'
         );
         setRecordingState('idle');
         return;
       }
 
+      // Enviar lote de fotogramas al endpoint con metadatos de plataforma
       const res = await fetch(`${serverUrl}/api/gestures/record-sample`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gesture_id: selectedGestureId,
-          sequence: frames
+          frames: frames,
+          platform: Platform.OS,
+          facing: facingMode,
+          source: recorderSource,
         })
       });
+
+      const resJson = await res.json().catch(() => ({}));
 
       if (res.ok) {
         await fetchGestures();
         Alert.alert(
           t('gestureStudio.sampleSavedTitle', '¡Muestra Guardada!'),
-          `Se registraron ${frames.length} fotogramas de movimiento para "${selectedGesture?.name_es || selectedGesture?.name}".`
+          `Se registraron ${resJson.frames_recorded || frames.length} fotogramas de movimiento para "${selectedGesture?.name_es || selectedGesture?.name}". Total: ${resJson.sample_count || 1} muestras.`
         );
       } else {
         Alert.alert(
           t('gestureStudio.captureErrorTitle', 'Error'),
-          t('gestureStudio.saveSampleErrorDesc', 'Error al guardar la muestra en el servidor.')
+          resJson.detail || resJson.error || t('gestureStudio.saveSampleErrorDesc', 'Error al guardar la muestra en el servidor.')
         );
       }
     } catch (e) {
       Alert.alert(
-        t('gestureStudio.captureErrorTitle', 'Error'),
-        t('gestureStudio.connectionErrorDesc', 'Error de conexión con el servidor.')
+        t('gestureStudio.captureErrorTitle', 'Error de Conexión'),
+        `Error comunicando con el servidor en ${serverUrl}. Revisa la configuración del servidor de IA.`
       );
     } finally {
       setRecordingState('idle');
@@ -720,7 +828,46 @@ export default function GestureStudioScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: '' }} />
+      {/* ── BARRA SUPERIOR: ESTADO Y SELECCIÓN DE SERVIDOR IA ── */}
+      <View style={styles.serverStatusTopBar}>
+        <TouchableOpacity
+          style={styles.serverStatusPill}
+          onPress={() => {
+            setServerInput(serverUrl);
+            setAiServerTestResult(null);
+            setIsAiConfigModalVisible(true);
+          }}
+          activeOpacity={0.8}
+        >
+          <Server size={14} color={serverUrl.includes('localhost') || serverUrl.includes('192.168') || serverUrl.includes('127.0.0.1') ? '#38BDF8' : '#818CF8'} />
+          <Text style={styles.serverStatusPillText} numberOfLines={1}>
+            {serverUrl.includes('localhost') || serverUrl.includes('192.168') || serverUrl.includes('127.0.0.1')
+              ? 'Local: ' + serverUrl.replace(/^https?:\/\//, '')
+              : 'Nube: Render'}
+          </Text>
+          <View
+            style={[
+              styles.serverStatusDot,
+              { backgroundColor: aiHealthOnline === true ? '#10B981' : (aiHealthOnline === false ? '#EF4444' : '#F59E0B') }
+            ]}
+          />
+          {serverLatency != null && aiHealthOnline && (
+            <Text style={styles.serverLatencyText}>{serverLatency}ms</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.refreshServerBtn}
+          onPress={() => {
+            fetchGestures();
+            fetchModelStatus();
+            checkServerHealth();
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <RefreshCw size={13} color={isDark ? '#94A3B8' : '#64748B'} />
+        </TouchableOpacity>
+      </View>
 
       {/* ── BARRA DE PESTAÑAS ── */}
       <View style={styles.tabBar}>
@@ -1095,7 +1242,7 @@ export default function GestureStudioScreen() {
           {/* Visor de video en vivo (Teléfono o Lentes) */}
           <View style={styles.videoPreviewBox}>
             {recorderSource === 'phone' ? (
-              !permission?.granted ? (
+              (!permission?.granted && Platform.OS !== 'web') ? (
                 <View style={styles.noSignalBox}>
                   <Smartphone size={40} color="#64748b" style={{ marginBottom: 12 }} />
                   <Text style={styles.noSignalText}>{t('gestureStudio.cameraPermissionRequired', 'Se requiere acceso a la cámara del teléfono para capturar señas.')}</Text>
@@ -1105,18 +1252,38 @@ export default function GestureStudioScreen() {
                 </View>
               ) : (
                 isFocused ? (
-                  <>
-                    <CameraView
-                      ref={cameraRef}
-                      style={StyleSheet.absoluteFill}
-                      facing={facingMode}
-                      onCameraReady={() => setIsCameraReady(true)}
-                      animateShutter={false}
-                    />
-                    <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
-                      <SwitchCamera color="#fff" size={22} />
-                    </TouchableOpacity>
-                  </>
+                  Platform.OS === 'web' ? (
+                    <>
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: facingMode === 'front' ? 'scaleX(-1)' : 'none'
+                        }}
+                      />
+                      <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+                        <SwitchCamera color="#fff" size={22} />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <CameraView
+                        ref={cameraRef}
+                        style={StyleSheet.absoluteFill}
+                        facing={facingMode}
+                        onCameraReady={() => setIsCameraReady(true)}
+                        animateShutter={false}
+                      />
+                      <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
+                        <SwitchCamera color="#fff" size={22} />
+                      </TouchableOpacity>
+                    </>
+                  )
                 ) : (
                   <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />
                 )
@@ -1597,6 +1764,142 @@ export default function GestureStudioScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── MODAL: CONFIGURACIÓN DE SERVIDOR IA (LOCAL VS NUBE) ── */}
+      <Modal
+        visible={isAiConfigModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsAiConfigModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.configModalContent}>
+              <View style={styles.modalHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Server size={20} color="#38bdf8" style={{ marginRight: 8 }} />
+                  <Text style={styles.modalTitle}>Servidor de IA Cokie</Text>
+                </View>
+                <TouchableOpacity onPress={() => setIsAiConfigModalVisible(false)} style={styles.modalCloseBtn}>
+                  <X size={20} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalDesc}>
+                Elige si conectarte al servidor en la nube (Render) o a tu computadora local vía Wi-Fi para entrenar y registrar muestras instantáneamente.
+              </Text>
+
+              {/* Botones de preajuste rápido */}
+              <Text style={styles.fieldLabel}>Preajustes rápidos:</Text>
+              <View style={styles.serverPresetsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    serverInput.includes('onrender.com') && styles.presetPillActive
+                  ]}
+                  onPress={() => setServerInput('https://cokie-college.onrender.com')}
+                >
+                  <Globe size={13} color={serverInput.includes('onrender.com') ? '#FFF' : '#94A3B8'} style={{ marginRight: 4 }} />
+                  <Text style={[styles.presetPillText, serverInput.includes('onrender.com') && styles.presetPillTextActive]}>
+                    ☁️ Render (Nube)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    serverInput.includes('localhost') && styles.presetPillActive
+                  ]}
+                  onPress={() => setServerInput('http://localhost:8000')}
+                >
+                  <Laptop size={13} color={serverInput.includes('localhost') ? '#FFF' : '#94A3B8'} style={{ marginRight: 4 }} />
+                  <Text style={[styles.presetPillText, serverInput.includes('localhost') && styles.presetPillTextActive]}>
+                    💻 Localhost (Web)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.presetPill,
+                    serverInput.includes('192.168') && styles.presetPillActive
+                  ]}
+                  onPress={() => setServerInput('http://192.168.1.15:8000')}
+                >
+                  <Wifi size={13} color={serverInput.includes('192.168') ? '#FFF' : '#94A3B8'} style={{ marginRight: 4 }} />
+                  <Text style={[styles.presetPillText, serverInput.includes('192.168') && styles.presetPillTextActive]}>
+                    📱 Red Wi-Fi (Móvil)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.fieldLabel}>URL del Servidor IA:</Text>
+              <View style={styles.ipInputContainer}>
+                <Server size={18} color="#94a3b8" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.modalTextInput}
+                  placeholder="http://192.168.1.X:8000 o https://..."
+                  placeholderTextColor="#64748b"
+                  value={serverInput}
+                  onChangeText={setServerInput}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Resultado de prueba de conexión */}
+              {aiServerTestResult && (
+                <View
+                  style={[
+                    styles.testResultBox,
+                    {
+                      backgroundColor: aiServerTestResult.ok
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : 'rgba(239, 68, 68, 0.15)'
+                    }
+                  ]}
+                >
+                  {aiServerTestResult.ok ? (
+                    <Check size={16} color="#10b981" style={{ marginRight: 6 }} />
+                  ) : (
+                    <AlertCircle size={16} color="#ef4444" style={{ marginRight: 6 }} />
+                  )}
+                  <Text
+                    style={[
+                      styles.testResultText,
+                      { color: aiServerTestResult.ok ? '#10b981' : '#ef4444' }
+                    ]}
+                  >
+                    {aiServerTestResult.ok
+                      ? `¡Conectado exitosamente! Latencia: ${aiServerTestResult.latency}ms. Clases activas: ${aiServerTestResult.data?.trained_classes?.length || 0}.`
+                      : aiServerTestResult.error || 'No se pudo conectar con el servidor.'}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={styles.testBtn}
+                  onPress={handleTestAiServer}
+                  disabled={isTestingAiServer}
+                >
+                  {isTestingAiServer ? (
+                    <ActivityIndicator size="small" color="#38bdf8" />
+                  ) : (
+                    <Text style={styles.testBtnText}>Probar Servidor</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveAiServer}>
+                  <Text style={styles.saveBtnText}>Guardar Servidor</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -1616,6 +1919,80 @@ const createStyles = (Colors, theme) => {
 
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: screenBgColor },
+    serverStatusTopBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? '#334155' : '#E2E8F0',
+    },
+    serverStatusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: isDark ? '#334155' : '#CBD5E1',
+      maxWidth: '85%',
+    },
+    serverStatusPillText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: isDark ? '#F1F5F9' : '#0F172A',
+      marginHorizontal: 6,
+    },
+    serverStatusDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      marginRight: 4,
+    },
+    serverLatencyText: {
+      fontSize: 10,
+      color: isDark ? '#94A3B8' : '#64748B',
+      fontWeight: '500',
+    },
+    refreshServerBtn: {
+      padding: 6,
+      borderRadius: 12,
+      backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+      borderWidth: 1,
+      borderColor: isDark ? '#334155' : '#CBD5E1',
+    },
+    serverPresetsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 14,
+    },
+    presetPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 12,
+      backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+      borderWidth: 1,
+      borderColor: isDark ? '#334155' : '#E2E8F0',
+    },
+    presetPillActive: {
+      backgroundColor: '#426BC2',
+      borderColor: '#38BDF8',
+    },
+    presetPillText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: isDark ? '#94A3B8' : '#475569',
+    },
+    presetPillTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
     tabBar: {
       flexDirection: 'row',
       backgroundColor: isDark ? '#141414' : '#FFFFFF',

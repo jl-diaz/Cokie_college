@@ -300,11 +300,11 @@ def classify_sign_from_landmarks(landmarks):
             return "sign.r"
 
     # U: Índice y medio juntos hacia arriba (paralelos)
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.20 and orientation == 'vertical':
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist <= 0.26 and orientation == 'vertical':
         return "sign.u"
 
     # V / 2: Índice y medio separados hacia arriba (forma de V / Paz)
-    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.22 and orientation == 'vertical':
+    if not thumb and index and middle and not ring and not pinky and index_middle_dist > 0.26 and orientation == 'vertical':
         return "sign.v"
 
     # W: Tres dedos extendidos (índice, medio, anular) sin pulgar
@@ -367,15 +367,15 @@ def classify_sign_from_landmarks(landmarks):
         if landmarks[4].y > landmarks[8].y and abs(landmarks[4].x - landmarks[9].x) < 0.35 * scale:
             return "sign.e"
 
-        # S: Puño cerrado con pulgar cruzado por enfrente sobre los dedos
-        if abs(landmarks[4].x - landmarks[9].x) < 0.32 * scale and landmarks[4].y <= landmarks[8].y + 0.15 * scale:
-            return "sign.s"
-
-        # A: Puño cerrado con pulgar vertical descansando al lado externo del índice
+        # A: Puño cerrado con pulgar vertical erguido descansando al lado externo del índice
         thumb_beside_index = distance_2d(landmarks[4], landmarks[5]) / scale < 0.55 or distance_2d(landmarks[4], landmarks[6]) / scale < 0.55
-        thumb_up = landmarks[4].y < landmarks[2].y or landmarks[4].y <= landmarks[5].y + 0.12 * scale
+        thumb_up = landmarks[4].y < landmarks[3].y or landmarks[4].y < landmarks[2].y
         if thumb_beside_index and thumb_up:
             return "sign.a"
+
+        # S: Puño cerrado con pulgar cruzado horizontalmente por enfrente sobre los dedos
+        if abs(landmarks[4].x - landmarks[9].x) < 0.32 * scale and landmarks[4].y <= landmarks[8].y + 0.15 * scale:
+            return "sign.s"
 
     # Rechazo por defecto para posturas intermedias, ambiguas o de reposo
     return None
@@ -463,18 +463,55 @@ class ISLModel:
         self.cached_pose_landmarks = None
         self.sentence_builder = SentenceBuilder(inactivity_timeout=3.5)
 
-    def extract_landmarks_from_base64(self, base64_img):
+    def normalize_camera_frame(self, image, platform="unknown", facing="front", source="phone"):
+        """
+        Normaliza la orientación del fotograma para que las manos queden verticales (upright).
+        En dispositivos móviles (Android / iOS) con cámara frontal o trasera sostenida en modo vertical,
+        los sensores entregan cuadros landscape (w > h) que deben rotarse para alinearse con la pantalla
+        y permitir que los algoritmos de MediaPipe y heurísticas detecten los dedos con 100% de precisión.
+        """
+        if image is None:
+            return image
+        h, w = image.shape[:2]
+
+        # Si viene explícitamente de un teléfono móvil (Android / iOS) en landscape (w > h)
+        is_mobile_phone = (platform in ('android', 'ios')) or (source == 'phone' and platform not in ('web', 'browser'))
+        if is_mobile_phone and w > h:
+            if facing == 'front':
+                return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            else:
+                return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+
+        return image
+
+    def extract_landmarks_from_base64(self, base64_img, platform="unknown", facing="front", source="phone"):
         """
         Extrae y retorna los puntos de la mano para visualización y para grabación
-        en el Módulo Administrador.
+        en el Módulo Administrador. Soporta base64 plano o diccionario con metadatos.
         """
         try:
             if not self.hand_landmarker:
                 return None
-            encoded_data = base64_img.split(',')[1] if ',' in base64_img else base64_img
+
+            p = platform
+            f = facing
+            s = source
+
+            if isinstance(base64_img, dict):
+                encoded_data = base64_img.get("image") or base64_img.get("base64") or ""
+                p = str(base64_img.get("platform", platform)).lower()
+                f = str(base64_img.get("facing", facing)).lower()
+                s = str(base64_img.get("source", source)).lower()
+            else:
+                encoded_data = base64_img
+
+            encoded_data = encoded_data.split(',')[1] if ',' in encoded_data else encoded_data
             nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if image is None: return None
+
+            # Normalizar orientación para móviles
+            image = self.normalize_camera_frame(image, platform=p, facing=f, source=s)
 
             h, w = image.shape[:2]
             if w > 480:
@@ -485,9 +522,26 @@ class ISLModel:
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
             hand_result = self.hand_landmarker.detect(mp_image)
 
+            # Fallback de orientación inteligente: si no se detectó mano, probar 180° (si ya es portrait) o 90°
+            if not hand_result or not hand_result.hand_landmarks:
+                # 1. Probar rotación de 180°
+                alt_rot = cv2.rotate(image, cv2.ROTATE_180)
+                alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
+                alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
+                alt_result = self.hand_landmarker.detect(alt_mp)
+                if alt_result and alt_result.hand_landmarks:
+                    hand_result = alt_result
+                elif w > h:
+                    # 2. Si todavía estaba en landscape, probar rotación a 90°
+                    alt_rot2 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+                    alt_rgb2 = cv2.cvtColor(alt_rot2, cv2.COLOR_BGR2RGB)
+                    alt_mp2 = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb2)
+                    alt_result2 = self.hand_landmarker.detect(alt_mp2)
+                    if alt_result2 and alt_result2.hand_landmarks:
+                        hand_result = alt_result2
+
             if hand_result and hand_result.hand_landmarks:
                 vector = normalize_hand_landmarks(hand_result.hand_landmarks)
-                # Formato ligero de landmarks para dibujar en frontend
                 simplified = []
                 for hand in hand_result.hand_landmarks:
                     simplified.append([{"x": round(p.x, 3), "y": round(p.y, 3)} for p in hand])
@@ -510,14 +564,29 @@ class ISLModel:
         try:
             if not self.hand_landmarker and not self.gesture_recognizer:
                 return None
-                
-            encoded_data = base64_img.split(',')[1] if ',' in base64_img else base64_img
+
+            platform = "unknown"
+            facing = "front"
+            source = "phone"
+
+            if isinstance(base64_img, dict):
+                encoded_data = base64_img.get("image") or base64_img.get("base64") or ""
+                platform = str(base64_img.get("platform", "unknown")).lower()
+                facing = str(base64_img.get("facing", "front")).lower()
+                source = str(base64_img.get("source", "phone")).lower()
+            else:
+                encoded_data = base64_img
+
+            encoded_data = encoded_data.split(',')[1] if ',' in encoded_data else encoded_data
             nparr = np.frombuffer(base64.b64decode(encoded_data), np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
             if image is None: return None
 
             self.frame_count += 1
+
+            # Normalizar orientación en dispositivos móviles
+            image = self.normalize_camera_frame(image, platform=platform, facing=facing, source=source)
 
             # Redimensionar a resolución óptima (360px) para máxima velocidad de inferencia
             h, w = image.shape[:2]
@@ -537,6 +606,25 @@ class ISLModel:
                 hand_result = self.hand_landmarker.detect(mp_image)
                 if hand_result and hand_result.hand_landmarks:
                     hand_landmarks_list = hand_result.hand_landmarks
+                else:
+                    # Fallback de orientación inteligente si el primer intento no detectó mano
+                    # Probar 180°
+                    alt_rot = cv2.rotate(image, cv2.ROTATE_180)
+                    alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
+                    alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
+                    alt_res = self.hand_landmarker.detect(alt_mp)
+                    if alt_res and alt_res.hand_landmarks:
+                        hand_landmarks_list = alt_res.hand_landmarks
+                        mp_image = alt_mp
+                    elif w > h:
+                        # Si todavía estaba en landscape, probar rotación a 90°
+                        alt_rot2 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+                        alt_rgb2 = cv2.cvtColor(alt_rot2, cv2.COLOR_BGR2RGB)
+                        alt_mp2 = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb2)
+                        alt_res2 = self.hand_landmarker.detect(alt_mp2)
+                        if alt_res2 and alt_res2.hand_landmarks:
+                            hand_landmarks_list = alt_res2.hand_landmarks
+                            mp_image = alt_mp2
 
             # 2. Detección de torso, brazos y hombros (Pose con caché de fotogramas alternos)
             if self.pose_landmarker:

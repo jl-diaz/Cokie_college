@@ -65,6 +65,10 @@ async def inactivity_monitor_task():
 async def startup_event():
     global inactivity_task
     inactivity_task = asyncio.create_task(inactivity_monitor_task())
+    try:
+        gesture_trainer.seed_baseline_samples_if_empty()
+    except Exception as e:
+        print(f"[WARN] Error sembrando muestras base: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -85,7 +89,11 @@ class CreateGestureRequest(BaseModel):
 
 class RecordSampleRequest(BaseModel):
     gesture_id: str
-    sequence: list  # Lista de 30 vectores de puntos o diccionarios
+    sequence: list = []  # Lista de vectores de puntos o diccionarios pre-extraídos
+    frames: list = []    # Lista opcional de fotogramas en base64 para extracción directa
+    platform: str = "unknown"
+    facing: str = "front"
+    source: str = "phone"
 
 class ExtractFrameRequest(BaseModel):
     image_base64: str
@@ -158,23 +166,85 @@ async def extract_frame_landmarks(req: ExtractFrameRequest):
 @app.post("/api/gestures/record-sample")
 async def record_sample(req: RecordSampleRequest):
     """
-    Guarda una secuencia de 30 fotogramas grabada por el administrador.
+    Guarda una secuencia de fotogramas grabada por el administrador.
+    Soporta tanto un lote de fotogramas en base64 (extracción de alta velocidad en servidor)
+    como una secuencia de vectores de landmarks pre-extraídos.
     """
     try:
-        filepath = gesture_trainer.save_sample(req.gesture_id, req.sequence)
+        final_sequence = []
+
+        # Opción 1: Lote de fotogramas base64 enviados directamente desde el cliente
+        if req.frames and len(req.frames) > 0:
+            model = get_extractor_model()
+            extracted_vectors = []
+            for frame in req.frames:
+                res = model.extract_landmarks_from_base64(
+                    frame,
+                    platform=req.platform,
+                    facing=req.facing,
+                    source=req.source
+                )
+                if res and res.get("detected") and res.get("vector") and any(v != 0 for v in res.get("vector")):
+                    extracted_vectors.append(res["vector"])
+                else:
+                    extracted_vectors.append(None)
+
+            # Verificar si al menos un fotograma contiene detección válida de mano
+            valid_indices = [i for i, v in enumerate(extracted_vectors) if v is not None]
+            if not valid_indices:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No se detectaron manos visibles en los fotogramas grabados. Asegúrate de mostrar las manos frente a la cámara con buena luz."
+                )
+
+            # Reconstrucción con relleno bidireccional (backward y forward) para mantener la secuencia completa de tiempo
+            first_valid = extracted_vectors[valid_indices[0]]
+            current_valid = first_valid
+            for v in extracted_vectors:
+                if v is not None:
+                    final_sequence.append(v)
+                    current_valid = v
+                else:
+                    final_sequence.append(current_valid)
+
+        # Opción 2: Secuencia de vectores pre-extraídos en cliente
+        elif req.sequence and len(req.sequence) > 0:
+            for item in req.sequence:
+                if isinstance(item, dict) and "vector" in item:
+                    final_sequence.append(item["vector"])
+                elif isinstance(item, (list, tuple)) and len(item) > 0:
+                    final_sequence.append(item)
+
+            if not final_sequence:
+                raise HTTPException(
+                    status_code=400,
+                    detail="La secuencia de puntos recibida está vacía o tiene un formato no válido."
+                )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Debes proporcionar una secuencia de puntos de landmarks o una lista de fotogramas capturados."
+            )
+
+        filepath = gesture_trainer.save_sample(req.gesture_id, final_sequence)
         gestures = gesture_trainer.load_gestures()
         count = 0
         for g in gestures:
             if g["id"] == req.gesture_id:
                 count = g.get("sample_count", 0)
                 break
+
         return {
             "status": "saved",
             "gesture_id": req.gesture_id,
             "sample_count": count,
+            "frames_recorded": len(final_sequence),
             "file": os.path.basename(filepath)
         }
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[ERROR record_sample] {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/gestures/train")

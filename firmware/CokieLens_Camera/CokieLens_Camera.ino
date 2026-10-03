@@ -428,6 +428,12 @@ void setup() {
         s->set_whitebal(s, 1);
         s->set_awb_gain(s, 1);
         s->set_exposure_ctrl(s, 1);
+
+        // ── ORIENTACIÓN DE CÁMARA EN ARMAZÓN DE LENTES ──
+        // Si al montar la cámara en los lentes la imagen queda de cabeza (invertida 180°):
+        // Solo descomenta estas 2 líneas para corregirlo por hardware:
+        // s->set_vflip(s, 1);    // Volteo vertical (invertir 180°)
+        // s->set_hmirror(s, 1);  // Espejo horizontal
     }
 
     // ── INTENTO DE CONEXIÓN A LA RED GUARDADA ────────────────────────────────
