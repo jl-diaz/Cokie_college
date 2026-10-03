@@ -375,7 +375,7 @@ export default function GestureStudioScreen() {
         const photo = await cameraRef.current.takePictureAsync({
           base64: true,
           quality: 0.25,
-          skipProcessing: true,
+          fastMode: true,
           shutterSound: true,
           exif: false,
         });
@@ -484,7 +484,7 @@ export default function GestureStudioScreen() {
             const photo = await cameraRef.current.takePictureAsync({
               base64: true,
               quality: 0.15,
-              skipProcessing: true,
+              fastMode: true,
               shutterSound: false,
               exif: false,
             });

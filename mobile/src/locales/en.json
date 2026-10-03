@@ -904,7 +904,15 @@
     "connectionFailedCheckWifi": "Could not connect. Verify you are connected to the glasses Wi-Fi or that the IP is correct.",
     "switchLanguage": "Switch language",
     "themeLight": "Light mode",
-    "themeDark": "Dark mode"
+    "themeDark": "Dark mode",
+    "audioOutputTarget": "Voice audio output",
+    "outputDevice": "Device Speaker",
+    "outputGlasses": "CokieLens Speaker",
+    "speakAgain": "Replay voice",
+    "toggleAudio": "Switch audio output",
+    "clearText": "Clear",
+    "showTabs": "Show menu",
+    "hideTabs": "Hide menu"
   },
   "gestureStudio": {
     "title": "Gesture & AI Studio",

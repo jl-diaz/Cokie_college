@@ -603,9 +603,29 @@ def train_dialect_model(epochs=40, on_progress=None):
         for s_file in sample_files:
             try:
                 seq = np.load(os.path.join(g_dir, s_file))
+                # 1. Muestra original
                 feats = extract_spatiotemporal_features(seq)
                 X_list.append(feats)
                 y_list.append(label_idx)
+
+                # 2. Aumento para personas zurdas (espejado horizontal exacto de coordenadas X)
+                if seq.ndim == 2 and seq.shape[1] >= 63:
+                    seq_flipped = seq.copy()
+                    seq_flipped[:, 0::3] = -seq_flipped[:, 0::3]
+                    X_list.append(extract_spatiotemporal_features(seq_flipped))
+                    y_list.append(label_idx)
+
+                # 3. Aumento para manos pequeñas / infantiles (factor 0.90x)
+                if seq.ndim == 2:
+                    seq_small = seq.copy() * 0.90
+                    X_list.append(extract_spatiotemporal_features(seq_small))
+                    y_list.append(label_idx)
+
+                # 4. Aumento para manos grandes / adultas (factor 1.10x)
+                if seq.ndim == 2:
+                    seq_large = seq.copy() * 1.10
+                    X_list.append(extract_spatiotemporal_features(seq_large))
+                    y_list.append(label_idx)
             except Exception as e:
                 print(f"[WARN] Error cargando muestra {s_file}: {e}")
 

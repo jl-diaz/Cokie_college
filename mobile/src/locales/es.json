@@ -904,7 +904,15 @@
     "connectionFailedCheckWifi": "No se pudo conectar. Verifica que estés conectado al Wi-Fi de los lentes o que la IP sea correcta.",
     "switchLanguage": "Cambiar idioma",
     "themeLight": "Modo claro",
-    "themeDark": "Modo oscuro"
+    "themeDark": "Modo oscuro",
+    "audioOutputTarget": "Salida de audio de voz",
+    "outputDevice": "Bocina Dispositivo",
+    "outputGlasses": "Bocina CokieLens",
+    "speakAgain": "Reproducir voz",
+    "toggleAudio": "Cambiar salida de audio",
+    "clearText": "Limpiar",
+    "showTabs": "Mostrar menú",
+    "hideTabs": "Ocultar menú"
   },
   "gestureStudio": {
     "title": "Estudio de Gestos e IA",

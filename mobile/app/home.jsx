@@ -86,24 +86,26 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: isDark ? Colors.background : '#F8FAFC' }]}>
+    <View style={[styles.root, { backgroundColor: isDark ? Colors.background : headerBg }]}>
       <ScrollView
         style={[
           styles.scrollView,
           Platform.OS === 'web' && { overscrollBehaviorY: 'contain' }
         ]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { backgroundColor: isDark ? Colors.background : '#F8FAFC' }]}
         showsVerticalScrollIndicator={false}
         bounces={true}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={isDark ? Colors.primary : '#F7D8FF'} 
-            colors={isDark ? [Colors.primary, '#18181B'] : ['#F7D8FF', '#0B1956']} 
-            progressBackgroundColor={headerBg}
-            style={{ backgroundColor: headerBg }}
-          />
+          Platform.OS !== 'web' ? (
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={isDark ? Colors.primary : '#F7D8FF'} 
+              colors={isDark ? [Colors.primary, '#18181B'] : ['#F7D8FF', '#0B1956']} 
+              progressBackgroundColor={headerBg}
+              style={{ backgroundColor: headerBg }}
+            />
+          ) : undefined
         }
       >
         {/* Capa superior continua para overscroll y pull-to-refresh: elimina el espacio blanco al hacer scroll */}

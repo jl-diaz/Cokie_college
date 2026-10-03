@@ -116,10 +116,16 @@ export default function SkeletonOverlay({
       if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
       setDisplayLandmarks(landmarks);
 
-      // Desvanecer suavemente si no se reciben nuevos fotogramas en 500ms
+      // Mantener puntos activos de forma continua entre fotogramas (1500ms)
       fadeTimeoutRef.current = setTimeout(() => {
         setDisplayLandmarks(null);
-      }, 500);
+      }, 1500);
+    } else if (landmarks && landmarks.detected === false) {
+      // Si el servidor confirma que no hay manos en el frame, desvanecer suavemente (600ms)
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = setTimeout(() => {
+        setDisplayLandmarks(null);
+      }, 600);
     }
 
     return () => {
@@ -294,7 +300,8 @@ export default function SkeletonOverlay({
       <Svg
         width={effectiveWidth}
         height={effectiveHeight}
-        style={StyleSheet.absoluteFillObject}
+        viewBox={`0 0 ${effectiveWidth} ${effectiveHeight}`}
+        style={{ width: effectiveWidth, height: effectiveHeight }}
       >
         {/* ── 1. ESQUELETO DEL CUERPO (POSE / TORSO Y BRAZOS) ── */}
         {pose.length > 16 && (
@@ -484,5 +491,6 @@ const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 15,
+    elevation: 25,
   }
 });

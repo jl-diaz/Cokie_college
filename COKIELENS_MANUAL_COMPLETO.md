@@ -618,7 +618,90 @@ Para grabar nuevas señas y entrenar la red neuronal espacio-temporal directamen
 
 ---
 
-## 8. Arquitectura del Modelo de IA (Por qué nunca se pierden los gestos)
+## 8. Comandos de Entrenamiento y Verificación de la IA
+
+El motor de inteligencia artificial de CokieLens cuenta con herramientas de entrenamiento acelerado por consola, aumento de datos automático para zurdos/diestros y una suite de pruebas unitarias exhaustiva.
+
+### 8.1. Comando Principal de Entrenamiento Local (CLI)
+Para entrenar la red neuronal directamente desde la terminal procesando todo el dataset de muestras acumuladas:
+
+```bash
+# Desde la carpeta raíz del proyecto:
+python backend/sign_language_service/gesture_trainer.py
+```
+
+**¿Qué hace este comando internamente?**
+1. Carga todas las secuencias `.npy` grabadas en `backend/sign_language_service/data/samples/`.
+2. **Aumento de Datos Automático (*Data Augmentation*)**:
+   - **Para personas zurdas**: Invierte automáticamente las coordenadas del eje X (`x = -x`) de cada muestra para que el modelo reconozca personas zurdas con precisión idéntica sin necesidad de regrabar.
+   - **Para manos pequeñas / infantiles**: Genera variantes escaladas a **0.90x** simulando manos de niños.
+   - **Para manos grandes / adultas**: Genera variantes escaladas a **1.10x** simulando manos de adultos.
+3. Entrena la red neuronal durante 40 épocas con mini-lotes y retropropagación optimizada en NumPy.
+4. Muestra la barra de progreso en vivo, precisión y pérdida época por época:
+   ```
+   Epoca [40/40] [#########################] 100% - Precision: 95.5% - Perdida: 0.1248
+   [QUALITY GATE PASSED] Modelo promovido exitosamente con Test Accuracy: 97.44%
+   ```
+5. Ejecuta una compuerta de calidad (*Quality Gate*): Si la precisión en el conjunto de prueba es superior al 70% (actualmente > **97.4%**), promueve el modelo y lo compila en `data/cokie_gesture_model.npz`.
+6. **Recarga en caliente (*Hot-Reload*)**: El modelo activo se actualiza en memoria en el servidor inmediatamente sin reiniciar el servicio ni interrumpir la app.
+
+---
+
+### 8.2. Suite de Pruebas Unitarias de Verificación (14/14 Tests)
+Para auditar que todas las señas estáticas (A-Z, números, Te Quiero), la compuerta de movimiento anti-ruido y el constructor de oraciones funcionen al 100%:
+
+```bash
+# Desde la carpeta raíz del proyecto:
+python backend/sign_language_service/test_interpreter_verification.py
+```
+
+**Batería de pruebas automatizadas:**
+* `[TEST 1]` Seña **'L'** (índice erguido y pulgar extendido lateralmente).
+* `[TEST 2]` Seña **'A'** (puño cerrado con pulgar erguido al costado).
+* `[TEST 3]` Seña **'Te Quiero'** (pulgar, índice y meñique extendidos).
+* `[TEST 4]` Seña **'I'** (solo meñique extendido).
+* `[TEST 4b]` Seña **'I' con pulgar relajado/suelto** (tolerancia anatómica).
+* `[TEST 5]` Seña **'V'** (índice y medio separados en paz).
+* `[TEST 6]` Seña **'Y' / Shaka** (pulgar y meñique abiertos hacia los extremos).
+* `[TEST 7]` Seña **'1'** (índice hacia arriba, demás dedos en puño).
+* `[TEST 8]` Seña **'Pulgar Arriba'** (puño con pulgar erguido).
+* `[TEST 8b]` Seña **'D'** (índice erguido, pulgar tocando dedo medio formando círculo).
+* `[TEST 9]` **Bloqueo de falsos positivos**: Comprueba que el temblor natural no active señas dinámicas como "J" o "cómo están".
+* `[TEST 10]` **Deletreo dactilológico**: H-O-L-A -> oración acumulada "HOLA".
+* `[TEST 11]` **Frase compuesta**: Inserción de palabra completa -> "HOLA amigo".
+* `[TEST 12]` **Cierre por inactividad**: Finalización y puntuación automática de la oración tras timeout.
+
+---
+
+### 8.3. Disparo de Entrenamiento vía API REST / cURL / PowerShell
+Si el servidor FastAPI de IA se encuentra en ejecución, puedes iniciar el entrenamiento de forma remota:
+
+* **En PowerShell (Windows):**
+  ```powershell
+  Invoke-RestMethod -Uri "http://localhost:8000/api/gestures/train" -Method Post
+  ```
+
+* **Con cURL (Linux / macOS / Git Bash):**
+  ```bash
+  curl -X POST http://localhost:8000/api/gestures/train
+  ```
+
+* **En Servidor de Producción (Render):**
+  ```bash
+  curl -X POST https://cokie-college.onrender.com/api/gestures/train
+  ```
+
+---
+
+### 8.4. Entrenamiento Visual desde la App Móvil o Web
+1. Abre la app Cokie College / CokieInterpreter.
+2. Abre el menú lateral (drawer) y entra a **"Estudio de Gestos e IA"** (o Módulo Administrador).
+3. En la parte superior verás el botón principal **"Entrenar Modelo"**.
+4. Púlsalo y verás la barra de progreso avanzar en tiempo real del 0% al 100%.
+
+---
+
+## 9. Arquitectura del Modelo de IA (Por qué nunca se pierden los gestos)
 
 El sistema opera con una **Arquitectura Híbrida en 3 Capas Concurrentes**:
 
@@ -645,7 +728,7 @@ El sistema opera con una **Arquitectura Híbrida en 3 Capas Concurrentes**:
 
 ---
 
-## 9. Tabla Resumen de Soluciones y Ajustes Técnicos
+## 10. Tabla Resumen de Soluciones y Ajustes Técnicos
 
 | Problema / Escenario | Causa Original | Solución Actualizada (ReDesign) |
 | :--- | :--- | :--- |
@@ -658,7 +741,7 @@ El sistema opera con una **Arquitectura Híbrida en 3 Capas Concurrentes**:
 
 ---
 
-## 10. Preguntas Frecuentes Rápidas (Cheat Sheet)
+## 11. Preguntas Frecuentes Rápidas (Cheat Sheet)
 
 - **"No recuerdo la IP de mis lentes, ¿qué hago?"**
   - Conéctate a la red Wi-Fi `CokieLens-Setup` desde los ajustes Wi-Fi de tu celular.

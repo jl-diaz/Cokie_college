@@ -224,13 +224,11 @@ function LayoutInner() {
           screenOptions={({ route }) => {
             const isTab = TAB_SCREEN_NAMES.includes(route.name);
             return {
-              animation: isTab ? tabAnimation : 'slide_from_right',
+              animation: isTab ? (Platform.OS === 'web' ? 'none' : tabAnimation) : 'slide_from_right',
               headerBackVisible: false,
+              headerStatusBarHeight: Platform.OS === 'web' ? 0 : undefined,
               headerStyle: {
                 backgroundColor: colors.headerC,
-                ...(Platform.OS === 'web' && { 
-                    height: 60,
-                })
               },
               headerShadowVisible: false,
               headerTintColor: '#FFFFFF',
@@ -392,8 +390,8 @@ function LayoutInner() {
       onStartShouldSetPanResponderCapture: () => false,
 
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        const { pathname, showTabBar, isTabBarHidden, modalCount, isKeyboardVisible } = gestureStateRef.current;
-        if (!showTabBar || isTabBarHidden || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
+        const { pathname, showTabBar, modalCount, isKeyboardVisible } = gestureStateRef.current;
+        if (!showTabBar || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
           return false;
         }
 
@@ -423,8 +421,8 @@ function LayoutInner() {
       onPanResponderTerminationRequest: () => false,
 
       onPanResponderRelease: (evt, gestureState) => {
-        const { pathname, showTabBar, isTabBarHidden, modalCount, isKeyboardVisible } = gestureStateRef.current;
-        if (!showTabBar || isTabBarHidden || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
+        const { pathname, showTabBar, modalCount, isKeyboardVisible } = gestureStateRef.current;
+        if (!showTabBar || modalCount > 0 || isKeyboardVisible || isNavigatingRef.current) {
           return;
         }
 
@@ -466,15 +464,7 @@ function LayoutInner() {
     <View style={{ flex: 1, width: '100%', backgroundColor: colors.background, overflow: 'hidden' }}>
       <View 
         {...tabSwipeResponder.panHandlers}
-        key={Platform.OS === 'web' && showTabBar ? pathname : undefined}
-        style={[
-          { flex: 1 },
-          Platform.OS === 'web' && showTabBar && {
-            animationName: tabAnimation === 'slide_from_left' ? 'tabSlideFromLeft' : 'tabSlideFromRight',
-            animationDuration: '0.2s',
-            animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-          }
-        ]}
+        style={{ flex: 1 }}
       >
         {content}
       </View>

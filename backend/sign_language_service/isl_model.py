@@ -118,7 +118,10 @@ def is_thumb_across_palm(landmarks, scale=None):
     thumb_tip = landmarks[4]
     index_mcp = landmarks[5]
     middle_mcp = landmarks[9]
-    return abs(thumb_tip.x - middle_mcp.x) < abs(index_mcp.x - middle_mcp.x) * 0.7 or (distance_2d(thumb_tip, middle_mcp) / scale < 0.45)
+    ring_mcp = landmarks[13]
+    d_ring = distance_2d(thumb_tip, ring_mcp) / scale
+    d_mid = distance_2d(thumb_tip, middle_mcp) / scale
+    return (d_ring < 0.45 or d_mid < 0.38) and abs(thumb_tip.x - ring_mcp.x) < abs(index_mcp.x - ring_mcp.x)
 
 def tips_touching(landmarks, tip1, tip2, scale=None, threshold=0.28):
     if scale is None:
@@ -127,11 +130,11 @@ def tips_touching(landmarks, tip1, tip2, scale=None, threshold=0.28):
 
 def hand_orientation(landmarks):
     wrist = landmarks[0]
-    middle_tip = landmarks[12]
-    dx = abs(middle_tip.x - wrist.x)
-    dy = abs(middle_tip.y - wrist.y)
-    if dy > dx * 1.4: return 'vertical'
-    elif dx > dy * 1.4: return 'horizontal'
+    mid_mcp = landmarks[9]
+    dx = abs(mid_mcp.x - wrist.x)
+    dy = abs(mid_mcp.y - wrist.y)
+    if dy > dx * 1.3: return 'vertical'
+    elif dx > dy * 1.3: return 'horizontal'
     return 'diagonal'
 
 def fingers_spread(landmarks, scale=None):
@@ -211,11 +214,13 @@ def classify_sign_from_landmarks(landmarks):
     # ── 1. GESTOS DE PRIORIDAD ALTA / UNIVERSALES ──
     # TE QUIERO / I LOVE YOU (Pulgar, índice y meñique extendidos; medio y anular doblados)
     if thumb and index and not middle and not ring and pinky:
-        return "sign.i_love_you"
+        return "sign.te_quiero"
 
-    # SHAKA / LETRA Y (Pulgar y meñique extendidos; índice, medio y anular doblados)
+    # SHAKA / LETRA Y (Pulgar y meñique extendidos lateralmente; índice, medio y anular doblados)
     if thumb and not index and not middle and not ring and pinky:
-        return "sign.y"
+        thumb_outward = (distance_2d(landmarks[4], landmarks[5]) / scale > 0.55) or (abs(landmarks[4].x - landmarks[5].x) / scale > 0.40)
+        if thumb_outward:
+            return "sign.y"
 
     # NO (Índice y medio tocan o se juntan con el pulgar, anular y meñique doblados)
     if tips_touching(landmarks, 4, 8, scale, 0.25) and tips_touching(landmarks, 4, 12, scale, 0.25) and ring_curled and pinky_curled:
@@ -223,7 +228,8 @@ def classify_sign_from_landmarks(landmarks):
 
     # PULGAR ARRIBA / ABAJO (El pulgar debe sobresalir claramente por encima o debajo del puño)
     if thumb and index_curled and middle_curled and ring_curled and pinky_curled:
-        if landmarks[4].y < (landmarks[5].y - 0.20 * scale) and landmarks[4].y < landmarks[3].y:
+        thumb_index_dist = distance_2d(landmarks[4], landmarks[5]) / scale
+        if thumb_index_dist > 0.55 and landmarks[4].y < (landmarks[5].y - 0.28 * scale) and landmarks[4].y < landmarks[3].y:
             return "sign.thumb_up"
         if landmarks[4].y > (landmarks[0].y + 0.05 * scale) and landmarks[4].y > landmarks[3].y:
             return "sign.thumb_down"
@@ -242,13 +248,15 @@ def classify_sign_from_landmarks(landmarks):
     if tips_touching(landmarks, 4, 8, scale, 0.30) and middle and ring and pinky:
         return "sign.f"
 
-    # ── 3. DACTILOLOGÍA ISL (A-Z) Y NÚMEROS (0-5, 10) ──
-    # L: Pulgar e índice en ángulo recto de 90°
-    if thumb and index and not middle and not ring and not pinky and orientation == 'vertical':
-        return "sign.l"
+    # L: Pulgar e índice en ángulo recto de 90° (índice hacia arriba, pulgar hacia el lado)
+    if thumb and index and not middle and not ring and not pinky:
+        index_pointing_up = landmarks[8].y < landmarks[6].y and landmarks[6].y < landmarks[5].y
+        thumb_out = (distance_2d(landmarks[4], landmarks[5]) / scale > 0.55) or (abs(landmarks[4].x - landmarks[5].x) / scale > 0.45)
+        if index_pointing_up and thumb_out and landmarks[8].y < landmarks[0].y:
+            return "sign.l"
 
-    # D: Índice extendido hacia arriba, pulgar tocando dedos medio/anular formando círculo
-    if index and not middle and not ring and not pinky and (tips_touching(landmarks, 4, 12, scale, 0.38) or tips_touching(landmarks, 4, 16, scale, 0.38)):
+    # D: Índice extendido hacia arriba, pulgar tocando dedo medio formando círculo
+    if index and not middle and not ring and not pinky and tips_touching(landmarks, 4, 12, scale, 0.25):
         return "sign.d"
 
     # O / 0: Puntas de pulgar e índice tocándose formando un círculo cerrado completo
@@ -324,8 +332,10 @@ def classify_sign_from_landmarks(landmarks):
         return "sign.1"
 
     # I: Solo meñique extendido vertical hacia arriba (la letra J se aprende dinámicamente)
-    if not thumb and not index and not middle and not ring and pinky and landmarks[20].y < landmarks[0].y:
-        return "sign.i"
+    if not index and not middle and not ring and pinky and landmarks[20].y < landmarks[0].y:
+        thumb_shaka = thumb and ((distance_2d(landmarks[4], landmarks[5]) / scale > 0.55) or (abs(landmarks[4].x - landmarks[5].x) / scale > 0.40))
+        if not thumb_shaka:
+            return "sign.i"
 
     # X: Solo índice flexionado en gancho (half bent)
     if not thumb and not middle and not ring and not pinky and index_half:
@@ -336,9 +346,9 @@ def classify_sign_from_landmarks(landmarks):
         return "sign.z"
 
     # ── 4. CLASES DE PUÑO CERRADO (A, E, M, N, S, T, 10) ──
-    if index_curled and middle_curled and ring_curled and pinky_curled:
+    if (index_curled or not index) and (middle_curled or not middle) and (ring_curled or not ring) and (pinky_curled or not pinky):
         # 10: Puño cerrado con pulgar bien extendido vertical hacia arriba
-        if thumb and landmarks[4].y < landmarks[5].y - 0.22 * scale:
+        if thumb and distance_2d(landmarks[4], landmarks[5]) / scale > 0.55 and landmarks[4].y < landmarks[5].y - 0.28 * scale:
             return "sign.10"
 
         # T: Pulgar insertado asomando entre dedo índice y dedo medio
@@ -346,23 +356,25 @@ def classify_sign_from_landmarks(landmarks):
             return "sign.t"
 
         # M: Pulgar plegado bajo 3 dedos (índice, medio, anular), punta cerca del anular/meñique
-        if thumb_across and distance_2d(landmarks[4], landmarks[14]) / scale < 0.36:
+        if distance_2d(landmarks[4], landmarks[14]) / scale < 0.36:
             return "sign.m"
 
         # N: Pulgar plegado bajo 2 dedos (índice y medio), punta cerca del dedo medio
-        if thumb_across and distance_2d(landmarks[4], landmarks[10]) / scale < 0.36:
+        if distance_2d(landmarks[4], landmarks[10]) / scale < 0.36:
             return "sign.n"
 
-        # S: Puño cerrado con pulgar cruzado por enfrente sobre los dedos
-        if thumb_across and landmarks[4].y <= landmarks[8].y + 0.12 * scale:
-            return "sign.s"
-
         # E: Cuatro dedos curvados fuertemente con pulgar plegado horizontal bajo ellos
-        if thumb_across and landmarks[4].y > landmarks[8].y:
+        if landmarks[4].y > landmarks[8].y and abs(landmarks[4].x - landmarks[9].x) < 0.35 * scale:
             return "sign.e"
 
+        # S: Puño cerrado con pulgar cruzado por enfrente sobre los dedos
+        if abs(landmarks[4].x - landmarks[9].x) < 0.32 * scale and landmarks[4].y <= landmarks[8].y + 0.15 * scale:
+            return "sign.s"
+
         # A: Puño cerrado con pulgar vertical descansando al lado externo del índice
-        if not thumb_across and landmarks[4].y < landmarks[9].y:
+        thumb_beside_index = distance_2d(landmarks[4], landmarks[5]) / scale < 0.55 or distance_2d(landmarks[4], landmarks[6]) / scale < 0.55
+        thumb_up = landmarks[4].y < landmarks[2].y or landmarks[4].y <= landmarks[5].y + 0.12 * scale
+        if thumb_beside_index and thumb_up:
             return "sign.a"
 
     # Rechazo por defecto para posturas intermedias, ambiguas o de reposo
@@ -572,19 +584,20 @@ class ISLModel:
                     diffs = np.diff(recent, axis=0)
                     motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
-                    # Mano reposando / fija: bajo desplazamiento
-                    if max_motion < 0.065 and motion_energy < 0.040:
+                    # Mano reposando / fija: bajo desplazamiento (permite micro-temblores naturales)
+                    if max_motion < 0.090 and motion_energy < 0.055:
                         is_holding_static = True
-                    # Mano moviéndose con intención
-                    elif max_motion >= 0.095 or motion_energy >= 0.060:
+                    # Mano moviéndose deliberadamente con intención
+                    elif max_motion >= 0.120 or motion_energy >= 0.080:
                         is_moving_dynamically = True
 
                 # Estrategia de asignación priorizada:
-                # A) Si la mano está quieta o fija, evaluar señas estáticas (Alfabeto A-Z, números fijos)
-                if static_candidate and is_holding_static:
+                # A) Prioridad 1: Si hay una seña estática geométrica (Alfabeto A-Z, números, Te quiero),
+                # asignarla inmediatamente a menos que haya un movimiento dinámico muy brusco
+                if static_candidate and (is_holding_static or not is_moving_dynamically or motion_energy < 0.085):
                     current_prediction = static_candidate
 
-                # B) Evaluar modelo neuronal aprendido (solo si hay evidencia clara y no es reposo)
+                # B) Evaluar modelo neuronal aprendido SOLO si no hay seña estática y hay movimiento deliberado
                 if current_prediction is None and len(self.sequence_buffer) >= 8:
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
@@ -593,18 +606,18 @@ class ISLModel:
                             pred_label, confidence, margin = active_model.predict_with_margin(feats)
                             gesture_type = gesture_trainer.get_gesture_type(pred_label)
 
-                            # COMPUERTA DE MOVIMIENTO:
-                            # 1. Si la seña es dinámica (hola, gracias, etc.), la mano DEBE estar moviéndose
-                            # 2. Si la mano está en reposo, una seña de movimiento queda PROHIBIDA
-                            valid_motion = True
+                            # COMPUERTA ESTRICTA DE MOVIMIENTO:
+                            # 1. Si la seña es de movimiento ('j', 'como_estan', 'hola', etc.), la mano DEBE moverse activamente
+                            # 2. Si la mano no tiene movimiento real, queda terminantemente PROHIBIDA
+                            valid_motion = False
                             if gesture_type == "movement":
-                                valid_motion = is_moving_dynamically and motion_energy >= 0.055
+                                valid_motion = is_moving_dynamically and motion_energy >= 0.080 and max_motion >= 0.110
                             elif gesture_type == "static":
                                 valid_motion = is_holding_static or not is_moving_dynamically
 
                             # Umbral de confianza estricto (Anti-Random)
-                            min_conf = 0.82 if is_moving_dynamically else 0.88
-                            min_margin = 0.22
+                            min_conf = 0.85 if is_moving_dynamically else 0.90
+                            min_margin = 0.25
 
                             if valid_motion and pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
@@ -617,8 +630,8 @@ class ISLModel:
                         except Exception:
                             pass
 
-                # C) Fallback a seña estática si la mano está quieta
-                if current_prediction is None and static_candidate and (is_holding_static or not is_moving_dynamically):
+                # C) Fallback a seña estática
+                if current_prediction is None and static_candidate:
                     current_prediction = static_candidate
 
                 # D) Normalizar predicción a diccionario enriquecido con metadatos bilingües

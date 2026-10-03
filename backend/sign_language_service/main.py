@@ -258,7 +258,8 @@ async def route_audio_to_esp32(req: RouteAudioRequest):
     envía el comando HTTP POST al ESP32 para reproducir en sus audífonos/bocina.
     """
     try:
-        target_url = f"http://{req.esp32_ip.replace('http://', '').strip('/')}/play"
+        clean_ip = req.esp32_ip.replace('https://', '').replace('http://', '').strip().strip('/')
+        target_url = f"http://{clean_ip}/play"
         data = req.text.encode('utf-8')
         request = urllib.request.Request(target_url, data=data, headers={'Content-Type': 'text/plain'})
         with urllib.request.urlopen(request, timeout=2) as response:

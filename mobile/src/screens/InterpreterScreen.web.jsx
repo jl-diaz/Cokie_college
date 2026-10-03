@@ -32,7 +32,10 @@ import {
   RotateCcw,
   Languages,
   Sun,
-  Moon
+  Moon,
+  ChevronUp,
+  ChevronDown,
+  Smartphone
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -241,6 +244,11 @@ export default function InterpreterScreenWeb() {
       setIsAnalyzing(true);
       if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
       analyzingTimeoutRef.current = setTimeout(() => setIsAnalyzing(false), 2800);
+
+      // Si se reconoce un signo o palabra y no hay una oración en progreso, reproducir voz
+      if (translatedText && !currentSentence) {
+        speakSentence(translatedText);
+      }
     };
 
     const handleLandmarks = (landmarksData) => {
@@ -263,20 +271,33 @@ export default function InterpreterScreenWeb() {
       WebSocketService.disconnect();
       if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
     };
-  }, [isFocused, t, i18n]);
+  }, [isFocused, t, i18n, currentSentence]);
 
-  const speakSentence = (textToSpeak) => {
-    if (!textToSpeak || lastSpokenRef.current === textToSpeak) return;
-    lastSpokenRef.current = textToSpeak;
+  const handleSelectAudioOutput = (output) => {
+    setAudioOutput(output);
+    audioOutputRef.current = output;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cokielens_audio_output', output);
+      } catch (e) {}
+    }
+  };
 
-    if (audioOutputRef.current === 'browser' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  const executeAudioPlay = (textToSpeak) => {
+    if (!textToSpeak) return;
+    if ((audioOutputRef.current === 'browser' || audioOutputRef.current === 'phone') && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = i18n?.language === 'en' ? 'en-US' : 'es-MX';
-        utterance.volume = audioVolumeRef.current / 100;
+        const lang = (i18n?.language || 'es').startsWith('en') ? 'en-US' : 'es-MX';
+        utterance.lang = lang;
+        utterance.volume = Math.max(0.1, (audioVolumeRef.current || 80) / 100);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
-      } catch (err) {}
+      } catch (err) {
+        console.warn('SpeechSynthesis error:', err);
+      }
     } else if (audioOutputRef.current === 'glasses') {
       try {
         const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
@@ -285,11 +306,34 @@ export default function InterpreterScreenWeb() {
           body: textToSpeak,
           headers: { 
             'Content-Type': 'text/plain',
-            'X-Audio-Volume': String(audioVolumeRef.current)
+            'X-Audio-Volume': String(audioVolumeRef.current || 80)
           }
-        }).catch(e => console.log('Envío a lentes:', e));
+        }).catch(e => {
+          const serverUrl = process.env.EXPO_PUBLIC_SIGN_LANGUAGE_SERVER_URL || 'https://cokie-college.onrender.com';
+          fetch(`${serverUrl}/api/esp32/audio`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ esp32_ip: clean, text: textToSpeak })
+          }).catch(err2 => console.log('Envío a lentes:', err2));
+        });
       } catch (err) {}
     }
+  };
+
+  const speakSentence = (textToSpeak) => {
+    if (!textToSpeak) return;
+    const trimmed = textToSpeak.trim();
+    if (!trimmed || lastSpokenRef.current.toLowerCase() === trimmed.toLowerCase()) return;
+    lastSpokenRef.current = trimmed;
+    executeAudioPlay(trimmed);
+  };
+
+  const forceSpeak = (textToSpeak) => {
+    if (!textToSpeak) return;
+    const trimmed = textToSpeak.trim();
+    if (!trimmed) return;
+    lastSpokenRef.current = trimmed;
+    executeAudioPlay(trimmed);
   };
 
   // Inicializar o pausar Webcam
@@ -354,11 +398,15 @@ export default function InterpreterScreenWeb() {
         isCapturingRef.current = true;
         try {
           const canvas = canvasRef.current;
-          canvas.width = video.videoWidth || 640;
-          canvas.height = video.videoHeight || 480;
+          const srcW = video.videoWidth || 640;
+          const srcH = video.videoHeight || 480;
+          const targetW = 360;
+          const targetH = Math.round((srcH / (srcW || 1)) * targetW) || 270;
+          canvas.width = targetW;
+          canvas.height = targetH;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          ctx.drawImage(video, 0, 0, targetW, targetH);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.45);
           const commaIdx = dataUrl.indexOf(',');
           const base64 = commaIdx !== -1 ? dataUrl.substring(commaIdx + 1) : dataUrl;
           if (base64) {
@@ -439,6 +487,15 @@ export default function InterpreterScreenWeb() {
   };
 
   const handleToggleCameraActivation = () => {
+    // Desbloquear Audio Context / SpeechSynthesis en navegadores modernos mediante interacción del usuario
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        const dummy = new SpeechSynthesisUtterance('');
+        dummy.volume = 0;
+        window.speechSynthesis.speak(dummy);
+      } catch (e) {}
+    }
+
     Animated.sequence([
       Animated.timing(buttonPressScale, { toValue: 0.92, duration: 100, useNativeDriver: true }),
       Animated.spring(buttonPressScale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
@@ -671,16 +728,51 @@ export default function InterpreterScreenWeb() {
         {/* ── CAJA DE TRADUCCIÓN (HORIZONTAL EN DISPOSITIVOS GRANDES / SIN SOMBRA Y BORDE 0.5PX EN TELÉFONOS) ── */}
         <View style={[styles.translationCard, isLargeScreen && styles.translationCardLarge]}>
           <View style={styles.translationCardHeader}>
-            <Text style={styles.translationHeaderStatus}>
-              {isAnalyzing 
-                ? t('interpreter.detectingSigns', 'Detectando señas...') 
-                : t('interpreter.readyToTranslate', 'Listo para traducir')}
-            </Text>
-            {displayedText ? (
-              <TouchableOpacity onPress={() => WebSocketService.clearSentence()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <RotateCcw size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.translationHeaderStatus}>
+                {isAnalyzing 
+                  ? t('interpreter.detectingSigns', 'Detectando señas...') 
+                  : t('interpreter.readyToTranslate', 'Listo para traducir')}
+              </Text>
+              {/* Badge selector rápido de bocina activa */}
+              <TouchableOpacity 
+                onPress={() => handleSelectAudioOutput(audioOutput === 'browser' ? 'glasses' : 'browser')}
+                style={styles.audioIndicatorBadge}
+                activeOpacity={0.7}
+                accessibilityLabel={t('interpreter.toggleAudio', 'Cambiar salida de audio')}
+              >
+                {audioOutput === 'glasses' ? (
+                  <Glasses size={12} color="#426BC2" />
+                ) : (
+                  <Volume2 size={12} color={isDark ? '#94A3B8' : '#64748B'} />
+                )}
+                <Text style={styles.audioIndicatorBadgeText}>
+                  {audioOutput === 'glasses' ? 'CokieLens' : 'Navegador'}
+                </Text>
               </TouchableOpacity>
-            ) : null}
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              {displayedText ? (
+                <TouchableOpacity 
+                  onPress={() => forceSpeak(displayedText)} 
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={t('interpreter.speakAgain', 'Reproducir voz')}
+                >
+                  <Volume2 size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
+                </TouchableOpacity>
+              ) : null}
+
+              {displayedText ? (
+                <TouchableOpacity 
+                  onPress={() => WebSocketService.clearSentence()} 
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel={t('interpreter.clearText', 'Limpiar')}
+                >
+                  <RotateCcw size={14} color={isDark ? '#94A3B8' : '#64748B'} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.cardDivider} />
@@ -723,14 +815,19 @@ export default function InterpreterScreenWeb() {
         </View>
       </View>
 
-      {/* ── TRIGGER INFERIOR PARA REVELAR TABBAR EN MÓVIL ── */}
+      {/* ── TRIGGER INFERIOR CON FLECHA PARA REVELAR / OCULTAR TABBAR EN MÓVIL ── */}
       {!isLargeScreen && (
         <TouchableOpacity 
           style={styles.bottomNavTrigger}
           onPress={() => setIsTabBarHidden(!isTabBarHidden)}
           activeOpacity={0.6}
+          accessibilityLabel={isTabBarHidden ? t('interpreter.showTabs', 'Mostrar menú') : t('interpreter.hideTabs', 'Ocultar menú')}
         >
-          <View style={styles.bottomNavIndicatorBar} />
+          {isTabBarHidden ? (
+            <ChevronUp size={20} color={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'} strokeWidth={2.5} />
+          ) : (
+            <ChevronDown size={20} color={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'} strokeWidth={2.5} />
+          )}
         </TouchableOpacity>
       )}
 
@@ -807,6 +904,52 @@ export default function InterpreterScreenWeb() {
                   <Text style={styles.soundPercentageTextBelow}>{audioVolume}%</Text>
                 </View>
               )}
+            </View>
+          </View>
+
+          {/* Selector de salida de audio: Navegador vs CokieLens */}
+          <View style={styles.audioOutputSection}>
+            <Text style={styles.sectionLabelText}>
+              {t('interpreter.audioOutputTarget', 'Salida de audio de voz')}
+            </Text>
+            <View style={styles.audioOutputSegmentContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.audioOutputPill, 
+                  audioOutput === 'browser' && styles.audioOutputPillActive
+                ]}
+                onPress={() => handleSelectAudioOutput('browser')}
+                activeOpacity={0.8}
+              >
+                <Smartphone size={16} color={audioOutput === 'browser' ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')} style={{ marginRight: 6 }} />
+                <Text 
+                  style={[
+                    styles.audioOutputPillText, 
+                    audioOutput === 'browser' && styles.audioOutputPillTextActive
+                  ]}
+                >
+                  {t('interpreter.outputDevice', 'Bocina Navegador')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.audioOutputPill, 
+                  audioOutput === 'glasses' && styles.audioOutputPillActive
+                ]}
+                onPress={() => handleSelectAudioOutput('glasses')}
+                activeOpacity={0.8}
+              >
+                <Glasses size={16} color={audioOutput === 'glasses' ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B')} style={{ marginRight: 6 }} />
+                <Text 
+                  style={[
+                    styles.audioOutputPillText, 
+                    audioOutput === 'glasses' && styles.audioOutputPillTextActive
+                  ]}
+                >
+                  {t('interpreter.outputGlasses', 'Bocina CokieLens')}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -1155,11 +1298,22 @@ const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
-  translationHeaderStatus: {
-    fontSize: 13,
-    fontWeight: '500',
+  audioIndicatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+  },
+  audioIndicatorBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: isDark ? '#94A3B8' : '#64748B',
   },
   cardDivider: {
@@ -1205,14 +1359,8 @@ const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.creat
   bottomNavTrigger: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingBottom: Math.max(insets.bottom, 10),
-  },
-  bottomNavIndicatorBar: {
-    width: 48,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+    paddingVertical: 6,
+    paddingBottom: Math.max(insets.bottom, 6),
   },
 
   // Modal Fullscreen CokieLens
@@ -1320,6 +1468,45 @@ const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.creat
     color: isDark ? '#94A3B8' : '#64748B',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  audioOutputSection: {
+    marginTop: 18,
+    marginBottom: 16,
+  },
+  sectionLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: isDark ? '#CBD5E1' : '#475569',
+    marginBottom: 8,
+  },
+  audioOutputSegmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 24,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    padding: 3,
+    gap: 4,
+  },
+  audioOutputPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  audioOutputPillActive: {
+    backgroundColor: '#426BC2',
+  },
+  audioOutputPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  audioOutputPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   modalInstructionText: {
     fontSize: 14,
