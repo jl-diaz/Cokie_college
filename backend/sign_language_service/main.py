@@ -56,32 +56,9 @@ socket_app = socketio.ASGIApp(sio, app)
 user_sessions = {}
 inference_lock = asyncio.Lock()
 training_lock = asyncio.Lock()
-inactivity_task = None
-
-async def inactivity_monitor_task():
-    """
-    Vigila periódicamente el tiempo de inactividad de las sesiones activas.
-    Si el usuario deja de hacer señas o pausa el flujo por inactivity_timeout segundos,
-    se finaliza y puntúa la oración automáticamente y se emite sentence_complete.
-    """
-    while True:
-        try:
-            await asyncio.sleep(0.4)
-            for sid, model in list(user_sessions.items()):
-                if hasattr(model, 'sentence_builder'):
-                    final_payload = model.sentence_builder.check_inactivity()
-                    if final_payload:
-                        print(f"[ORACIÓN COMPLETADA POR TIMEOUT] {sid} => {final_payload['sentence']}")
-                        await sio.emit('sentence_complete', final_payload, room=sid)
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            pass
 
 @app.on_event("startup")
 async def startup_event():
-    global inactivity_task
-    inactivity_task = asyncio.create_task(inactivity_monitor_task())
     try:
         gesture_trainer.seed_baseline_samples_if_empty()
     except Exception as e:
@@ -89,9 +66,8 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    global inactivity_task
-    if inactivity_task:
-        inactivity_task.cancel()
+    pass
+
 
 # Precargar modelos de Mediapipe y el modelo activo de gestos
 load_models()
@@ -378,42 +354,21 @@ async def disconnect(sid):
     if sid in user_sessions:
         del user_sessions[sid]
 
-@app.get("/api/sessions/{sid}/sentence")
-async def get_session_sentence(sid: str):
-    """Retorna el estado de la oración acumulada para una sesión."""
-    model = user_sessions.get(sid)
-    if not model or not hasattr(model, 'sentence_builder'):
-        raise HTTPException(status_code=404, detail="Sesión no encontrada")
-    return model.sentence_builder.get_status()
-
 @sio.event
 async def clear_sentence(sid):
-    """Permite al cliente reiniciar/limpiar la oración en curso manualmente."""
+    """Permite al cliente reiniciar el estado de traducción en curso."""
     model = user_sessions.get(sid)
-    if model and hasattr(model, 'sentence_builder'):
-        cleared_info = model.sentence_builder.clear()
-        print(f"[ORACIÓN LIMPIADA] {sid}")
-        await sio.emit('sentence_cleared', cleared_info, room=sid)
-
-@sio.event
-async def set_sentence_timeout(sid, data):
-    """Permite configurar el tiempo de inactividad (ej. 2.0s a 8.0s) desde el cliente."""
-    model = user_sessions.get(sid)
-    if model and hasattr(model, 'sentence_builder'):
-        try:
-            raw_timeout = data.get('timeout') if isinstance(data, dict) else data
-            new_timeout = float(raw_timeout)
-            model.sentence_builder.inactivity_timeout = max(1.5, min(10.0, new_timeout))
-            print(f"[TIMEOUT ACTUALIZADO] {sid} => {model.sentence_builder.inactivity_timeout}s")
-            await sio.emit('status', {'message': f'Timeout de oración configurado a {model.sentence_builder.inactivity_timeout}s'}, room=sid)
-        except Exception as e:
-            print(f"Error configurando timeout: {e}")
+    if model:
+        model.last_stable_prediction = None
+        model.recent_predictions = []
+    print(f"[TRADUCCIÓN REINICIADA] {sid}")
+    await sio.emit('sentence_cleared', {'cleared': True}, room=sid)
 
 @sio.event
 async def process_frame(sid, data):
     """
     Recibe fotogramas de la app (capturados de los Lentes ESP32 o de la cámara móvil/web).
-    Ejecuta inferencia de alta velocidad, actualiza la oración acumulada y emite el texto resultante.
+    Ejecuta inferencia de alta velocidad y emite la seña reconocida palabra por palabra.
     """
     model = user_sessions.get(sid)
     if not model:
@@ -431,34 +386,11 @@ async def process_frame(sid, data):
         if landmarks:
             await sio.emit('landmarks_data', landmarks, room=sid)
 
-        # 1. Evento de actualización de oración (cuando se formula o añade una nueva seña)
-        sentence_update = result.get("sentence_update")
-        if sentence_update:
-            await sio.emit('sentence_update', sentence_update, room=sid)
-
-        # 2. Evento de finalización de oración (cuando se cumple el tiempo de inactividad sin señas)
-        sentence_complete = result.get("sentence_complete")
-        if sentence_complete:
-            print(f"[ORACIÓN COMPLETADA] {sid} => {sentence_complete['sentence']}")
-            await sio.emit('sentence_complete', sentence_complete, room=sid)
-
-        # 3. Evento clásico translation_result (enriquecido para retrocompatibilidad total)
+        # Evento de traducción seña por seña (solo cuando se reconoce con certeza)
         translation = result.get("translation")
         if translation:
             payload = translation if isinstance(translation, dict) else {"id": translation, "text": translation}
-            if sentence_update:
-                payload["accumulated_sentence"] = sentence_update.get("accumulated_sentence", "")
-                payload["accumulated_sentence_en"] = sentence_update.get("accumulated_sentence_en", "")
-                payload["words"] = sentence_update.get("words", [])
-                payload["is_final"] = False
-            elif hasattr(model, 'sentence_builder'):
-                status = model.sentence_builder.get_status()
-                payload["accumulated_sentence"] = status.get("accumulated_sentence", "")
-                payload["accumulated_sentence_en"] = status.get("accumulated_sentence_en", "")
-                payload["words"] = model.sentence_builder.tokens_es
-                payload["is_final"] = status.get("is_final", False)
-
-            print(f"[TRADUCCIÓN] {sid} => {payload.get('text')} | Oración: \"{payload.get('accumulated_sentence', payload.get('text'))}\"")
+            print(f"[TRADUCCIÓN SEÑA] {sid} => {payload.get('text')}")
             await sio.emit('translation_result', payload, room=sid)
 
 if __name__ == '__main__':

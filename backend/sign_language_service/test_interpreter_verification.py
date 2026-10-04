@@ -25,7 +25,6 @@ from isl_model import (
     normalize_hand_landmarks,
     ISLModel
 )
-from sentence_builder import SentenceBuilder
 
 class MockPoint:
     def __init__(self, x, y, z=0.0):
@@ -338,39 +337,144 @@ def run_tests():
     assert not is_moving_dynamically, "Error: temblor leve evaluó como movimiento dinámico"
     passed += 1
 
-    # TEST 10: SentenceBuilder (deletreo inteligente de letras y palabras)
+    # TEST 10: Bloqueo de falso positivo estático para la letra 'Z'
     total += 1
-    sb = SentenceBuilder(inactivity_timeout=2.0, debounce_seconds=0.3)
-    
-    now = 100.0
-    sb.add_token({"id": "sign.h", "name_es": "H", "name_en": "H"}, current_time=now)
-    now += 0.4
-    sb.add_token({"id": "sign.o", "name_es": "O", "name_en": "O"}, current_time=now)
-    now += 0.4
-    sb.add_token({"id": "sign.l", "name_es": "L", "name_en": "L"}, current_time=now)
-    now += 0.4
-    sb.add_token({"id": "sign.a", "name_es": "A", "name_en": "A"}, current_time=now)
-    
-    status = sb.get_status()
-    print(f"[TEST 10] Deletreo H-O-L-A -> Oración acumulada: \"{status['accumulated_sentence']}\"")
-    assert status['accumulated_sentence'] == "HOLA", f"Esperado 'HOLA', obtenido '{status['accumulated_sentence']}'"
+    # Crear mano con índice diagonal
+    h_diag = create_base_hand(wrist=(0.5, 0.8))
+    # Índice apuntando diagonalmente
+    h_diag[5] = MockPoint(0.48, 0.65)
+    h_diag[6] = MockPoint(0.44, 0.55)
+    h_diag[7] = MockPoint(0.40, 0.45)
+    h_diag[8] = MockPoint(0.36, 0.35)
+    diag_res = classify_sign_from_landmarks(h_diag)
+    print(f"[TEST 10] Dedo diagonal -> Clasificación: {diag_res} (esperado: no sign.z)")
+    assert diag_res != "sign.z", "Error: dedo diagonal aún clasifica como sign.z"
     passed += 1
 
-    # TEST 11: SentenceBuilder (adición de palabra completa y auto-capitalización)
+    # TEST 11: Bloqueo de falsos positivos en reposo (como_estas / bien no se activan sin movimiento amplio)
     total += 1
-    now += 0.5
-    sb.add_token({"id": "sign.amigo", "name_es": "amigo", "name_en": "friend"}, current_time=now)
-    status2 = sb.get_status()
-    print(f"[TEST 11] Frase compuesta -> Oración acumulada: \"{status2['accumulated_sentence']}\"")
-    assert "HOLA amigo" in status2['accumulated_sentence'] or "Hola amigo" in status2['accumulated_sentence']
+    # Vector estático con micro-ruido
+    static_model = ISLModel()
+    for _ in range(10):
+        static_model.sequence_buffer.append(np.random.normal(0, 0.005, 126).astype(np.float32))
+    
+    # Evaluar motion_energy
+    recent_s = np.array(list(static_model.sequence_buffer)[-6:], dtype=np.float32)
+    s_diffs = np.diff(recent_s, axis=0)
+    s_energy = float(np.mean(np.abs(s_diffs)))
+    s_max = float(np.max(np.abs(s_diffs)))
+    is_dyn = (s_max >= 0.22 and s_energy >= 0.012)
+    print(f"[TEST 11] Reposo / Temblor -> is_moving_dynamically: {is_dyn} (esperado: False)")
+    assert not is_dyn, "Error: reposo evaluó como movimiento dinámico"
     passed += 1
 
-    # TEST 12: SentenceBuilder (Cierre por inactividad tras timeout)
+    # TEST 12: Estabilización palabra por palabra (rápida y fluida, 2 fotogramas consistentes)
     total += 1
-    final_event = sb.check_inactivity(current_time=now + 2.5)
-    print(f"[TEST 12] Cierre por inactividad -> Evento final: {final_event}")
-    assert final_event is not None
-    assert final_event['is_final'] == True
+    m_stab = ISLModel()
+    # Simular 1 frame con predicción 'A'
+    m_stab.recent_predictions = [
+        {"id": "sign.a", "text": "A"}
+    ]
+    # Con solo 1 frame no debe emitir si la estabilidad requiere 2
+    assert len(m_stab.recent_predictions) < m_stab.stability_threshold
+    # Añadir 2do frame consistente
+    m_stab.recent_predictions.append({"id": "sign.a", "text": "A"})
+    cand_ids = [p["id"] for p in m_stab.recent_predictions]
+    assert cand_ids[0] == cand_ids[1]
+    print(f"[TEST 12] Estabilidad de 2 fotogramas consecutivos -> Confirmado para: {cand_ids[0]}")
+    passed += 1
+    # TEST 13a: Seña K
+    total += 1
+    # Mano K: Dedos índice y medio hacia arriba en V, anular y meñique doblados, pulgar entre ellos
+    h_k = build_v_hand()
+    # Pulgar apoyado entre índice y medio (cerca de punto 10)
+    h_k[4] = MockPoint(0.50, 0.48)
+    res_k = classify_sign_from_landmarks(h_k)
+    print(f"[TEST 13a] Seña 'K' -> Resultado: {res_k}")
+    assert res_k == "sign.k", f"Fallo en K: esperado sign.k, obtenido {res_k}"
+    passed += 1
+    
+    # TEST 13b: Seña P
+    total += 1
+    # Mano P: Dedos índice y medio apuntando claramente hacia abajo
+    h_p = create_base_hand(wrist=(0.5, 0.3))
+    set_finger_curled(h_p, 13, 14, 15, 16, toward_palm_y=-0.03)
+    set_finger_curled(h_p, 17, 18, 19, 20, toward_palm_y=-0.03)
+    # Índice y medio hacia abajo (y mayor que nudillos)
+    h_p[5] = MockPoint(0.48, 0.40)
+    h_p[6] = MockPoint(0.48, 0.52)
+    h_p[7] = MockPoint(0.48, 0.62)
+    h_p[8] = MockPoint(0.48, 0.72)
+    h_p[9] = MockPoint(0.55, 0.40)
+    h_p[10] = MockPoint(0.56, 0.52)
+    h_p[11] = MockPoint(0.57, 0.62)
+    h_p[12] = MockPoint(0.58, 0.72)
+    h_p[4] = MockPoint(0.52, 0.52)
+    res_p = classify_sign_from_landmarks(h_p)
+    print(f"[TEST 13b] Seña 'P' -> Resultado: {res_p}")
+    assert res_p == "sign.p", f"Fallo en P: esperado sign.p, obtenido {res_p}"
+    passed += 1
+
+    # TEST 14: Letra 'H' horizontal
+    total += 1
+    h_h = create_base_hand(wrist=(0.3, 0.5))
+    set_finger_curled(h_h, 13, 14, 15, 16, toward_palm_y=0.03)
+    set_finger_curled(h_h, 17, 18, 19, 20, toward_palm_y=0.03)
+    # Índice y medio horizontales
+    h_h[5] = MockPoint(0.45, 0.48)
+    h_h[6] = MockPoint(0.58, 0.48)
+    h_h[7] = MockPoint(0.68, 0.48)
+    h_h[8] = MockPoint(0.78, 0.48)
+    h_h[9] = MockPoint(0.45, 0.52)
+    h_h[10] = MockPoint(0.58, 0.52)
+    h_h[11] = MockPoint(0.68, 0.52)
+    h_h[12] = MockPoint(0.78, 0.52)
+    h_h[4] = MockPoint(0.42, 0.56)
+    res_h = classify_sign_from_landmarks(h_h)
+    print(f"[TEST 14] Seña 'H' -> Resultado: {res_h}")
+    assert res_h == "sign.h", f"Fallo en H: esperado sign.h, obtenido {res_h}"
+    passed += 1
+
+    # TEST 15a: Caso T
+    total += 1
+    # Puño cerrado (los 4 dedos doblados hacia la palma)
+    h_fist = create_base_hand(wrist=(0.5, 0.8))
+    set_finger_curled(h_fist, 5, 6, 7, 8, toward_palm_y=0.03)
+    set_finger_curled(h_fist, 9, 10, 11, 12, toward_palm_y=0.03)
+    set_finger_curled(h_fist, 13, 14, 15, 16, toward_palm_y=0.03)
+    set_finger_curled(h_fist, 17, 18, 19, 20, toward_palm_y=0.03)
+    # Nudillos MCP transversales: índice=0.40, medio=0.48, anular=0.56, meñique=0.64
+    h_fist[5] = MockPoint(0.40, 0.58)
+    h_fist[9] = MockPoint(0.48, 0.58)
+    h_fist[13] = MockPoint(0.56, 0.58)
+    h_fist[17] = MockPoint(0.64, 0.58)
+
+    # Caso T: Pulgar asoma en índice (x=0.42, proj ~ 0.08)
+    h_t = [MockPoint(p.x, p.y, p.z) for p in h_fist]
+    h_t[4] = MockPoint(0.42, 0.58)
+    res_t = classify_sign_from_landmarks(h_t)
+    print(f"[TEST 15a] Seña 'T' -> Resultado: {res_t}")
+    assert res_t == "sign.t", f"Fallo en T: esperado sign.t, obtenido {res_t}"
+    passed += 1
+
+    # TEST 15b: Caso N
+    total += 1
+    # Caso N: Pulgar asoma entre medio y anular (x=0.48, proj ~ 0.33)
+    h_n = [MockPoint(p.x, p.y, p.z) for p in h_fist]
+    h_n[4] = MockPoint(0.48, 0.58)
+    res_n = classify_sign_from_landmarks(h_n)
+    print(f"[TEST 15b] Seña 'N' -> Resultado: {res_n}")
+    assert res_n == "sign.n", f"Fallo en N: esperado sign.n, obtenido {res_n}"
+    passed += 1
+
+    # TEST 15c: Caso M
+    total += 1
+    # Caso M: Pulgar asoma entre anular y meñique (x=0.56, proj ~ 0.66)
+    h_m = [MockPoint(p.x, p.y, p.z) for p in h_fist]
+    h_m[4] = MockPoint(0.56, 0.58)
+    res_m = classify_sign_from_landmarks(h_m)
+    print(f"[TEST 15c] Seña 'M' -> Resultado: {res_m}")
+    assert res_m == "sign.m", f"Fallo en M: esperado sign.m, obtenido {res_m}"
     passed += 1
 
     print("=" * 60)

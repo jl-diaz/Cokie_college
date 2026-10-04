@@ -83,7 +83,6 @@ export default function InterpreterScreenNative() {
   // ── ESTADOS DE IA Y TRADUCCIÓN ───────────────────────────────────────────
   const [aiServerStatus, setAiServerStatus] = useState('connecting'); // 'connecting' | 'connected' | 'disconnected'
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [currentSentence, setCurrentSentence] = useState('');
   const [lastTranslation, setLastTranslation] = useState('');
   const [liveLandmarks, setLiveLandmarks] = useState(null);
 
@@ -105,6 +104,7 @@ export default function InterpreterScreenNative() {
   const cameraRef = useRef(null);
   const isCapturingRef = useRef(false);
   const lastSpokenRef = useRef('');
+  const lastSpokenTimeRef = useRef(0);
   const audioOutputRef = useRef(audioOutput);
   const esp32IpRef = useRef(esp32Ip);
   const audioVolumeRef = useRef(audioVolume);
@@ -268,30 +268,7 @@ export default function InterpreterScreenNative() {
       if (isMounted) WebSocketService.connect(newUrl);
     });
 
-    // Manejador de oraciones formuladas por el backend
-    const handleSentenceEvent = async (eventType, data) => {
-      if (eventType === 'update') {
-        setIsAnalyzing(true);
-        if (data?.sentence) {
-          setCurrentSentence(data.sentence);
-        }
-        if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
-        analyzingTimeoutRef.current = setTimeout(() => {
-          setIsAnalyzing(false);
-        }, 3200);
-      } else if (eventType === 'complete') {
-        setIsAnalyzing(false);
-        if (data?.sentence) {
-          setCurrentSentence(data.sentence);
-          speakSentence(data.sentence);
-        }
-      } else if (eventType === 'cleared') {
-        setCurrentSentence('');
-        setIsAnalyzing(false);
-      }
-    };
-
-    // Manejador de token único o traducción directa
+    // Manejador de traducción directa palabra por palabra
     const handleTranslation = async (text, rawData) => {
       let translatedText = text;
       const currentLang = i18n?.language || 'es';
@@ -304,7 +281,7 @@ export default function InterpreterScreenNative() {
         }
       }
 
-      if (translatedText.startsWith('sign.')) {
+      if (translatedText && translatedText.startsWith('sign.')) {
         const translationKey = translatedText.replace('sign.', 'signs.');
         const i18nVal = t(translationKey, { defaultValue: '' });
         if (i18nVal) {
@@ -315,17 +292,22 @@ export default function InterpreterScreenNative() {
         }
       }
 
+      if (!translatedText) return;
+
       setLastTranslation(translatedText);
       setIsAnalyzing(true);
 
       if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
       analyzingTimeoutRef.current = setTimeout(() => {
         setIsAnalyzing(false);
-      }, 2800);
+      }, 2500);
 
-      // Si se reconoce un signo y no hay oración activa en curso, pronunciar
-      if (translatedText && !currentSentence) {
-        speakSentence(translatedText);
+      // Pronunciar seña reconocida (con debounce para evitar repeticiones innecesarias mientras se sostiene la postura)
+      const now = Date.now();
+      if (translatedText !== lastSpokenRef.current || (now - lastSpokenTimeRef.current) > 2000) {
+        lastSpokenRef.current = translatedText;
+        lastSpokenTimeRef.current = now;
+        executeAudioPlay(translatedText);
       }
     };
 
@@ -342,25 +324,23 @@ export default function InterpreterScreenNative() {
         if (clearLastSpokenTimeoutRef.current) clearTimeout(clearLastSpokenTimeoutRef.current);
         clearLastSpokenTimeoutRef.current = setTimeout(() => {
           lastSpokenRef.current = '';
-        }, 1800);
+        }, 1500);
       }
     };
 
-    WebSocketService.addSentenceListener(handleSentenceEvent);
     WebSocketService.addListener(handleTranslation);
     WebSocketService.addLandmarksListener(handleLandmarks);
 
     return () => {
       isMounted = false;
       unsub();
-      WebSocketService.removeSentenceListener(handleSentenceEvent);
       WebSocketService.removeListener(handleTranslation);
       WebSocketService.removeLandmarksListener(handleLandmarks);
       WebSocketService.disconnect();
       if (analyzingTimeoutRef.current) clearTimeout(analyzingTimeoutRef.current);
       Speech.stop().catch(() => {});
     };
-  }, [isFocused, t, i18n, currentSentence]);
+  }, [isFocused, t, i18n]);
 
   // Selección y persistencia de bocina de salida
   const handleSelectAudioOutput = async (output) => {
@@ -415,7 +395,7 @@ export default function InterpreterScreenNative() {
   const speakSentence = async (textToSpeak) => {
     if (!textToSpeak) return;
     const trimmed = textToSpeak.trim();
-    if (!trimmed || lastSpokenRef.current.toLowerCase() === trimmed.toLowerCase()) return;
+    if (!trimmed) return;
     lastSpokenRef.current = trimmed;
     await executeAudioPlay(trimmed);
   };
@@ -689,8 +669,8 @@ export default function InterpreterScreenNative() {
     persistVolume(audioVolumeRef.current || 0);
   };
 
-  // Texto de la oración actual a mostrar
-  const displayedText = currentSentence || lastTranslation || '';
+  // Texto de la seña actual a mostrar
+  const displayedText = lastTranslation || '';
   const currentLangCode = (i18n?.language || 'es').startsWith('es') ? 'ES' : 'EN';
 
   return (
@@ -950,7 +930,11 @@ export default function InterpreterScreenNative() {
 
               {displayedText ? (
                 <TouchableOpacity 
-                  onPress={() => WebSocketService.clearSentence()}
+                  onPress={() => {
+                    setLastTranslation('');
+                    lastSpokenRef.current = '';
+                    WebSocketService.clearSentence();
+                  }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel={t('interpreter.clearText', 'Limpiar')}
                 >

@@ -26,21 +26,10 @@
     "name": "Por favor",
     "type": "movement",
     "description": "Palma abierta en el pecho haciendo movimiento circular",
-    "sample_count": 9,
+    "sample_count": 13,
     "is_default": true,
     "name_es": "Por favor",
     "name_en": "Please",
-    "category": "school"
-  },
-  {
-    "id": "permiso_bano",
-    "name": "Permiso para ir al baño",
-    "type": "movement",
-    "description": "Mano en letra 'B' o sacudiendo suavemente a la altura del pecho",
-    "sample_count": 6,
-    "is_default": true,
-    "name_es": "Permiso para ir al baño",
-    "name_en": "Bathroom permission",
     "category": "school"
   },
   {
@@ -48,7 +37,7 @@
     "name": "Te quiero",
     "type": "static",
     "description": "Pulgar, índice y meñique extendidos",
-    "sample_count": 8,
+    "sample_count": 9,
     "is_default": true,
     "name_es": "Te quiero",
     "name_en": "I love you",
@@ -63,17 +52,6 @@
     "is_default": true,
     "name_es": "Sí",
     "name_en": "Yes",
-    "category": "school"
-  },
-  {
-    "id": "no",
-    "name": "No",
-    "type": "movement",
-    "description": "Índice y medio tocando pulgar o mano negando",
-    "sample_count": 6,
-    "is_default": true,
-    "name_es": "No",
-    "name_en": "No",
     "category": "school"
   },
   {
@@ -149,25 +127,13 @@
     "category": "numbers"
   },
   {
-    "id": "adios",
-    "name": "Adiós",
-    "name_es": "Adiós",
-    "name_en": "Goodbye",
-    "type": "movement",
-    "description": "Todos los dedos a excepción del pulgar se abren y se cierran",
-    "sample_count": 6,
-    "is_default": false,
-    "created_at": "2026-09-22 15:36:56",
-    "category": "school"
-  },
-  {
     "id": "buenos_dias",
     "name": "Buenos días",
     "name_es": "Buenos días",
     "name_en": "Good morning",
     "type": "movement",
     "description": "Ambas manos dando like, gesto de U invertida, apertura de manos abiertas",
-    "sample_count": 6,
+    "sample_count": 0,
     "is_default": false,
     "created_at": "2026-09-22 15:45:01",
     "category": "school"
@@ -179,7 +145,7 @@
     "name_en": "Sorry",
     "type": "movement",
     "description": "Puño cerrado dando vueltas en el pecho",
-    "sample_count": 6,
+    "sample_count": 0,
     "is_default": false,
     "created_at": "2026-09-22 15:50:55",
     "category": "school"
@@ -215,7 +181,7 @@
     "name_en": "Food",
     "type": "movement",
     "description": "Gesto de llevarse la mano a la boca cerrada en forma de capullo",
-    "sample_count": 6,
+    "sample_count": 0,
     "is_default": false,
     "created_at": "2026-09-22 16:01:12",
     "category": "school"
@@ -230,18 +196,6 @@
     "sample_count": 6,
     "is_default": false,
     "created_at": "2026-09-22 16:03:58",
-    "category": "school"
-  },
-  {
-    "id": "casa",
-    "name": "Casa",
-    "name_es": "Casa",
-    "name_en": "Home",
-    "type": "movement",
-    "description": "Manos extendiendo los 4 dedos a excepción del pulgar, se abren hacia afuera",
-    "sample_count": 6,
-    "is_default": false,
-    "created_at": "2026-09-22 16:08:24",
     "category": "school"
   },
   {
@@ -323,7 +277,7 @@
     "name_en": "How are you?",
     "type": "movement",
     "description": "Coloca las manos con los dedos curvos y los nudillos juntos con las palmas hacia abajo giras las manos hacia adelante hasta que las palmas queden hacia arriba baja las cejas porque es una pregunta A veces se puede hacer usando una sola mano además apunta con el dedo índice a la persona a la que te diriges.",
-    "sample_count": 8,
+    "sample_count": 0,
     "is_default": false,
     "created_at": "2026-09-24 21:05:20",
     "category": "school"
@@ -341,18 +295,6 @@
     "category": "school"
   },
   {
-    "id": "esta_bien__ok",
-    "name": "Está bien/ ok",
-    "name_es": "Está bien/ ok",
-    "name_en": "Okay",
-    "type": "movement",
-    "description": "",
-    "sample_count": 5,
-    "is_default": false,
-    "created_at": "2026-09-24 21:18:54",
-    "category": "school"
-  },
-  {
     "id": "a",
     "name": "A",
     "name_es": "A",
@@ -360,7 +302,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado con el pulgar apoyado al lado externo del dedo índice.",
-    "sample_count": 6,
+    "sample_count": 13,
     "is_default": true
   },
   {
@@ -371,7 +313,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Cuatro dedos extendidos verticalmente y juntos; pulgar plegado sobre la palma.",
-    "sample_count": 6,
+    "sample_count": 10,
     "is_default": true
   },
   {
@@ -459,7 +401,7 @@
     "type": "movement",
     "category": "alphabet",
     "description": "Mano en postura de I trazando en el aire una curva de J con la muñeca hacia adentro.",
-    "sample_count": 6,
+    "sample_count": 10,
     "is_default": true
   },
   {
@@ -492,7 +434,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Índice, medio y anular doblados sobre el pulgar (el pulgar asoma entre anular y meñique).",
-    "sample_count": 6,
+    "sample_count": 19,
     "is_default": true
   },
   {
@@ -503,18 +445,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Índice y medio doblados sobre el pulgar (el pulgar asoma entre medio y anular).",
-    "sample_count": 7,
-    "is_default": true
-  },
-  {
-    "id": "o",
-    "name": "O",
-    "name_es": "O",
-    "name_en": "O",
-    "type": "static",
-    "category": "alphabet",
-    "description": "Todas las puntas de los dedos tocando la yema del pulgar formando un óvalo cerrado.",
-    "sample_count": 7,
+    "sample_count": 14,
     "is_default": true
   },
   {
@@ -547,7 +478,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Dedos índice y medio extendidos verticalmente y cruzados (medio cruzando sobre índice).",
-    "sample_count": 7,
+    "sample_count": 11,
     "is_default": true
   },
   {
@@ -558,7 +489,7 @@
     "type": "static",
     "category": "alphabet",
     "description": "Puño cerrado compacto con el pulgar cruzado por encima de los dedos índice y medio.",
-    "sample_count": 7,
+    "sample_count": 11,
     "is_default": true
   },
   {
@@ -711,7 +642,7 @@
     "name_en": "How are you?",
     "type": "movement",
     "description": "",
-    "sample_count": 10,
+    "sample_count": 0,
     "is_default": false,
     "created_at": "2026-10-03 15:56:19"
   },
@@ -725,5 +656,16 @@
     "sample_count": 15,
     "is_default": false,
     "created_at": "2026-10-03 17:17:54"
+  },
+  {
+    "id": "o",
+    "name": "O",
+    "name_es": "O",
+    "name_en": "O",
+    "type": "movement",
+    "description": "",
+    "sample_count": 7,
+    "is_default": false,
+    "created_at": "2026-10-04 00:28:34"
   }
 ]

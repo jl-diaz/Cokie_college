@@ -15,6 +15,7 @@ try:
 except Exception:
     pass
 
+import time
 import cv2
 import numpy as np
 import base64
@@ -27,10 +28,8 @@ from mediapipe.tasks.python import vision
 
 try:
     import gesture_trainer
-    from sentence_builder import SentenceBuilder
 except ImportError:
     from . import gesture_trainer
-    from .sentence_builder import SentenceBuilder
 
 # ─────────────────────────────────────────────────────────────────
 # Mapeo de gestos MediaPipe → Translation Keys
@@ -285,16 +284,16 @@ def classify_sign_from_landmarks(landmarks):
         if 0.30 < c_gap < 0.95:
             return "sign.c"
 
-    # K: Índice extendido, medio extendido diagonal/adelante, pulgar entre ambos
-    if index and middle and not ring and not pinky and orientation == 'vertical':
-        if landmarks[12].y < landmarks[9].y:
+    # K: Índice y medio extendidos hacia arriba en forma de 'V' con pulgar apoyado/entre ellos
+    if index and middle and not ring and not pinky:
+        if landmarks[8].y < landmarks[5].y and landmarks[12].y < landmarks[9].y:
             thumb_mid_dist = distance_2d(landmarks[4], landmarks[10]) / scale
-            if thumb_mid_dist < 0.48:
+            if thumb_mid_dist < 0.60 and orientation in ('vertical', 'diagonal'):
                 return "sign.k"
 
-    # P: Misma postura de K pero orientada hacia abajo (muñeca o dedos apuntando hacia abajo)
+    # P: Misma postura de K pero dedos índice y medio apuntando claramente HACIA ABAJO
     if index and middle and not ring and not pinky:
-        if landmarks[12].y > landmarks[9].y or (orientation == 'horizontal' and landmarks[8].y > landmarks[5].y):
+        if landmarks[8].y > landmarks[5].y and landmarks[12].y > landmarks[9].y:
             return "sign.p"
 
     # G: Pulgar e índice extendidos horizontalmente (pinza lateral)
@@ -307,7 +306,7 @@ def classify_sign_from_landmarks(landmarks):
         return "sign.q"
 
     # H: Índice y medio extendidos juntos horizontalmente
-    if not thumb and index and middle and not ring and not pinky and orientation == 'horizontal':
+    if index and middle and not ring and not pinky and orientation == 'horizontal':
         return "sign.h"
 
     # R: Índice y medio extendidos y cruzados verticalmente
@@ -357,9 +356,7 @@ def classify_sign_from_landmarks(landmarks):
     if not thumb and not middle and not ring and not pinky and index_half:
         return "sign.x"
 
-    # Z: Solo índice apuntando diagonalmente
-    if not thumb and index and not middle and not ring and not pinky and orientation == 'diagonal':
-        return "sign.z"
+    # (Nota: La letra Z es un trazo dinámico en zigzag en el aire, no una postura estática. Se evalúa dinámicamente)
 
     # ── 4. CLASES DE PUÑO CERRADO (A, E, M, N, S, T, 10) ──
     if (index_curled or not index) and (middle_curled or not middle) and (ring_curled or not ring) and (pinky_curled or not pinky):
@@ -367,31 +364,53 @@ def classify_sign_from_landmarks(landmarks):
         if thumb and distance_2d(landmarks[4], landmarks[5]) / scale > 0.55 and landmarks[4].y < landmarks[5].y - 0.28 * scale:
             return "sign.10"
 
-        # T: Pulgar insertado asomando entre dedo índice y dedo medio
-        if distance_2d(landmarks[4], landmarks[6]) / scale < 0.35 and landmarks[4].y < landmarks[6].y:
-            return "sign.t"
-
-        # M: Pulgar plegado bajo 3 dedos (índice, medio, anular), punta cerca del anular/meñique
-        if distance_2d(landmarks[4], landmarks[14]) / scale < 0.36:
-            return "sign.m"
-
-        # N: Pulgar plegado bajo 2 dedos (índice y medio), punta cerca del dedo medio
-        if distance_2d(landmarks[4], landmarks[10]) / scale < 0.36:
-            return "sign.n"
+        # A: Puño cerrado con pulgar vertical erguido descansando al lado externo del índice
+        thumb_beside_index = distance_2d(landmarks[4], landmarks[5]) / scale < 0.55 or distance_2d(landmarks[4], landmarks[6]) / scale < 0.55
+        thumb_up = landmarks[4].y < landmarks[3].y or landmarks[4].y < landmarks[2].y
+        if thumb_beside_index and thumb_up and not thumb_across:
+            return "sign.a"
 
         # E: Cuatro dedos curvados fuertemente con pulgar plegado horizontal bajo ellos
         if landmarks[4].y > landmarks[8].y and abs(landmarks[4].x - landmarks[9].x) < 0.35 * scale:
             return "sign.e"
 
-        # A: Puño cerrado con pulgar vertical erguido descansando al lado externo del índice
-        thumb_beside_index = distance_2d(landmarks[4], landmarks[5]) / scale < 0.55 or distance_2d(landmarks[4], landmarks[6]) / scale < 0.55
-        thumb_up = landmarks[4].y < landmarks[3].y or landmarks[4].y < landmarks[2].y
-        if thumb_beside_index and thumb_up:
-            return "sign.a"
+        # T, N, M: Posición relativa transversal del pulgar a lo largo del puente de nudillos
+        # Vector de MCP índice (5) a MCP meñique (17)
+        palm_vx = landmarks[17].x - landmarks[5].x
+        palm_vy = landmarks[17].y - landmarks[5].y
+        palm_len_sq = palm_vx * palm_vx + palm_vy * palm_vy
+        if palm_len_sq > 1e-5:
+            thumb_proj = ((landmarks[4].x - landmarks[5].x) * palm_vx + (landmarks[4].y - landmarks[5].y) * palm_vy) / palm_len_sq
+        else:
+            thumb_proj = 0.35
+
+        dist_thumb_index = distance_2d(landmarks[4], landmarks[6]) / scale
+        dist_thumb_mid = distance_2d(landmarks[4], landmarks[10]) / scale
+        dist_thumb_ring = distance_2d(landmarks[4], landmarks[14]) / scale
+
+        # T: Pulgar insertado asomando entre dedo índice y medio (zona inicial del puente de nudillos)
+        if thumb_proj < 0.22 or (dist_thumb_index < dist_thumb_mid and dist_thumb_index < 0.32 and landmarks[4].y < landmarks[6].y):
+            return "sign.t"
+
+        # M: Pulgar plegado bajo 3 dedos (zona del anular y meñique, proj >= 0.48)
+        if thumb_proj >= 0.48 or (dist_thumb_ring < dist_thumb_mid and thumb_proj > 0.38):
+            return "sign.m"
+
+        # N: Pulgar plegado bajo 2 dedos (zona entre medio y anular, 0.18 <= proj < 0.48)
+        if thumb_proj >= 0.18:
+            return "sign.n"
 
         # S: Puño cerrado con pulgar cruzado horizontalmente por enfrente sobre los dedos
         if abs(landmarks[4].x - landmarks[9].x) < 0.32 * scale and landmarks[4].y <= landmarks[8].y + 0.15 * scale:
             return "sign.s"
+
+    # M / N con dedos hacia abajo (variante tradicional LSM):
+    # M: 3 dedos hacia abajo (índice, medio, anular)
+    if landmarks[8].y > landmarks[5].y and landmarks[12].y > landmarks[9].y and landmarks[16].y > landmarks[13].y and pinky_curled:
+        return "sign.m"
+    # N: 2 dedos hacia abajo (índice y medio)
+    if landmarks[8].y > landmarks[5].y and landmarks[12].y > landmarks[9].y and ring_curled and pinky_curled:
+        return "sign.n"
 
     # Rechazo por defecto para posturas intermedias, ambiguas o de reposo
     return None
@@ -473,11 +492,11 @@ class ISLModel:
         self.sequence_buffer = deque(maxlen=30)
         self.recent_predictions = []
         self.last_stable_prediction = None
+        self.last_stable_time = 0.0
         self.stability_threshold = 2
         self.no_detection_count = 0
         self.frame_count = 0
         self.cached_pose_landmarks = None
-        self.sentence_builder = SentenceBuilder(inactivity_timeout=3.5)
 
     def normalize_camera_frame(self, image, platform="unknown", facing="front", source="phone", glasses_rotation=0):
         """
@@ -690,21 +709,21 @@ class ISLModel:
                     diffs = np.diff(recent, axis=0)
                     motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
-                    # Mano reposando / fija: bajo desplazamiento (permite micro-temblores naturales)
-                    if max_motion < 0.080 and motion_energy < 0.007:
+                    # Mano reposando / fija: bajo desplazamiento
+                    if max_motion < 0.12 and motion_energy < 0.020:
                         is_holding_static = True
-                    # Mano moviéndose deliberadamente con intención
-                    elif max_motion >= 0.090 or motion_energy >= 0.007:
+                    # Mano moviéndose deliberadamente con intención (señas dinámicas)
+                    elif max_motion >= 0.22 and motion_energy >= 0.012:
                         is_moving_dynamically = True
 
-                # Estrategia de asignación priorizada:
-                # A) Prioridad 1: Si hay una seña estática geométrica (Alfabeto A-Z, números, Te quiero),
-                # asignarla si la mano está quieta o no hay movimiento dinámico deliberado
-                if static_candidate and (is_holding_static or not is_moving_dynamically or motion_energy < 0.007):
+                # ── ESTRATEGIA DE ASIGNACIÓN PRIORIZADA ──
+                # 1. PRIORIDAD 1: Seña geométrica estática (Alfabeto A-Z, números, Te quiero)
+                # Si los landmarks forman una seña estática válida, se acepta directamente.
+                if static_candidate:
                     current_prediction = static_candidate
 
-                # B) Evaluar modelo neuronal aprendido SOLO si no hay seña estática o hay movimiento dinámico
-                if current_prediction is None and len(self.sequence_buffer) >= 8:
+                # 2. PRIORIDAD 2: Seña dinámica por Red Neuronal (solo si NO hay seña estática)
+                elif is_moving_dynamically and len(self.sequence_buffer) >= 6:
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
                         try:
@@ -712,18 +731,40 @@ class ISLModel:
                             pred_label, confidence, margin = active_model.predict_with_margin(feats)
                             gesture_type = gesture_trainer.get_gesture_type(pred_label)
 
-                            # COMPUERTA DE MOVIMIENTO CALIBRADA:
-                            # 1. Si la seña es de movimiento ('hola', 'gracias', 'por_favor', 'si', etc.),
-                            # la mano debe presentar movimiento observable
-                            valid_motion = False
-                            if gesture_type == "movement":
-                                valid_motion = is_moving_dynamically and (motion_energy >= 0.006 or max_motion >= 0.080)
-                            elif gesture_type == "static":
-                                valid_motion = is_holding_static or not is_moving_dynamically
+                            num_hands_detected = len(hand_landmarks_list) if hand_landmarks_list else 0
 
-                            # Umbral de confianza adaptativo
-                            min_conf = 0.70 if is_moving_dynamically else 0.80
-                            min_margin = 0.15
+                            # COMPUERTA ESTRICTA ANTI-FALSOS POSITIVOS:
+                            valid_motion = False
+                            # Gestos que requieren estrictamente 2 manos
+                            bimanual_gestures = ("como_estas", "como_estan", "casa", "listo", "listo___terminado", "amigo")
+                            if pred_label in bimanual_gestures and num_hands_detected < 2:
+                                valid_motion = False
+                            elif gesture_type == "movement":
+                                if pred_label in ("como_estas", "como_estan"):
+                                    # Requiere 2 manos y desplazamiento amplio coordinado
+                                    valid_motion = num_hands_detected >= 2 and motion_energy >= 0.030 and max_motion >= 0.70
+                                elif pred_label == "bien":
+                                    valid_motion = motion_energy >= 0.018 and max_motion >= 0.28
+                                elif pred_label == "z":
+                                    valid_motion = motion_energy >= 0.035 and max_motion >= 0.55
+                                elif pred_label in ("perdon", "adios", "mi_nombre_es"):
+                                    valid_motion = motion_energy >= 0.025 and max_motion >= 0.38
+                                elif pred_label == "no":
+                                    valid_motion = motion_energy >= 0.028 and max_motion >= 0.38
+                                elif pred_label in ("casa", "listo", "listo___terminado"):
+                                    valid_motion = num_hands_detected >= 2 and motion_energy >= 0.022 and max_motion >= 0.32
+                                else:
+                                    valid_motion = motion_energy >= 0.020 and max_motion >= 0.28
+                            elif gesture_type == "static":
+                                valid_motion = False  # Las señas estáticas se evalúan por heurística geométrica
+
+                            # Unificar listo___terminado con listo
+                            if pred_label == "listo___terminado":
+                                pred_label = "listo"
+
+                            # Umbral de confianza estricto (Anti-Ruido)
+                            min_conf = 0.88
+                            min_margin = 0.25
 
                             if valid_motion and pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)
@@ -735,10 +776,6 @@ class ISLModel:
                                 }
                         except Exception:
                             pass
-
-                # C) Fallback a seña estática
-                if current_prediction is None and static_candidate:
-                    current_prediction = static_candidate
 
                 # D) Normalizar predicción a diccionario enriquecido con metadatos bilingües
                 if current_prediction is not None and isinstance(current_prediction, str):
@@ -762,40 +799,36 @@ class ISLModel:
                 "is_static": bool(hand_landmarks_list and is_holding_static)
             }
 
-            # 4. Estabilización de predicción para traducción fluida y sin rebotes
+            # 4. Estabilización de predicción para traducción fluida (2 cuadros consistentes ~150ms)
             stable_result = None
             if current_prediction is None:
                 self.no_detection_count += 1
+                if self.no_detection_count >= 2:
+                    self.recent_predictions = []
                 if self.no_detection_count >= 3:
                     self.last_stable_prediction = None
-                    self.recent_predictions = []
-                    self.no_detection_count = 0
             else:
                 self.no_detection_count = 0
                 self.recent_predictions.append(current_prediction)
                 self.recent_predictions = self.recent_predictions[-2:]
 
                 if len(self.recent_predictions) >= 2:
-                    if self.recent_predictions[0] == self.recent_predictions[1]:
-                        candidate = self.recent_predictions[0]
-                        if candidate != self.last_stable_prediction:
+                    cand_ids = [p.get("id") if isinstance(p, dict) else p for p in self.recent_predictions]
+                    if cand_ids[0] == cand_ids[1]:
+                        candidate = self.recent_predictions[-1]
+                        cand_id = cand_ids[0]
+                        last_id = self.last_stable_prediction.get("id") if isinstance(self.last_stable_prediction, dict) else self.last_stable_prediction
+                        
+                        now = time.time()
+                        # Solo emitir si es una seña distinta, o tras 2.0s de sostener la misma seña
+                        if cand_id != last_id or (now - self.last_stable_time) > 2.0:
                             self.last_stable_prediction = candidate
-                            self.recent_predictions = []
+                            self.last_stable_time = now
                             stable_result = candidate
-
-            # 5. Formulación de oraciones y gestión de tiempo de inactividad
-            sentence_update = None
-            if stable_result:
-                sentence_update = self.sentence_builder.add_token(stable_result)
-
-            sentence_complete = self.sentence_builder.check_inactivity()
 
             return {
                 "translation": stable_result,
-                "landmarks": landmarks_payload,
-                "sentence_update": sentence_update,
-                "sentence_complete": sentence_complete,
-                "sentence_status": self.sentence_builder.get_status()
+                "landmarks": landmarks_payload
             }
 
         except Exception as e:
