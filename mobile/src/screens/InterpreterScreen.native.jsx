@@ -17,10 +17,28 @@ import {
   ScrollView
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { setAudioModeAsync } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { useRouter, Stack, useIsFocused, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function uint8ArrayToBase64(bytes) {
+  let result = '';
+  const len = bytes.length;
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+
+    result += BASE64_CHARS[b0 >> 2];
+    result += BASE64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    result += i + 1 < len ? BASE64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    result += i + 2 < len ? BASE64_CHARS[b2 & 63] : '=';
+  }
+  return result;
+}
 import { 
   SwitchCamera, 
   Volume2, 
@@ -408,54 +426,57 @@ export default function InterpreterScreenNative() {
     await executeAudioPlay(trimmed);
   };
 
-  const handleCameraReady = async () => {
+  const handleCameraReady = () => {
     setIsCameraReady(true);
-    try {
-      if (cameraRef.current?.getAvailablePictureSizesAsync) {
-        const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
-        if (sizes && sizes.length > 0) {
-          const preferredSizes = ['352x288', '640x480', '480x360', '320x240', 'VGA', 'CIF'];
-          let chosen = sizes.find(s => preferredSizes.includes(s));
-          if (!chosen) {
-            chosen = sizes.find(s => {
-              const parts = s.split('x');
-              if (parts.length === 2) {
-                const area = parseInt(parts[0]) * parseInt(parts[1]);
-                return area >= 70000 && area <= 350000;
-              }
-              return false;
-            }) || sizes[sizes.length - 1];
-          }
-          if (chosen) setPictureSize(chosen);
-        }
-      }
-    } catch (e) {}
   };
 
   // ── BUCLE 1: CAPTURA DESDE CÁMARA DEL TELÉFONO ────────────────────────────
   useEffect(() => {
-    let intervalId;
+    let isActive = true;
+    let timerId = null;
 
-    if (isFocused && isCameraActive && videoSource === 'phone' && isCameraReady && hasPermission) {
-      intervalId = setInterval(async () => {
-        if (!cameraRef.current || isCapturingRef.current) return;
-        
+    if (isFocused && isCameraActive && videoSource === 'phone' && hasPermission) {
+      const capturePhoneFrame = async () => {
+        if (!isActive) return;
+        if (!cameraRef.current || isCapturingRef.current) {
+          if (isActive) timerId = setTimeout(capturePhoneFrame, 120);
+          return;
+        }
+
         isCapturingRef.current = true;
         try {
           const photo = await cameraRef.current.takePictureAsync({
-            base64: true,
             quality: 0.15,
             shutterSound: false,
             exif: false,
           });
 
-          if (photo?.base64) {
-            WebSocketService.sendFrame({
-              image: photo.base64,
-              platform: Platform.OS,
-              facing: facingMode,
-              source: 'phone'
-            });
+          if (photo && isActive) {
+            let base64ToSend = photo.base64;
+            if (photo.uri) {
+              try {
+                // Redimensionar a resolución óptima de 360px para inferencia ultrarrápida (igual a Web)
+                const manip = await ImageManipulator.manipulateAsync(
+                  photo.uri,
+                  [{ resize: { width: 360 } }],
+                  { compress: 0.45, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+                );
+                if (manip?.base64) {
+                  base64ToSend = manip.base64;
+                }
+              } catch (manipErr) {
+                // Fallback a base64 original si ImageManipulator falla
+              }
+            }
+
+            if (base64ToSend && isActive) {
+              WebSocketService.sendFrame({
+                image: base64ToSend,
+                platform: Platform.OS,
+                facing: facingMode,
+                source: 'phone'
+              });
+            }
           }
         } catch (e) {
           if (!e.message?.includes('unmounted')) {
@@ -463,28 +484,41 @@ export default function InterpreterScreenNative() {
           }
         } finally {
           isCapturingRef.current = false;
+          if (isActive) {
+            timerId = setTimeout(capturePhoneFrame, 120);
+          }
         }
-      }, 100);
+      };
+
+      // Iniciar el ciclo de captura con un breve retardo para estabilización
+      timerId = setTimeout(capturePhoneFrame, 200);
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      isActive = false;
+      if (timerId) clearTimeout(timerId);
+      isCapturingRef.current = false;
     };
-  }, [isFocused, isCameraActive, videoSource, isCameraReady, hasPermission, facingMode]);
+  }, [isFocused, isCameraActive, videoSource, hasPermission, facingMode]);
 
   // ── BUCLE 2: CAPTURA DESDE LENTES COKIELENS (ESP32-CAM) ───────────────────
   useEffect(() => {
-    let intervalId;
+    let isActive = true;
+    let timerId = null;
     let consecutiveErrors = 0;
 
     if (isFocused && isCameraActive && videoSource === 'glasses') {
       const cleanIp = esp32Ip.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim() || '192.168.4.1';
       const captureUrl = `http://${cleanIp}/capture`;
 
-      intervalId = setInterval(async () => {
-        if (isCapturingRef.current) return;
-        isCapturingRef.current = true;
+      const captureGlassesFrame = async () => {
+        if (!isActive) return;
+        if (isCapturingRef.current) {
+          if (isActive) timerId = setTimeout(captureGlassesFrame, 120);
+          return;
+        }
 
+        isCapturingRef.current = true;
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 1400);
@@ -498,20 +532,17 @@ export default function InterpreterScreenNative() {
           if (response.ok) {
             consecutiveErrors = 0;
             setGlassesConnected(true);
-            const blob = await response.blob();
-            
-            const base64Data = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = () => resolve(null);
-              reader.readAsDataURL(blob);
-            });
 
-            if (typeof base64Data === 'string' && base64Data.length > 50) {
-              setGlassesFrameUri(base64Data);
-              const commaIdx = base64Data.indexOf(',');
-              const rawBase64 = commaIdx !== -1 ? base64Data.substring(commaIdx + 1) : base64Data;
-              if (rawBase64) {
+            // Conversión pura de ArrayBuffer a Base64 sin depender del FileReader de React Native
+            const arrayBuffer = await response.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            
+            if (bytes && bytes.length > 50) {
+              const rawBase64 = uint8ArrayToBase64(bytes);
+              if (rawBase64 && isActive) {
+                const dataUri = `data:image/jpeg;base64,${rawBase64}`;
+                setGlassesFrameUri(dataUri);
+
                 WebSocketService.sendFrame({
                   image: rawBase64,
                   platform: Platform.OS,
@@ -538,12 +569,19 @@ export default function InterpreterScreenNative() {
           }
         } finally {
           isCapturingRef.current = false;
+          if (isActive) {
+            timerId = setTimeout(captureGlassesFrame, 120);
+          }
         }
-      }, 150);
+      };
+
+      timerId = setTimeout(captureGlassesFrame, 100);
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      isActive = false;
+      if (timerId) clearTimeout(timerId);
+      isCapturingRef.current = false;
     };
   }, [isFocused, isCameraActive, videoSource, esp32Ip, glassesRotation]);
 
@@ -753,7 +791,6 @@ export default function InterpreterScreenNative() {
                       ref={cameraRef}
                       style={StyleSheet.absoluteFill} 
                       facing={facingMode}
-                      pictureSize={pictureSize || '640x480'}
                       onCameraReady={handleCameraReady}
                       animateShutter={false}
                     />

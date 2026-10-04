@@ -64,6 +64,23 @@ import {
 const { width } = Dimensions.get('window');
 const TARGET_MOVEMENT_FRAMES = 15;
 
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function uint8ArrayToBase64(bytes) {
+  let result = '';
+  const len = bytes.length;
+  for (let i = 0; i < len; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < len ? bytes[i + 1] : 0;
+    const b2 = i + 2 < len ? bytes[i + 2] : 0;
+
+    result += BASE64_CHARS[b0 >> 2];
+    result += BASE64_CHARS[((b0 & 3) << 4) | (b1 >> 4)];
+    result += i + 1 < len ? BASE64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    result += i + 2 < len ? BASE64_CHARS[b2 & 63] : '=';
+  }
+  return result;
+}
+
 export default function GestureStudioScreen() {
   const pathname = usePathname();
   const screenFocused = useIsFocused();
@@ -711,12 +728,14 @@ export default function GestureStudioScreen() {
 
           if (res.ok) {
             setGlassesConnected(true);
-            const blob = await res.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              setLiveFrameUri(reader.result);
-            };
-            reader.readAsDataURL(blob);
+            const buffer = await res.arrayBuffer();
+            const bytes = new Uint8Array(buffer);
+            if (bytes && bytes.length > 50) {
+              const rawBase64 = uint8ArrayToBase64(bytes);
+              if (rawBase64) {
+                setLiveFrameUri(`data:image/jpeg;base64,${rawBase64}`);
+              }
+            }
           } else {
             setGlassesConnected(false);
           }
