@@ -135,14 +135,11 @@ export default function InterpreterScreenNative() {
     audioVolumeRef.current = audioVolume;
   }, [audioVolume]);
 
-  // ── GESTIÓN DE OCULTAMIENTO DE LA BARRA DE NAVEGACIÓN ─────────────────────
-  // Al entrar al intérprete en teléfonos, la barra de navegación se oculta por defecto
+  // ── GESTIÓN DE LA BARRA DE NAVEGACIÓN ─────────────────────────────────────
+  // En móvil el TabBar se mantiene activo y visible igual que en las demás pestañas.
   useEffect(() => {
     if (isFocused && !isLargeScreen) {
-      setIsTabBarHidden(true);
-      return () => {
-        setIsTabBarHidden(false);
-      };
+      setIsTabBarHidden(false);
     }
   }, [isFocused, isLargeScreen, setIsTabBarHidden]);
 
@@ -657,25 +654,39 @@ export default function InterpreterScreenNative() {
     await AsyncStorage.setItem('cokielens_video_source', source);
   };
 
-  const updateVolume = async (newVol) => {
-    const clamped = Math.max(0, Math.min(100, Math.round(newVol)));
-    setAudioVolume(clamped);
-    audioVolumeRef.current = clamped;
+  const updateVolumeDebounceRef = useRef(null);
+
+  const persistVolume = async (vol) => {
     try {
-      await AsyncStorage.setItem('cokielens_volume', String(clamped));
+      await AsyncStorage.setItem('cokielens_volume', String(vol));
       const clean = esp32IpRef.current.replace(/^https?:\/\//, '').replace(/\/+$/, '');
       if (clean) {
-        fetch(`http://${clean}/volume?level=${clamped}`, { method: 'POST' }).catch(() => {});
+        fetch(`http://${clean}/volume?level=${vol}`, { method: 'POST' }).catch(() => {});
       }
     } catch (e) {}
   };
 
-  // ── SLIDER VERTICAL ESTILO IPHONE ─────────────────────────────────────────
+  // ── SLIDER VERTICAL ESTILO IPHONE (FLUIDO Y SIN LAG) ──────────────────────
   const handleIPhoneSliderTouch = (evt) => {
     const locationY = evt.nativeEvent.locationY;
     const totalHeight = soundCapsuleHeightRef.current || 220;
     const fillRatio = Math.max(0, Math.min(1, (totalHeight - locationY) / totalHeight));
-    updateVolume(fillRatio * 100);
+    const clamped = Math.max(0, Math.min(100, Math.round(fillRatio * 100)));
+
+    // Actualización visual inmediata en UI (60 FPS sin bloquear el hilo JS)
+    setAudioVolume(clamped);
+    audioVolumeRef.current = clamped;
+
+    // Debounce para guardar y notificar al ESP32 sin saturar la red
+    if (updateVolumeDebounceRef.current) clearTimeout(updateVolumeDebounceRef.current);
+    updateVolumeDebounceRef.current = setTimeout(() => {
+      persistVolume(clamped);
+    }, 250);
+  };
+
+  const handleIPhoneSliderRelease = () => {
+    if (updateVolumeDebounceRef.current) clearTimeout(updateVolumeDebounceRef.current);
+    persistVolume(audioVolumeRef.current || 0);
   };
 
   // Texto de la oración actual a mostrar
@@ -1068,9 +1079,11 @@ export default function InterpreterScreenNative() {
                 onMoveShouldSetResponder={() => true}
                 onResponderGrant={handleIPhoneSliderTouch}
                 onResponderMove={handleIPhoneSliderTouch}
+                onResponderRelease={handleIPhoneSliderRelease}
+                onResponderTerminate={handleIPhoneSliderRelease}
               >
                 {/* Relleno de volumen desde abajo con gradiente azul */}
-                <View style={[styles.soundFillBar, { height: `${audioVolume}%` }]}>
+                <View pointerEvents="none" style={[styles.soundFillBar, { height: `${audioVolume}%` }]}>
                   <LinearGradient
                     colors={['#426BC2', '#132472']}
                     start={{ x: 0, y: 0 }}

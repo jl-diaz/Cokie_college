@@ -41,7 +41,11 @@ export default function TabBar({ currentRoute }) {
 
   const isDesktopOrTablet = width >= 768;
 
-  let activeIndex = TABS.findIndex(t => currentRoute === t.route);
+  let activeIndex = TABS.findIndex(t => {
+    if (!currentRoute) return false;
+    const clean = currentRoute.split('?')[0].replace(/\/+$/, '');
+    return clean === t.route || clean.endsWith(t.route);
+  });
   if (activeIndex === -1) activeIndex = 0;
 
   // Ancho efectivo del floating pill bar
@@ -62,62 +66,36 @@ export default function TabBar({ currentRoute }) {
     }))
   ).current;
 
-  const prevIndexRef = useRef(activeIndex);
-
   useEffect(() => {
-    const fromIndex = prevIndexRef.current;
-    const toIndex = activeIndex;
-    prevIndexRef.current = toIndex;
+    const targetX = activeIndex * tabWidth;
 
-    const targetX = toIndex * tabWidth;
-    const isMoving = fromIndex !== toIndex;
+    // Desplazamiento elástico fluido y garantizado al destino en Android nativo y Web
+    Animated.spring(translateX, {
+      toValue: targetX,
+      friction: 7,
+      tension: 70,
+      velocity: 1.8,
+      useNativeDriver: true,
+    }).start();
 
-    if (isMoving) {
-      // Deformación líquida orgánica sutil durante el viaje
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(liquidScaleX, {
-            toValue: 1.10,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(liquidScaleY, {
-            toValue: 0.94,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.spring(liquidScaleX, {
-            toValue: 1,
-            friction: 6,
-            tension: 85,
-            useNativeDriver: true,
-          }),
-          Animated.spring(liquidScaleY, {
-            toValue: 1,
-            friction: 6,
-            tension: 85,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
-
-      // Desplazamiento elástico fluido del pill activo
-      Animated.spring(translateX, {
-        toValue: targetX,
-        friction: 7,
-        tension: 70,
-        velocity: 1.8,
+    // Deformación líquida sutil
+    Animated.sequence([
+      Animated.timing(liquidScaleX, {
+        toValue: 1.10,
+        duration: 80,
         useNativeDriver: true,
-      }).start();
-    } else {
-      translateX.setValue(targetX);
-    }
+      }),
+      Animated.spring(liquidScaleX, {
+        toValue: 1,
+        friction: 6,
+        tension: 85,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     // Resaltar icono activo
     TABS.forEach((_, i) => {
-      const isActive = i === toIndex;
+      const isActive = i === activeIndex;
       Animated.spring(tabAnims[i].scale, {
         toValue: isActive ? 1.08 : 0.96,
         friction: 6,
@@ -161,7 +139,7 @@ export default function TabBar({ currentRoute }) {
     };
   }, [currentRoute]);
 
-  if (isDesktopOrTablet || isTabBarHidden || modalCount > 0) {
+  if (isDesktopOrTablet || modalCount > 0) {
     return null;
   }
 
@@ -169,8 +147,23 @@ export default function TabBar({ currentRoute }) {
   const bottomOffset = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 16) + 12;
 
   return (
-    <View pointerEvents="box-none" style={[styles.container, { bottom: bottomOffset }]}>
-      <View style={[styles.tabBar, { width: barWidth }]}>
+    <View 
+      pointerEvents={isTabBarHidden ? "none" : "box-none"} 
+      style={[
+        styles.container, 
+        { 
+          bottom: bottomOffset,
+          opacity: isTabBarHidden ? 0 : 1,
+          transform: [{ translateY: isTabBarHidden ? 120 : 0 }]
+        }
+      ]}
+    >
+      <View 
+        style={[styles.tabBar, { width: barWidth }]}
+        onLayout={() => {
+          translateX.setValue(activeIndex * tabWidth);
+        }}
+      >
         {/* Indicador Ovalado / Cápsula Activa Deslizante contenida en la barra */}
         <Animated.View
           style={[
