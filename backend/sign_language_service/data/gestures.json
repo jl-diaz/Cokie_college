@@ -4,7 +4,7 @@
     "name": "Hola",
     "type": "movement",
     "description": "Mano abierta a la altura del hombro moviéndose lateralmente",
-    "sample_count": 14,
+    "sample_count": 15,
     "is_default": true,
     "name_es": "Hola",
     "name_en": "Hello",

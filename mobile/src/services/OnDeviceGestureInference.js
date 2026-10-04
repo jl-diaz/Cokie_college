@@ -66,7 +66,7 @@ export class OnDeviceGestureClassifier {
   }
 
   /**
-   * Clasifica un vector de características de 504 dimensiones.
+   * Clasifica un vector de características de 1512 dimensiones (12 x 126).
    * @param {number[]|Float32Array} featureVector
    * @param {number} minConfidence - Umbral mínimo (defecto: 0.65)
    * @param {number} minMargin - Margen mínimo sobre la 2da clase (defecto: 0.18)

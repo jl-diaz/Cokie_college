@@ -687,6 +687,11 @@ def train_dialect_model(epochs=40, on_progress=None):
             shutil.copyfile(MODEL_FILE, PREV_MODEL_FILE)
         model.save(MODEL_FILE, labels)
         reload_active_model()
+        try:
+            from export_model import export_model_to_json
+            export_model_to_json()
+        except Exception as e:
+            print(f"[WARN] No se pudo exportar a JSON: {e}")
         print(f"[QUALITY GATE PASSED] Modelo promovido exitosamente con Test Accuracy: {test_accuracy:.2f}%")
     else:
         print(f"[QUALITY GATE REJECTED] El modelo candidato obtuvo {test_accuracy:.2f}% (< 70%). Se conserva el modelo anterior.")

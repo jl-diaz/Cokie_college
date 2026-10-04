@@ -35,6 +35,7 @@ import {
   Video,
   VideoOff,
   RotateCcw,
+  RotateCw,
   Languages,
   Sun,
   Moon,
@@ -97,6 +98,8 @@ export default function InterpreterScreenNative() {
   const [testResult, setTestResult] = useState(null);
   const [glassesFrameUri, setGlassesFrameUri] = useState(null);
   const [audioVolume, setAudioVolume] = useState(80); // 0 a 100%
+  const [glassesRotation, setGlassesRotation] = useState(90); // 0, 90, 180, 270 (por defecto 90° para corregir montaje lateral de los lentes)
+  const [glassesContainerDim, setGlassesContainerDim] = useState({ width: 0, height: 0 });
 
   // ── REFERENCIAS Y TIMERS ──────────────────────────────────────────────────
   const cameraRef = useRef(null);
@@ -202,9 +205,24 @@ export default function InterpreterScreenNative() {
             audioVolumeRef.current = parsed;
           }
         }
+        const savedRot = await AsyncStorage.getItem('cokielens_rotation');
+        if (savedRot !== null) {
+          const parsedRot = Number(savedRot);
+          if (!isNaN(parsedRot)) {
+            setGlassesRotation(parsedRot);
+          }
+        }
       } catch (e) {}
     })();
   }, []);
+
+  const cycleGlassesRotation = () => {
+    setGlassesRotation(prev => {
+      const next = (prev + 90) % 360;
+      AsyncStorage.setItem('cokielens_rotation', String(next));
+      return next;
+    });
+  };
 
   // Al perder el foco, pausar cámara y detener voz
   useEffect(() => {
@@ -449,9 +467,7 @@ export default function InterpreterScreenNative() {
         try {
           const photo = await cameraRef.current.takePictureAsync({
             base64: true,
-            quality: 0.10,
-            skipProcessing: true,
-            fastMode: true,
+            quality: 0.15,
             shutterSound: false,
             exif: false,
           });
@@ -523,7 +539,8 @@ export default function InterpreterScreenNative() {
                   image: rawBase64,
                   platform: Platform.OS,
                   facing: 'environment',
-                  source: 'glasses'
+                  source: 'glasses',
+                  glasses_rotation: glassesRotation
                 });
               }
             }
@@ -545,13 +562,13 @@ export default function InterpreterScreenNative() {
         } finally {
           isCapturingRef.current = false;
         }
-      }, 120);
+      }, 150);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isFocused, isCameraActive, videoSource, esp32Ip]);
+  }, [isFocused, isCameraActive, videoSource, esp32Ip, glassesRotation]);
 
   function toggleCameraType() {
     setFacingMode(current => (current === 'front' ? 'back' : 'front'));
@@ -773,11 +790,31 @@ export default function InterpreterScreenNative() {
                 )
               ) : (
                 // VISTA DE LENTES COKIELENS
-                <View style={styles.glassesLiveContainer}>
+                <View 
+                  style={styles.glassesLiveContainer}
+                  onLayout={(e) => {
+                    const { width, height } = e.nativeEvent.layout;
+                    if (width > 0 && height > 0) {
+                      setGlassesContainerDim({ width, height });
+                    }
+                  }}
+                >
                   {glassesFrameUri ? (
                     <Image 
                       source={{ uri: glassesFrameUri }} 
-                      style={StyleSheet.absoluteFill} 
+                      style={[
+                        (glassesRotation === 90 || glassesRotation === 270) && glassesContainerDim.width > 0
+                          ? {
+                              width: glassesContainerDim.height,
+                              height: glassesContainerDim.width,
+                              transform: [{ rotate: `${glassesRotation}deg` }]
+                            }
+                          : {
+                              width: '100%',
+                              height: '100%',
+                              transform: glassesRotation ? [{ rotate: `${glassesRotation}deg` }] : []
+                            }
+                      ]} 
                       resizeMode="cover"
                     />
                   ) : (
@@ -790,6 +827,15 @@ export default function InterpreterScreenNative() {
                       </Text>
                     </View>
                   )}
+
+                  {/* UN SOLO CÍRCULO PARA GIRAR LA CÁMARA DE LOS LENTES (0°, 90°, 180°, 270°) */}
+                  <TouchableOpacity 
+                    onPress={cycleGlassesRotation} 
+                    style={styles.floatingFlipCircle}
+                    activeOpacity={0.7}
+                  >
+                    <RotateCw color="#FFFFFF" size={20} />
+                  </TouchableOpacity>
 
                   {/* Botón flotante para pausar cámara de lentes */}
                   <TouchableOpacity 
@@ -1157,6 +1203,41 @@ export default function InterpreterScreenNative() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+            </View>
+
+            {/* Selector de Rotación de la Cámara de los Lentes */}
+            <Text style={[styles.modalInstructionText, { marginTop: 4, marginBottom: 8, fontSize: 13, fontWeight: '600' }]}>
+              {t('interpreter.glassesRotation', 'Orientación de cámara de lentes:')}
+            </Text>
+            <View style={styles.quickRotationContainer}>
+              {[
+                { rot: 90, label: '90° (Normal)' },
+                { rot: 180, label: '180°' },
+                { rot: 270, label: '270°' },
+                { rot: 0, label: '0°' }
+              ].map(item => (
+                <TouchableOpacity
+                  key={item.rot}
+                  style={[
+                    styles.quickRotationPill,
+                    glassesRotation === item.rot && styles.quickRotationPillActive
+                  ]}
+                  onPress={() => {
+                    setGlassesRotation(item.rot);
+                    AsyncStorage.setItem('cokielens_rotation', String(item.rot));
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.quickRotationPillText,
+                      glassesRotation === item.rot && styles.quickRotationPillTextActive
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             {/* Resultado de prueba de conexión si existe */}
@@ -1704,6 +1785,42 @@ const createStyles = (Colors, isDark, insets, isLargeScreen) => StyleSheet.creat
   quickIpPillTextActive: {
     color: '#000000',
     fontWeight: '700',
+  },
+
+  // Selector de rotación de lentes
+  quickRotationContainer: {
+    flexDirection: 'row',
+    backgroundColor: isDark ? '#262626' : '#E2E8F0',
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: '#8B8B90',
+    padding: 3,
+    marginBottom: 18,
+    gap: 4,
+  },
+  quickRotationPill: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickRotationPillActive: {
+    backgroundColor: '#426BC2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  quickRotationPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: isDark ? '#94A3B8' : '#64748B',
+  },
+  quickRotationPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 
   // Input IP

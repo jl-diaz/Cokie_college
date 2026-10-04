@@ -86,7 +86,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: isDark ? Colors.background : headerBg }]}>
+    <View style={[styles.root, { backgroundColor: isDark ? Colors.background : (Colors.background || '#F8FAFC') }]}>
       <ScrollView
         style={[
           styles.scrollView,
@@ -210,11 +210,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
+    minHeight: '100%',
     paddingBottom: 85, // Calibrado para que el contenido termine justo arriba del TabBar sin espacio excesivo
   },
   headerContainer: {

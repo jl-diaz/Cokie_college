@@ -1,3 +1,20 @@
+import os
+import sys
+
+# Suprimir logs C++ ruidosos de Google MediaPipe (Clearcut telemetry, inference feedback manager, etc.)
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
+
+try:
+    _save_c_stderr = os.dup(2)
+    _devnull_fd = os.open(os.devnull, os.O_RDWR)
+    os.dup2(_devnull_fd, 2)
+    # Mantener el stream de stderr de Python activo hacia la consola para FastAPI, uvicorn y excepciones
+    sys.stderr = open(_save_c_stderr, 'w', buffering=1, encoding='utf-8', closefd=False)
+except Exception:
+    pass
+
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -5,7 +22,6 @@ import socketio
 import uvicorn
 import base64
 import io
-import os
 import asyncio
 import json
 import urllib.request
@@ -13,6 +29,7 @@ import time
 
 from isl_model import ISLModel, load_models
 import gesture_trainer
+from export_model import export_model_to_json
 
 # Inicializamos FastAPI con metadatos claros
 app = FastAPI(title="Cokie College - Sign Language & Gesture AI Service")
@@ -258,19 +275,29 @@ async def train_model_endpoint(background_tasks: BackgroundTasks):
 
     async def run_training():
         async with training_lock:
+            main_loop = asyncio.get_running_loop()
             def progress_callback(epoch, total_epochs, loss, accuracy):
-                asyncio.run(sio.emit("training_progress", {
-                    "epoch": epoch,
-                    "total_epochs": total_epochs,
-                    "loss": round(loss, 4),
-                    "accuracy": round(accuracy * 100, 1),
-                    "percent": int((epoch / total_epochs) * 100)
-                }))
+                try:
+                    asyncio.run_coroutine_threadsafe(sio.emit("training_progress", {
+                        "epoch": epoch,
+                        "total_epochs": total_epochs,
+                        "loss": round(loss, 4),
+                        "accuracy": round(accuracy * 100, 1),
+                        "percent": int((epoch / total_epochs) * 100)
+                    }), main_loop)
+                except Exception as ex:
+                    print(f"[WARN] Error emitiendo progreso Socket.IO: {ex}")
 
             await sio.emit("training_started", {"message": "Iniciando entrenamiento de IA..."})
             result = await asyncio.to_thread(gesture_trainer.train_dialect_model, 40, progress_callback)
             
             if result.get("success"):
+                if result.get("quality_gate_passed"):
+                    try:
+                        export_model_to_json()
+                    except Exception as e:
+                        print(f"[WARN] Error exportando modelo tras entrenamiento: {e}")
+
                 await sio.emit("training_completed", {
                     "success": True,
                     "quality_gate_passed": result.get("quality_gate_passed", True),

@@ -282,6 +282,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   centerLoading: {
+    flex: 1,
+    minHeight: 280,
     padding: 30,
     alignItems: 'center',
     justifyContent: 'center',

@@ -95,16 +95,45 @@ export default function GestureStudioScreen() {
   const [recordingState, setRecordingState] = useState('idle'); // 'idle' | 'countdown' | 'recording' | 'saving'
   const [countdown, setCountdown] = useState(3);
   const [recordingProgress, setRecordingProgress] = useState(0);
+  const [recordedFramesCount, setRecordedFramesCount] = useState(0);
   const [liveFrameUri, setLiveFrameUri] = useState(null);
   const recordedFramesRef = useRef([]);
   const isFetchingFrameRef = useRef(false);
   const recordingStateRef = useRef(recordingState);
+  const recordingTimeoutRef = useRef(null);
 
   // Cámara de teléfono nativa y permisos
   const [permission, requestPermission] = useCameraPermissions();
   const [facingMode, setFacingMode] = useState('front');
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [pictureSize, setPictureSize] = useState('640x480');
   const cameraRef = useRef(null);
+
+  const handleCameraReady = async () => {
+    setIsCameraReady(true);
+    try {
+      if (cameraRef.current?.getAvailablePictureSizesAsync) {
+        const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
+        if (sizes && sizes.length > 0) {
+          const preferredSizes = ['352x288', '640x480', '480x360', '320x240', 'VGA', 'CIF'];
+          let chosen = sizes.find(s => preferredSizes.includes(s));
+          if (!chosen) {
+            chosen = sizes.find(s => {
+              const parts = s.split('x');
+              if (parts.length === 2) {
+                const area = parseInt(parts[0], 10) * parseInt(parts[1], 10);
+                return area >= 70000 && area <= 350000;
+              }
+              return false;
+            }) || sizes[sizes.length - 1];
+          }
+          if (chosen) setPictureSize(chosen);
+        }
+      }
+    } catch (e) {
+      console.warn('[Camera GestureStudio] Error configurando pictureSize:', e);
+    }
+  };
 
   // Búsqueda y filtrado de dialecto escolar
   const [searchQuery, setSearchQuery] = useState('');
@@ -527,14 +556,15 @@ export default function GestureStudioScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.12,
-        skipProcessing: true,
-        fastMode: true,
+        quality: 0.18,
         shutterSound: false,
         exif: false,
       });
       return photo?.base64 || null;
     } catch (e) {
+      if (!e?.message?.includes('unmounted')) {
+        console.warn('[Camera GestureStudio] Warning capturando frame:', e?.message || e);
+      }
       return null;
     }
   };
@@ -626,8 +656,10 @@ export default function GestureStudioScreen() {
             const b64 = await getFrameBase64();
             if (b64 && isRunning && recordingStateRef.current === 'recording') {
               recordedFramesRef.current.push(b64);
+              const count = recordedFramesRef.current.length;
+              setRecordedFramesCount(count);
               setRecordingProgress(
-                Math.min(100, Math.round((recordedFramesRef.current.length / TARGET_MOVEMENT_FRAMES) * 100))
+                Math.min(100, Math.round((count / TARGET_MOVEMENT_FRAMES) * 100))
               );
             }
           } catch (e) {
@@ -636,11 +668,19 @@ export default function GestureStudioScreen() {
             isFetchingFrameRef.current = false;
           }
 
-          // Intervalo entre fotogramas (~8 FPS)
-          await new Promise(r => setTimeout(r, Platform.OS === 'web' ? 120 : 130));
+          if (recordedFramesRef.current.length >= TARGET_MOVEMENT_FRAMES) {
+            break;
+          }
+
+          // Intervalo entre fotogramas (~8-10 FPS)
+          await new Promise(r => setTimeout(r, Platform.OS === 'web' ? 100 : 110));
         }
 
         if (isRunning && recordingStateRef.current === 'recording') {
+          if (recordingTimeoutRef.current) {
+            clearTimeout(recordingTimeoutRef.current);
+            recordingTimeoutRef.current = null;
+          }
           await saveRecordedSequence();
         }
       };
@@ -708,9 +748,15 @@ export default function GestureStudioScreen() {
       if (!res?.granted) return;
     }
 
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+
     setRecordingState('countdown');
     setCountdown(3);
     recordedFramesRef.current = [];
+    setRecordedFramesCount(0);
     setRecordingProgress(0);
 
     let currentCount = 3;
@@ -723,21 +769,26 @@ export default function GestureStudioScreen() {
         // ¡Empezar a grabar!
         setRecordingState('recording');
 
-        // Temporizador de seguridad (5.5s para capturar 15 cuadros a ~8 FPS)
-        setTimeout(async () => {
+        // Watchdog de seguridad adaptativo (9.5s para capturar 15 cuadros holgadamente)
+        recordingTimeoutRef.current = setTimeout(async () => {
           if (recordingStateRef.current === 'recording') {
             await saveRecordedSequence();
           }
-        }, 5500);
+        }, 9500);
       }
     }, 1000);
   };
 
   const saveRecordedSequence = async () => {
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
+    }
+
     if (recordingStateRef.current === 'saving' || recordingStateRef.current === 'idle') return;
     setRecordingState('saving');
     try {
-      const frames = recordedFramesRef.current;
+      const frames = [...recordedFramesRef.current];
       if (frames.length < 3) {
         Alert.alert(
           t('gestureStudio.insufficientSamplesTitle', 'Muestras insuficientes'),
@@ -782,6 +833,7 @@ export default function GestureStudioScreen() {
     } finally {
       setRecordingState('idle');
       recordedFramesRef.current = [];
+      setRecordedFramesCount(0);
       setRecordingProgress(0);
     }
   };
@@ -1276,7 +1328,8 @@ export default function GestureStudioScreen() {
                         ref={cameraRef}
                         style={StyleSheet.absoluteFill}
                         facing={facingMode}
-                        onCameraReady={() => setIsCameraReady(true)}
+                        onCameraReady={handleCameraReady}
+                        pictureSize={pictureSize}
                         animateShutter={false}
                       />
                       <TouchableOpacity onPress={toggleCameraType} style={styles.floatingRotateButton}>
@@ -1335,7 +1388,7 @@ export default function GestureStudioScreen() {
                 <View style={styles.progressBarBg}>
                   <View style={[styles.progressBarFill, { width: `${recordingProgress}%` }]} />
                 </View>
-                <Text style={styles.progressCounter}>{t('gestureStudio.framesCount', { count: recordedFramesRef.current.length, target: TARGET_MOVEMENT_FRAMES, defaultValue: `${recordedFramesRef.current.length} / ${TARGET_MOVEMENT_FRAMES} fotogramas` })}</Text>
+                <Text style={styles.progressCounter}>{t('gestureStudio.framesCount', { count: recordedFramesCount, target: TARGET_MOVEMENT_FRAMES, defaultValue: `${recordedFramesCount} / ${TARGET_MOVEMENT_FRAMES} fotogramas` })}</Text>
               </View>
             )}
 

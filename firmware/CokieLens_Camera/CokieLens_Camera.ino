@@ -72,16 +72,9 @@ bool in_ap_mode = false;
 
 // ── HANDLER 1: CAPTURA INSTANTÁNEA JPEG (/capture) ─────────────────────────
 static esp_err_t capture_handler(httpd_req_t *req) {
-    camera_fb_t * fb = NULL;
-    esp_err_t res = ESP_OK;
-
-    fb = esp_camera_fb_get();
-    if (fb) {
-        esp_camera_fb_return(fb);
-    }
-    fb = esp_camera_fb_get();
-
+    camera_fb_t * fb = esp_camera_fb_get();
     if (!fb) {
+        Serial.println("[CAM ERROR] No se pudo obtener frame buffer");
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -92,8 +85,9 @@ static esp_err_t capture_handler(httpd_req_t *req) {
     httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
     httpd_resp_set_hdr(req, "Pragma", "no-cache");
     httpd_resp_set_hdr(req, "Expires", "0");
+    httpd_resp_set_hdr(req, "Connection", "close"); // Liberar socket TCP inmediatamente
 
-    res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
+    esp_err_t res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
     esp_camera_fb_return(fb);
     return res;
 }
@@ -235,11 +229,31 @@ static esp_err_t volume_handler(httpd_req_t *req) {
     return httpd_resp_send(req, json_resp, strlen(json_resp));
 }
 
+// ── UTILIDAD: DECODIFICACIÓN URL (resuelve espacios, @, !, símbolos) ──────
+String urlDecode(String str) {
+    String decoded = "";
+    char ch;
+    int len = str.length();
+    for (int i = 0; i < len; i++) {
+        if (str[i] == '+') {
+            decoded += ' ';
+        } else if (str[i] == '%' && i + 2 < len) {
+            char hex[3] = { str[i + 1], str[i + 2], '\0' };
+            ch = (char) strtol(hex, NULL, 16);
+            decoded += ch;
+            i += 2;
+        } else {
+            decoded += str[i];
+        }
+    }
+    return decoded;
+}
+
 // ── HANDLER 5: PORTAL CAUTIVO PARA GUARDAR WI-FI SIN ARDUINO IDE ───────────
 static esp_err_t wifi_portal_handler(httpd_req_t *req) {
     // Si recibe POST con el nuevo SSID y contraseña
     if (req->method == HTTP_POST) {
-        char buf[200];
+        char buf[256];
         int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
         if (ret > 0) {
             buf[ret] = '\0';
@@ -249,12 +263,20 @@ static esp_err_t wifi_portal_handler(httpd_req_t *req) {
             int s_idx = data.indexOf("ssid=");
             int p_idx = data.indexOf("&pass=");
             if (s_idx != -1 && p_idx != -1) {
-                String new_ssid = data.substring(s_idx + 5, p_idx);
-                String new_pass = data.substring(p_idx + 6);
+                String raw_ssid = data.substring(s_idx + 5, p_idx);
+                String raw_pass = data.substring(p_idx + 6);
                 
-                // Reemplazar símbolos URL
-                new_ssid.replace("+", " ");
-                new_pass.replace("+", " ");
+                int amp_idx = raw_pass.indexOf('&');
+                if (amp_idx != -1) {
+                    raw_pass = raw_pass.substring(0, amp_idx);
+                }
+                
+                String new_ssid = urlDecode(raw_ssid);
+                String new_pass = urlDecode(raw_pass);
+                new_ssid.trim();
+                new_pass.trim();
+
+                Serial.printf("[PORTAL] Guardando credenciales: SSID='%s'\n", new_ssid.c_str());
 
                 // Guardar en la memoria Flash del ESP32
                 preferences.begin("cokielens", false);
@@ -268,9 +290,21 @@ static esp_err_t wifi_portal_handler(httpd_req_t *req) {
                     "<body><h2>¡Wi-Fi Guardado Exitosamente!</h2><p>Los lentes se reiniciarán y se conectarán a tu red.</p><p>Ya puedes volver a la app Cokie College.</p></body></html>";
 
                 httpd_resp_send(req, success_html, strlen(success_html));
-                delay(1500);
+                delay(1200);
                 ESP.restart();
                 return ESP_OK;
+            }
+        }
+    }
+
+    // Escaneo rápido de redes 2.4GHz disponibles
+    int n = WiFi.scanNetworks();
+    String scan_options = "<option value=''>-- Selecciona tu red detectada --</option>";
+    if (n > 0) {
+        for (int i = 0; i < n && i < 15; ++i) {
+            String net = WiFi.SSID(i);
+            if (net.length() > 0) {
+                scan_options += "<option value='" + net + "'>" + net + " (" + String(WiFi.RSSI(i)) + " dBm)</option>";
             }
         }
     }
@@ -281,14 +315,17 @@ static esp_err_t wifi_portal_handler(httpd_req_t *req) {
     html += "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b1956;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;}";
     html += ".card{background:#13236e;padding:28px;border-radius:20px;max-width:360px;width:90%;box-shadow:0 10px 25px rgba(0,0,0,0.5);}";
     html += "h2{color:#38bdf8;margin-top:0;}label{font-size:13px;color:#94a3b8;display:block;margin:12px 0 4px;}";
-    html += "input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #334155;background:#070f38;color:#fff;font-size:15px;}";
+    html += "input,select{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #334155;background:#070f38;color:#fff;font-size:15px;}";
     html += "button{width:100%;margin-top:20px;padding:14px;border-radius:12px;border:none;background:#38bdf8;color:#0b1956;font-size:16px;font-weight:bold;cursor:pointer;}";
+    html += ".tip{font-size:12px;color:#38bdf8;background:rgba(56,189,248,0.12);padding:8px 12px;border-radius:8px;margin-top:12px;}";
     html += "</style></head><body><div class='card'>";
     html += "<h2>👓 CokieLens Wi-Fi</h2><p style='font-size:13px;color:#94a3b8;'>Conecta tus lentes a la red de tu escuela, casa o punto móvil sin usar Arduino IDE.</p>";
     html += "<form method='POST' action='/'>";
-    html += "<label>Nombre de Red Wi-Fi (SSID):</label><input type='text' name='ssid' placeholder='Ej: Mi_Casa_WiFi' required>";
+    html += "<label>Redes 2.4 GHz detectadas:</label><select onchange='if(this.value) document.getElementById(\"ssid\").value = this.value;'>" + scan_options + "</select>";
+    html += "<label>Nombre de Red Wi-Fi (SSID):</label><input type='text' id='ssid' name='ssid' placeholder='Ej: Mi_Casa_WiFi' required>";
     html += "<label>Contraseña de Wi-Fi:</label><input type='password' name='pass' placeholder='Contraseña de tu red'>";
-    html += "<button type='submit'>Guardar y Conectar</button></form></div></body></html>";
+    html += "<button type='submit'>Guardar y Conectar</button></form>";
+    html += "<p class='tip'>💡 <b>Importante:</b> Conecta el ESP32-CAM a redes de 2.4 GHz.</p></div></body></html>";
 
     httpd_resp_set_type(req, "text/html");
     return httpd_resp_send(req, html.c_str(), html.length());
@@ -309,6 +346,11 @@ void startCameraServer() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
     config.ctrl_port = 32768;
+    config.max_open_sockets = 7;
+    config.lru_purge_enable = true;      // CRUCIAL: PURGAR sockets viejos para evitar congelamientos a los 5 minutos
+    config.recv_wait_timeout = 5;
+    config.send_wait_timeout = 5;
+    config.stack_size = 8192;
 
     httpd_uri_t capture_uri = { .uri = "/capture", .method = HTTP_GET, .handler = capture_handler, .user_ctx = NULL };
     httpd_uri_t status_uri  = { .uri = "/status",  .method = HTTP_GET, .handler = status_handler,  .user_ctx = NULL };
@@ -437,17 +479,33 @@ void setup() {
     }
 
     // ── INTENTO DE CONEXIÓN A LA RED GUARDADA ────────────────────────────────
-    Serial.printf("[WIFI] Intentando conectar a '%s'...", wifi_ssid.c_str());
+    Serial.printf("[WIFI] Intentando conectar a '%s'...\n", wifi_ssid.c_str());
+    WiFi.persistent(false);
+    WiFi.disconnect(true);
+    delay(200);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
+    WiFi.setAutoReconnect(true);
+
+    if (wifi_pass.length() > 0) {
+        WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
+    } else {
+        WiFi.begin(wifi_ssid.c_str());
+    }
 
     WiFi.setSleep(false);
     esp_wifi_set_ps(WIFI_PS_NONE);
 
     int timeout = 0;
-    while (WiFi.status() != WL_CONNECTED && timeout < 24) { // 12 segundos
+    // Hasta 35 segundos (70 * 500ms) para routers domésticos/escolares con DHCP
+    while (WiFi.status() != WL_CONNECTED && timeout < 70) {
         delay(500);
         Serial.print(".");
+        // Destello corto cada segundo para indicar que está conectando
+        if (timeout % 2 == 0) {
+            digitalWrite(LED_FLASH_PIN, HIGH);
+            delay(15);
+            digitalWrite(LED_FLASH_PIN, LOW);
+        }
         timeout++;
     }
 
@@ -461,13 +519,17 @@ void setup() {
             Serial.println("[OK] mDNS activo: http://cokielens.local");
         }
 
-        digitalWrite(LED_FLASH_PIN, HIGH);
-        delay(100);
-        digitalWrite(LED_FLASH_PIN, LOW);
+        // 3 destellos confirmando conexión establecida
+        for (int i = 0; i < 3; i++) {
+            digitalWrite(LED_FLASH_PIN, HIGH);
+            delay(60);
+            digitalWrite(LED_FLASH_PIN, LOW);
+            delay(60);
+        }
 
         startCameraServer();
     } else {
-        Serial.println("\n[AVISO] No se pudo conectar al Wi-Fi guardado.");
+        Serial.println("\n[AVISO] No se pudo conectar al Wi-Fi guardado tras 35 segundos.");
         Serial.println("[AVISO] Iniciando Portal Cautivo para que configures tu Wi-Fi desde tu teléfono.");
         startCaptivePortal();
     }
@@ -478,10 +540,14 @@ void loop() {
     if (in_ap_mode) {
         dnsServer.processNextRequest();
     } else {
-        if (WiFi.status() != WL_CONNECTED) {
-            WiFi.reconnect();
-            delay(3000);
+        static unsigned long lastWifiCheck = 0;
+        if (millis() - lastWifiCheck > 10000) {
+            lastWifiCheck = millis();
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("[WIFI] Señal perdida. Intentando reconectar...");
+                WiFi.reconnect();
+            }
         }
     }
-    delay(10);
+    vTaskDelay(pdMS_TO_TICKS(10));
 }

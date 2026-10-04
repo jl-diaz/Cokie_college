@@ -1,7 +1,23 @@
+import os
+import sys
+
+# Suprimir logs C++ ruidosos de Google MediaPipe (Clearcut telemetry, inference feedback manager, etc.)
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["OPENCV_LOG_LEVEL"] = "OFF"
+
+try:
+    _save_c_stderr = os.dup(2)
+    _devnull_fd = os.open(os.devnull, os.O_RDWR)
+    os.dup2(_devnull_fd, 2)
+    # Mantener el stream de stderr de Python activo hacia la consola para FastAPI, uvicorn y excepciones
+    sys.stderr = open(_save_c_stderr, 'w', buffering=1, encoding='utf-8', closefd=False)
+except Exception:
+    pass
+
 import cv2
 import numpy as np
 import base64
-import os
 import math
 from collections import deque
 
@@ -463,16 +479,29 @@ class ISLModel:
         self.cached_pose_landmarks = None
         self.sentence_builder = SentenceBuilder(inactivity_timeout=3.5)
 
-    def normalize_camera_frame(self, image, platform="unknown", facing="front", source="phone"):
+    def normalize_camera_frame(self, image, platform="unknown", facing="front", source="phone", glasses_rotation=0):
         """
         Normaliza la orientación del fotograma para que las manos queden verticales (upright).
         En dispositivos móviles (Android / iOS) con cámara frontal o trasera sostenida en modo vertical,
-        los sensores entregan cuadros landscape (w > h) que deben rotarse para alinearse con la pantalla
-        y permitir que los algoritmos de MediaPipe y heurísticas detecten los dedos con 100% de precisión.
+        los sensores entregan cuadros landscape (w > h) que deben rotarse para alinearse con la pantalla.
+        En lentes inteligentes CokieLens montados de lado en la patilla, permite rotar 90°, 180° o 270°.
         """
         if image is None:
             return image
         h, w = image.shape[:2]
+
+        if source == 'glasses':
+            try:
+                rot = int(glasses_rotation or 0)
+            except Exception:
+                rot = 0
+            if rot == 90:
+                return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+            elif rot == 180:
+                return cv2.rotate(image, cv2.ROTATE_180)
+            elif rot == 270:
+                return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            return image
 
         # Si viene explícitamente de un teléfono móvil (Android / iOS) en landscape (w > h)
         is_mobile_phone = (platform in ('android', 'ios')) or (source == 'phone' and platform not in ('web', 'browser'))
@@ -484,7 +513,7 @@ class ISLModel:
 
         return image
 
-    def extract_landmarks_from_base64(self, base64_img, platform="unknown", facing="front", source="phone"):
+    def extract_landmarks_from_base64(self, base64_img, platform="unknown", facing="front", source="phone", glasses_rotation=0):
         """
         Extrae y retorna los puntos de la mano para visualización y para grabación
         en el Módulo Administrador. Soporta base64 plano o diccionario con metadatos.
@@ -496,12 +525,14 @@ class ISLModel:
             p = platform
             f = facing
             s = source
+            rot = glasses_rotation
 
             if isinstance(base64_img, dict):
                 encoded_data = base64_img.get("image") or base64_img.get("base64") or ""
                 p = str(base64_img.get("platform", platform)).lower()
                 f = str(base64_img.get("facing", facing)).lower()
                 s = str(base64_img.get("source", source)).lower()
+                rot = base64_img.get("glasses_rotation", glasses_rotation)
             else:
                 encoded_data = base64_img
 
@@ -510,8 +541,8 @@ class ISLModel:
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if image is None: return None
 
-            # Normalizar orientación para móviles
-            image = self.normalize_camera_frame(image, platform=p, facing=f, source=s)
+            # Normalizar orientación para móviles o lentes
+            image = self.normalize_camera_frame(image, platform=p, facing=f, source=s, glasses_rotation=rot)
 
             h, w = image.shape[:2]
             if w > 480:
@@ -522,23 +553,16 @@ class ISLModel:
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
             hand_result = self.hand_landmarker.detect(mp_image)
 
-            # Fallback de orientación inteligente: si no se detectó mano, probar 180° (si ya es portrait) o 90°
+            # Fallback de orientación inteligente: si no se detectó mano, probar 90°, 180° y 270°
             if not hand_result or not hand_result.hand_landmarks:
-                # 1. Probar rotación de 180°
-                alt_rot = cv2.rotate(image, cv2.ROTATE_180)
-                alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
-                alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
-                alt_result = self.hand_landmarker.detect(alt_mp)
-                if alt_result and alt_result.hand_landmarks:
-                    hand_result = alt_result
-                elif w > h:
-                    # 2. Si todavía estaba en landscape, probar rotación a 90°
-                    alt_rot2 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-                    alt_rgb2 = cv2.cvtColor(alt_rot2, cv2.COLOR_BGR2RGB)
-                    alt_mp2 = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb2)
-                    alt_result2 = self.hand_landmarker.detect(alt_mp2)
-                    if alt_result2 and alt_result2.hand_landmarks:
-                        hand_result = alt_result2
+                for rot_code in [cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_180, cv2.ROTATE_90_COUNTERCLOCKWISE]:
+                    alt_rot = cv2.rotate(image, rot_code)
+                    alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
+                    alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
+                    alt_result = self.hand_landmarker.detect(alt_mp)
+                    if alt_result and alt_result.hand_landmarks:
+                        hand_result = alt_result
+                        break
 
             if hand_result and hand_result.hand_landmarks:
                 vector = normalize_hand_landmarks(hand_result.hand_landmarks)
@@ -568,12 +592,14 @@ class ISLModel:
             platform = "unknown"
             facing = "front"
             source = "phone"
+            glasses_rotation = 0
 
             if isinstance(base64_img, dict):
                 encoded_data = base64_img.get("image") or base64_img.get("base64") or ""
                 platform = str(base64_img.get("platform", "unknown")).lower()
                 facing = str(base64_img.get("facing", "front")).lower()
                 source = str(base64_img.get("source", "phone")).lower()
+                glasses_rotation = base64_img.get("glasses_rotation", 0)
             else:
                 encoded_data = base64_img
 
@@ -585,8 +611,8 @@ class ISLModel:
 
             self.frame_count += 1
 
-            # Normalizar orientación en dispositivos móviles
-            image = self.normalize_camera_frame(image, platform=platform, facing=facing, source=source)
+            # Normalizar orientación en dispositivos móviles o lentes
+            image = self.normalize_camera_frame(image, platform=platform, facing=facing, source=source, glasses_rotation=glasses_rotation)
 
             # Redimensionar a resolución óptima (360px) para máxima velocidad de inferencia
             h, w = image.shape[:2]
@@ -608,23 +634,15 @@ class ISLModel:
                     hand_landmarks_list = hand_result.hand_landmarks
                 else:
                     # Fallback de orientación inteligente si el primer intento no detectó mano
-                    # Probar 180°
-                    alt_rot = cv2.rotate(image, cv2.ROTATE_180)
-                    alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
-                    alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
-                    alt_res = self.hand_landmarker.detect(alt_mp)
-                    if alt_res and alt_res.hand_landmarks:
-                        hand_landmarks_list = alt_res.hand_landmarks
-                        mp_image = alt_mp
-                    elif w > h:
-                        # Si todavía estaba en landscape, probar rotación a 90°
-                        alt_rot2 = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-                        alt_rgb2 = cv2.cvtColor(alt_rot2, cv2.COLOR_BGR2RGB)
-                        alt_mp2 = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb2)
-                        alt_res2 = self.hand_landmarker.detect(alt_mp2)
-                        if alt_res2 and alt_res2.hand_landmarks:
-                            hand_landmarks_list = alt_res2.hand_landmarks
-                            mp_image = alt_mp2
+                    for rot_code in [cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_180, cv2.ROTATE_90_COUNTERCLOCKWISE]:
+                        alt_rot = cv2.rotate(image, rot_code)
+                        alt_rgb = cv2.cvtColor(alt_rot, cv2.COLOR_BGR2RGB)
+                        alt_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=alt_rgb)
+                        alt_res = self.hand_landmarker.detect(alt_mp)
+                        if alt_res and alt_res.hand_landmarks:
+                            hand_landmarks_list = alt_res.hand_landmarks
+                            mp_image = alt_mp
+                            break
 
             # 2. Detección de torso, brazos y hombros (Pose con caché de fotogramas alternos)
             if self.pose_landmarker:
@@ -673,19 +691,19 @@ class ISLModel:
                     motion_energy = float(np.mean(np.abs(diffs)))
                     max_motion = float(np.max(np.abs(diffs)))
                     # Mano reposando / fija: bajo desplazamiento (permite micro-temblores naturales)
-                    if max_motion < 0.090 and motion_energy < 0.055:
+                    if max_motion < 0.080 and motion_energy < 0.007:
                         is_holding_static = True
                     # Mano moviéndose deliberadamente con intención
-                    elif max_motion >= 0.120 or motion_energy >= 0.080:
+                    elif max_motion >= 0.090 or motion_energy >= 0.007:
                         is_moving_dynamically = True
 
                 # Estrategia de asignación priorizada:
                 # A) Prioridad 1: Si hay una seña estática geométrica (Alfabeto A-Z, números, Te quiero),
-                # asignarla inmediatamente a menos que haya un movimiento dinámico muy brusco
-                if static_candidate and (is_holding_static or not is_moving_dynamically or motion_energy < 0.085):
+                # asignarla si la mano está quieta o no hay movimiento dinámico deliberado
+                if static_candidate and (is_holding_static or not is_moving_dynamically or motion_energy < 0.007):
                     current_prediction = static_candidate
 
-                # B) Evaluar modelo neuronal aprendido SOLO si no hay seña estática y hay movimiento deliberado
+                # B) Evaluar modelo neuronal aprendido SOLO si no hay seña estática o hay movimiento dinámico
                 if current_prediction is None and len(self.sequence_buffer) >= 8:
                     active_model = gesture_trainer.get_active_model()
                     if active_model:
@@ -694,18 +712,18 @@ class ISLModel:
                             pred_label, confidence, margin = active_model.predict_with_margin(feats)
                             gesture_type = gesture_trainer.get_gesture_type(pred_label)
 
-                            # COMPUERTA ESTRICTA DE MOVIMIENTO:
-                            # 1. Si la seña es de movimiento ('j', 'como_estan', 'hola', etc.), la mano DEBE moverse activamente
-                            # 2. Si la mano no tiene movimiento real, queda terminantemente PROHIBIDA
+                            # COMPUERTA DE MOVIMIENTO CALIBRADA:
+                            # 1. Si la seña es de movimiento ('hola', 'gracias', 'por_favor', 'si', etc.),
+                            # la mano debe presentar movimiento observable
                             valid_motion = False
                             if gesture_type == "movement":
-                                valid_motion = is_moving_dynamically and motion_energy >= 0.080 and max_motion >= 0.110
+                                valid_motion = is_moving_dynamically and (motion_energy >= 0.006 or max_motion >= 0.080)
                             elif gesture_type == "static":
                                 valid_motion = is_holding_static or not is_moving_dynamically
 
-                            # Umbral de confianza estricto (Anti-Random)
-                            min_conf = 0.85 if is_moving_dynamically else 0.90
-                            min_margin = 0.25
+                            # Umbral de confianza adaptativo
+                            min_conf = 0.70 if is_moving_dynamically else 0.80
+                            min_margin = 0.15
 
                             if valid_motion and pred_label and confidence >= min_conf and margin >= min_margin:
                                 info = gesture_trainer.get_gesture_display_info(pred_label)

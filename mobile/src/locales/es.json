@@ -874,6 +874,7 @@
     "previousSubtitles": "Anterior: {{history}}",
     "configGlassesTitle": "Configurar Lentes CokieLens",
     "configGlassesInstruction": "Ingresa la dirección IP de tu ESP32-CAM o elige una opción rápida:",
+    "glassesRotation": "Orientación de cámara de lentes:",
     "wifiApLabel": "Wi-Fi de Lentes (AP)",
     "mdnsLocalLabel": "mDNS Local",
     "testConnectionBtn": "Probar Conexión",

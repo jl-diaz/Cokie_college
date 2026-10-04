@@ -874,6 +874,7 @@
     "previousSubtitles": "Previous: {{history}}",
     "configGlassesTitle": "Configure CokieLens Glasses",
     "configGlassesInstruction": "Enter your ESP32-CAM IP address or choose a quick option:",
+    "glassesRotation": "Glasses camera orientation:",
     "wifiApLabel": "Glasses Wi-Fi (AP)",
     "mdnsLocalLabel": "Local mDNS",
     "testConnectionBtn": "Test Connection",
